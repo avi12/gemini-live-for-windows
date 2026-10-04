@@ -1,0 +1,86 @@
+<Window x:Class="GeminiLive.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Gemini Live" WindowStyle="None" ResizeMode="NoResize" SizeToContent="Height" Width="360"
+        Topmost="True" ShowInTaskbar="False" ShowActivated="False" Background="Transparent"
+        FontFamily="Segoe UI Variable Text, Segoe UI" Foreground="{DynamicResource TextBrush}">
+
+    <!-- DWM paints acrylic behind the whole client area (see Theme.Acrylic), like the Win+H flyout. -->
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="0" GlassFrameThickness="-1" ResizeBorderThickness="0" UseAeroCaptionButtons="False" />
+    </WindowChrome.WindowChrome>
+
+    <Grid Margin="4,4,4,16" MouseLeftButtonDown="OnDrag">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Title row: settings left, close right. -->
+        <Grid Grid.Row="0">
+            <Button x:Name="SettingsButton" Style="{StaticResource ChromeButton}" Content="&#xE713;"
+                    HorizontalAlignment="Left" ToolTip="Settings" Click="OnSettings" />
+            <TextBlock Text="Gemini Live" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"
+                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+            <Button Style="{StaticResource ChromeButton}" Content="&#xE8BB;" HorizontalAlignment="Right"
+                    ToolTip="End (Win+C)" Click="OnEnd" />
+        </Grid>
+
+        <!-- The mic: accent-filled and breathing while Gemini listens; outlined when muted. -->
+        <Grid Grid.Row="1" Width="88" Height="88" Margin="0,4,0,0" HorizontalAlignment="Center">
+            <Ellipse x:Name="Pulse" Fill="{DynamicResource AccentBrush}" Opacity="0.25" RenderTransformOrigin="0.5,0.5">
+                <Ellipse.RenderTransform>
+                    <ScaleTransform x:Name="PulseScale" ScaleX="0.7" ScaleY="0.7" />
+                </Ellipse.RenderTransform>
+            </Ellipse>
+            <Button x:Name="MicButton" Width="56" Height="56" Click="OnMute" Focusable="False" Cursor="Hand"
+                    ToolTip="Mute microphone">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <Ellipse x:Name="Disc" Fill="{DynamicResource AccentBrush}" />
+                            <TextBlock x:Name="Glyph" Text="&#xE720;" FontFamily="{StaticResource IconFont}" FontSize="22"
+                                       Foreground="{DynamicResource OnAccentBrush}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="Tag" Value="muted">
+                                <Setter TargetName="Disc" Property="Fill" Value="{DynamicResource SubtleHoverBrush}" />
+                                <Setter TargetName="Disc" Property="Stroke" Value="{DynamicResource StrokeBrush}" />
+                                <Setter TargetName="Glyph" Property="Text" Value="&#xEC54;" />
+                                <Setter TargetName="Glyph" Property="Foreground" Value="{DynamicResource TextBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Disc" Property="Opacity" Value="0.9" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
+        </Grid>
+
+        <TextBlock x:Name="StatusText" Grid.Row="2" Text="Connecting…" FontSize="14" FontWeight="SemiBold"
+                   HorizontalAlignment="Center" Margin="0,6,0,0" />
+
+        <TextBlock x:Name="Caption" Grid.Row="3" Text="" FontSize="13" TextWrapping="Wrap" TextAlignment="Center"
+                   MaxHeight="58" TextTrimming="CharacterEllipsis" Margin="16,4,16,0"
+                   Foreground="{DynamicResource SecondaryTextBrush}" />
+
+        <!-- Which display Gemini sees. Only shown with more than one monitor. -->
+        <StackPanel x:Name="MonitorPicker" Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center"
+                    Margin="0,12,0,0" ToolTip="Display Gemini can see" />
+
+        <!-- API-key engine, first run only. -->
+        <StackPanel x:Name="KeyPanel" Grid.Row="4" Visibility="Collapsed" Margin="16,12,16,0">
+            <TextBlock FontSize="12" TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}">
+                Paste a Gemini API key (free at
+                <Hyperlink NavigateUri="https://aistudio.google.com/apikey" RequestNavigate="OnLink">aistudio.google.com/apikey</Hyperlink>),
+                then press Enter.
+            </TextBlock>
+            <PasswordBox x:Name="KeyBox" Margin="0,6,0,0" KeyDown="OnKeyBoxKeyDown" />
+        </StackPanel>
+    </Grid>
+</Window>
