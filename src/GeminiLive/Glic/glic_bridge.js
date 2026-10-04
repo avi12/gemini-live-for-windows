@@ -280,7 +280,8 @@
     clearInterval(goLiveTimer);
     let tries = 0;
     goLiveTimer = setInterval(() => {
-      if (!active) return clearInterval(goLiveTimer);
+      // No usable session: stop quietly. The host waits for the browser's session and reloads us.
+      if (!active || unavailableReported) return clearInterval(goLiveTimer);
       if (!booted) tryBootstrap();
       if (button("Pause live mode")) {
         clearInterval(goLiveTimer);
