@@ -1,8 +1,6 @@
 using System.Reflection;
-using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Windows;
-using System.Windows.Controls;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
 
@@ -12,25 +10,26 @@ namespace GeminiLive.Glic;
 /// Hosts the real Gemini web client (gemini.google.com/glic - what powers Gemini in Chrome) in a
 /// WebView2 that lives off-screen for the whole app lifetime, so Win+C starts Live without a page
 /// load. The page owns mic, echo cancellation, the Live connection and Gemini's voice; we supply
-/// the screen frames it pulls and read back state + captions. It only comes on-screen to let you
-/// sign in to Google.
+/// the screen frames it pulls and read back state + captions.
+///
+/// It is signed in with your browser's Google session, pushed by the companion extension through
+/// <see cref="SessionLink"/>. The browser is the only owner of that session: this WebView2 never
+/// rotates the cookies itself (RotateCookies is blocked), it just takes each rotation the browser
+/// makes - otherwise the two copies would invalidate each other.
 /// </summary>
 public sealed class GlicHost : Window
 {
     const string GlicUrl = "https://gemini.google.com/glic";
-    const string SignInUrl = "https://accounts.google.com/ServiceLogin?continue=" + GlicUrl;
+    const string RotateCookiesFilter = "https://accounts.google.com/RotateCookies*";
     static readonly string Profile = Path.Combine(Log.Dir, "WebView2");
-    static bool Debugging => Log.Debugging;
 
     readonly WebView2 _web = new();
-    readonly TextBlock _banner = new()
-    {
-        Text = "Sign in to Google for Gemini Live. This window closes by itself when you're done.",
-        Padding = new Thickness(12, 8, 12, 8), FontSize = 13,
-    };
+    readonly SessionLink _link;
     readonly IntPtr _hwnd;
     TaskCompletionSource? _ready;
-    bool _booted, _signingIn, _reauthTried, _signInPending;
+    IReadOnlyList<GoogleCookie> _session = [];
+    string _sessionPrint = "";
+    bool _booted, _unavailable;
 
     /// <summary>Which display the frames come from.</summary>
     public MonitorInfo Monitor { get; set; } = Monitors.All()[0];
@@ -38,24 +37,21 @@ public sealed class GlicHost : Window
 
     public event Action<string>? State;               // listening | paused | idle
     public event Action<string, bool, int>? Caption;  // text, isUser, utterance index
+    public event Action<string>? Notice;              // waiting-for-session style status, not fatal
     public event Action<string>? Failed;
-    public event Action? SignInNeeded;
 
-    public GlicHost()
+    public GlicHost(SessionLink link)
     {
-        Title = "Gemini Live - Google sign-in";
+        _link = link;
+        Title = "Gemini Live - web client";
         Width = 900; Height = 720;
         ShowInTaskbar = false;
         ShowActivated = false;
         WindowStartupLocation = WindowStartupLocation.Manual;
-        var dock = new DockPanel();
-        DockPanel.SetDock(_banner, Dock.Top);
-        _banner.Visibility = Visibility.Collapsed;
-        dock.Children.Add(_banner);
-        dock.Children.Add(_web);
-        Content = dock;
+        Content = _web;
         _hwnd = new System.Windows.Interop.WindowInteropHelper(this).EnsureHandle();
-        Closing += (_, e) => { e.Cancel = true; Park(); }; // closing the sign-in window just hides it
+        Closing += (_, e) => { e.Cancel = true; Park(); };
+        link.CookiesReceived += cookies => Dispatcher.BeginInvoke(() => AdoptSession(cookies));
     }
 
     /// <summary>Boots WebView2 and loads Gemini. Called once at app start so Win+C is instant later.</summary>
@@ -69,30 +65,35 @@ public sealed class GlicHost : Window
             _web.Loaded += (_, _) => loaded.TrySetResult();
             await loaded.Task;
         }
+
         // Parked off-screen reads as "occluded" to Chromium, which would throttle the page's timers;
         // Gemini's voice must also play without a click inside the page.
         var options = new CoreWebView2EnvironmentOptions(
             "--autoplay-policy=no-user-gesture-required --disable-features=CalculateNativeWinOcclusion " +
             "--disable-background-timer-throttling --disable-renderer-backgrounding" +
-            (Debugging ? " --remote-debugging-port=9333" : ""));
+            (Log.Debugging ? " --remote-debugging-port=9333" : ""));
         var env = await CoreWebView2Environment.CreateAsync(null, Profile, options);
         await _web.EnsureCoreWebView2Async(env);
         var core = _web.CoreWebView2;
 
-        core.Settings.AreDevToolsEnabled = Debugging;
+        core.Settings.AreDevToolsEnabled = Log.Debugging;
         core.Settings.IsStatusBarEnabled = false;
         // A parked window can never show a permission prompt, so grant the mic up front.
         core.PermissionRequested += (_, e) =>
         {
             if (e.PermissionKind is CoreWebView2PermissionKind.Microphone) e.State = CoreWebView2PermissionState.Allow;
         };
+        // The browser owns cookie rotation; see the class comment.
+        core.AddWebResourceRequestedFilter(RotateCookiesFilter, CoreWebView2WebResourceContext.All);
+        core.WebResourceRequested += (_, e) =>
+            e.Response = env.CreateWebResourceResponse(null, 204, "No Content", "");
         core.WebMessageReceived += OnMessage;
-        core.NavigationCompleted += (_, _) => OnNavigated();
         await core.AddScriptToExecuteOnDocumentCreatedAsync(BridgeScript());
 
-        if (!await GoogleCookies.IsSignedInAsync(core.CookieManager))
-            GoogleCookies.ImportFromAgenticGamingAssistant(core.CookieManager);
-
+        _session = GoogleCookies.Load();
+        _sessionPrint = GoogleCookies.Fingerprint(_session);
+        GoogleCookies.Inject(core.CookieManager, _session);
+        Log.Write($"glic: {_session.Count} saved Google cookies, extension connected={_link.IsExtensionConnected}");
         core.Navigate(GlicUrl);
     }
 
@@ -102,6 +103,27 @@ public sealed class GlicHost : Window
         return new StreamReader(s).ReadToEnd();
     }
 
+    // ---- the browser's Google session ----
+
+    void AdoptSession(IReadOnlyList<GoogleCookie> cookies)
+    {
+        var print = GoogleCookies.Fingerprint(cookies);
+        if (print == _sessionPrint) return;
+        _session = cookies;
+        _sessionPrint = print;
+        GoogleCookies.Save(cookies);
+        if (_web.CoreWebView2 is not { } core) return; // WarmUpAsync injects the saved copy
+
+        GoogleCookies.Inject(core.CookieManager, cookies);
+        Log.Write("glic: session updated from the browser");
+        // A page that loaded without a valid session has to start over with this one.
+        if (!_booted || _unavailable)
+        {
+            _unavailable = false;
+            core.Navigate(GlicUrl);
+        }
+    }
+
     // ---- session control ----
 
     /// <summary>Starts Live; completes once Gemini is actually listening.</summary>
@@ -109,7 +131,7 @@ public sealed class GlicHost : Window
     {
         Active = true;
         _ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        if (_signInPending) BeginSignIn();
+        if (_unavailable || !GoogleCookies.HasSession(_session)) WaitForSession();
         else if (_booted) _ = Eval("window.__glicBridge && window.__glicBridge.start()");
         // else: OnMessage("booted") starts it as soon as the page is up.
         return _ready.Task;
@@ -126,6 +148,16 @@ public sealed class GlicHost : Window
 
     Task Eval(string js) => _web.CoreWebView2 is { } core ? core.ExecuteScriptAsync(js) : Task.CompletedTask;
 
+    /// <summary>No usable session yet: say why, and ask the extension for a fresh one.</summary>
+    void WaitForSession()
+    {
+        if (!Active) return;
+        Notice?.Invoke(_link.IsExtensionConnected
+            ? "Sign in to Google in your browser - Gemini Live picks it up automatically"
+            : "Waiting for the Gemini Live browser extension (see README)");
+        _link.RequestCookies();
+    }
+
     // ---- messages from the page ----
 
     void OnMessage(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
@@ -140,8 +172,7 @@ public sealed class GlicHost : Window
             case "booted":
                 _booted = true;
                 Log.Write("glic: host adopted");
-                if (_signingIn) EndSignIn();
-                if (Active) _ = Eval("window.__glicBridge.start()");
+                if (Active && !_unavailable) _ = Eval("window.__glicBridge.start()");
                 break;
             case "ready":
                 Log.Write("glic: live");
@@ -156,9 +187,8 @@ public sealed class GlicHost : Window
             case "error":
                 var message = m["message"]?.GetValue<string>() ?? "Gemini error";
                 Log.Write($"glic error: {message}");
-                if (message == "signed-out") BeginSignIn();
-                // Usually a stale session: re-authenticating fixes it. Only try that once per run.
-                else if (message == "unavailable" && !_reauthTried) { _reauthTried = true; BeginSignIn(); }
+                // Signed out or a stale session: wait for the browser's current one.
+                if (message is "signed-out" or "unavailable") { _unavailable = true; WaitForSession(); }
                 else if (Active) { _ready?.TrySetException(new InvalidOperationException(message)); Failed?.Invoke(message); }
                 break;
         }
@@ -183,43 +213,6 @@ public sealed class GlicHost : Window
             };
             _web.CoreWebView2?.PostWebMessageAsJson(reply.ToJsonString());
         }, TaskScheduler.FromCurrentSynchronizationContext());
-    }
-
-    // ---- sign-in ----
-
-    void OnNavigated()
-    {
-        var host = new Uri(_web.CoreWebView2.Source).Host;
-        Log.Write($"glic: at {host}");
-        if (host == "accounts.google.com") BeginSignIn();
-    }
-
-    void BeginSignIn()
-    {
-        // Never pop a sign-in window on our own during warm-up; wait for the user's Win+C.
-        if (!Active) { _signInPending = true; return; }
-        _signInPending = false;
-        if (_signingIn) return;
-        _signingIn = true;
-        _booted = false;
-        Log.Write("glic: needs Google sign-in");
-        SignInNeeded?.Invoke();
-        if (new Uri(_web.CoreWebView2.Source).Host != "accounts.google.com") _web.CoreWebView2.Navigate(SignInUrl);
-
-        // Bring it on-screen, centred on the display the user is looking at.
-        _banner.Visibility = Visibility.Visible;
-        var m = Monitors.Active();
-        Overlay.Place(_hwnd, m.X + (m.Width - 900) / 2, m.Y + (m.Height - 760) / 2, 900, 760);
-        Native.SetForegroundWindow(_hwnd);
-        Activate();
-    }
-
-    void EndSignIn()
-    {
-        _signingIn = false;
-        _banner.Visibility = Visibility.Collapsed;
-        Park();
-        Log.Write("glic: signed in");
     }
 
     /// <summary>Off-screen but "shown", so Chromium keeps the page running at full speed.</summary>

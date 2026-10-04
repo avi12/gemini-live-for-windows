@@ -21,7 +21,7 @@ public sealed class GlicConversation : ILiveEngine
         host.State += OnState;
         host.Caption += OnCaption;
         host.Failed += OnFailed;
-        host.SignInNeeded += OnSignIn;
+        host.Notice += OnNotice;
     }
 
     public MonitorInfo Monitor => _host.Monitor;
@@ -34,8 +34,8 @@ public sealed class GlicConversation : ILiveEngine
 
     public void Share(MonitorInfo monitor) => _host.Monitor = monitor;
 
-    // No timeout here: the page reports its own start failure, and a first-time Google sign-in
-    // can legitimately take minutes.
+    // No timeout here: the page reports its own start failure, and waiting for the browser's
+    // Google session (extension not yet connected, user signing in) can legitimately take a while.
     public Task StartAsync() => _host.StartAsync();
 
     void OnState(string state) => Status?.Invoke(state switch
@@ -47,14 +47,14 @@ public sealed class GlicConversation : ILiveEngine
 
     void OnCaption(string text, bool isUser, int _) => Transcript?.Invoke(text, isUser);
     void OnFailed(string message) => Ended?.Invoke(message);
-    void OnSignIn() => Status?.Invoke("Sign in to Google in the window that opened");
+    void OnNotice(string notice) => Status?.Invoke(notice);
 
     public ValueTask DisposeAsync()
     {
         _host.State -= OnState;
         _host.Caption -= OnCaption;
         _host.Failed -= OnFailed;
-        _host.SignInNeeded -= OnSignIn;
+        _host.Notice -= OnNotice;
         _host.Stop();
         return ValueTask.CompletedTask;
     }

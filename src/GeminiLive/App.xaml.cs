@@ -28,7 +28,9 @@ public partial class App : Application
         DispatcherUnhandledException += (_, ex) => { Log.Write($"unhandled: {ex.Exception}"); ex.Handled = true; };
 
         // Load Gemini now, so pressing Win+C later doesn't wait for a page load.
-        var glic = new Glic.GlicHost();
+        var link = new Glic.SessionLink();
+        link.Start();
+        var glic = new Glic.GlicHost(link);
         _ = glic.WarmUpAsync().ContinueWith(t => Log.Write($"warm-up failed: {t.Exception}"), TaskContinuationOptions.OnlyOnFaulted);
         var pill = new MainWindow(glic);
         CopilotKey.RegisterFastPath(pill.Handle, pill.OnTrigger);
