@@ -39,6 +39,8 @@ public sealed class GlicHost : Window
     public event Action<string, bool, int>? Caption;  // text, isUser, utterance index
     public event Action<string>? Notice;              // waiting-for-session style status, not fatal
     public event Action<string>? Failed;
+    /// <summary>True while a session is wanted but the companion extension has never connected.</summary>
+    public event Action<bool>? ExtensionNeeded;
 
     public GlicHost(SessionLink link)
     {
@@ -52,6 +54,7 @@ public sealed class GlicHost : Window
         _hwnd = new System.Windows.Interop.WindowInteropHelper(this).EnsureHandle();
         Closing += (_, e) => { e.Cancel = true; Park(); };
         link.CookiesReceived += cookies => Dispatcher.BeginInvoke(() => AdoptSession(cookies));
+        link.Connected += () => Dispatcher.BeginInvoke(() => ExtensionNeeded?.Invoke(false));
     }
 
     /// <summary>Boots WebView2 and loads Gemini. Called once at app start so Win+C is instant later.</summary>
@@ -152,9 +155,9 @@ public sealed class GlicHost : Window
     void WaitForSession()
     {
         if (!Active) return;
-        Notice?.Invoke(_link.IsExtensionConnected
-            ? "Sign in to Google in your browser - Gemini Live picks it up automatically"
-            : "Waiting for the Gemini Live browser extension (see README)");
+        var connected = _link.IsExtensionConnected;
+        Notice?.Invoke(connected ? "Sign in to Google in your browser" : "One-time setup");
+        ExtensionNeeded?.Invoke(!connected);
         _link.RequestCookies();
     }
 

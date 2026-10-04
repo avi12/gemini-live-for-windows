@@ -22,6 +22,7 @@ public sealed class SessionLink
     readonly object _gate = new();
 
     public event Action<IReadOnlyList<GoogleCookie>>? CookiesReceived;
+    public event Action? Connected;
 
     public bool IsExtensionConnected { get { lock (_gate) return _clients.Count > 0; } }
 
@@ -70,6 +71,7 @@ public sealed class SessionLink
         using var socket = WebSocket.CreateFromStream(stream, isServer: true, subProtocol: null, keepAliveInterval: TimeSpan.Zero);
         lock (_gate) _clients.Add(socket);
         Log.Write("session link: extension connected");
+        Connected?.Invoke();
         try
         {
             while (socket.State == WebSocketState.Open)

@@ -28,6 +28,12 @@ public partial class MainWindow : Window
         InitializeComponent();
         Handle = Overlay.Prepare(this, clickThrough: false);
         HwndSource.FromHwnd(Handle).CompositionTarget.BackgroundColor = Colors.Transparent;
+        glic.ExtensionNeeded += needed =>
+        {
+            ConnectPanel.Visibility = needed ? Visibility.Visible : Visibility.Collapsed;
+            MonitorPicker.Visibility = needed || Monitors.All().Count < 2 ? Visibility.Collapsed : Visibility.Visible;
+            if (!needed) ConnectSteps.Visibility = Visibility.Collapsed;
+        };
         Theme.Acrylic(Handle);
         BuildMenu();
     }
@@ -117,6 +123,7 @@ public partial class MainWindow : Window
     void ShowOn(MonitorInfo monitor)
     {
         KeyPanel.Visibility = Visibility.Collapsed;
+        ConnectPanel.Visibility = Visibility.Collapsed;
         MonitorPicker.Children.Clear();
         var all = Monitors.All();
         MonitorPicker.Visibility = all.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
@@ -192,6 +199,12 @@ public partial class MainWindow : Window
         MicButton.Tag = muted ? "muted" : null;
         MicButton.ToolTip = muted ? "Unmute microphone" : "Mute microphone";
         Pulse.Visibility = muted ? Visibility.Hidden : Visibility.Visible;
+    }
+
+    void OnConnect(object sender, RoutedEventArgs e)
+    {
+        Glic.ExtensionSetup.Begin();
+        ConnectSteps.Visibility = Visibility.Visible;
     }
 
     void OnMute(object sender, RoutedEventArgs e) => SetMuted(!(_conversation?.Muted ?? false));

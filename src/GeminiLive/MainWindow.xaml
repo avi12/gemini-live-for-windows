@@ -73,6 +73,17 @@
         <StackPanel x:Name="MonitorPicker" Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center"
                     Margin="0,12,0,0" ToolTip="Display Gemini can see" />
 
+        <!-- Google engine, first run only: one click to hand the browser our extension. -->
+        <StackPanel x:Name="ConnectPanel" Grid.Row="4" Visibility="Collapsed" Margin="16,12,16,0">
+            <Button Content="Connect Google account" Click="OnConnect" HorizontalAlignment="Center"
+                    Style="{StaticResource AccentButton}" />
+            <TextBlock x:Name="ConnectSteps" Visibility="Collapsed" Margin="0,10,0,0" FontSize="12" TextWrapping="Wrap"
+                       Foreground="{DynamicResource SecondaryTextBrush}">
+                In the extensions page that opened: turn on Developer mode, click Load unpacked, and paste the
+                folder path (it's on your clipboard). Gemini Live continues by itself.
+            </TextBlock>
+        </StackPanel>
+
         <!-- API-key engine, first run only. -->
         <StackPanel x:Name="KeyPanel" Grid.Row="4" Visibility="Collapsed" Margin="16,12,16,0">
             <TextBlock FontSize="12" TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}">

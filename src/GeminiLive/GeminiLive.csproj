@@ -21,6 +21,8 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Glic\glic_bridge.js" LogicalName="GeminiLive.Glic.glic_bridge.js" />
+    <!-- The companion extension ships with the app; ExtensionSetup copies it out for the browser. -->
+    <Content Include="..\..\extension\**\*" Link="extension\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
