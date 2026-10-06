@@ -7,7 +7,10 @@ using System.Text.Json;
 
 namespace GeminiLive.Glic;
 
-/// <summary>Every message type on the link, both directions (MessageType in link.ts).</summary>
+/// <summary>
+/// Every message type on the link, both directions (MessageType in link.ts). The wire value is
+/// <see cref="WireName"/>'s lower-cased name: "query", "refresh", …
+/// </summary>
 public enum LinkMessageType {
   Cookies,  // extension → app: the current Google cookies
   Query,    // app → extension: send the cookies now
@@ -126,7 +129,7 @@ public sealed class SessionLink {
 
   private void Handle(string message) {
     using JsonDocument doc = JsonDocument.Parse(message);
-    if (doc.RootElement.GetProperty("type").GetString() != Wire(LinkMessageType.Cookies)) {
+    if (doc.RootElement.GetProperty("type").GetString() != WireName.Of(LinkMessageType.Cookies)) {
       return;
     }
     List<GoogleCookie> cookies = GoogleCookies.Parse(doc.RootElement.GetProperty("cookies"));
@@ -141,11 +144,8 @@ public sealed class SessionLink {
     }
   }
 
-  // The wire value is the lower-cased name: "query", "refresh", … (MessageType in link.ts).
-  private static string Wire(LinkMessageType type) => type.ToString().ToLowerInvariant();
-
   private void Send(LinkMessageType type) {
-    Broadcast(JsonSerializer.Serialize(new { type = Wire(type) }));
+    Broadcast(JsonSerializer.Serialize(new { type = WireName.Of(type) }));
   }
 
   private void Broadcast(string json) {

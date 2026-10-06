@@ -74,8 +74,8 @@ public sealed partial class GlicConversation : ILiveEngine {
     return ValueTask.CompletedTask;
   }
 
-  private void OnState(string state) {
-    Status?.Invoke(state == "listening" ? LiveStatus.Listening : LiveStatus.Resuming);
+  private void OnState(GlicState state) {
+    Status?.Invoke(state == GlicState.Listening ? LiveStatus.Listening : LiveStatus.Resuming);
   }
 
   // Glic's captions are markdown source ("17\.3"); show them as the words that were spoken.

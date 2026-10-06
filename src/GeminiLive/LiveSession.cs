@@ -32,6 +32,9 @@ public sealed class LiveSession : IAsyncDisposable {
   private static readonly TimeSpan _keepAlive = TimeSpan.FromSeconds(20);
   private static readonly TimeSpan _closeTimeout = TimeSpan.FromSeconds(1);
 
+  /// <summary>The realtimeInput streams we send; the wire field is <see cref="WireName"/>'s.</summary>
+  private enum RealtimeInput { Audio, Video }
+
   private readonly Settings _settings;
   private readonly Channel<string> _outbox = Channel.CreateBounded<string>(
       new BoundedChannelOptions(256) {
@@ -57,11 +60,11 @@ public sealed class LiveSession : IAsyncDisposable {
   // ---- upstream: realtime input ----
 
   public void SendAudio(byte[] pcm16) {
-    Enqueue("audio", _audioMimeType, pcm16);
+    Enqueue(RealtimeInput.Audio, _audioMimeType, pcm16);
   }
 
   public void SendFrame(byte[] jpeg) {
-    Enqueue("video", ScreenGrabber.MimeType, jpeg);
+    Enqueue(RealtimeInput.Video, ScreenGrabber.MimeType, jpeg);
   }
 
   public async ValueTask DisposeAsync() {
@@ -124,10 +127,10 @@ public sealed class LiveSession : IAsyncDisposable {
     return new JsonObject { ["setup"] = setup }.ToJsonString();
   }
 
-  private void Enqueue(string kind, string mimeType, byte[] data) {
+  private void Enqueue(RealtimeInput kind, string mimeType, byte[] data) {
     // Built by hand: this runs 25 times a second for audio alone.
     _outbox.Writer.TryWrite(
-        "{\"realtimeInput\":{\"" + kind + "\":{\"mimeType\":\"" + mimeType + "\",\"data\":\""
+        "{\"realtimeInput\":{\"" + WireName.Of(kind) + "\":{\"mimeType\":\"" + mimeType + "\",\"data\":\""
         + Convert.ToBase64String(data) + "\"}}}");
   }
 

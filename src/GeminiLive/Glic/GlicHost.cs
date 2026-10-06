@@ -6,6 +6,9 @@ using Microsoft.Web.WebView2.Wpf;
 
 namespace GeminiLive.Glic;
 
+/// <summary>The Live states the page reports (State in glic_bridge.js).</summary>
+public enum GlicState { Idle, Listening, Resuming }
+
 /// <summary>
 /// Hosts the real Gemini web client (gemini.google.com/glic - what powers Gemini in Chrome) in a
 /// WebView2 that lives off-screen for the whole app lifetime, so Win+C starts Live without a page
@@ -18,7 +21,7 @@ namespace GeminiLive.Glic;
 /// makes - otherwise the two copies would invalidate each other.
 /// </summary>
 public sealed class GlicHost : Window {
-  public event Action<string>? State;  // listening | resuming | idle
+  public event Action<GlicState>? State;
   public event Action<string, bool, int>? Caption;  // text, isUser, utterance index
   public event Action<string>? Notice;  // waiting-for-session style status, not fatal
   public event Action<string>? Failed;
@@ -30,6 +33,8 @@ public sealed class GlicHost : Window {
   private const string _glicUrl = "https://gemini.google.com/glic";
   private const string _rotateCookiesFilter = "https://accounts.google.com/RotateCookies*";
   private const string _bridgeResource = "GeminiLive.Glic.glic_bridge.js";
+  private const string _bridge = "window.__glicBridge";  // the object glic_bridge.js installs
+  private const string _dispatchKeyEvent = "Input.dispatchKeyEvent";
   private const int _pageWidth = 900;
   private const int _pageHeight = 720;
   private const int _parkedAt = -32000;
@@ -65,6 +70,23 @@ public sealed class GlicHost : Window {
         ["signed-out"] = PageError.SignedOut,
         ["unavailable"] = PageError.Unavailable,
       };
+
+  /// <summary>
+  /// Message kinds on the WebView2 channel, both directions (Kind in glic_bridge.js). The wire
+  /// value is <see cref="WireName"/>'s lower-cased name.
+  /// </summary>
+  private enum PageMessageKind { Booted, Capture, Error, Frame, Ready, State, Transcript }
+
+  /// <summary>Who spoke a transcript line (Direction in glic_bridge.js).</summary>
+  private enum TranscriptDirection { User, Assistant }
+
+  /// <summary>The waiting-for-session lines <see cref="Notice"/> shows.</summary>
+  private static class SessionNotice {
+    public const string Refreshing = "Refreshing your Google session…";
+    public const string SignIn = "Sign in to Google in your browser";
+    public const string WaitingForBrowser = "Waiting for your browser…";
+    public const string Setup = "One-time setup";
+  }
 
   public GlicHost(SessionLink link) {
     _link = link;
@@ -132,7 +154,7 @@ public sealed class GlicHost : Window {
     } else if (_booted) {
       _ = CallBridge("start()");
     }
-    // else: OnMessage("booted") starts it as soon as the page is up.
+    // else: OnMessage's Booted starts it as soon as the page is up.
     return _ready.Task;
   }
 
@@ -158,7 +180,7 @@ public sealed class GlicHost : Window {
   /// The microphones the page can open, as (id, name). Empty until the page has loaded.
   /// </summary>
   public async Task<IReadOnlyList<(string Id, string Name)>> ListMicrophonesAsync() {
-    JsonNode? value = await EvalAsync("window.__glicBridge ? window.__glicBridge.listMics() : []");
+    JsonNode? value = await EvalAsync($"{_bridge} ? {_bridge}.listMics() : []");
     return value?.AsArray()
         .Select(m => (m!["id"]!.GetValue<string>(), m["label"]!.GetValue<string>()))
         .ToList() ?? [];
@@ -174,7 +196,7 @@ public sealed class GlicHost : Window {
     if (_web.CoreWebView2 is not { } core) {
       return "";
     }
-    JsonNode? ready = await EvalAsync("window.__glicBridge && window.__glicBridge.beginAction()");
+    JsonNode? ready = await EvalAsync($"{_bridge} && {_bridge}.beginAction()");
     if (ready?.GetValue<bool>() != true) {
       throw new InvalidOperationException("Gemini's text box didn't open for the action");
     }
@@ -183,11 +205,11 @@ public sealed class GlicHost : Window {
       var down = new JsonObject {
         ["type"] = "keyDown", ["text"] = key, ["unmodifiedText"] = key, ["key"] = key,
       };
-      await core.CallDevToolsProtocolMethodAsync("Input.dispatchKeyEvent", down.ToJsonString());
+      await core.CallDevToolsProtocolMethodAsync(_dispatchKeyEvent, down.ToJsonString());
       var up = new JsonObject { ["type"] = "keyUp", ["key"] = key };
-      await core.CallDevToolsProtocolMethodAsync("Input.dispatchKeyEvent", up.ToJsonString());
+      await core.CallDevToolsProtocolMethodAsync(_dispatchKeyEvent, up.ToJsonString());
     }
-    JsonNode? reply = await EvalAsync("window.__glicBridge.submitAndRead()");
+    JsonNode? reply = await EvalAsync($"{_bridge}.submitAndRead()");
     return reply?.GetValue<string>() ?? "";
   }
 
@@ -261,16 +283,16 @@ public sealed class GlicHost : Window {
     // Holding a session that failed means it went stale: Google's pages keep it fresh only while
     // they run, so have the browser refresh it. Usually that's all a "sign in" needs.
     bool stale = _session.Count > 0;
-    Notice?.Invoke(connected ? (stale ? "Refreshing your Google session…" : "Sign in to Google in your browser")
-                   : installed ? "Waiting for your browser…"
-                   : "One-time setup");
+    Notice?.Invoke(connected ? (stale ? SessionNotice.Refreshing : SessionNotice.SignIn)
+                   : installed ? SessionNotice.WaitingForBrowser
+                   : SessionNotice.Setup);
     ExtensionNeeded?.Invoke(!installed);
     if (stale) {
       _link.RequestRefresh();
       // The extension's refresh page runs ~15 s; still failing after that means really signed out.
       _ = Task.Delay(_refreshGrace).ContinueWith(_ => Dispatcher.BeginInvoke(() => {
         if (Active && _unavailable) {
-          Notice?.Invoke("Sign in to Google in your browser");
+          Notice?.Invoke(SessionNotice.SignIn);
         }
       }));
     } else {
@@ -283,7 +305,7 @@ public sealed class GlicHost : Window {
     if (_web.CoreWebView2 is not { } core) {
       return Task.CompletedTask;
     }
-    return core.ExecuteScriptAsync($"window.__glicBridge && window.__glicBridge.{call}");
+    return core.ExecuteScriptAsync($"{_bridge} && {_bridge}.{call}");
   }
 
   // ---- messages from the page ----
@@ -298,26 +320,27 @@ public sealed class GlicHost : Window {
     if (m is null) {
       return;
     }
-    switch (m["kind"]?.GetValue<string>()) {
-      case "capture":
+    switch (WireName.Parse<PageMessageKind>(m["kind"]?.GetValue<string>())) {
+      case PageMessageKind.Capture:
         SendFrame(m["id"]!.GetValue<int>());
         break;
-      case "booted":
+      case PageMessageKind.Booted:
         OnBooted();
         break;
-      case "ready":
+      case PageMessageKind.Ready:
         Log.Write("glic: live");
         _ready?.TrySetResult();
         break;
-      case "state":
-        State?.Invoke(m["state"]!.GetValue<string>());
+      case PageMessageKind.State:
+        State?.Invoke(WireName.Parse<GlicState>(m["state"]!.GetValue<string>()) ?? GlicState.Idle);
         break;
-      case "transcript":
+      case PageMessageKind.Transcript:
         Caption?.Invoke(m["text"]!.GetValue<string>(),
-                        m["direction"]?.GetValue<string>() == "user",
+                        WireName.Parse<TranscriptDirection>(m["direction"]?.GetValue<string>())
+                            == TranscriptDirection.User,
                         m["index"]!.GetValue<int>());
         break;
-      case "error":
+      case PageMessageKind.Error:
         OnPageError(m["message"]?.GetValue<string>() ?? "Gemini error");
         break;
     }
@@ -367,7 +390,7 @@ public sealed class GlicHost : Window {
 
   private void PostFrame(int id, ScreenGrabber.Frame? frame) {
     var reply = new JsonObject {
-      ["kind"] = "frame",
+      ["kind"] = WireName.Of(PageMessageKind.Frame),
       ["id"] = id,
       ["base64"] = frame is null ? null : Convert.ToBase64String(frame.Jpeg),
       ["mimeType"] = ScreenGrabber.MimeType,
