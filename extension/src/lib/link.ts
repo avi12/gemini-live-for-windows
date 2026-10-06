@@ -1,4 +1,5 @@
 import { ReconnectController } from '@/lib/reconnect';
+import { refreshGoogleSession } from '@/lib/refresh';
 
 // The loopback WebSocket the desktop app hosts. It accepts only this extension's pinned ID.
 // Port = SessionLink.Port in src/GeminiLive/Glic/SessionLink.cs.
@@ -13,9 +14,27 @@ const ROTATION_DEBOUNCE_MS = 1500;
 // Everything on google.com and its subdomains; the app picks the auth cookies it needs.
 const GOOGLE_COOKIE_DOMAIN = 'google.com';
 
+/**
+ * Every message type on the link, both directions. The app's side is LinkMessageType in
+ * src/GeminiLive/Glic/SessionLink.cs; the wire value is the lower-cased enum name.
+ */
+const MessageType = {
+  /** Extension → app: the current Google cookies. */
+  COOKIES: 'cookies',
+  /** App → extension: send the current cookies now. */
+  QUERY: 'query',
+  /** App → extension: the session the app has stopped working; refresh it, then send it. */
+  REFRESH: 'refresh',
+  /** App → extension: keepalive, answered with PONG. */
+  PING: 'ping',
+  PONG: 'pong',
+} as const;
+
+type MessageType = (typeof MessageType)[keyof typeof MessageType];
+
 /** Messages the app sends down the link. */
 interface AppMessage {
-  type?: 'query' | 'ping';
+  type?: MessageType;
 }
 
 const connection = new ReconnectController(connect, isSocketActive, RECONNECT_MS);
@@ -71,7 +90,7 @@ async function pushSession(): Promise<void> {
     return;
   }
 
-  socket.send(JSON.stringify({ type: 'cookies', cookies }));
+  socket.send(JSON.stringify({ type: MessageType.COOKIES, cookies }));
 }
 
 function parseMessage(data: unknown): AppMessage | undefined {
@@ -97,13 +116,19 @@ function connect(): WebSocket {
     }
 
     switch (parseMessage(data)?.type) {
-      // The app wants the current session now (e.g. Gemini said it's signed out).
-      case 'query':
+      // The app wants the current session now (e.g. it has none yet).
+      case MessageType.QUERY:
         void pushSession();
         return;
+      // The app's copy stopped working (Gemini says signed out / unavailable). Send what we have,
+      // and refresh it; the refreshed cookies follow through the cookie-change push.
+      case MessageType.REFRESH:
+        void pushSession();
+        void refreshGoogleSession();
+        return;
       // The app pings every ~20 s; answering keeps this service worker alive while it runs.
-      case 'ping':
-        socket.send(JSON.stringify({ type: 'pong' }));
+      case MessageType.PING:
+        socket.send(JSON.stringify({ type: MessageType.PONG }));
         return;
       default:
         return;

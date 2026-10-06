@@ -55,6 +55,16 @@ public sealed class GlicHost : Window {
   private string? _microphoneId;
   private bool _booted;
   private bool _unavailable;
+  private static readonly TimeSpan _refreshGrace = TimeSpan.FromSeconds(25);
+
+  /// <summary>The session failures the page reports (ErrorMessage in glic_bridge.js).</summary>
+  private enum PageError { Other, SignedOut, Unavailable }
+
+  private static readonly IReadOnlyDictionary<string, PageError> PageErrors =
+      new Dictionary<string, PageError> {
+        ["signed-out"] = PageError.SignedOut,
+        ["unavailable"] = PageError.Unavailable,
+      };
 
   public GlicHost(SessionLink link) {
     _link = link;
@@ -248,11 +258,24 @@ public sealed class GlicHost : Window {
     // A saved session only ever comes from the extension, so having one means it's installed: it
     // is just asleep (its worker wakes on a timer after the app starts) or the browser is closed.
     bool installed = connected || _session.Count > 0;
-    Notice?.Invoke(connected ? "Sign in to Google in your browser"
+    // Holding a session that failed means it went stale: Google's pages keep it fresh only while
+    // they run, so have the browser refresh it. Usually that's all a "sign in" needs.
+    bool stale = _session.Count > 0;
+    Notice?.Invoke(connected ? (stale ? "Refreshing your Google session…" : "Sign in to Google in your browser")
                    : installed ? "Waiting for your browser…"
                    : "One-time setup");
     ExtensionNeeded?.Invoke(!installed);
-    _link.RequestCookies();
+    if (stale) {
+      _link.RequestRefresh();
+      // The extension's refresh page runs ~15 s; still failing after that means really signed out.
+      _ = Task.Delay(_refreshGrace).ContinueWith(_ => Dispatcher.BeginInvoke(() => {
+        if (Active && _unavailable) {
+          Notice?.Invoke("Sign in to Google in your browser");
+        }
+      }));
+    } else {
+      _link.RequestCookies();
+    }
   }
 
   /// <summary>Calls the bridge glic_bridge.js installs, if the current page has it yet.</summary>
@@ -313,8 +336,8 @@ public sealed class GlicHost : Window {
 
   private void OnPageError(string message) {
     Log.Write($"glic error: {message}");
-    // Signed out or a stale session: wait for the browser's current one.
-    if (message is "signed-out" or "unavailable") {
+    // Signed out or a stale session: get the browser's current one.
+    if (PageErrors.GetValueOrDefault(message) is PageError.SignedOut or PageError.Unavailable) {
       _unavailable = true;
       WaitForSession();
       return;

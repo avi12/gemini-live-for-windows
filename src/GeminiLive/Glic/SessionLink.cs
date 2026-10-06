@@ -7,6 +7,15 @@ using System.Text.Json;
 
 namespace GeminiLive.Glic;
 
+/// <summary>Every message type on the link, both directions (MessageType in link.ts).</summary>
+public enum LinkMessageType {
+  Cookies,  // extension → app: the current Google cookies
+  Query,    // app → extension: send the cookies now
+  Refresh,  // app → extension: ours stopped working; refresh the browser's session, then send it
+  Ping,     // app → extension: keepalive
+  Pong,     // extension → app: keepalive answer
+}
+
 /// <summary>
 /// The loopback WebSocket the companion browser extension (extension/ in this repo) keeps open.
 /// It pushes the browser's Google cookies on connect and on every rotation; we can also ask for
@@ -41,7 +50,15 @@ public sealed class SessionLink {
 
   /// <summary>Ask the extension for the current session right now.</summary>
   public void RequestCookies() {
-    Broadcast("""{"type":"query"}""");
+    Send(LinkMessageType.Query);
+  }
+
+  /// <summary>
+  /// The session we have stopped working: ask the extension to have the browser refresh it. The
+  /// refreshed cookies arrive like any rotation.
+  /// </summary>
+  public void RequestRefresh() {
+    Send(LinkMessageType.Refresh);
   }
 
   private async Task AcceptLoopAsync() {
@@ -109,7 +126,7 @@ public sealed class SessionLink {
 
   private void Handle(string message) {
     using JsonDocument doc = JsonDocument.Parse(message);
-    if (doc.RootElement.GetProperty("type").GetString() != "cookies") {
+    if (doc.RootElement.GetProperty("type").GetString() != Wire(LinkMessageType.Cookies)) {
       return;
     }
     List<GoogleCookie> cookies = GoogleCookies.Parse(doc.RootElement.GetProperty("cookies"));
@@ -120,8 +137,15 @@ public sealed class SessionLink {
   private async Task PingLoopAsync() {
     using var timer = new PeriodicTimer(_pingInterval);
     while (await timer.WaitForNextTickAsync()) {
-      Broadcast("""{"type":"ping"}""");
+      Send(LinkMessageType.Ping);
     }
+  }
+
+  // The wire value is the lower-cased name: "query", "refresh", … (MessageType in link.ts).
+  private static string Wire(LinkMessageType type) => type.ToString().ToLowerInvariant();
+
+  private void Send(LinkMessageType type) {
+    Broadcast(JsonSerializer.Serialize(new { type = Wire(type) }));
   }
 
   private void Broadcast(string json) {
