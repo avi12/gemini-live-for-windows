@@ -22,6 +22,7 @@ public sealed partial class GlicConversation : ILiveEngine {
 
   private readonly GlicHost _host;
   private readonly DispatcherTimer _intentTimer;
+  private readonly SpeechPlayer _speech = new();
 
   public GlicConversation(GlicHost host, MonitorInfo monitor) {
     _host = host;
@@ -64,6 +65,7 @@ public sealed partial class GlicConversation : ILiveEngine {
 
   public ValueTask DisposeAsync() {
     _intentTimer.Stop();
+    _speech.Stop();
     _host.State -= OnState;
     _host.Caption -= OnCaption;
     _host.Failed -= OnFailed;
@@ -81,6 +83,7 @@ public sealed partial class GlicConversation : ILiveEngine {
     string clean = MarkdownEscape().Replace(text, "$1");
     Transcript?.Invoke(clean, isUser);
     if (isUser) {
+      _speech.Stop();  // the user is talking; don't read over them
       // Act on the request as soon as it settles, before Gemini can say it can't (proactive). The
       // utterance revises in place, so restart the settle timer on each update.
       _lastUserUtterance = clean;
@@ -118,6 +121,7 @@ public sealed partial class GlicConversation : ILiveEngine {
       string answer = await _host.RunActionAsync(request);
       if (answer.Length > 0) {
         Transcript?.Invoke(answer, false);
+        _ = _speech.SpeakAsync(answer);  // Live can't speak it on resume, so read it aloud
       }
       await _host.StartAsync();  // resume Live, now holding the answer in context
       Status?.Invoke(LiveStatus.Listening);
