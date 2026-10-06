@@ -32,6 +32,9 @@ public static class Motion {
   /// <summary>For state changes on something that stays.</summary>
   public static readonly IEasingFunction Standard = Frozen(new CubicBezierEase(0.2, 0, 0, 1));
 
+  /// <summary>Even progress, for a fade that must stay visible for its whole run.</summary>
+  public static readonly IEasingFunction Linear = Frozen(new CubicBezierEase(0, 0, 1, 1));
+
   /// <summary>Windows' "Animation effects" setting; the single reduced-motion switch.</summary>
   public static bool Enabled => SystemParameters.ClientAreaAnimation;
 
@@ -107,15 +110,16 @@ public static class Motion {
   /// <summary>
   /// The reverse of <see cref="Enter"/>: the pill fades while it sinks back toward the taskbar and
   /// shrinks, then <paramref name="completed"/> hides it. The slide and shrink ride the accelerate
-  /// curve (leaving speeds up), but the fade runs on the even standard curve so it's visible the
-  /// whole way down rather than snapping out at the end.
+  /// curve (leaving speeds up), but the fade is linear so it's visible the whole way down. Neither
+  /// eased curve works for the fade: accelerate holds it opaque then snaps it out, and standard
+  /// front-loads it (half gone in ~35ms) - from a pill still fading in, that reads as no exit at all.
   /// </summary>
   public static void Exit(UIElement element, double drop, double scaleTo, Action completed) {
     (ScaleTransform scale, TranslateTransform shift) = Transforms(element);
     To(shift, TranslateTransform.YProperty, drop, ExitDuration, EmphasizedAccelerate);
     To(scale, ScaleTransform.ScaleXProperty, scaleTo, ExitDuration, EmphasizedAccelerate);
     To(scale, ScaleTransform.ScaleYProperty, scaleTo, ExitDuration, EmphasizedAccelerate);
-    To(element, UIElement.OpacityProperty, 0, ExitDuration, Standard, completed: completed);
+    To(element, UIElement.OpacityProperty, 0, ExitDuration, Linear, completed: completed);
   }
 
   /// <summary>
