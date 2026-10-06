@@ -65,7 +65,7 @@ public sealed partial class GlicConversation : ILiveEngine {
 
   public ValueTask DisposeAsync() {
     _intentTimer.Stop();
-    _speech.Stop();
+    _speech.Dispose();
     _host.State -= OnState;
     _host.Caption -= OnCaption;
     _host.Failed -= OnFailed;

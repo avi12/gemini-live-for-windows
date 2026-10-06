@@ -1,10 +1,6 @@
-using System.Windows.Threading;
+using Windows.Media.Core;
+using Windows.Media.Playback;
 using Windows.Media.SpeechSynthesis;
-using Windows.Storage.Streams;
-
-// WPF's own MediaPlayer, not WinRT's Windows.Media.Playback.MediaPlayer - the two collide by name,
-// so we alias the one we mean.
-using WpfMediaPlayer = System.Windows.Media.MediaPlayer;
 
 namespace GeminiLive;
 
@@ -13,34 +9,25 @@ namespace GeminiLive;
 /// app (Calendar, Keep, Tasks, Gmail, Home); the answer it hands back is shown in the caption card,
 /// and this speaks it. Gemini's own cloud voice can't be reproduced offline, so we use the nicest
 /// voice Windows ships: WinRT's <see cref="SpeechSynthesizer"/> exposes the OneCore / "Natural"
-/// voices (far better than the old System.Speech ones) and renders to a WAV stream, which a WPF
-/// <see cref="WpfMediaPlayer"/> plays back.
+/// voices (far better than the old System.Speech ones).
 ///
-/// Threading: <see cref="WpfMediaPlayer"/> is thread-affine - it must be created and driven on a
-/// thread with a <see cref="Dispatcher"/> (the WPF UI thread). Construct this on that thread; it
-/// captures the dispatcher and marshals every player call back to it, so both <see cref="SpeakAsync"/>
-/// and <see cref="Stop"/> are safe to call straight from the WPF dispatcher thread (or any thread).
+/// Playback is WinRT's <see cref="MediaPlayer"/>, which runs on Media Foundation. WPF's own
+/// MediaPlayer needs the legacy Windows Media Player, which current Windows 11 builds no longer
+/// ship - there it fails every time, and its Stop() stalls the UI thread mid-animation. The WinRT
+/// player has no thread affinity and plays the synthesized stream directly, with no temp file.
 /// </summary>
-public sealed class SpeechPlayer {
-  private readonly Dispatcher _dispatcher;
-  private readonly WpfMediaPlayer _player;
+public sealed class SpeechPlayer : IDisposable {
+  private readonly MediaPlayer _player = new() { AudioCategory = MediaPlayerAudioCategory.Speech };
 
-  // The one synthesizer, created lazily with its voice chosen once (see PickVoice). Synthesis can
-  // run on any thread, so it is not dispatcher-bound; only the player is.
+  // The one synthesizer, created lazily with its voice chosen once (see PickVoice).
   private SpeechSynthesizer? _synthesizer;
 
-  // The temp WAV currently loaded in the player, so we can delete it once playback ends or stops.
-  private string? _currentFile;
+  // Bumped by every Speak and Stop, so a synthesis that finishes after it was superseded is
+  // dropped instead of starting to talk.
+  private int _generation;
 
   public SpeechPlayer() {
-    // Constructed on the WPF UI thread, so this is the UI dispatcher and the player is born on it.
-    _dispatcher = Dispatcher.CurrentDispatcher;
-    _player = new WpfMediaPlayer();
-    _player.MediaEnded += (_, _) => DropCurrentFile();
-    _player.MediaFailed += (_, e) => {
-      Log.Write($"SpeechPlayer: playback failed: {e.ErrorException?.Message}");
-      DropCurrentFile();
-    };
+    _player.MediaFailed += (_, e) => Log.Write($"SpeechPlayer: playback failed: {e.ErrorMessage}");
   }
 
   /// <summary>
@@ -52,25 +39,35 @@ public sealed class SpeechPlayer {
     if (string.IsNullOrWhiteSpace(text)) {
       return;  // nothing to say
     }
+    Stop();  // a new answer supersedes whatever was speaking
+    int generation = _generation;
     try {
-      Stop();  // a new answer supersedes whatever was speaking
-      SpeechSynthesizer synthesizer = Synthesizer();
-      using SpeechSynthesisStream stream = await synthesizer.SynthesizeTextToStreamAsync(text);
-      string file = await WriteTempWavAsync(stream);
-      // MediaPlayer is thread-affine: open and play on the dispatcher that owns it.
-      await _dispatcher.InvokeAsync(() => StartPlayback(file));
+      SpeechSynthesisStream stream = await Synthesizer().SynthesizeTextToStreamAsync(text);
+      if (generation != _generation) {
+        stream.Dispose();
+        return;  // stopped or superseded while synthesizing
+      }
+      _player.Source = MediaSource.CreateFromStream(stream, stream.ContentType);
+      _player.Play();
     } catch (Exception e) {
       Log.Write($"SpeechPlayer.SpeakAsync: {e.Message}");
     }
   }
 
-  /// <summary>Stops any current playback and discards its audio. Safe to call from any thread.</summary>
+  /// <summary>Stops any current playback. Cheap when nothing is playing; safe from any thread.</summary>
   public void Stop() {
-    if (_dispatcher.CheckAccess()) {
-      StopCore();
-    } else {
-      _dispatcher.Invoke(StopCore);
+    Interlocked.Increment(ref _generation);
+    if (_player.Source is null) {
+      return;
     }
+    (_player.Source as IDisposable)?.Dispose();
+    _player.Source = null;
+  }
+
+  public void Dispose() {
+    Stop();
+    _player.Dispose();
+    _synthesizer?.Dispose();
   }
 
   /// <summary>The lazily built synthesizer, with the chosen voice applied exactly once.</summary>
@@ -105,47 +102,5 @@ public sealed class SpeechPlayer {
         ?? voices.FirstOrDefault(v => EnUs(v) && Female(v))
         ?? voices.FirstOrDefault(EnUs)
         ?? SpeechSynthesizer.DefaultVoice;
-  }
-
-  // ---- player, all on the dispatcher thread ----
-
-  private void StartPlayback(string file) {
-    _currentFile = file;
-    _player.Open(new Uri(file, UriKind.Absolute));
-    _player.Play();
-  }
-
-  private void StopCore() {
-    try {
-      _player.Stop();
-      _player.Close();  // releases the WAV so we can delete it
-    } catch (Exception e) {
-      Log.Write($"SpeechPlayer.Stop: {e.Message}");
-    }
-    DropCurrentFile();
-  }
-
-  private void DropCurrentFile() {
-    if (_currentFile is null) {
-      return;
-    }
-    try {
-      File.Delete(_currentFile);
-    } catch {
-      // A still-open handle can briefly hold the file; it is only a temp, so let the OS reap it.
-    }
-    _currentFile = null;
-  }
-
-  /// <summary>Drains the synthesized WAV stream to a temp file the player can open by URI.</summary>
-  private static async Task<string> WriteTempWavAsync(SpeechSynthesisStream stream) {
-    using var reader = new DataReader(stream);
-    await reader.LoadAsync((uint)stream.Size);
-    var bytes = new byte[(int)stream.Size];
-    reader.ReadBytes(bytes);
-
-    string file = Path.Combine(Path.GetTempPath(), $"GeminiLive-speech-{Guid.NewGuid():N}.wav");
-    await File.WriteAllBytesAsync(file, bytes);
-    return file;
   }
 }
