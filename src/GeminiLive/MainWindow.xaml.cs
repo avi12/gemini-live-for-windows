@@ -213,8 +213,9 @@ public partial class MainWindow : Window {
     bool many = Monitors.All().Count > 1;
     ShareChevron.Visibility = many ? Visibility.Visible : Visibility.Collapsed;
     ShareButton.IsHitTestVisible = many;
-    ShareButton.ToolTip = many ? "Choose the display Gemini sees" : "Gemini sees your screen";
-    ShareLabel.Text = many && Shared is { } shared ? shared.Name : "Screen";
+    ShareButton.ToolTip = many && Shared is { } shared
+        ? $"Sharing {shared.Name} • click to change"
+        : "Gemini sees your screen";
   }
 
   private void OnShare(object sender, RoutedEventArgs e) {

@@ -17,17 +17,17 @@
         <sys:Double x:Key="LabelSize">13</sys:Double>
         <sys:Double x:Key="CaptionSize">12</sys:Double>
 
-        <!-- Shape. -->
-        <CornerRadius x:Key="PillRadius">32</CornerRadius>
-        <CornerRadius x:Key="ControlRadius">22</CornerRadius>
-        <CornerRadius x:Key="CardRadius">20</CornerRadius>
+        <!-- Shape. The pill and controls are stadiums: their radius is half their height. -->
+        <CornerRadius x:Key="PillRadius">34</CornerRadius>
+        <CornerRadius x:Key="ControlRadius">23</CornerRadius>
+        <CornerRadius x:Key="CardRadius">28</CornerRadius>
         <CornerRadius x:Key="ChipRadius">16</CornerRadius>
         <CornerRadius x:Key="MenuRadius">12</CornerRadius>
         <CornerRadius x:Key="SmallRadius">8</CornerRadius>
 
         <!-- Spacing. -->
-        <Thickness x:Key="CardPadding">18,14</Thickness>
-        <Thickness x:Key="ShareButtonPadding">16,0</Thickness>
+        <Thickness x:Key="CardPadding">22,18</Thickness>
+        <Thickness x:Key="ShareButtonPadding">18,0</Thickness>
         <Thickness x:Key="ChipPadding">12,0</Thickness>
         <Thickness x:Key="FieldPadding">12,8</Thickness>
         <Thickness x:Key="MenuPadding">8</Thickness>
@@ -37,16 +37,12 @@
         <!-- Text styles. -->
         <Style x:Key="LiveBodyText" TargetType="TextBlock">
             <Setter Property="FontSize" Value="{StaticResource BodySize}" />
-            <Setter Property="LineHeight" Value="22" />
+            <Setter Property="LineHeight" Value="24" />
             <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
 
         <Style x:Key="LiveLabelText" TargetType="TextBlock">
             <Setter Property="FontSize" Value="{StaticResource LabelSize}" />
-        </Style>
-
-        <Style x:Key="LiveStrongLabelText" TargetType="TextBlock" BasedOn="{StaticResource LiveLabelText}">
-            <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
 
         <Style x:Key="LiveSupportingText" TargetType="TextBlock" BasedOn="{StaticResource LiveLabelText}">
@@ -77,6 +73,16 @@
             <Setter Property="Padding" Value="0" />
         </Style>
 
+        <!-- The transcript card: the same surface as the pill, but with the soft blue halo
+             Googlebook's caption card carries. Depth 0 makes the glow sit evenly around the
+             rounded edge; its colour and strength follow the theme (LiveCardGlowColor). -->
+        <DropShadowEffect x:Key="LiveCaptionGlow" ShadowDepth="0" BlurRadius="16"
+                          Color="{DynamicResource LiveCardGlowColor}" />
+
+        <Style x:Key="LiveCaptionCard" TargetType="Border" BasedOn="{StaticResource LiveCard}">
+            <Setter Property="Effect" Value="{DynamicResource LiveCaptionGlow}" />
+        </Style>
+
         <!-- Buttons: never take focus (the pill must not steal it), always look clickable. -->
         <Style x:Key="LiveButtonBase" TargetType="Button">
             <Setter Property="Foreground" Value="{DynamicResource LiveTextBrush}" />
@@ -85,10 +91,10 @@
             <Setter Property="Focusable" Value="False" />
         </Style>
 
-        <!-- Round 44px control on the pill (mic, settings, end). Tag="muted" turns it into mute-red. -->
+        <!-- Round 46px control on the pill (mic, settings, end). Tag="muted" turns it into mute-red. -->
         <Style x:Key="LiveRoundButton" TargetType="Button" BasedOn="{StaticResource LiveButtonBase}">
-            <Setter Property="Width" Value="44" />
-            <Setter Property="Height" Value="44" />
+            <Setter Property="Width" Value="46" />
+            <Setter Property="Height" Value="46" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -132,7 +138,7 @@
 
         <!-- The filled light-blue share control on the pill's left. -->
         <Style x:Key="LiveShareButton" TargetType="Button" BasedOn="{StaticResource LiveButtonBase}">
-            <Setter Property="Height" Value="44" />
+            <Setter Property="Height" Value="46" />
             <Setter Property="Padding" Value="{StaticResource ShareButtonPadding}" />
             <Setter Property="Foreground" Value="{DynamicResource LiveOnShareBrush}" />
             <Setter Property="Background" Value="{DynamicResource LiveShareBrush}" />

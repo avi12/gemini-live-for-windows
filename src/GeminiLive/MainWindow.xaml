@@ -3,22 +3,24 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:GeminiLive"
         Title="Gemini Live" WindowStyle="None" AllowsTransparency="True" ResizeMode="NoResize"
-        SizeToContent="Height" Width="476" Topmost="True" ShowInTaskbar="False" ShowActivated="False"
+        SizeToContent="Height" Width="504" Topmost="True" ShowInTaskbar="False" ShowActivated="False"
         Background="Transparent" FontFamily="{StaticResource LiveFont}"
         Foreground="{DynamicResource LiveTextBrush}">
 
     <!-- Googlebook's Live: a caption card floating over a pill docked above the taskbar, with
-         Gemini's glow along the pill's bottom edge. The margin leaves room for the glow's blur.
-         Status, share label, mic glyph and their tooltips are set from code on construction. -->
-    <StackPanel x:Name="Root" Margin="8,8,8,8" RenderTransformOrigin="0.5,1" MouseLeftButtonDown="OnDrag">
+         Gemini's glow along the pill's bottom edge. The side/top margins leave room for the card's
+         halo and the glow's blur to bleed without clipping at the window edge.
+         Status, mic glyph and their tooltips are set from code on construction. -->
+    <StackPanel x:Name="Root" Margin="18,16,18,8" RenderTransformOrigin="0.5,1" MouseLeftButtonDown="OnDrag">
 
         <!-- Caption card: the running "You: / Gemini:" transcript, links Gemini mentioned, setup.
-             HeightTransition glides the card to each new height instead of jumping. -->
-        <Border x:Name="CaptionCard" Style="{StaticResource LiveCard}" Margin="0,0,0,10" Visibility="Collapsed">
+             LiveCaptionCard adds the soft blue halo; HeightTransition glides it to each new
+             height instead of jumping. -->
+        <Border x:Name="CaptionCard" Style="{StaticResource LiveCaptionCard}" Margin="0,0,0,10" Visibility="Collapsed">
             <local:HeightTransition>
                 <StackPanel>
                     <!-- One TextBlock per line (CaptionPresenter), so each new line can fade in. -->
-                    <ScrollViewer x:Name="TranscriptScroll" MaxHeight="176" VerticalScrollBarVisibility="Hidden">
+                    <ScrollViewer x:Name="TranscriptScroll" MaxHeight="200" VerticalScrollBarVisibility="Hidden">
                         <StackPanel x:Name="Transcript" />
                     </ScrollViewer>
 
@@ -52,20 +54,22 @@
         </Border>
 
         <!-- The pill. -->
-        <Grid Height="64">
-            <!-- Gemini's glow: blurred, bleeding out under the pill's bottom edge. GlowAnimator
-                 paints it (a drifting copy of LiveGlowBrush) and drives its strength. The
-                 wrapper's opacity is the theme's peak, so those animations stay theme-agnostic. -->
+        <Grid Height="68">
+            <!-- Gemini's glow: the "waveform". A blurred band spanning nearly the pill's width,
+                 sitting on its lower half and bleeding out under the bottom edge - blue at the left
+                 end through violet and pink to yellow at the right. GlowAnimator paints it (a
+                 drifting copy of LiveGlowBrush) and drives its strength. The wrapper's opacity is
+                 the theme's peak, so those animations stay theme-agnostic. -->
             <Grid Opacity="{DynamicResource LiveGlowOpacity}">
-                <Border x:Name="Glow" CornerRadius="{StaticResource PillRadius}" Margin="24,30,24,-6" Opacity="0.75">
+                <Border x:Name="Glow" CornerRadius="{StaticResource PillRadius}" Margin="8,36,8,-6" Opacity="0.8">
                     <Border.Effect>
-                        <BlurEffect Radius="22" />
+                        <BlurEffect Radius="24" />
                     </Border.Effect>
                 </Border>
             </Grid>
 
             <Border Style="{StaticResource LivePill}">
-                <Grid Margin="10,0">
+                <Grid Margin="12,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
@@ -74,14 +78,14 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
-                    <!-- Share: which display Gemini sees. -->
+                    <!-- Share: which display Gemini sees. Like Googlebook, just the screen glyph and
+                         (with more than one display) a chevron - the name lives in the picker and
+                         the glowing frame around the shared screen. -->
                     <Button x:Name="ShareButton" Grid.Column="0" Style="{StaticResource LiveShareButton}" Click="OnShare">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Style="{StaticResource LiveIcon}" Text="{x:Static local:Glyphs.Display}" FontSize="16" />
-                            <TextBlock x:Name="ShareLabel" Style="{StaticResource LiveStrongLabelText}" Margin="6,0,0,0"
-                                       VerticalAlignment="Center" />
+                            <TextBlock Style="{StaticResource LiveIcon}" Text="{x:Static local:Glyphs.Display}" FontSize="17" />
                             <TextBlock x:Name="ShareChevron" Style="{StaticResource LiveIcon}" Text="{x:Static local:Glyphs.ChevronDown}"
-                                       FontSize="10" Margin="6,1,0,0" />
+                                       FontSize="10" Margin="8,1,0,0" />
                         </StackPanel>
                     </Button>
 

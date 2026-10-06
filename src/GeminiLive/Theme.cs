@@ -19,7 +19,7 @@ public static class Theme {
 
   // Every solid token as (key, dark ARGB, light ARGB).
   private static readonly (string Key, string Dark, string Light)[] _solids = [
-    ("LiveSurfaceBrush", "#F21B1C1E", "#F5F0F4F9"),
+    ("LiveSurfaceBrush", "#F2111318", "#F5F0F4F9"),
     ("LiveMenuSurfaceBrush", "#FF282A2C", "#FFF8FAFD"),
     ("LiveTextBrush", "#FFE3E3E3", "#FF1F1F1F"),
     ("LiveSecondaryTextBrush", "#FFA8ABAF", "#FF444746"),
@@ -35,10 +35,11 @@ public static class Theme {
     ("LiveInverseTextBrush", "#FF303030", "#FFF2F2F2"),
   ];
 
+  // The card/pill rim: a cool blue→light-blue→violet line, the crisp edge of Gemini's glow.
   private static readonly LinearGradientBrush _darkEdge = Gradient(
-      new Point(0, 0), new Point(1, 1), ("#664285F4", 0), ("#33FFFFFF", 0.5), ("#55F06292", 1));
+      new Point(0, 0), new Point(1, 1), ("#884285F4", 0), ("#558AB4F8", 0.5), ("#66B36BF0", 1));
   private static readonly LinearGradientBrush _lightEdge = Gradient(
-      new Point(0, 0), new Point(1, 1), ("#404285F4", 0), ("#22000000", 0.5), ("#33F06292", 1));
+      new Point(0, 0), new Point(1, 1), ("#404285F4", 0), ("#1A000000", 0.5), ("#338AB4F8", 1));
 
   // Gemini's glow keeps its colours in both themes; only its strength changes (LiveGlowOpacity).
   private static readonly LinearGradientBrush _glow = Gradient(
@@ -66,6 +67,9 @@ public static class Theme {
     r["LiveHoverLayerBrush"] = Solid(Color.FromArgb(_hoverAlpha, text.R, text.G, text.B));
     r["LivePressedLayerBrush"] = Solid(Color.FromArgb(_pressedAlpha, text.R, text.G, text.B));
     r["LiveEdgeBrush"] = dark ? _darkEdge : _lightEdge;
+    // The caption card's soft halo colour (fed to a DropShadowEffect); near-black dark card wears
+    // a blue bloom, the light card only a faint cool one. Alpha carries the strength.
+    r["LiveCardGlowColor"] = Parse(dark ? "#B38AB4F8" : "#3A5B8DEF");
     r["LiveGlowBrush"] = _glow;
     // The glow's peak; it multiplies whatever the animations set, and sits quieter on light.
     r["LiveGlowOpacity"] = dark ? 1.0 : 0.6;
