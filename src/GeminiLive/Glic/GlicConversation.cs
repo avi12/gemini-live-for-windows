@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using System.Windows.Threading;
 
 namespace GeminiLive.Glic;
 
@@ -15,7 +16,12 @@ public sealed partial class GlicConversation : ILiveEngine {
   }
   public event Action<string>? Ended;
 
+  // Long enough that the user's utterance has settled before we act on it, short enough to beat
+  // Gemini's spoken refusal most of the time.
+  private static readonly TimeSpan _intentSettle = TimeSpan.FromMilliseconds(1100);
+
   private readonly GlicHost _host;
+  private readonly DispatcherTimer _intentTimer;
 
   public GlicConversation(GlicHost host, MonitorInfo monitor) {
     _host = host;
@@ -24,6 +30,8 @@ public sealed partial class GlicConversation : ILiveEngine {
     host.Caption += OnCaption;
     host.Failed += OnFailed;
     host.Notice += OnNotice;
+    _intentTimer = new DispatcherTimer { Interval = _intentSettle };
+    _intentTimer.Tick += OnIntentSettled;
   }
 
   public MonitorInfo Monitor => _host.Monitor;
@@ -40,6 +48,7 @@ public sealed partial class GlicConversation : ILiveEngine {
 
   private bool _muted;
   private string _lastUserUtterance = "";
+  private string _handledUtterance = "";
   private int _handledRefusalIndex = -1;
   private bool _runningAction;
 
@@ -54,6 +63,7 @@ public sealed partial class GlicConversation : ILiveEngine {
   }
 
   public ValueTask DisposeAsync() {
+    _intentTimer.Stop();
     _host.State -= OnState;
     _host.Caption -= OnCaption;
     _host.Failed -= OnFailed;
@@ -71,11 +81,27 @@ public sealed partial class GlicConversation : ILiveEngine {
     string clean = MarkdownEscape().Replace(text, "$1");
     Transcript?.Invoke(clean, isUser);
     if (isUser) {
+      // Act on the request as soon as it settles, before Gemini can say it can't (proactive). The
+      // utterance revises in place, so restart the settle timer on each update.
       _lastUserUtterance = clean;
+      if (!_runningAction) {
+        _intentTimer.Stop();
+        _intentTimer.Start();
+      }
     } else if (NeedsApp(clean) && index != _handledRefusalIndex && _lastUserUtterance.Length > 0) {
+      // Fallback: Gemini got there first and refused. Fix it with the text path.
       _handledRefusalIndex = index;
       _ = RunAppActionAsync(_lastUserUtterance);
     }
+  }
+
+  // The user's request has stopped changing: if it plainly targets a Google app, handle it now.
+  private void OnIntentSettled(object? sender, EventArgs e) {
+    _intentTimer.Stop();
+    if (_runningAction || _lastUserUtterance == _handledUtterance || !TargetsApp(_lastUserUtterance)) {
+      return;
+    }
+    _ = RunAppActionAsync(_lastUserUtterance);
   }
 
   // Live has no access to the account's Google apps; its text turns do. When Gemini says it can't
@@ -86,6 +112,7 @@ public sealed partial class GlicConversation : ILiveEngine {
       return;
     }
     _runningAction = true;
+    _handledUtterance = request;  // so neither trigger re-fires for the same request
     Status?.Invoke("Checking your Google apps…");
     try {
       string answer = await _host.RunActionAsync(request);
@@ -108,6 +135,12 @@ public sealed partial class GlicConversation : ILiveEngine {
     return Refusal().IsMatch(text) && AppTopic().IsMatch(text);
   }
 
+  // The user plainly asking an app to do or report something (app topic + an imperative or a
+  // question about it) - which Live can't, so handle it on the text path up front.
+  private static bool TargetsApp(string text) {
+    return AppTopic().IsMatch(text) && Intent().IsMatch(text);
+  }
+
   private void OnFailed(string message) {
     Ended?.Invoke(message);
   }
@@ -127,4 +160,9 @@ public sealed partial class GlicConversation : ILiveEngine {
       @"\b(calendar|schedule|meeting|event|remind|reminder|task|to-?do|note|keep|gmail|e-?mail|inbox|mail|home|light|lights|thermostat|device|alarm|timer)\b",
       RegexOptions.IgnoreCase)]
   private static partial Regex AppTopic();
+
+  [GeneratedRegex(
+      @"\b(add|create|schedule|set|make|new|delete|remove|cancel|move|reschedule|turn on|turn off|switch on|switch off|dim|list|show|check|read|send|mark|star|archive|do i have|what'?s on|what is on|what'?s my|what are my|when'?s|when is)\b",
+      RegexOptions.IgnoreCase)]
+  private static partial Regex Intent();
 }
