@@ -59,6 +59,7 @@
     PAUSE_LIVE: 'Pause live mode',
     SKIP: 'Skip',
     START_LIVE: 'Start live mode',
+    STOP_RESPONSE: 'Stop response',
     TEXT_MODE: 'Switch to text mode',
     TURN_ON_CAPTIONS: 'Turn on live captions',
   };
@@ -1063,6 +1064,11 @@
         text = now;
       }
       await sleep(200);
+    }
+    // Out of time with the reply still running (a tool call that never returns): stop it. While a
+    // reply runs Glic hides its Live button, so Live could never resume.
+    if (clickButton(Button.STOP_RESPONSE)) {
+      await sleep(ACTION_SETTLE_MS);
     }
     if (clickButton(...ACTION_CONFIRM)) {
       await sleep(ACTION_SETTLE_MS);
