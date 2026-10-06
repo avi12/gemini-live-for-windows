@@ -49,6 +49,9 @@ public sealed class GlicHost : Window {
   public MonitorInfo Monitor { get; set; } = Monitors.All()[0];
   public bool Active { get; private set; }
 
+  /// <summary>The browser's Google session as last pushed; Home's API calls sign with it too.</summary>
+  public IReadOnlyList<GoogleCookie> Session => _session;
+
   private TaskCompletionSource? _ready;
   private IReadOnlyList<GoogleCookie> _session = [];
   private string _sessionPrint = "";
