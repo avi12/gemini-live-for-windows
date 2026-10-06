@@ -119,6 +119,7 @@ public sealed partial class GlicConversation : ILiveEngine {
     Status?.Invoke($"Checking {AppName(request)}…");
     try {
       string answer = await _host.RunActionAsync(request);
+      Log.Write($"app action: {answer.Length} chars back");
       if (answer.Length > 0) {
         Transcript?.Invoke(answer, false);
         _ = _speech.SpeakAsync(answer);  // Live can't speak it on resume, so read it aloud
@@ -159,7 +160,6 @@ public sealed partial class GlicConversation : ILiveEngine {
     (new(@"\b(gmail|e-?mail|inbox|mail)\b", RegexOptions.IgnoreCase), "Gmail"),
     (new(@"\b(keep|note|notes)\b", RegexOptions.IgnoreCase), "Keep"),
     (new(@"\b(task|tasks|to-?dos?)\b", RegexOptions.IgnoreCase), "Tasks"),
-    (new(@"\b(light|lights|thermostat|device|home)\b", RegexOptions.IgnoreCase), "Google Home"),
     (new(@"\b(calendar|schedule|meeting|event|events)\b", RegexOptions.IgnoreCase), "Calendar"),
   ];
 
@@ -179,7 +179,9 @@ public sealed partial class GlicConversation : ILiveEngine {
   private static partial Regex Refusal();
 
   [GeneratedRegex(
-      @"\b(calendar|schedule|meeting|event|remind|reminder|task|to-?do|note|keep|gmail|e-?mail|inbox|mail|home|light|lights|thermostat|device|alarm|timer)\b",
+      // Only apps Gemini's web text turns can reach (its Connected Apps page). Not Home, alarms or
+      // timers: the web has no tool for them, so the detour only paused Live for a dead end.
+      @"\b(calendar|schedule|meeting|event|remind|reminder|task|to-?do|note|keep|gmail|e-?mail|inbox|mail)\b",
       RegexOptions.IgnoreCase)]
   private static partial Regex AppTopic();
 

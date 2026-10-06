@@ -103,7 +103,7 @@ only to read its card button, then **Cancelled** - nothing was created or sent (
 | **Keep** | **Yes** | Read real notes (incl. a long Hebrew note). Write shows a confirmation card. |
 | **Tasks** | **Yes** | Read real active + completed tasks. Write shows a confirmation card. |
 | **Gmail** | **Read yes, send no** | Summarised real unread emails. Compose+send is refused: "I cannot send emails on your behalf." No send card is offered. |
-| **Home** | **No** | "I don't have access to your real-time smart home device registry or API status." It only infers devices from past chat memory - no live state, no device card. Unsupported on this path. Re-checked 2026-10-06 on `/app` text too: "unable to retrieve the real-time status" (a bare "is my AC on?" got a "yes" guessed from chat history). Requests still route here, so Home starts working the day Google gives the web its Home tool. |
+| **Home** | **No** | "I don't have access to your real-time smart home device registry or API status." It only infers devices from past chat memory - no live state, no device card. Unsupported on this path. Re-checked 2026-10-06 on `/app` text too: "unable to retrieve the real-time status" (a bare "is my AC on?" got a "yes" guessed from chat history). The account's web Connected Apps page (`/apps`) lists no Google Home at all, and a Glic text turn "Turn off the AC lights" hung in a tool call until stopped. So Home (and alarms/timers) no longer take the text path: Live answers them itself. Re-add them to `AppTopic` when `/apps` lists Google Home. |
 
 ### Confirmation card labels (the load-bearing fix)
 
