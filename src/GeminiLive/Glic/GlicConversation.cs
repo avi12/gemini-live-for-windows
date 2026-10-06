@@ -116,7 +116,7 @@ public sealed partial class GlicConversation : ILiveEngine {
     }
     _runningAction = true;
     _handledUtterance = request;  // so neither trigger re-fires for the same request
-    Status?.Invoke("Checking your Google apps…");
+    Status?.Invoke($"Checking {AppName(request)}…");
     try {
       string answer = await _host.RunActionAsync(request);
       if (answer.Length > 0) {
@@ -144,6 +144,24 @@ public sealed partial class GlicConversation : ILiveEngine {
   private static bool TargetsApp(string text) {
     return AppTopic().IsMatch(text) && Intent().IsMatch(text);
   }
+
+  // The app a request names, for the status line while it runs; ambiguous words fall through.
+  private static string AppName(string request) {
+    foreach ((Regex pattern, string name) in AppNames) {
+      if (pattern.IsMatch(request)) {
+        return name;
+      }
+    }
+    return "your Google apps";
+  }
+
+  private static readonly (Regex Pattern, string Name)[] AppNames = [
+    (new(@"\b(gmail|e-?mail|inbox|mail)\b", RegexOptions.IgnoreCase), "Gmail"),
+    (new(@"\b(keep|note|notes)\b", RegexOptions.IgnoreCase), "Keep"),
+    (new(@"\b(task|tasks|to-?dos?)\b", RegexOptions.IgnoreCase), "Tasks"),
+    (new(@"\b(light|lights|thermostat|device|home)\b", RegexOptions.IgnoreCase), "Google Home"),
+    (new(@"\b(calendar|schedule|meeting|event|events)\b", RegexOptions.IgnoreCase), "Calendar"),
+  ];
 
   private void OnFailed(string message) {
     Ended?.Invoke(message);
