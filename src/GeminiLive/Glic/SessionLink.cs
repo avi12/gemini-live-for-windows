@@ -12,137 +12,171 @@ namespace GeminiLive.Glic;
 /// It pushes the browser's Google cookies on connect and on every rotation; we can also ask for
 /// them on demand. Only the extension's pinned ID may connect.
 /// </summary>
-public sealed class SessionLink
-{
-    public const int Port = 8479;                                   // = LINK_URL in extension/background.js
-    const string ExtensionOrigin = "chrome-extension://logpjalpegggobmjjimpacngnnhaakmd"; // from the manifest "key"
-    static readonly TimeSpan PingInterval = TimeSpan.FromSeconds(20);
+public sealed class SessionLink {
+  public event Action<IReadOnlyList<GoogleCookie>>? CookiesReceived;
+  public event Action? Connected;
 
-    readonly List<WebSocket> _clients = [];
-    readonly object _gate = new();
+  private const int _port = 8479;  // = LINK_URL in extension/src/lib/link.ts
+  // From the manifest "key", so only our extension can hand us a Google session.
+  private const string _extensionOrigin = "chrome-extension://logpjalpegggobmjjimpacngnnhaakmd";
+  private const string _webSocketGuid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";  // RFC 6455
+  private const int _maxHandshakeBytes = 16 * 1024;
+  private const int _receiveBufferBytes = 64 * 1024;
+  private static readonly TimeSpan _pingInterval = TimeSpan.FromSeconds(20);
 
-    public event Action<IReadOnlyList<GoogleCookie>>? CookiesReceived;
-    public event Action? Connected;
+  private readonly List<WebSocket> _clients = [];
+  private readonly object _gate = new();
 
-    public bool IsExtensionConnected { get { lock (_gate) return _clients.Count > 0; } }
+  public bool IsExtensionConnected {
+    get {
+      lock (_gate) {
+        return _clients.Count > 0;
+      }
+    }
+  }
 
-    public void Start() => _ = Task.Run(AcceptLoopAsync);
+  public void Start() {
+    _ = Task.Run(AcceptLoopAsync);
+  }
 
-    /// <summary>Ask the extension for the current session right now.</summary>
-    public void RequestCookies() => Broadcast("""{"type":"query"}""");
+  /// <summary>Ask the extension for the current session right now.</summary>
+  public void RequestCookies() {
+    Broadcast("""{"type":"query"}""");
+  }
 
-    async Task AcceptLoopAsync()
-    {
-        TcpListener listener;
-        try
-        {
-            listener = new TcpListener(IPAddress.Loopback, Port);
-            listener.Start();
-        }
-        catch (Exception e) { Log.Write($"session link: cannot listen on {Port}: {e.Message}"); return; }
-
-        _ = Task.Run(PingLoopAsync);
-        while (true)
-        {
-            var client = await listener.AcceptTcpClientAsync();
-            _ = Task.Run(() => ServeAsync(client));
-        }
+  private async Task AcceptLoopAsync() {
+    TcpListener listener;
+    try {
+      listener = new TcpListener(IPAddress.Loopback, _port);
+      listener.Start();
+    } catch (Exception e) {
+      Log.Write($"session link: cannot listen on {_port}: {e.Message}");
+      return;
     }
 
-    async Task ServeAsync(TcpClient client)
-    {
-        using var _ = client;
-        var stream = client.GetStream();
-        var headers = await ReadHandshakeAsync(stream);
-        if (headers is null) return;
+    _ = Task.Run(PingLoopAsync);
+    while (true) {
+      TcpClient client = await listener.AcceptTcpClientAsync();
+      _ = Task.Run(() => ServeAsync(client));
+    }
+  }
 
-        if (!headers.TryGetValue("origin", out var origin) || origin != ExtensionOrigin
-            || !headers.TryGetValue("sec-websocket-key", out var key))
-        {
-            await stream.WriteAsync("HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\n\r\n"u8.ToArray());
-            Log.Write($"session link: refused origin {origin ?? "(none)"}");
-            return;
+  private async Task ServeAsync(TcpClient client) {
+    using TcpClient _ = client;
+    NetworkStream stream = client.GetStream();
+    Dictionary<string, string>? headers = await ReadHandshakeAsync(stream);
+    if (headers is null) {
+      return;
+    }
+
+    if (!headers.TryGetValue("origin", out string? origin) || origin != _extensionOrigin
+        || !headers.TryGetValue("sec-websocket-key", out string? key)) {
+      await stream.WriteAsync("HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\n\r\n"u8.ToArray());
+      Log.Write($"session link: refused origin {origin ?? "(none)"}");
+      return;
+    }
+
+    string accept =
+        Convert.ToBase64String(SHA1.HashData(Encoding.ASCII.GetBytes(key + _webSocketGuid)));
+    await stream.WriteAsync(Encoding.ASCII.GetBytes(
+        "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n"
+        + $"Sec-WebSocket-Accept: {accept}\r\n\r\n"));
+
+    using WebSocket socket = WebSocket.CreateFromStream(
+        stream, isServer: true, subProtocol: null, keepAliveInterval: TimeSpan.Zero);
+    lock (_gate) {
+      _clients.Add(socket);
+    }
+    Log.Write("session link: extension connected");
+    Connected?.Invoke();
+    try {
+      while (socket.State == WebSocketState.Open) {
+        string? message = await ReceiveTextAsync(socket);
+        if (message is null) {
+          break;
         }
-
-        var accept = Convert.ToBase64String(SHA1.HashData(Encoding.ASCII.GetBytes(key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11")));
-        await stream.WriteAsync(Encoding.ASCII.GetBytes(
-            $"HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: {accept}\r\n\r\n"));
-
-        using var socket = WebSocket.CreateFromStream(stream, isServer: true, subProtocol: null, keepAliveInterval: TimeSpan.Zero);
-        lock (_gate) _clients.Add(socket);
-        Log.Write("session link: extension connected");
-        Connected?.Invoke();
-        try
-        {
-            while (socket.State == WebSocketState.Open)
-            {
-                var message = await ReceiveTextAsync(socket);
-                if (message is null) break;
-                Handle(message);
-            }
-        }
-        catch (Exception e) { Log.Write($"session link: {e.Message}"); }
-        finally
-        {
-            lock (_gate) _clients.Remove(socket);
-            Log.Write("session link: extension disconnected");
-        }
+        Handle(message);
+      }
+    } catch (Exception e) {
+      Log.Write($"session link: {e.Message}");
+    } finally {
+      lock (_gate) {
+        _clients.Remove(socket);
+      }
+      Log.Write("session link: extension disconnected");
     }
+  }
 
-    void Handle(string message)
-    {
-        using var doc = JsonDocument.Parse(message);
-        if (doc.RootElement.GetProperty("type").GetString() != "cookies") return;
-        var cookies = GoogleCookies.Parse(doc.RootElement.GetProperty("cookies"));
-        Log.Write($"session link: {cookies.Count} auth cookies from the browser");
-        CookiesReceived?.Invoke(cookies);
+  private void Handle(string message) {
+    using JsonDocument doc = JsonDocument.Parse(message);
+    if (doc.RootElement.GetProperty("type").GetString() != "cookies") {
+      return;
     }
+    List<GoogleCookie> cookies = GoogleCookies.Parse(doc.RootElement.GetProperty("cookies"));
+    Log.Write($"session link: {cookies.Count} auth cookies from the browser");
+    CookiesReceived?.Invoke(cookies);
+  }
 
-    async Task PingLoopAsync()
-    {
-        using var timer = new PeriodicTimer(PingInterval);
-        while (await timer.WaitForNextTickAsync()) Broadcast("""{"type":"ping"}""");
+  private async Task PingLoopAsync() {
+    using var timer = new PeriodicTimer(_pingInterval);
+    while (await timer.WaitForNextTickAsync()) {
+      Broadcast("""{"type":"ping"}""");
     }
+  }
 
-    void Broadcast(string json)
-    {
-        WebSocket[] clients;
-        lock (_gate) clients = [.. _clients];
-        var bytes = Encoding.UTF8.GetBytes(json);
-        foreach (var c in clients)
-            _ = c.SendAsync(bytes, WebSocketMessageType.Text, true, CancellationToken.None)
-                 .ContinueWith(t => Log.Write($"session link send: {t.Exception?.InnerException?.Message}"), TaskContinuationOptions.OnlyOnFaulted);
+  private void Broadcast(string json) {
+    WebSocket[] clients;
+    lock (_gate) {
+      clients = [.. _clients];
     }
+    byte[] bytes = Encoding.UTF8.GetBytes(json);
+    foreach (WebSocket client in clients) {
+      _ = client.SendAsync(bytes, WebSocketMessageType.Text, true, CancellationToken.None)
+          .ContinueWith(
+              t => Log.Write($"session link send: {t.Exception?.InnerException?.Message}"),
+              TaskContinuationOptions.OnlyOnFaulted);
+    }
+  }
 
-    static async Task<string?> ReceiveTextAsync(WebSocket socket)
-    {
-        var buffer = new byte[64 * 1024];
-        using var message = new MemoryStream();
-        while (true)
-        {
-            var r = await socket.ReceiveAsync(buffer, CancellationToken.None);
-            if (r.MessageType == WebSocketMessageType.Close) return null;
-            message.Write(buffer, 0, r.Count);
-            if (r.EndOfMessage) return Encoding.UTF8.GetString(message.ToArray());
-        }
+  private static async Task<string?> ReceiveTextAsync(WebSocket socket) {
+    var buffer = new byte[_receiveBufferBytes];
+    using var message = new MemoryStream();
+    while (true) {
+      WebSocketReceiveResult r = await socket.ReceiveAsync(buffer, CancellationToken.None);
+      if (r.MessageType == WebSocketMessageType.Close) {
+        return null;
+      }
+      message.Write(buffer, 0, r.Count);
+      if (r.EndOfMessage) {
+        return Encoding.UTF8.GetString(message.ToArray());
+      }
     }
+  }
 
-    /// <summary>Reads the HTTP upgrade request; header names lower-cased.</summary>
-    static async Task<Dictionary<string, string>?> ReadHandshakeAsync(NetworkStream stream)
-    {
-        var bytes = new List<byte>();
-        var one = new byte[1];
-        while (bytes.Count < 16 * 1024)
-        {
-            if (await stream.ReadAsync(one) == 0) return null;
-            bytes.Add(one[0]);
-            if (bytes.Count >= 4 && bytes[^1] == '\n' && bytes[^2] == '\r' && bytes[^3] == '\n' && bytes[^4] == '\r') break;
-        }
-        var lines = Encoding.ASCII.GetString(bytes.ToArray()).Split("\r\n", StringSplitOptions.RemoveEmptyEntries);
-        return lines.Skip(1)
-            .Select(l => l.Split(':', 2))
-            .Where(p => p.Length == 2)
-            .GroupBy(p => p[0].Trim().ToLowerInvariant())
-            .ToDictionary(g => g.Key, g => g.First()[1].Trim());
+  /// <summary>Reads the HTTP upgrade request; header names lower-cased.</summary>
+  private static async Task<Dictionary<string, string>?> ReadHandshakeAsync(NetworkStream stream) {
+    var bytes = new List<byte>();
+    var one = new byte[1];
+    while (bytes.Count < _maxHandshakeBytes) {
+      if (await stream.ReadAsync(one) == 0) {
+        return null;
+      }
+      bytes.Add(one[0]);
+      if (EndsWithBlankLine(bytes)) {
+        break;
+      }
     }
+    string[] lines = Encoding.ASCII.GetString(bytes.ToArray())
+        .Split("\r\n", StringSplitOptions.RemoveEmptyEntries);
+    return lines.Skip(1)
+        .Select(l => l.Split(':', 2))
+        .Where(p => p.Length == 2)
+        .GroupBy(p => p[0].Trim().ToLowerInvariant())
+        .ToDictionary(g => g.Key, g => g.First()[1].Trim());
+  }
+
+  private static bool EndsWithBlankLine(List<byte> bytes) {
+    return bytes.Count >= 4 && bytes[^1] == '\n' && bytes[^2] == '\r'
+        && bytes[^3] == '\n' && bytes[^4] == '\r';
+  }
 }

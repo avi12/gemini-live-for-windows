@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Microsoft.Win32;
 
 namespace GeminiLive.Glic;
@@ -8,44 +7,53 @@ namespace GeminiLive.Glic;
 /// from, copy that path, and open the default browser's extensions page. Loading an unpacked
 /// extension is the one step a browser won't let an app do for you.
 /// </summary>
-public static class ExtensionSetup
-{
-    /// <summary>Not under AppData, so an MSIX install doesn't virtualize it away from the browser.</summary>
-    public static readonly string Folder = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".gemini-live", "extension");
+public static class ExtensionSetup {
+  private const string _httpsChoiceKey = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\Shell"
+                                         + @"\Associations\UrlAssociations\https\UserChoice";
 
-    static readonly string Shipped = Path.Combine(AppContext.BaseDirectory, "extension");
+  // Not under AppData, so an MSIX install doesn't virtualize it away from the browser.
+  private static readonly string _folder =
+      Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                   ".gemini-live", "extension");
 
-    public static void Begin()
-    {
-        CopyShippedFiles();
-        try { System.Windows.Clipboard.SetText(Folder); } catch { /* clipboard busy; the path is in the caption too */ }
+  private static readonly string _shipped = Path.Combine(AppContext.BaseDirectory, "extension");
 
-        var (exe, page) = DefaultBrowser();
-        try { Process.Start(new ProcessStartInfo(exe, page) { UseShellExecute = true }); }
-        catch (Exception e) { Log.Write($"could not open {page}: {e.Message}"); }
+  public static void Begin() {
+    CopyShippedFiles();
+    try {
+      System.Windows.Clipboard.SetText(_folder);
+    } catch {
+      // Clipboard busy; the steps in the caption still say where to look.
     }
 
-    static void CopyShippedFiles()
-    {
-        foreach (var source in Directory.EnumerateFiles(Shipped, "*", SearchOption.AllDirectories))
-        {
-            var target = Path.Combine(Folder, Path.GetRelativePath(Shipped, source));
-            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
-            File.Copy(source, target, overwrite: true);
-        }
+    (string exe, string page) = DefaultBrowser();
+    try {
+      Shell.Open(exe, page);
+    } catch (Exception e) {
+      Log.Write($"could not open {page}: {e.Message}");
     }
+  }
 
-    /// <summary>The browser the user actually browses in, since that's whose Google session we want.</summary>
-    static (string Exe, string Page) DefaultBrowser()
-    {
-        var progId = Registry.GetValue(
-            @"HKEY_CURRENT_USER\Software\Microsoft\Windows\Shell\Associations\UrlAssociations\https\UserChoice",
-            "ProgId", null) as string ?? "";
-        return progId.StartsWith("Chrome", StringComparison.OrdinalIgnoreCase)
-            ? ("chrome", "chrome://extensions")
-            : progId.StartsWith("Brave", StringComparison.OrdinalIgnoreCase)
-                ? ("brave", "brave://extensions")
-                : ("msedge", "edge://extensions");
+  private static void CopyShippedFiles() {
+    foreach (string source in
+             Directory.EnumerateFiles(_shipped, "*", SearchOption.AllDirectories)) {
+      string target = Path.Combine(_folder, Path.GetRelativePath(_shipped, source));
+      Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+      File.Copy(source, target, overwrite: true);
     }
+  }
+
+  /// <summary>
+  /// The browser the user actually browses in, since that's whose Google session we want.
+  /// </summary>
+  private static (string Exe, string Page) DefaultBrowser() {
+    string progId = Registry.GetValue(_httpsChoiceKey, "ProgId", null) as string ?? "";
+    if (progId.StartsWith("Chrome", StringComparison.OrdinalIgnoreCase)) {
+      return ("chrome", "chrome://extensions");
+    }
+    if (progId.StartsWith("Brave", StringComparison.OrdinalIgnoreCase)) {
+      return ("brave", "brave://extensions");
+    }
+    return ("msedge", "edge://extensions");
+  }
 }
