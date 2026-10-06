@@ -30,11 +30,17 @@
     TRANSCRIPT: 'transcript',
   };
 
-  /** Live states reported to C#. */
+  /** Live states reported to C# (GlicHost.OnMessage reads the "state" message). */
   const State = {
     IDLE: 'idle',
     LISTENING: 'listening',
     RESUMING: 'resuming',
+  };
+
+  /** Who spoke a transcript line (GlicHost.OnMessage reads the "transcript" message's direction). */
+  const Direction = {
+    ASSISTANT: 'assistant',
+    USER: 'user',
   };
 
   /**
@@ -51,18 +57,36 @@
 
   /** Fragments of Glic's button aria-labels. */
   const Button = {
+    ADD_EVENT: 'Add event',
+    ADD_EVENT_TITLE_CASE: 'Add Event',
+    CONFIRM: 'Confirm',
+    CONFIRMS_ACTIONS: 'Button that confirms actions',
+    COPY: 'Copy',
+    CREATE: 'Create',
+    DELETE: 'Delete',
     END: 'End',
     GO_BACK: 'Go back',
     GO_LIVE: 'Go Live',
+    GOOD_RESPONSE: 'Good response',
     NO_THANKS: 'No thanks',
     OK: 'OK',
     PAUSE_LIVE: 'Pause live mode',
+    REGENERATE: 'Regenerate',
+    REMOVE: 'Remove',
+    SAVE: 'Save',
+    SEND: 'Send',
+    SEND_MESSAGE: 'Send message',
     SKIP: 'Skip',
     START_LIVE: 'Start live mode',
     STOP_RESPONSE: 'Stop response',
+    SUBMIT: 'Submit',
     TEXT_MODE: 'Switch to text mode',
     TURN_ON_CAPTIONS: 'Turn on live captions',
+    UPDATE: 'Update',
   };
+
+  /** Either one shows while Live is paused; clicking it resumes. */
+  const RESUME_BUTTONS = [Button.START_LIVE, Button.GO_LIVE];
 
   /** Phrases in Glic's visible text. */
   const Phrase = {
@@ -74,7 +98,27 @@
   // "default" and "communications" are aliases Chromium adds for Windows' default devices.
   const MIC_ALIAS_IDS = new Set(['default', 'communications']);
 
-  const PANEL_STATE = {kind: 2, windowId: 'desktop'};
+  // Glic host API enums we answer with, values from Chromium's glic_api_generated.ts.
+  /** PanelStateKind. */
+  const PanelStateKind = {
+    ATTACHED: 2,
+  };
+  /** Platform. LINUX is what the original port reported; kept as is. */
+  const Platform = {
+    LINUX: 3,
+  };
+  /** FormFactor. */
+  const FormFactor = {
+    DESKTOP: 1,
+  };
+  /** HostCapability. */
+  const HostCapability = {
+    MULTI_INSTANCE: 3,
+    PDF_ZERO_STATE: 7,
+    INVOKE: 8,
+  };
+
+  const PANEL_STATE = {kind: PanelStateKind.ATTACHED, windowId: 'desktop'};
   const BOOT_POLL_MS = 100;
   const MAX_BOOT_TRIES = 150;
   const UNAVAILABLE_POLL_MS = 500;
@@ -401,9 +445,11 @@
 
   const host = {
     getChromeVersion: resolved({major: 130, minor: 0, build: 0, patch: 0}),
-    getPlatform: () => 3,
-    getFormFactor: () => 1,
-    getHostCapabilities: () => new Set([3, 7, 8]),
+    getPlatform: () => Platform.LINUX,
+    getFormFactor: () => FormFactor.DESKTOP,
+    getHostCapabilities: () => new Set([
+      HostCapability.MULTI_INSTANCE, HostCapability.PDF_ZERO_STATE, HostCapability.INVOKE,
+    ]),
     getUserProfileInfo: resolved({
       displayName: 'You',
       email: '',
@@ -537,6 +583,20 @@
   /** The Live channel; its long-poll GETs are the downlink (POSTs carry the mic up). */
   const LIVE_CHANNEL_PATH = '/v1/processSession';
 
+  /** Field indexes in a server message, MSG. */
+  const MsgField = {
+    SEQ: 0,
+    SERVER_CONTENT: 1,
+    INPUT_TRANSCRIPTION: 7,
+  };
+
+  /** Field indexes in MSG[SERVER_CONTENT]. */
+  const ContentField = {
+    GENERATION_COMPLETE: 2,
+    INTERRUPTED: 3,
+    OUTPUT_TRANSCRIPTION: 5,
+  };
+
   /**
    * Utterances in the order the wire opened them; the array index is the transcript index.
    * @type {!Array<{direction: string, text: string}>}
@@ -605,7 +665,7 @@
     const isFinal = field[0] === null;
     // A late final belongs to the utterance Gemini's reply closed, not to a new one.
     const index = openUser >= 0 ? openUser :
-        isFinal && unfinishedUser >= 0 ? unfinishedUser : openUtterance('user');
+        isFinal && unfinishedUser >= 0 ? unfinishedUser : openUtterance(Direction.USER);
     utterances[index].text = text;
     openUser = isFinal ? -1 : index;
     unfinishedUser = -1;
@@ -622,7 +682,7 @@
       return;
     }
     if (openAssistant < 0 || first === 1) {
-      openAssistant = openUtterance('assistant');
+      openAssistant = openUtterance(Direction.ASSISTANT);
       // Gemini answering means the user's turn is over, even if its final transcript never came.
       unfinishedUser = openUser;
       openUser = -1;
@@ -637,22 +697,25 @@
    * end Gemini's utterance. Audio ([0] config, [1] mp3) and acks are ignored.
    */
   const onServerMessage = (msg) => {
-    if (!Array.isArray(msg) || typeof msg[0] !== 'string') {
+    if (!Array.isArray(msg) || typeof msg[MsgField.SEQ] !== 'string') {
       return;
     }
-    if (Array.isArray(msg[7])) {
+    const input = msg[MsgField.INPUT_TRANSCRIPTION];
+    if (Array.isArray(input)) {
       wireSeen = true;
-      onInputTranscript(msg[7]);
+      onInputTranscript(input);
     }
-    const content = msg[1];
+    const content = msg[MsgField.SERVER_CONTENT];
     if (!Array.isArray(content)) {
       return;
     }
-    if (Array.isArray(content[5])) {
+    const output = content[ContentField.OUTPUT_TRANSCRIPTION];
+    if (Array.isArray(output)) {
       wireSeen = true;
-      onOutputTranscript(content[5]);
+      onOutputTranscript(output);
     }
-    if (content[2] != null || content[3] != null) {
+    if (content[ContentField.GENERATION_COMPLETE] != null ||
+        content[ContentField.INTERRUPTED] != null) {
       openAssistant = -1;
     }
   };
@@ -764,7 +827,7 @@
 
   // Only a bold node that is exactly a speaker label starts an utterance. Gemini bolds words in its
   // own answers too ("**your** schedule"), and those are part of the sentence, not a new speaker.
-  const SPEAKER_LABELS = {you: 'user', gemini: 'assistant'};
+  const SPEAKER_LABELS = {you: Direction.USER, gemini: Direction.ASSISTANT};
 
   /** @return {?string} The transcript direction a bold node stands for, or null for bold text. */
   const directionOf = (node) => {
@@ -874,7 +937,7 @@
       return;
     }
     lastResume = now;
-    clickButton(Button.START_LIVE, Button.GO_LIVE);
+    clickButton(...RESUME_BUTTONS);
   };
 
   const monitorTick = () => {
@@ -887,7 +950,7 @@
     if (findButton(Button.PAUSE_LIVE)) {
       resumeTries = 0;
       setState(State.LISTENING);
-    } else if (findButton(Button.START_LIVE, Button.GO_LIVE)) {
+    } else if (findButton(...RESUME_BUTTONS)) {
       setState(State.RESUMING);
       resume();
     }
@@ -984,10 +1047,13 @@
   // specific enough not to hit an always-present composer button. A bare "Add" is deliberately
   // absent: it matched "Add tabs. Press Enter to activate" and auto-clicked it on every turn.
   const ACTION_CONFIRM = [
-    'Button that confirms actions',
-    'Add event', 'Add Event', 'Create', 'Save', 'Remove', 'Delete', 'Update', 'Confirm',
+    Button.CONFIRMS_ACTIONS,
+    Button.ADD_EVENT, Button.ADD_EVENT_TITLE_CASE, Button.CREATE, Button.SAVE, Button.REMOVE,
+    Button.DELETE, Button.UPDATE, Button.CONFIRM,
   ];
-  const SUBMIT = ['Submit', 'Send message', 'Send'];
+  const SUBMIT = [Button.SUBMIT, Button.SEND_MESSAGE, Button.SEND];
+  /** Glic shows these under an answer only once it has finished. */
+  const REPLY_DONE = [Button.COPY, Button.GOOD_RESPONSE, Button.REGENERATE];
 
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -1053,7 +1119,7 @@
     const deadline = Date.now() + ACTION_REPLY_MS;
     while (Date.now() < deadline) {
       const now = lastReplyText();
-      const done = findButton('Copy', 'Good response', 'Regenerate');
+      const done = findButton(...REPLY_DONE);
       if (now && now === text && done) {
         stableSince = stableSince || Date.now();
         if (Date.now() - stableSince > ACTION_SETTLE_MS) {
