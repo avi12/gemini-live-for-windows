@@ -13,7 +13,7 @@ Press **Win+C** (or the Copilot key) → Gemini Live starts listening and sees t
    ```powershell
    .\scripts\install.ps1
    ```
-2. **Load the extension** in Edge or Chrome: open `edge://extensions` (or `chrome://extensions`), turn on **Developer mode**, click **Load unpacked**, and pick the `extension` folder. It has a fixed ID (`logpjalpegggobmjjimpacngnnhaakmd`), and the app accepts the session only from that ID.
+2. **Load the extension** in Edge or Chrome: open `edge://extensions` (or `chrome://extensions`), turn on **Developer mode**, click **Load unpacked**, and pick `%USERPROFILE%\.gemini-live\extension` (the app copies its WXT build there when you click *Add the browser extension*; from source: `pnpm --dir extension build` → `extension\.output\chrome-mv3`). It has a fixed ID (`logpjalpegggobmjjimpacngnnhaakmd`), and the app accepts the session only from that ID.
 3. **Choose it for Win+C**: Settings › Personalization › Text input › *Customize Copilot key on keyboard* › **Gemini Live**.
 
 Stay signed in to Google in that browser. If you sign out there, Gemini Live waits until you sign back in.

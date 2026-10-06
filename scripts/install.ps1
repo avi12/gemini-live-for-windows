@@ -24,6 +24,11 @@ $name      = $manifest.Package.Identity.Name
 # Stop a running copy so its files can be replaced.
 Get-Process GeminiLive -ErrorAction SilentlyContinue | Stop-Process -Force
 
+Write-Host '== extension'
+pnpm --dir (Join-Path $root 'extension') install --silent
+pnpm --dir (Join-Path $root 'extension') build
+if ($LASTEXITCODE) { throw 'extension build failed' }
+
 Write-Host '== publish'
 if (Test-Path $layout) { Remove-Item $layout -Recurse -Force }
 dotnet publish (Join-Path $root 'src\GeminiLive\GeminiLive.csproj') -c Release -o $layout --nologo -v q

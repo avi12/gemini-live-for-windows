@@ -21,8 +21,9 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Glic\glic_bridge.js" LogicalName="GeminiLive.Glic.glic_bridge.js" />
-    <!-- The companion extension ships with the app; ExtensionSetup copies it out for the browser. -->
-    <Content Include="..\..\extension\**\*" Link="extension\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The companion extension's WXT build ships with the app; ExtensionSetup copies it out for
+         the browser. scripts\install.ps1 builds it first with pnpm. -->
+    <Content Include="..\..\extension\.output\chrome-mv3\**\*" Link="extension\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
