@@ -34,6 +34,21 @@ public static class ExtensionSetup {
     }
   }
 
+  /// <summary>
+  /// Keeps an installed copy current with the build this app ships, so an update reaches the
+  /// browser the next time it reloads the extension. Does nothing before the first setup.
+  /// </summary>
+  public static void RefreshInstalled() {
+    if (!Directory.Exists(_folder)) {
+      return;
+    }
+    try {
+      CopyShippedFiles();
+    } catch (Exception e) {
+      Log.Write($"extension refresh failed: {e.Message}");
+    }
+  }
+
   private static void CopyShippedFiles() {
     foreach (string source in
              Directory.EnumerateFiles(_shipped, "*", SearchOption.AllDirectories)) {

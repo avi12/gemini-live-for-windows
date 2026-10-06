@@ -31,6 +31,7 @@ public partial class App : Application {
     };
 
     // Load Gemini now, so pressing Win+C later doesn't wait for a page load.
+    Glic.ExtensionSetup.RefreshInstalled();
     var link = new Glic.SessionLink();
     link.Start();
     var glic = new Glic.GlicHost(link);
