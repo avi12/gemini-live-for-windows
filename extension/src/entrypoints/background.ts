@@ -9,9 +9,9 @@
 import { ensureLinkConnected, isGoogleCookie, pushSessionSoon } from '@/lib/link';
 
 // Wakes the suspendable MV3 worker so a link dropped while it slept (e.g. the app launched
-// later) reconnects within a minute. One minute is Chrome's floor for a periodic alarm.
+// later) reconnects within 30 seconds, Chrome's floor for a periodic alarm (since Chrome 120).
 const LINK_ALARM = 'link';
-const LINK_KEEPALIVE_MINUTES = 1;
+const LINK_KEEPALIVE_MINUTES = 0.5;
 
 // WXT discovers entrypoints by their default export, so this one file is exempt from the
 // named-exports rule.
