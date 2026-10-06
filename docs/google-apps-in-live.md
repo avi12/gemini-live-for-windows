@@ -103,7 +103,7 @@ only to read its card button, then **Cancelled** - nothing was created or sent (
 | **Keep** | **Yes** | Read real notes (incl. a long Hebrew note). Write shows a confirmation card. |
 | **Tasks** | **Yes** | Read real active + completed tasks. Write shows a confirmation card. |
 | **Gmail** | **Read yes, send no** | Summarised real unread emails. Compose+send is refused: "I cannot send emails on your behalf." No send card is offered. |
-| **Home** | **No** | "I don't have access to your real-time smart home device registry or API status." It only infers devices from past chat memory - no live state, no device card. Unsupported on this path - handled directly instead, see "Google Home, direct" below. |
+| **Home** | **No** | "I don't have access to your real-time smart home device registry or API status." It only infers devices from past chat memory - no live state, no device card. Unsupported on this path. Re-checked 2026-10-06 on `/app` text too: "unable to retrieve the real-time status" (a bare "is my AC on?" got a "yes" guessed from chat history). Requests still route here, so Home starts working the day Google gives the web its Home tool. |
 
 ### Confirmation card labels (the load-bearing fix)
 
@@ -131,29 +131,3 @@ Changes to `glic_bridge.js`:
 
 Calendar's legacy labels ("Add Event"/"Remove") are kept as fallbacks but were not re-checked today -
 they may be this same shared generic card now. Home is unsupported, so no device/toggle label exists.
-
-## Google Home, direct (2026-10-06)
-
-Google lists the Home app as phone-only for Gemini ("not available in the Gemini web app or Live
-chats"), and Home's own natural-language agent ("Ask Home", `GenAiHomeAgentService/ProcessQuery`
-type 8) answers "isn't available in your home yet" for this account. So the app skips Gemini for
-Home and calls the API **Home for web** (home.google.com) uses, with the same browser session:
-
-- Host `googlehomefoyer-pa.clients6.google.com/$rpc/google.internal.home.foyer.v1.<Service>/<Method>`,
-  grpc-web as `application/json+protobuf`, `Authorization: SAPISIDHASH <ts>_<sha1("<ts> <SAPISID>
-  https://home.google.com")>`, `X-Goog-Api-Key` = Home for web's public key, `.google.com` cookies.
-  Works straight from `HttpClient` - no page, no phone.
-- `StructuresService/GetHomeGraph` → homes; `[5]` rooms (`[2]` name, `[4]` member ids), `[6]`
-  devices (`[0][0]` id, `[3]` name, `[5]` type, `[6]` traits, `[15]` nicknames).
-- `HomeControlService/GetTraits` `[[[id],…]]` → per trait `[name, stateEntries, [attrEntries]]`.
-- `HomeControlService/UpdateTraits` `[[[[id],[[trait,[[key,value]]]]]]]`; values are
-  google.protobuf.Value in jspb (`[null,n]`, `[_,_,"s"]`, `[_,_,_,1]`, struct at slot 4). An unknown key
-  returns `[]` instead of an error. Verified keys (each as a same-value write, nothing changed):
-  `onOff.onOff`, `brightness.brightness`, `color.colorRGB`,
-  `temperatureSetting.thermostatTemperatureSetpoint` (not `…SetpointC`, which returns `[]`),
-  `temperatureSetting.mode`, `fanSpeed.currentFanSpeedSetting`, `volume.currentVolume`,
-  `toggles.currentToggleSettings` (struct).
-
-`Home/HomeControl.cs` parses the spoken request against the real device list (names, nicknames,
-rooms, type words, "it" for the last devices) and only fires on a state question or a command verb.
-Not yet handled: Toggles-only switches (e.g. turbo/swing on "Custom AC").
