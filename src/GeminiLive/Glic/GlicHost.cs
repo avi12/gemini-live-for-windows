@@ -245,8 +245,13 @@ public sealed class GlicHost : Window {
       return;
     }
     bool connected = _link.IsExtensionConnected;
-    Notice?.Invoke(connected ? "Sign in to Google in your browser" : "One-time setup");
-    ExtensionNeeded?.Invoke(!connected);
+    // A saved session only ever comes from the extension, so having one means it's installed: it
+    // is just asleep (its worker wakes on a timer after the app starts) or the browser is closed.
+    bool installed = connected || _session.Count > 0;
+    Notice?.Invoke(connected ? "Sign in to Google in your browser"
+                   : installed ? "Waiting for your browser…"
+                   : "One-time setup");
+    ExtensionNeeded?.Invoke(!installed);
     _link.RequestCookies();
   }
 
