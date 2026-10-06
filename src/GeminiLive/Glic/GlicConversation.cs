@@ -97,11 +97,7 @@ public sealed partial class GlicConversation : ILiveEngine {
     } else if (NeedsApp(clean) && index != _handledRefusalIndex && _lastUserUtterance.Length > 0) {
       // Fallback: Gemini got there first and refused. Handle the request ourselves after all.
       _handledRefusalIndex = index;
-      if (_home.Match(_lastUserUtterance) is { } intent) {
-        _ = RunHomeAsync(_lastUserUtterance, intent);
-      } else if (AppTopic().IsMatch(_lastUserUtterance)) {
-        _ = RunAppActionAsync(_lastUserUtterance);
-      }
+      _ = ActAsync(_lastUserUtterance, viaRefusal: true);
     }
   }
 
@@ -112,10 +108,16 @@ public sealed partial class GlicConversation : ILiveEngine {
     if (_runningAction || _lastUserUtterance == _handledUtterance) {
       return;
     }
-    if (_home.Match(_lastUserUtterance) is { } intent) {
-      _ = RunHomeAsync(_lastUserUtterance, intent);
-    } else if (TargetsApp(_lastUserUtterance)) {
-      _ = RunAppActionAsync(_lastUserUtterance);
+    _ = ActAsync(_lastUserUtterance, viaRefusal: false);
+  }
+
+  // Home first (it names real devices, so it's the precise match), then the apps' text path: on a
+  // refusal any app topic will do, proactively only a plain app request.
+  private async Task ActAsync(string request, bool viaRefusal) {
+    if (await _home.MatchAsync(request) is { } intent) {
+      await RunHomeAsync(request, intent);
+    } else if (viaRefusal ? AppTopic().IsMatch(request) : TargetsApp(request)) {
+      await RunAppActionAsync(request);
     }
   }
 

@@ -54,9 +54,17 @@ public sealed partial class HomeControl {
     }
   }
 
-  /// <summary>The request as a home command, or null when it isn't one (or Home isn't reachable).</summary>
-  public HomeIntent? Match(string utterance) {
-    Refresh();
+  /// <summary>
+  /// The request as a home command, or null when it isn't one (or Home isn't reachable). Waits for
+  /// the device list only when there is none yet (the session arrives after launch); a stale one
+  /// refreshes in the background.
+  /// </summary>
+  public async Task<HomeIntent?> MatchAsync(string utterance) {
+    if (_devices.Count == 0) {
+      await WarmUpAsync();
+    } else {
+      Refresh();
+    }
     return Parse(utterance, _devices, _lastDevices);
   }
 
