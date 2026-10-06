@@ -1,277 +1,412 @@
-using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
-using System.Windows.Interop;
 using System.Windows.Media;
-using System.Windows.Media.Animation;
+using System.Windows.Navigation;
+using Microsoft.Win32;
 
 namespace GeminiLive;
 
 /// <summary>
-/// The flyout, styled after Windows' own voice typing panel (TextInputHost): settings and close
-/// on top, a big accent mic in the middle, status and live captions under it, display picker last.
+/// Googlebook's Live UI on Windows: a pill docked above the taskbar (share, mic, status, settings,
+/// end) under a caption card with the running transcript and the links Gemini mentioned.
 /// </summary>
-public partial class MainWindow : Window
-{
-    readonly Settings _settings = Settings.Load();
-    readonly ShareBorder _border = new();
-    readonly Glic.GlicHost _glic;
-    ILiveEngine? _conversation;
-    MonitorInfo? _pendingMonitor;
+public partial class MainWindow : Window {
+  private const int _dockGap = 6;  // physical px between the pill's glow margin and the taskbar
+  // How the pill arrives and leaves (Material enter/exit, rising from the taskbar).
+  private const double _pillRise = 24;
+  private const double _pillSink = 40;  // a longer drop on the way out, so the close reads clearly
+  private const double _pillScaleFrom = 0.96;
+  private const double _cardRise = 12;
+  private const double _menuRise = 8;
 
-    public IntPtr Handle { get; }
+  private readonly Settings _settings = Settings.Load();
+  private readonly ShareBorder _border = new();
+  private readonly Glic.GlicHost _glic;
+  private readonly CaptionPresenter _captions;
+  private readonly GlowAnimator _glow;
 
-    public MainWindow(Glic.GlicHost glic)
-    {
-        _glic = glic;
-        InitializeComponent();
-        Handle = Overlay.Prepare(this, clickThrough: false);
-        HwndSource.FromHwnd(Handle).CompositionTarget.BackgroundColor = Colors.Transparent;
-        glic.ExtensionNeeded += needed =>
-        {
-            ConnectPanel.Visibility = needed ? Visibility.Visible : Visibility.Collapsed;
-            MonitorPicker.Visibility = needed || Monitors.All().Count < 2 ? Visibility.Collapsed : Visibility.Visible;
-            if (!needed) ConnectSteps.Visibility = Visibility.Collapsed;
-        };
-        Theme.Acrylic(Handle);
-        BuildMenu();
+  public IntPtr Handle { get; }
+
+  private ILiveEngine? _conversation;
+  private MonitorInfo? _pendingMonitor;
+  private MonitorInfo? _dockedOn;
+  private bool _leaving;  // the exit animation is running; Hide() follows unless shown again
+  private bool _muted;
+  private string _status = "";
+
+  private MonitorInfo? Shared => _conversation?.Monitor;
+
+  public MainWindow(Glic.GlicHost glic) {
+    _glic = glic;
+    InitializeComponent();
+    Handle = Overlay.Prepare(this, clickThrough: false);
+    _glow = new GlowAnimator(Glow);
+    _captions = new CaptionPresenter(Transcript, TranscriptScroll, LinkTray);
+    _captions.Changed += UpdateCard;
+    glic.ExtensionNeeded += OnExtensionNeeded;
+    glic.SetMicrophone(_settings.MicrophoneId);
+    SizeChanged += (_, e) => Dock(e.NewSize);
+    SystemEvents.DisplaySettingsChanged += (_, _) => Dispatcher.BeginInvoke(OnDisplaysChanged);
+    SettingsButton.ContextMenu = BuildSettingsMenu();
+    SetMuted(false);
+    UpdateShareButton();
+  }
+
+  // ---- Copilot key ----
+
+  public void OnTrigger(KeyTrigger trigger) {
+    Log.Write($"trigger {trigger}");
+    switch (trigger) {
+      case KeyTrigger.Tap when _conversation is not null:
+        _ = EndAsync();
+        break;
+      case KeyTrigger.Tap:
+      case KeyTrigger.HoldStart when _conversation is null:
+        _ = StartAsync(Monitors.Active());
+        break;
+      case KeyTrigger.HoldStart:
+        SetMuted(false);
+        break;
+    }
+  }
+
+  // ---- session lifetime ----
+
+  private async Task StartAsync(MonitorInfo monitor) {
+    _captions.Clear();
+    ShowOn(monitor);
+    if (_settings.Engine == EngineKind.ApiKey && !_settings.HasApiKey) {
+      _pendingMonitor = monitor;
+      AskForKey();
+      return;
     }
 
-    // ---- Copilot key ----
+    ILiveEngine engine = CreateEngine(monitor);
+    _conversation = engine;
+    engine.Status += status => WhileCurrent(engine, () => SetStatus(status));
+    engine.Transcript += (text, isUser) => WhileCurrent(engine, () => _captions.Show(text, isUser));
+    engine.Level += (level, isUser) => WhileCurrent(engine, () => _glow.Follow(level, isUser));
+    engine.Ended += reason => WhileCurrent(engine, () => Fail(engine, reason));
 
-    public void OnTrigger(KeyTrigger trigger)
-    {
-        Log.Write($"trigger {trigger}");
-        switch (trigger)
-        {
-            case KeyTrigger.Tap when _conversation is not null:
-                _ = EndAsync();
-                break;
-            case KeyTrigger.Tap:
-            case KeyTrigger.HoldStart when _conversation is null:
-                _ = StartAsync(Monitors.Active());
-                break;
-            case KeyTrigger.HoldStart:
-                SetMuted(false);
-                break;
-        }
+    SetStatus(LiveStatus.Connecting);
+    _border.Cover(monitor);
+    UpdateShareButton();
+    try {
+      await engine.StartAsync();
+      if (_conversation != engine) {
+        return;  // ended while connecting
+      }
+      SetStatus(LiveStatus.Listening);
+      if (!engine.ReportsLevels) {
+        _glow.Breathe();
+      }
+      SetMuted(false);
+    } catch (Exception e) {
+      if (_conversation != engine) {
+        return;
+      }
+      Log.Write($"start failed: {e}");
+      Fail(engine, e.Message);
+      if (e.Message.Contains("API key", StringComparison.OrdinalIgnoreCase)) {
+        AskForKey();
+      }
     }
+  }
 
-    async Task StartAsync(MonitorInfo monitor)
-    {
-        ShowOn(monitor);
-        if (_settings.Engine == EngineKind.ApiKey && !_settings.HasApiKey)
-        {
-            _pendingMonitor = monitor;
-            AskForKey();
-            return;
-        }
-
-        ILiveEngine c = _settings.Engine == EngineKind.Google
-            ? new Glic.GlicConversation(_glic, monitor)
-            : new Conversation(_settings, monitor);
-        _conversation = c;
-        c.Status += s => Dispatcher.BeginInvoke(() => { if (_conversation == c) StatusText.Text = s; });
-        c.Transcript += (t, user) => Dispatcher.BeginInvoke(() => { if (_conversation == c) ShowCaption(t, user); });
-        c.Level += (l, user) => Dispatcher.BeginInvoke(() => { if (_conversation == c) PulseTo(l, user); });
-        c.Ended += reason => Dispatcher.BeginInvoke(() => Fail(c, reason));
-
-        SetStatus("Connecting…", "");
-        _border.Cover(monitor);
-        try
-        {
-            await c.StartAsync();
-            if (_conversation != c) return; // ended while connecting
-            SetStatus("Listening…", "Go ahead, I can see your screen.");
-            if (_settings.Engine == EngineKind.Google) Breathe(); // the page owns the audio; no levels to follow
-            SetMuted(false);
-        }
-        catch (Exception e)
-        {
-            if (_conversation != c) return;
-            Log.Write($"start failed: {e}");
-            Fail(c, e.Message);
-            if (e.Message.Contains("API key", StringComparison.OrdinalIgnoreCase)) AskForKey();
-        }
+  private ILiveEngine CreateEngine(MonitorInfo monitor) {
+    if (_settings.Engine == EngineKind.Google) {
+      return new Glic.GlicConversation(_glic, monitor);
     }
+    return new Conversation(_settings, monitor);
+  }
 
-    /// <summary>A session died: keep the flyout up with the reason, so the failure is visible.</summary>
-    void Fail(ILiveEngine c, string reason)
-    {
-        if (_conversation != c) return;
-        Log.Write($"ended: {reason}");
-        _conversation = null;
-        _border.Hide();
-        StopPulse();
-        SetStatus("Gemini Live stopped", reason);
-        _ = c.DisposeAsync().AsTask();
-    }
-
-    async Task EndAsync()
-    {
-        var c = _conversation;
-        _conversation = null;
-        _border.Hide();
-        StopPulse();
-        Hide();
-        if (c is not null) await c.DisposeAsync();
-    }
-
-    // ---- display picker ----
-
-    void ShowOn(MonitorInfo monitor)
-    {
-        KeyPanel.Visibility = Visibility.Collapsed;
-        ConnectPanel.Visibility = Visibility.Collapsed;
-        MonitorPicker.Children.Clear();
-        var all = Monitors.All();
-        MonitorPicker.Visibility = all.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
-        foreach (var m in all)
-        {
-            var chip = new RadioButton
-            {
-                Style = (Style)FindResource("MonitorChip"), GroupName = "Monitors",
-                Content = m.Label, ToolTip = m.Description, Tag = m,
-                IsChecked = m.DeviceName == monitor.DeviceName,
-            };
-            chip.Checked += (_, _) => Share((MonitorInfo)chip.Tag);
-            MonitorPicker.Children.Add(chip);
-        }
-
-        Show();
-        UpdateLayout();
-        // Bottom-centre of the display the user was working on, where voice typing sits.
-        Native.GetWindowRect(Handle, out var r);
-        int w = r.Right - r.Left, h = r.Bottom - r.Top;
-        Overlay.Place(Handle, monitor.X + (monitor.Width - w) / 2, monitor.Y + monitor.Height - h - 72);
-    }
-
-    void Share(MonitorInfo monitor)
-    {
-        if (_conversation is null) return;
-        _conversation.Share(monitor);
-        _border.Cover(monitor);
-        Log.Write($"sharing {monitor.Description}");
-    }
-
-    // ---- status, captions, pulse ----
-
-    void SetStatus(string status, string caption)
-    {
-        StatusText.Text = status;
-        Caption.Text = caption;
-        Caption.Foreground = (Brush)FindResource("SecondaryTextBrush");
-    }
-
-    void ShowCaption(string text, bool isUser)
-    {
-        // Keep the tail of a long utterance: the newest words are the ones being spoken.
-        Caption.Text = text.Length > 140 ? "…" + text[^140..] : text;
-        Caption.Foreground = (Brush)FindResource(isUser ? "SecondaryTextBrush" : "TextBrush");
-    }
-
-    void PulseTo(float level, bool isUser)
-    {
-        if (isUser && level < 0.02f) return; // let Gemini's voice own the ring while the user is quiet
-        var target = 0.7 + Math.Min(1, level * 3) * 0.3;
-        AnimatePulse(new DoubleAnimation(target, TimeSpan.FromMilliseconds(90)));
-    }
-
-    void Breathe() => AnimatePulse(new DoubleAnimation(0.72, 0.95, TimeSpan.FromMilliseconds(1100))
-    {
-        AutoReverse = true, RepeatBehavior = RepeatBehavior.Forever, EasingFunction = new SineEase(),
+  /// <summary>Runs an engine's event on the UI thread, unless that engine was replaced.</summary>
+  private void WhileCurrent(ILiveEngine engine, Action action) {
+    Dispatcher.BeginInvoke(() => {
+      if (_conversation == engine) {
+        action();
+      }
     });
+  }
 
-    void StopPulse() => AnimatePulse(null);
-
-    void AnimatePulse(DoubleAnimation? anim)
-    {
-        PulseScale.BeginAnimation(ScaleTransform.ScaleXProperty, anim);
-        PulseScale.BeginAnimation(ScaleTransform.ScaleYProperty, anim);
+  /// <summary>A session died: keep the pill up with the reason, so the failure shows.</summary>
+  private void Fail(ILiveEngine engine, string reason) {
+    if (_conversation != engine) {
+      return;
     }
+    Log.Write($"ended: {reason}");
+    Detach();
+    SetStatus("Gemini Live stopped", detail: reason);
+    _captions.AddNote(reason);
+    _ = engine.DisposeAsync().AsTask();
+  }
 
-    // ---- controls ----
-
-    void SetMuted(bool muted)
-    {
-        if (_conversation is not null) _conversation.Muted = muted;
-        MicButton.Tag = muted ? "muted" : null;
-        MicButton.ToolTip = muted ? "Unmute microphone" : "Mute microphone";
-        Pulse.Visibility = muted ? Visibility.Hidden : Visibility.Visible;
+  private async Task EndAsync() {
+    ILiveEngine? engine = _conversation;
+    Detach();
+    Leave();
+    if (engine is not null) {
+      await engine.DisposeAsync();
     }
+  }
 
-    void OnConnect(object sender, RoutedEventArgs e)
-    {
-        Glic.ExtensionSetup.Begin();
-        ConnectSteps.Visibility = Visibility.Visible;
+  /// <summary>Lets go of the session: no more events, no share border, glow at rest.</summary>
+  private void Detach() {
+    _conversation = null;
+    _border.Hide();
+    _glow.Rest();
+  }
+
+  // ---- placement: docked bottom-right above the taskbar, like Googlebook ----
+
+  private void ShowOn(MonitorInfo monitor) {
+    _dockedOn = monitor;
+    KeyPanel.Visibility = Visibility.Collapsed;
+    ConnectPanel.Visibility = Visibility.Collapsed;
+    UpdateCard();
+    bool arriving = !IsVisible || _leaving;
+    _leaving = false;
+    Show();
+    UpdateLayout();
+    Dock();
+    if (arriving) {
+      Motion.Enter(Root, rise: _pillRise, scaleFrom: _pillScaleFrom);
     }
+  }
 
-    void OnMute(object sender, RoutedEventArgs e) => SetMuted(!(_conversation?.Muted ?? false));
-    void OnEnd(object sender, RoutedEventArgs e) => _ = EndAsync();
-    void OnDrag(object sender, MouseButtonEventArgs e) { if (e.ButtonState == MouseButtonState.Pressed) DragMove(); }
-    void OnLink(object sender, System.Windows.Navigation.RequestNavigateEventArgs e) =>
-        Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
+  /// <summary>Plays the pill's exit, then hides it, unless it is shown again meanwhile.</summary>
+  private void Leave() {
+    _leaving = true;
+    Motion.Exit(Root, drop: _pillSink, scaleTo: _pillScaleFrom, completed: () => {
+      if (!_leaving) {
+        return;
+      }
+      _leaving = false;
+      Hide();
+    });
+  }
 
-    // ---- settings menu (gear): engine, quit ----
+  private void Dock() {
+    Dock(new Size(ActualWidth, ActualHeight));
+  }
 
-    void BuildMenu()
-    {
-        var menu = new ContextMenu { PlacementTarget = SettingsButton };
-        MenuItem Item(string header, Action click, bool? check = null)
-        {
-            var item = new MenuItem { Header = header, IsCheckable = check is not null };
-            item.Click += (_, _) => click();
-            menu.Items.Add(item);
-            return item;
-        }
-        var google = Item("Use my Google account", () => SetEngine(EngineKind.Google), true);
-        var apiKey = Item("Use a Gemini API key", () => SetEngine(EngineKind.ApiKey), true);
-        menu.Opened += (_, _) => { google.IsChecked = _settings.Engine == EngineKind.Google; apiKey.IsChecked = !google.IsChecked; };
-        menu.Items.Add(new Separator());
-        Item("Quit Gemini Live", () => { _ = EndAsync(); Application.Current.Shutdown(); });
-        SettingsButton.ContextMenu = menu;
+  /// <summary>
+  /// Keeps the pill's bottom-right corner pinned as the caption card grows upward. Takes the
+  /// size the window is changing to: SizeToContent grows it from the top edge, and at that
+  /// moment the HWND rect still holds the old size, which would push the pill onto the taskbar.
+  /// </summary>
+  private void Dock(Size size) {
+    if (_dockedOn is not { } monitor || !IsVisible) {
+      return;
     }
+    DpiScale dpi = VisualTreeHelper.GetDpi(this);
+    Overlay.PlaceBottomRight(Handle, monitor.WorkRight - _dockGap, monitor.WorkBottom - _dockGap,
+                             (int)Math.Round(size.Width * dpi.DpiScaleX),
+                             (int)Math.Round(size.Height * dpi.DpiScaleY));
+  }
 
-    void OnSettings(object sender, RoutedEventArgs e) => SettingsButton.ContextMenu.IsOpen = true;
+  // ---- sharing: which display Gemini sees ----
 
-    void SetEngine(EngineKind engine)
-    {
-        _settings.Engine = engine;
-        _settings.Save();
-        Log.Write($"engine -> {engine}");
-        if (_conversation is { } c) _ = RestartAsync(c.Monitor);
+  private void UpdateShareButton() {
+    bool many = Monitors.All().Count > 1;
+    ShareChevron.Visibility = many ? Visibility.Visible : Visibility.Collapsed;
+    ShareButton.IsHitTestVisible = many;
+    ShareButton.ToolTip = many ? "Choose the display Gemini sees" : "Gemini sees your screen";
+    ShareLabel.Text = many && Shared is { } shared ? shared.Name : "Screen";
+  }
+
+  private void OnShare(object sender, RoutedEventArgs e) {
+    IReadOnlyList<MonitorInfo> all = Monitors.All();
+    if (all.Count < 2) {
+      return;
     }
+    ContextMenu menu = MenuAbove(ShareButton);
+    DisplayPicker.Fill(menu, all, Shared, Share);
+    menu.IsOpen = true;
+  }
 
-    async Task RestartAsync(MonitorInfo monitor)
-    {
-        await EndAsync();
-        await StartAsync(monitor);
+  private void Share(MonitorInfo monitor) {
+    if (_conversation is null) {
+      return;
     }
+    _conversation.Share(monitor);
+    _border.Cover(monitor);
+    UpdateShareButton();
+    Log.Write($"sharing {monitor.Description}");
+  }
 
-    // ---- first-run API key ----
-
-    void AskForKey()
-    {
-        SetStatus("Setup", "Gemini needs an API key to start.");
-        MonitorPicker.Visibility = Visibility.Collapsed;
-        KeyPanel.Visibility = Visibility.Visible;
-        // Typing needs focus, so drop the no-activate style just for this.
-        Native.SetWindowLong(Handle, Native.GWL_EXSTYLE,
-            Native.GetWindowLong(Handle, Native.GWL_EXSTYLE) & ~Native.WS_EX_NOACTIVATE);
-        Activate();
-        Native.SetForegroundWindow(Handle);
-        KeyBox.Focus();
+  /// <summary>Displays plugged in or out: keep sharing one that survived, and re-dock.</summary>
+  private void OnDisplaysChanged() {
+    IReadOnlyList<MonitorInfo> all = Monitors.All();
+    Log.Write($"displays changed: {all.Count}");
+    // Re-share even when the display survived: its bounds may have moved.
+    if (Shared is { } shared) {
+      Share(Monitors.Reconcile(all, shared));
     }
-
-    void OnKeyBoxKeyDown(object sender, KeyEventArgs e)
-    {
-        if (e.Key != Key.Enter || KeyBox.Password.Trim().Length == 0) return;
-        _settings.SetApiKey(KeyBox.Password);
-        KeyBox.Clear();
-        KeyPanel.Visibility = Visibility.Collapsed;
-        Native.SetWindowLong(Handle, Native.GWL_EXSTYLE,
-            Native.GetWindowLong(Handle, Native.GWL_EXSTYLE) | Native.WS_EX_NOACTIVATE);
-        _ = StartAsync(_pendingMonitor ?? Monitors.Active());
+    if (_dockedOn is { } docked) {
+      _dockedOn = Monitors.Reconcile(all, docked);
     }
+    UpdateShareButton();
+    Dock();
+  }
+
+  // ---- status and the caption card ----
+
+  /// <summary>Crossfades to the new status while the pill is up; sets it outright if not.</summary>
+  private void SetStatus(string status, string? detail = null) {
+    StatusText.ToolTip = detail;
+    if (status == _status) {
+      return;
+    }
+    _status = status;
+    if (!IsVisible || _leaving) {
+      StatusText.Text = status;
+      return;
+    }
+    Motion.Swap(StatusText, () => StatusText.Text = _status);
+  }
+
+  private void OnExtensionNeeded(bool needed) {
+    ConnectPanel.Visibility = needed ? Visibility.Visible : Visibility.Collapsed;
+    if (!needed) {
+      ConnectSteps.Visibility = Visibility.Collapsed;
+    }
+    UpdateCard();
+  }
+
+  /// <summary>The card shows only when it has something: transcript, links, a setup step.</summary>
+  private void UpdateCard() {
+    bool any = _captions.HasContent
+        || ConnectPanel.Visibility == Visibility.Visible
+        || KeyPanel.Visibility == Visibility.Visible;
+    bool appearing = any && CaptionCard.Visibility != Visibility.Visible;
+    CaptionCard.Visibility = any ? Visibility.Visible : Visibility.Collapsed;
+    if (appearing) {
+      Motion.Enter(CaptionCard, rise: _cardRise);
+    }
+  }
+
+  // ---- controls ----
+
+  private void SetMuted(bool muted) {
+    _muted = muted;
+    if (_conversation is not null) {
+      _conversation.Muted = muted;
+    }
+    string glyph = muted ? Glyphs.MicOff : Glyphs.Mic;
+    bool changed = MicGlyph.Text.Length > 0 && MicGlyph.Text != glyph;
+    MicButton.Tag = muted ? "muted" : null;  // App.xaml's round button crossfades on this tag
+    MicGlyph.Text = glyph;
+    MicButton.ToolTip = muted ? "Unmute microphone" : "Mute microphone";
+    if (changed) {
+      Motion.Bounce(MicGlyph);
+    }
+  }
+
+  // Toggles the tracked mute state, not the engine's, so the button keeps working across a
+  // reconnect or a brief gap when no engine is attached.
+  private void OnMute(object sender, RoutedEventArgs e) {
+    SetMuted(!_muted);
+  }
+
+  private void OnEnd(object sender, RoutedEventArgs e) {
+    _ = EndAsync();
+  }
+
+  private void OnDrag(object sender, MouseButtonEventArgs e) {
+    if (e.ButtonState == MouseButtonState.Pressed) {
+      DragMove();
+    }
+  }
+
+  private void OnLink(object sender, RequestNavigateEventArgs e) {
+    Shell.Open(e.Uri.AbsoluteUri);
+  }
+
+  private void OnConnect(object sender, RoutedEventArgs e) {
+    Glic.ExtensionSetup.Begin();
+    ConnectSteps.Visibility = Visibility.Visible;
+  }
+
+  // ---- settings menu (gear): microphone, quit ----
+
+  /// <summary>Every menu opens upward, rising out of the pill, which sits on the taskbar.</summary>
+  private static ContextMenu MenuAbove(UIElement anchor) {
+    var menu = new ContextMenu { PlacementTarget = anchor, Placement = PlacementMode.Top };
+    menu.Opened += (_, _) => Motion.Enter(menu, rise: _menuRise);
+    return menu;
+  }
+
+  private ContextMenu BuildSettingsMenu() {
+    ContextMenu menu = MenuAbove(SettingsButton);
+    menu.Opened += async (_, _) => await FillSettingsMenuAsync(menu);
+    return menu;
+  }
+
+  /// <summary>
+  /// Like Win+H's flyout: Windows' default, then every microphone, the current one checked.
+  /// </summary>
+  private async Task FillSettingsMenuAsync(ContextMenu menu) {
+    menu.Items.Clear();
+    menu.Items.Add(new MenuItem {
+      Header = "Microphone",
+      Style = (Style)FindResource("LiveMenuHeader"),
+    });
+    AddMicrophone(menu, "Default (Windows)", null);
+    foreach ((string id, string name) in await _glic.ListMicrophonesAsync()) {
+      AddMicrophone(menu, name, id);
+    }
+    menu.Items.Add(new Separator());
+    var quit = new MenuItem { Header = "Quit Gemini Live" };
+    quit.Click += (_, _) => {
+      _ = EndAsync();
+      Application.Current.Shutdown();
+    };
+    menu.Items.Add(quit);
+  }
+
+  private void AddMicrophone(ContextMenu menu, string name, string? id) {
+    var item = new MenuItem {
+      Header = name,
+      IsCheckable = true,
+      IsChecked = _settings.MicrophoneId == id,
+    };
+    item.Click += (_, _) => {
+      _settings.MicrophoneId = id;
+      _settings.Save();
+      _glic.SetMicrophone(id);
+      Log.Write($"microphone -> {name}");
+    };
+    menu.Items.Add(item);
+  }
+
+  private void OnSettings(object sender, RoutedEventArgs e) {
+    SettingsButton.ContextMenu.IsOpen = true;
+  }
+
+  // ---- first-run API key ----
+
+  private void AskForKey() {
+    SetStatus("Setup: Gemini needs an API key");
+    KeyPanel.Visibility = Visibility.Visible;
+    UpdateCard();
+    // Typing needs focus, so drop the no-activate style just for this.
+    Overlay.SetFocusable(Handle, true);
+    Activate();
+    KeyBox.Focus();
+  }
+
+  private void OnKeyBoxKeyDown(object sender, KeyEventArgs e) {
+    if (e.Key != Key.Enter || KeyBox.Password.Trim().Length == 0) {
+      return;
+    }
+    _settings.SetApiKey(KeyBox.Password);
+    KeyBox.Clear();
+    KeyPanel.Visibility = Visibility.Collapsed;
+    UpdateCard();
+    Overlay.SetFocusable(Handle, false);
+    _ = StartAsync(_pendingMonitor ?? Monitors.Active());
+  }
 }

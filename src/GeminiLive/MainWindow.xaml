@@ -1,97 +1,111 @@
 <Window x:Class="GeminiLive.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Gemini Live" WindowStyle="None" ResizeMode="NoResize" SizeToContent="Height" Width="360"
-        Topmost="True" ShowInTaskbar="False" ShowActivated="False" Background="Transparent"
-        FontFamily="Segoe UI Variable Text, Segoe UI" Foreground="{DynamicResource TextBrush}">
+        xmlns:local="clr-namespace:GeminiLive"
+        Title="Gemini Live" WindowStyle="None" AllowsTransparency="True" ResizeMode="NoResize"
+        SizeToContent="Height" Width="476" Topmost="True" ShowInTaskbar="False" ShowActivated="False"
+        Background="Transparent" FontFamily="{StaticResource LiveFont}"
+        Foreground="{DynamicResource LiveTextBrush}">
 
-    <!-- DWM paints acrylic behind the whole client area (see Theme.Acrylic), like the Win+H flyout. -->
-    <WindowChrome.WindowChrome>
-        <WindowChrome CaptionHeight="0" GlassFrameThickness="-1" ResizeBorderThickness="0" UseAeroCaptionButtons="False" />
-    </WindowChrome.WindowChrome>
+    <!-- Googlebook's Live: a caption card floating over a pill docked above the taskbar, with
+         Gemini's glow along the pill's bottom edge. The margin leaves room for the glow's blur.
+         Status, share label, mic glyph and their tooltips are set from code on construction. -->
+    <StackPanel x:Name="Root" Margin="8,8,8,8" RenderTransformOrigin="0.5,1" MouseLeftButtonDown="OnDrag">
 
-    <Grid Margin="4,4,4,16" MouseLeftButtonDown="OnDrag">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+        <!-- Caption card: the running "You: / Gemini:" transcript, links Gemini mentioned, setup.
+             HeightTransition glides the card to each new height instead of jumping. -->
+        <Border x:Name="CaptionCard" Style="{StaticResource LiveCard}" Margin="0,0,0,10" Visibility="Collapsed">
+            <local:HeightTransition>
+                <StackPanel>
+                    <!-- One TextBlock per line (CaptionPresenter), so each new line can fade in. -->
+                    <ScrollViewer x:Name="TranscriptScroll" MaxHeight="176" VerticalScrollBarVisibility="Hidden">
+                        <StackPanel x:Name="Transcript" />
+                    </ScrollViewer>
 
-        <!-- Title row: settings left, close right. -->
-        <Grid Grid.Row="0">
-            <Button x:Name="SettingsButton" Style="{StaticResource ChromeButton}" Content="&#xE713;"
-                    HorizontalAlignment="Left" ToolTip="Settings" Click="OnSettings" />
-            <TextBlock Text="Gemini Live" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"
-                       HorizontalAlignment="Center" VerticalAlignment="Center" />
-            <Button Style="{StaticResource ChromeButton}" Content="&#xE8BB;" HorizontalAlignment="Right"
-                    ToolTip="End (Win+C)" Click="OnEnd" />
+                    <WrapPanel x:Name="LinkTray" Visibility="Collapsed" />
+
+                    <!-- Google engine, first run only: one click to hand the browser our extension. -->
+                    <StackPanel x:Name="ConnectPanel" Visibility="Collapsed" Margin="0,4,0,0">
+                        <TextBlock Style="{StaticResource LiveSupportingText}" TextWrapping="Wrap" Margin="0,0,0,10">
+                            Gemini Live uses the Google account you're signed in to in your browser, through a small companion extension.
+                        </TextBlock>
+                        <Button Content="Add the browser extension" Click="OnConnect" HorizontalAlignment="Left"
+                                Style="{StaticResource LiveAccentButton}" />
+                        <TextBlock x:Name="ConnectSteps" Style="{StaticResource LiveCaptionText}" Visibility="Collapsed"
+                                   Margin="0,10,0,0" Foreground="{DynamicResource LiveSecondaryTextBrush}">
+                            In the extensions page that opened: turn on Developer mode, click Load unpacked, and paste the
+                            folder path (it's on your clipboard). Gemini Live continues by itself.
+                        </TextBlock>
+                    </StackPanel>
+
+                    <!-- API-key engine, first run only. -->
+                    <StackPanel x:Name="KeyPanel" Visibility="Collapsed" Margin="0,4,0,0">
+                        <TextBlock Style="{StaticResource LiveSupportingText}" TextWrapping="Wrap">
+                            Paste a Gemini API key (free at
+                            <Hyperlink NavigateUri="https://aistudio.google.com/apikey" RequestNavigate="OnLink">aistudio.google.com/apikey</Hyperlink>),
+                            then press Enter.
+                        </TextBlock>
+                        <PasswordBox x:Name="KeyBox" Margin="0,8,0,0" KeyDown="OnKeyBoxKeyDown" />
+                    </StackPanel>
+                </StackPanel>
+            </local:HeightTransition>
+        </Border>
+
+        <!-- The pill. -->
+        <Grid Height="64">
+            <!-- Gemini's glow: blurred, bleeding out under the pill's bottom edge. GlowAnimator
+                 paints it (a drifting copy of LiveGlowBrush) and drives its strength. The
+                 wrapper's opacity is the theme's peak, so those animations stay theme-agnostic. -->
+            <Grid Opacity="{DynamicResource LiveGlowOpacity}">
+                <Border x:Name="Glow" CornerRadius="{StaticResource PillRadius}" Margin="24,30,24,-6" Opacity="0.75">
+                    <Border.Effect>
+                        <BlurEffect Radius="22" />
+                    </Border.Effect>
+                </Border>
+            </Grid>
+
+            <Border Style="{StaticResource LivePill}">
+                <Grid Margin="10,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Share: which display Gemini sees. -->
+                    <Button x:Name="ShareButton" Grid.Column="0" Style="{StaticResource LiveShareButton}" Click="OnShare">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource LiveIcon}" Text="{x:Static local:Glyphs.Display}" FontSize="16" />
+                            <TextBlock x:Name="ShareLabel" Style="{StaticResource LiveStrongLabelText}" Margin="6,0,0,0"
+                                       VerticalAlignment="Center" />
+                            <TextBlock x:Name="ShareChevron" Style="{StaticResource LiveIcon}" Text="{x:Static local:Glyphs.ChevronDown}"
+                                       FontSize="10" Margin="6,1,0,0" />
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Mic: mute/unmute. -->
+                    <Button x:Name="MicButton" Grid.Column="1" Style="{StaticResource LiveRoundButton}" Margin="8,0,0,0"
+                            Click="OnMute">
+                        <TextBlock x:Name="MicGlyph" Style="{StaticResource LiveIcon}" FontSize="16"
+                                   RenderTransformOrigin="0.5,0.5" />
+                    </Button>
+
+                    <TextBlock x:Name="StatusText" Grid.Column="2" Style="{StaticResource LiveSupportingText}" Margin="14,0"
+                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+
+                    <Button x:Name="SettingsButton" Grid.Column="3" Style="{StaticResource LiveRoundButton}"
+                            Click="OnSettings" ToolTip="Settings">
+                        <TextBlock Style="{StaticResource LiveIcon}" Text="{x:Static local:Glyphs.Gear}" FontSize="15" />
+                    </Button>
+
+                    <Button Grid.Column="4" Style="{StaticResource LiveRoundButton}" Margin="8,0,0,0"
+                            Click="OnEnd" ToolTip="End (Win+C)">
+                        <TextBlock Style="{StaticResource LiveIcon}" Text="{x:Static local:Glyphs.Close}" FontSize="15" />
+                    </Button>
+                </Grid>
+            </Border>
         </Grid>
-
-        <!-- The mic: accent-filled and breathing while Gemini listens; outlined when muted. -->
-        <Grid Grid.Row="1" Width="88" Height="88" Margin="0,4,0,0" HorizontalAlignment="Center">
-            <Ellipse x:Name="Pulse" Fill="{DynamicResource AccentBrush}" Opacity="0.25" RenderTransformOrigin="0.5,0.5">
-                <Ellipse.RenderTransform>
-                    <ScaleTransform x:Name="PulseScale" ScaleX="0.7" ScaleY="0.7" />
-                </Ellipse.RenderTransform>
-            </Ellipse>
-            <Button x:Name="MicButton" Width="56" Height="56" Click="OnMute" Focusable="False" Cursor="Hand"
-                    ToolTip="Mute microphone">
-                <Button.Template>
-                    <ControlTemplate TargetType="Button">
-                        <Grid>
-                            <Ellipse x:Name="Disc" Fill="{DynamicResource AccentBrush}" />
-                            <TextBlock x:Name="Glyph" Text="&#xE720;" FontFamily="{StaticResource IconFont}" FontSize="22"
-                                       Foreground="{DynamicResource OnAccentBrush}"
-                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Grid>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="Tag" Value="muted">
-                                <Setter TargetName="Disc" Property="Fill" Value="{DynamicResource SubtleHoverBrush}" />
-                                <Setter TargetName="Disc" Property="Stroke" Value="{DynamicResource StrokeBrush}" />
-                                <Setter TargetName="Glyph" Property="Text" Value="&#xEC54;" />
-                                <Setter TargetName="Glyph" Property="Foreground" Value="{DynamicResource TextBrush}" />
-                            </Trigger>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Disc" Property="Opacity" Value="0.9" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Button.Template>
-            </Button>
-        </Grid>
-
-        <TextBlock x:Name="StatusText" Grid.Row="2" Text="Connecting…" FontSize="14" FontWeight="SemiBold"
-                   HorizontalAlignment="Center" Margin="0,6,0,0" />
-
-        <TextBlock x:Name="Caption" Grid.Row="3" Text="" FontSize="13" TextWrapping="Wrap" TextAlignment="Center"
-                   MaxHeight="58" TextTrimming="CharacterEllipsis" Margin="16,4,16,0"
-                   Foreground="{DynamicResource SecondaryTextBrush}" />
-
-        <!-- Which display Gemini sees. Only shown with more than one monitor. -->
-        <StackPanel x:Name="MonitorPicker" Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center"
-                    Margin="0,12,0,0" ToolTip="Display Gemini can see" />
-
-        <!-- Google engine, first run only: one click to hand the browser our extension. -->
-        <StackPanel x:Name="ConnectPanel" Grid.Row="4" Visibility="Collapsed" Margin="16,12,16,0">
-            <Button Content="Connect Google account" Click="OnConnect" HorizontalAlignment="Center"
-                    Style="{StaticResource AccentButton}" />
-            <TextBlock x:Name="ConnectSteps" Visibility="Collapsed" Margin="0,10,0,0" FontSize="12" TextWrapping="Wrap"
-                       Foreground="{DynamicResource SecondaryTextBrush}">
-                In the extensions page that opened: turn on Developer mode, click Load unpacked, and paste the
-                folder path (it's on your clipboard). Gemini Live continues by itself.
-            </TextBlock>
-        </StackPanel>
-
-        <!-- API-key engine, first run only. -->
-        <StackPanel x:Name="KeyPanel" Grid.Row="4" Visibility="Collapsed" Margin="16,12,16,0">
-            <TextBlock FontSize="12" TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}">
-                Paste a Gemini API key (free at
-                <Hyperlink NavigateUri="https://aistudio.google.com/apikey" RequestNavigate="OnLink">aistudio.google.com/apikey</Hyperlink>),
-                then press Enter.
-            </TextBlock>
-            <PasswordBox x:Name="KeyBox" Margin="0,6,0,0" KeyDown="OnKeyBoxKeyDown" />
-        </StackPanel>
-    </Grid>
+    </StackPanel>
 </Window>

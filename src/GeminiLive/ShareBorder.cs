@@ -6,29 +6,29 @@ namespace GeminiLive;
 
 /// <summary>
 /// A glowing frame around the display Gemini can see - the desktop equivalent of Android's
-/// screen-share indicator. Click-through and excluded from capture.
+/// screen-share indicator, in the design system's primary colour. Click-through and excluded
+/// from capture.
 /// </summary>
-public sealed class ShareBorder : Window
-{
-    readonly IntPtr _hwnd;
+public sealed class ShareBorder : Window {
+  private const double _thickness = 3;
 
-    public ShareBorder()
-    {
-        WindowStyle = WindowStyle.None;
-        AllowsTransparency = true;
-        Background = Brushes.Transparent;
-        ShowInTaskbar = false;
-        ShowActivated = false;
-        Topmost = true;
-        var frame = new Border { BorderThickness = new Thickness(3) };
-        frame.SetResourceReference(Border.BorderBrushProperty, "AccentBrush");
-        Content = frame;
-        _hwnd = Overlay.Prepare(this, clickThrough: true);
-    }
+  private readonly IntPtr _hwnd;
 
-    public void Cover(MonitorInfo m)
-    {
-        Show();
-        Overlay.Place(_hwnd, m.X, m.Y, m.Width, m.Height);
-    }
+  public ShareBorder() {
+    WindowStyle = WindowStyle.None;
+    AllowsTransparency = true;
+    Background = Brushes.Transparent;
+    ShowInTaskbar = false;
+    ShowActivated = false;
+    Topmost = true;
+    var frame = new Border { BorderThickness = new Thickness(_thickness) };
+    frame.SetResourceReference(Border.BorderBrushProperty, "LivePrimaryBrush");
+    Content = frame;
+    _hwnd = Overlay.Prepare(this, clickThrough: true);
+  }
+
+  public void Cover(MonitorInfo monitor) {
+    Show();
+    Overlay.Place(_hwnd, monitor.X, monitor.Y, monitor.Width, monitor.Height);
+  }
 }

@@ -1,54 +1,66 @@
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace GeminiLive;
 
-/// <summary>User settings in %LOCALAPPDATA%\GeminiLive\settings.json. The API key is DPAPI-encrypted.</summary>
-public sealed class Settings
-{
-    public EngineKind Engine { get; set; } = EngineKind.Google;
-    public string Model { get; set; } = "gemini-3.8-live";
-    public string Voice { get; set; } = "Kore";
-    public string? ProtectedApiKey { get; set; }
+/// <summary>
+/// User settings in %LOCALAPPDATA%\GeminiLive\settings.json. The API key is sealed with
+/// <see cref="UserSecret"/>.
+/// </summary>
+public sealed class Settings {
+  private static readonly string _filePath = Path.Combine(Log.Dir, "settings.json");
+  private static readonly JsonSerializerOptions _json = new() {
+    WriteIndented = true,
+    Converters = { new JsonStringEnumConverter() },
+  };
 
-    static readonly string FilePath = Path.Combine(Log.Dir, "settings.json");
-    static readonly JsonSerializerOptions Json = new()
-    {
-        WriteIndented = true,
-        Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() },
-    };
+  public EngineKind Engine { get; set; } = EngineKind.Google;
+  public string Model { get; set; } = "gemini-3.8-live";
+  public string Voice { get; set; } = "Kore";
+  public string? ProtectedApiKey { get; set; }
+  /// <summary>
+  /// The Gemini page's id for the picked microphone; null follows Windows' default.
+  /// </summary>
+  public string? MicrophoneId { get; set; }
 
-    /// <summary>GEMINI_API_KEY wins, so a key can be rotated without touching the app.</summary>
-    public string ApiKey =>
-        Environment.GetEnvironmentVariable("GEMINI_API_KEY") is { Length: > 0 } env ? env
-        : ProtectedApiKey is { Length: > 0 } p
-            ? Encoding.UTF8.GetString(ProtectedData.Unprotect(Convert.FromBase64String(p), null, DataProtectionScope.CurrentUser))
-            : "";
-
-    public bool HasApiKey => ApiKey.Length > 0;
-
-    public void SetApiKey(string key)
-    {
-        ProtectedApiKey = Convert.ToBase64String(
-            ProtectedData.Protect(Encoding.UTF8.GetBytes(key.Trim()), null, DataProtectionScope.CurrentUser));
-        Save();
+  /// <summary>GEMINI_API_KEY wins, so a key can be rotated without touching the app.</summary>
+  [JsonIgnore]
+  public string ApiKey {
+    get {
+      if (Environment.GetEnvironmentVariable("GEMINI_API_KEY") is { Length: > 0 } env) {
+        return env;
+      }
+      if (ProtectedApiKey is not { Length: > 0 } sealedKey) {
+        return "";
+      }
+      return Encoding.UTF8.GetString(UserSecret.Unseal(Convert.FromBase64String(sealedKey)));
     }
+  }
 
-    public static Settings Load()
-    {
-        try
-        {
-            if (File.Exists(FilePath))
-                return JsonSerializer.Deserialize<Settings>(File.ReadAllText(FilePath), Json) ?? new();
-        }
-        catch (Exception e) { Log.Write($"settings unreadable, using defaults: {e.Message}"); }
-        return new();
-    }
+  [JsonIgnore]
+  public bool HasApiKey => ApiKey.Length > 0;
 
-    public void Save()
-    {
-        Directory.CreateDirectory(Log.Dir);
-        File.WriteAllText(FilePath, JsonSerializer.Serialize(this, Json));
+  public static Settings Load() {
+    if (!File.Exists(_filePath)) {
+      return new();
     }
+    try {
+      return JsonSerializer.Deserialize<Settings>(File.ReadAllText(_filePath), _json) ?? new();
+    } catch (Exception e) {
+      Log.Write($"settings unreadable, using defaults: {e.Message}");
+      return new();
+    }
+  }
+
+  public void SetApiKey(string key) {
+    byte[] plain = Encoding.UTF8.GetBytes(key.Trim());
+    ProtectedApiKey = Convert.ToBase64String(UserSecret.Seal(plain));
+    Save();
+  }
+
+  public void Save() {
+    Directory.CreateDirectory(Log.Dir);
+    File.WriteAllText(_filePath, JsonSerializer.Serialize(this, _json));
+  }
 }
