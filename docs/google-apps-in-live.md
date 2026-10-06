@@ -131,3 +131,28 @@ Changes to `glic_bridge.js`:
 
 Calendar's legacy labels ("Add Event"/"Remove") are kept as fallbacks but were not re-checked today -
 they may be this same shared generic card now. Home is unsupported, so no device/toggle label exists.
+
+## Google Home through Gemini: what exists (2026-10-06)
+
+Requirement: the app stays independent (no phone), Home goes through Gemini's own tools, and nothing
+impersonates Google's apps. Findings:
+
+- **Web client is ready, server isn't.** The Glic bundle renders app-result type **30** as a Home device
+  list (`action.devices.types.*` → icon map, fallback `home_iot_device`) and type **4** as camera events.
+  The server never sends them to this account: `/apps` (Connected Apps) lists Workspace, YouTube, Maps
+  and third-party apps but no Google Home, and Google's help says Home "isn't available in the Gemini
+  web app". Expect it to appear there first; then add Home words back to `AppTopic`.
+- **Per-request tool slot doesn't unlock it.** StreamGenerate inner slot 8 is the composer's single tool
+  pick, `[[mode, null, toolName]]` (e.g. `browser_agent`). Forcing `google_home` / `smart_home` /
+  `home_automation` / `google_home_tool` (modes 0 and 3) is silently ignored: live-only questions (room
+  temperature, TV volume) all got "can't access". A "24°C" answer was recalled from chat memory, not read.
+- **Flag `45761586`** (`generic_calendar, generic_reminders, notes_and_lists, google_home`) only feeds
+  analytics VE metadata.
+- **Ask Home** (Home for web's Gemini agent, `GenAiHomeAgentService/ProcessQuery` type 8) is Gemini on the
+  web, but "isn't available in your home yet" - Google lists it for US/CA/UK/IE/AU/NZ (early access in
+  more countries), not Israel.
+- **Robin** gets Home by advertising `GOOGLE_HOME_EXTENSION_IN_LIVE(311)`, but only with tokens minted for
+  Google's signed Android app - off limits. Google Home APIs (incl. Gemini features) are Android/iOS SDKs.
+  The Assistant SDK is the retiring Assistant, not Gemini.
+- Verified on the phone that Gemini (Robin) itself answers Home correctly ("AC is on, 24°C, cool"), so
+  the account and devices are fine; only the surface is missing.
