@@ -974,10 +974,17 @@
   const ACTION_READY_MS = 6000;
   const ACTION_REPLY_MS = 30000;
   const ACTION_SETTLE_MS = 1400;
-  // Primary buttons on the confirmation cards apps show; the user asked by voice, so auto-confirm.
+  // The primary button on the confirmation card an app shows for a write; the user asked by voice,
+  // so auto-confirm it. clickButton matches on aria-label, and the modern shared card (verified
+  // live for Keep and Tasks) gives its primary button the generic aria-label
+  // "Button that confirms actions." while only its VISIBLE text varies ("Add"), so that aria-label
+  // is what we match. Its cancel button reads "Button that cancels actions.", which this never
+  // matches. The rest are legacy/alternate cards whose aria-label is the visible verb; each is
+  // specific enough not to hit an always-present composer button. A bare "Add" is deliberately
+  // absent: it matched "Add tabs. Press Enter to activate" and auto-clicked it on every turn.
   const ACTION_CONFIRM = [
-    'Add event', 'Add Event', 'Remove', 'Save', 'Create', 'Add', 'Update', 'Delete', 'Send',
-    'Turn on', 'Turn off', 'Confirm', 'Yes', 'Done',
+    'Button that confirms actions',
+    'Add event', 'Add Event', 'Create', 'Save', 'Remove', 'Delete', 'Update', 'Confirm',
   ];
   const SUBMIT = ['Submit', 'Send message', 'Send'];
 
@@ -997,12 +1004,24 @@
 
   const editor = () => document.querySelector('[contenteditable="true"]');
 
-  /** The newest model answer: the last response container's text, else empty. */
+  /**
+   * The newest model answer. Prefer the whole response container
+   * (<code>.presented-response-container</code>): the app result cards - a Keep note, a Tasks list,
+   * a Gmail summary - render as embedded siblings of the inner markdown, so reading only the markdown
+   * node caught just the "Here are your Google Keep notes:" preamble and dropped the notes
+   * themselves. Fall back to the inner nodes if that class ever changes, and strip the "Gemini said"
+   * accessibility prefix the container carries.
+   */
   const lastReplyText = () => {
-    const nodes = document.querySelectorAll(
-        'message-content, .model-response-text, .markdown, [data-response-index]');
-    const last = nodes[nodes.length - 1];
-    return (last ? last.innerText : '').replace(/\s+/g, ' ').trim();
+    const containers = document.querySelectorAll('.presented-response-container');
+    let last = containers[containers.length - 1];
+    if (!last) {
+      const nodes = document.querySelectorAll(
+          'message-content, .model-response-text, .markdown, [data-response-index]');
+      last = nodes[nodes.length - 1];
+    }
+    return (last ? last.innerText : '')
+        .replace(/\s+/g, ' ').replace(/^Gemini said\s*/i, '').trim();
   };
 
   /** Switch to text mode and hand C# a focused, empty editor. @return {!Promise<boolean>} */

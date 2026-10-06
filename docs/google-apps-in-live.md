@@ -87,3 +87,47 @@ Cost: Live pauses for roughly 10-25 s per action (stop, text turn, restart). Cap
 - The setup list `[[4,28,1,3],[4,1]]` is unmapped. A future server flag could give Live tools
   natively, so re-test Live after Glic build bumps.
 - The Robin path (`robinfrontend-pa`) was not assessed. The hybrid works, so it was not needed.
+
+## Keep / Tasks / Gmail / Home, verified 2026-10-06 (own headless Edge, port 9444)
+
+Same recipe as Evidence above: the DPAPI-decrypted session (`%LOCALAPPDATA%\GeminiLive\google-session.bin`,
+CurrentUser scope, no entropy) seeded via CDP `Network.setCookies`, `RotateCookies` blocked with
+`Fetch.failRequest`, the bridge injected at document-start, then `/glic` **reloaded**. Reloading matters:
+without the host handshake (`registerWebClient` → `initialize(host)`) the page is a dead zero-state
+("Type @ to add tabs") and the composer's Submit silently does nothing. Once the bridge boots, the
+conversation greets "Hello, You" and text turns submit. Read-only turns; one write per app was triggered
+only to read its card button, then **Cancelled** - nothing was created or sent (re-reads confirmed).
+
+| App | Text path | Notes |
+|---|---|---|
+| **Keep** | **Yes** | Read real notes (incl. a long Hebrew note). Write shows a confirmation card. |
+| **Tasks** | **Yes** | Read real active + completed tasks. Write shows a confirmation card. |
+| **Gmail** | **Read yes, send no** | Summarised real unread emails. Compose+send is refused: "I cannot send emails on your behalf." No send card is offered. |
+| **Home** | **No** | "I don't have access to your real-time smart home device registry or API status." It only infers devices from past chat memory - no live state, no device card. Unsupported on this path. |
+
+### Confirmation card labels (the load-bearing fix)
+
+Keep and Tasks write cards are **one shared Material component**, and its buttons carry **generic
+aria-labels**, not the visible verb:
+
+- primary: `aria-label="Button that confirms actions."` · visible text **"Add"** · `data-test-id="add-confirmation-button"` · class `confirmation-button`
+- cancel: `aria-label="Button that cancels actions."` · visible text "Cancel" · `cancel-confirmation-button`
+
+`clickButton` matches on **aria-label**, so the old `ACTION_CONFIRM` (`'Add','Save','Create',…` = the
+*visible* text) never matched this card. Worse, its bare `'Add'` matched the always-present composer
+button `"Add tabs. Press Enter to activate"`, so `submitAndRead` auto-clicked "Add tabs" on every turn.
+
+Changes to `glic_bridge.js`:
+
+- **`ACTION_CONFIRM`** now leads with `'Button that confirms actions'` (the generic confirm aria-label
+  - covers every app on this shared card), then specific legacy verbs (`Add event`, `Add Event`,
+  `Create`, `Save`, `Remove`, `Delete`, `Update`, `Confirm`). Dropped the over-generic
+  `Add`/`Yes`/`Done`/`Send`/`Turn on`/`Turn off` (e.g. `Turn on` would hit `"Turn on live captions"`).
+  Verified live against a real card: `findButton` picks the confirm button, never "Add tabs" or Cancel.
+- **`lastReplyText`** now prefers the whole `.presented-response-container` (stripping the "Gemini said"
+  a11y prefix), falling back to the old inner-node selector. App result cards render as embedded
+  siblings of the inner `.markdown`, so the old selector returned only the "Here are your Google Keep
+  notes:" preamble (~32 chars); the new one returned the full 1692-char note.
+
+Calendar's legacy labels ("Add Event"/"Remove") are kept as fallbacks but were not re-checked today -
+they may be this same shared generic card now. Home is unsupported, so no device/toggle label exists.

@@ -3,3 +3,6 @@ obj/
 build/
 *.user
 .vs/
+
+# Agent worktrees
+.claude/
