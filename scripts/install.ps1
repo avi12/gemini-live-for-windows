@@ -35,11 +35,33 @@ dotnet publish (Join-Path $root 'src\GeminiLive\GeminiLive.csproj') -c Release -
 if ($LASTEXITCODE) { throw 'dotnet publish failed' }
 Copy-Item (Join-Path $root 'package\*') $layout -Recurse -Force
 
-Get-AppxPackage $name | Remove-AppxPackage
+# Update in place rather than remove + add: removing the package wipes the permissions Windows keeps
+# for it, so every install re-asked for the microphone. An in-place update needs a higher version,
+# so the packaged copy gets major.minor from the manifest plus a build stamp (days since 2026, then
+# 2-second ticks of the day - both stay under the 65535 a version part allows).
+$base   = [version] $manifest.Package.Identity.Version
+$now    = Get-Date
+$layoutManifestPath = Join-Path $layout 'AppxManifest.xml'
+[xml] $layoutManifest = Get-Content $layoutManifestPath
+$layoutManifest.Package.Identity.Version =
+    '{0}.{1}.{2}.{3}' -f $base.Major, $base.Minor, ($now - [datetime] '2026-01-01').Days,
+                         [int] ($now.TimeOfDay.TotalSeconds / 2)
+$layoutManifest.Save($layoutManifestPath)
+
+# Installs $package as an update; only if Windows refuses (e.g. switching between Signed and
+# Register) does it fall back to removing the old one first.
+function Install-InPlace([scriptblock] $install) {
+    try { & $install }
+    catch {
+        Write-Host "   in-place update refused ($($_.Exception.Message.Split([Environment]::NewLine)[0])); reinstalling"
+        Get-AppxPackage $name | Remove-AppxPackage
+        & $install
+    }
+}
 
 if ($Mode -eq 'Register') {
     Write-Host '== register (dev mode)'
-    Add-AppxPackage -Register (Join-Path $layout 'AppxManifest.xml')
+    Install-InPlace { Add-AppxPackage -Register $layoutManifestPath -ForceApplicationShutdown }
 }
 else {
     Write-Host '== certificate'
@@ -65,7 +87,7 @@ else {
     if ($LASTEXITCODE) { throw 'signtool failed' }
 
     Write-Host '== install'
-    Add-AppxPackage $msix
+    Install-InPlace { Add-AppxPackage $msix -ForceApplicationShutdown }
 }
 
 $pkg = Get-AppxPackage $name
