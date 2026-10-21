@@ -1,8 +1,5 @@
-using System.Reflection;
 using System.Text.Json.Nodes;
-using System.Windows;
 using Microsoft.Web.WebView2.Core;
-using Microsoft.Web.WebView2.Wpf;
 
 namespace GeminiLive.Glic;
 
@@ -20,7 +17,7 @@ public enum GlicState { Idle, Listening, Resuming }
 /// rotates the cookies itself (RotateCookies is blocked), it just takes each rotation the browser
 /// makes - otherwise the two copies would invalidate each other.
 /// </summary>
-public sealed class GlicHost : Window {
+public sealed class GlicHost : GoogleWebViewHost {
   public event Action<GlicState>? State;
   public event Action<string, bool, int>? Caption;  // text, isUser, utterance index
   public event Action<string>? Notice;  // waiting-for-session style status, not fatal
@@ -31,24 +28,15 @@ public sealed class GlicHost : Window {
   public event Action<bool>? ExtensionNeeded;
 
   private const string _glicUrl = "https://gemini.google.com/glic";
-  private const string _rotateCookiesFilter = "https://accounts.google.com/RotateCookies*";
   private const string _bridgeResource = "GeminiLive.Glic.glic_bridge.js";
   private const string _bridge = "window.__glicBridge";  // the object glic_bridge.js installs
   private const string _dispatchKeyEvent = "Input.dispatchKeyEvent";
+  private const int _debugPort = 9333;
   private const int _pageWidth = 900;
   private const int _pageHeight = 720;
-  private const int _parkedAt = -32000;
-  // Parked off-screen reads as "occluded" to Chromium, which would throttle the page's timers;
-  // Gemini's voice must also play without a click inside the page.
-  private const string _browserArguments =
-      "--autoplay-policy=no-user-gesture-required "
-      + "--disable-features=CalculateNativeWinOcclusion "
-      + "--disable-background-timer-throttling --disable-renderer-backgrounding";
   private static readonly string _profile = Path.Combine(Log.Dir, "WebView2");
 
-  private readonly WebView2 _web = new();
   private readonly SessionLink _link;
-  private readonly IntPtr _hwnd;
 
   /// <summary>Which display the frames come from.</summary>
   public MonitorInfo Monitor { get; set; } = Monitors.All()[0];
@@ -86,55 +74,26 @@ public sealed class GlicHost : Window {
     public const string SignIn = "Sign in to Google in your browser";
     public const string WaitingForBrowser = "Waiting for your browser…";
     public const string Setup = "One-time setup";
+    public const string Reconnecting = "Reconnecting…";
   }
 
-  public GlicHost(SessionLink link) {
+  public GlicHost(SessionLink link)
+      : base("Gemini Live - web client", "glic", _profile, _debugPort, _bridgeResource, _pageWidth,
+             _pageHeight) {
     _link = link;
-    Title = "Gemini Live - web client";
-    Width = _pageWidth;
-    Height = _pageHeight;
-    ShowInTaskbar = false;
-    ShowActivated = false;
-    WindowStartupLocation = WindowStartupLocation.Manual;
-    Content = _web;
-    _hwnd = new System.Windows.Interop.WindowInteropHelper(this).EnsureHandle();
-    Closing += (_, e) => {
-      e.Cancel = true;
-      Park();
-    };
     link.CookiesReceived += cookies => Dispatcher.BeginInvoke(() => AdoptSession(cookies));
     link.Connected += () => Dispatcher.BeginInvoke(() => ExtensionNeeded?.Invoke(false));
   }
 
   /// <summary>
-  /// Boots WebView2 and loads Gemini. Called once at app start so Win+C is instant later.
+  /// Wires up a fresh engine, injects the saved session and loads glic - at warm-up, and after a
+  /// browser crash, where the reloaded page re-adopts and Live resumes on its own if it was on.
   /// </summary>
-  public async Task WarmUpAsync() {
-    Show();
-    Park();
-    if (!_web.IsLoaded) {
-      var loaded = new TaskCompletionSource();
-      _web.Loaded += (_, _) => loaded.TrySetResult();
-      await loaded.Task;
-    }
-
-    var options = new CoreWebView2EnvironmentOptions(
-        _browserArguments + (Log.Debugging ? " --remote-debugging-port=9333" : ""));
-    CoreWebView2Environment env =
-        await CoreWebView2Environment.CreateAsync(null, _profile, options);
-    await _web.EnsureCoreWebView2Async(env);
-    CoreWebView2 core = _web.CoreWebView2;
-
-    core.Settings.AreDevToolsEnabled = Log.Debugging;
-    core.Settings.IsStatusBarEnabled = false;
+  protected override void OnCoreReady(CoreWebView2 core) {
     core.PermissionRequested += OnPermissionRequested;
-    // The browser owns cookie rotation; see the class comment.
-    core.AddWebResourceRequestedFilter(_rotateCookiesFilter, CoreWebView2WebResourceContext.All);
-    core.WebResourceRequested += (_, e) =>
-        e.Response = env.CreateWebResourceResponse(null, 204, "No Content", "");
     core.WebMessageReceived += OnMessage;
-    await core.AddScriptToExecuteOnDocumentCreatedAsync(BridgeScript());
 
+    _booted = false;
     _session = GoogleCookies.Load();
     _sessionPrint = GoogleCookies.Fingerprint(_session);
     GoogleCookies.Inject(core.CookieManager, _session);
@@ -143,19 +102,42 @@ public sealed class GlicHost : Window {
     core.Navigate(_glicUrl);
   }
 
+  protected override void OnRecovering() {
+    _booted = false;
+    Notice?.Invoke(SessionNotice.Reconnecting);
+  }
+
+  protected override void OnRecoveryFailed(RecoveryFailure failure, Exception? error) {
+    _ready?.TrySetException(error ?? new InvalidOperationException("Gemini keeps crashing."));
+    Failed?.Invoke(failure == RecoveryFailure.CrashLoop ? "Gemini keeps crashing; try again shortly."
+                                                        : "Couldn't restart Gemini.");
+  }
+
   // ---- session control ----
 
   /// <summary>Starts Live; completes once Gemini is actually listening.</summary>
   public Task StartAsync() {
     Active = true;
     _ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-    if (_unavailable || !GoogleCookies.HasSession(_session)) {
+    if (Core is null) {
+      _ = RebuildAsync();  // a crash recovery gave up earlier; this is the retry
+    } else if (_unavailable || !GoogleCookies.HasSession(_session)) {
       WaitForSession();
     } else if (_booted) {
       _ = CallBridge("start()");
     }
     // else: OnMessage's Booted starts it as soon as the page is up.
     return _ready.Task;
+  }
+
+  // OnCoreReady navigates, and the page's Booted starts Live since Active is set.
+  private async Task RebuildAsync() {
+    try {
+      await EnsureCoreAsync();
+    } catch (Exception e) {
+      Log.Write($"glic: rebuild failed: {e.Message}");
+      _ready?.TrySetException(e);
+    }
   }
 
   public void Stop() {
@@ -193,7 +175,7 @@ public sealed class GlicHost : Window {
   /// CDP key events, because synthetic input never enables Glic's Submit.
   /// </summary>
   public async Task<string> RunActionAsync(string prompt) {
-    if (_web.CoreWebView2 is not { } core) {
+    if (Core is not { } core) {
       return "";
     }
     JsonNode? ready = await EvalAsync($"{_bridge} && {_bridge}.beginAction()");
@@ -211,28 +193,6 @@ public sealed class GlicHost : Window {
     }
     JsonNode? reply = await EvalAsync($"{_bridge}.submitAndRead()");
     return reply?.GetValue<string>() ?? "";
-  }
-
-  /// <summary>Evaluates an expression in the page, awaiting a promise, and returns its value.</summary>
-  private async Task<JsonNode?> EvalAsync(string expression) {
-    if (_web.CoreWebView2 is not { } core) {
-      return null;
-    }
-    // ExecuteScriptAsync doesn't await promises; Runtime.evaluate does.
-    var request = new JsonObject {
-      ["expression"] = expression,
-      ["awaitPromise"] = true,
-      ["returnByValue"] = true,
-    };
-    string json =
-        await core.CallDevToolsProtocolMethodAsync("Runtime.evaluate", request.ToJsonString());
-    return JsonNode.Parse(json)?["result"]?["value"];
-  }
-
-  private static string BridgeScript() {
-    using Stream script =
-        Assembly.GetExecutingAssembly().GetManifestResourceStream(_bridgeResource)!;
-    return new StreamReader(script).ReadToEnd();
   }
 
   private static void OnPermissionRequested(object? sender,
@@ -257,8 +217,8 @@ public sealed class GlicHost : Window {
     _session = cookies;
     _sessionPrint = print;
     GoogleCookies.Save(cookies);
-    if (_web.CoreWebView2 is not { } core) {
-      return;  // WarmUpAsync injects the saved copy
+    if (Core is not { } core) {
+      return;  // OnCoreReady injects the saved copy
     }
 
     GoogleCookies.Inject(core.CookieManager, cookies);
@@ -302,7 +262,7 @@ public sealed class GlicHost : Window {
 
   /// <summary>Calls the bridge glic_bridge.js installs, if the current page has it yet.</summary>
   private Task CallBridge(string call) {
-    if (_web.CoreWebView2 is not { } core) {
+    if (Core is not { } core) {
       return Task.CompletedTask;
     }
     return core.ExecuteScriptAsync($"{_bridge} && {_bridge}.{call}");
@@ -397,11 +357,6 @@ public sealed class GlicHost : Window {
       ["width"] = frame?.Width ?? 0,
       ["height"] = frame?.Height ?? 0,
     };
-    _web.CoreWebView2?.PostWebMessageAsJson(reply.ToJsonString());
-  }
-
-  /// <summary>Off-screen but "shown", so Chromium keeps the page running at full speed.</summary>
-  private void Park() {
-    Overlay.Place(_hwnd, _parkedAt, _parkedAt, _pageWidth, _pageHeight);
+    Core?.PostWebMessageAsJson(reply.ToJsonString());
   }
 }
