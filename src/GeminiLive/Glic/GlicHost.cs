@@ -111,8 +111,8 @@ public sealed class GlicHost : GoogleWebViewHost {
     Notice?.Invoke(SessionNotice.Reconnecting);
   }
 
-  protected override void OnRecoveryFailed(RecoveryFailure failure, Exception? error) {
-    _ready?.TrySetException(error ?? new InvalidOperationException("Gemini keeps crashing."));
+  protected override void OnRecoveryFailed(RecoveryFailure failure, Exception? cause) {
+    _ready?.TrySetException(cause ?? new InvalidOperationException("Gemini keeps crashing."));
     Failed?.Invoke(failure == RecoveryFailure.CrashLoop ? "Gemini keeps crashing; try again shortly."
                                                         : "Couldn't restart Gemini.");
   }

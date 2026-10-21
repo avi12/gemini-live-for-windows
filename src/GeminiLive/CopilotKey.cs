@@ -51,12 +51,17 @@ public static class CopilotKey {
 
     HwndSource.FromHwnd(hwnd).AddHook(
         (IntPtr _, int msg, IntPtr wParam, IntPtr _, ref bool handled) => {
-          if (msg == _wmCopilot && Enum.IsDefined(typeof(KeyTrigger), (int)wParam)) {
+          if (msg == _wmCopilot && Enum.IsDefined(typeof(KeyTrigger), TriggerOf(wParam))) {
             handled = true;
-            onTrigger((KeyTrigger)(int)wParam);
+            onTrigger((KeyTrigger)TriggerOf(wParam));
           }
           return IntPtr.Zero;
         });
+  }
+
+  // The message carries a small enum value; read it without the overflow check CA2020 warns about.
+  private static int TriggerOf(IntPtr wParam) {
+    return unchecked((int)wParam.ToInt64());
   }
 
   // ---- single instance: a second process hands its trigger to the first and exits ----

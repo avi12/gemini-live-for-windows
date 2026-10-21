@@ -101,7 +101,7 @@ public sealed class CaptionPresenter {
     }
   }
 
-  private Button ChipFor(FoundLink link) {
+  private static Button ChipFor(FoundLink link) {
     var icon = new TextBlock {
       Text = link.IsSearch ? Glyphs.Search : Glyphs.Link,
       Margin = new Thickness(0, 0, 8, 0),

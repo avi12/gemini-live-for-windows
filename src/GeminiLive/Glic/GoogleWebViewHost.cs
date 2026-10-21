@@ -87,7 +87,7 @@ public abstract class GoogleWebViewHost : Window {
   protected virtual void OnRecovering() { }
 
   /// <summary>Recovery gave up; the next <see cref="EnsureCoreAsync"/> tries again.</summary>
-  protected virtual void OnRecoveryFailed(RecoveryFailure failure, Exception? error) { }
+  protected virtual void OnRecoveryFailed(RecoveryFailure failure, Exception? cause) { }
 
   /// <summary>
   /// Brings the engine up if it isn't: at warm-up, or when a use finds it down after a crash that

@@ -173,7 +173,7 @@ public static class Motion {
     return (scale, shift);
   }
 
-  private static IEasingFunction Frozen(CubicBezierEase ease) {
+  private static CubicBezierEase Frozen(CubicBezierEase ease) {
     ease.Freeze();
     return ease;
   }

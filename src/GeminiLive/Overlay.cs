@@ -47,6 +47,6 @@ public static class Overlay {
 
   private static void SetExStyle(IntPtr hwnd, int bits, bool on) {
     int style = Native.GetWindowLong(hwnd, Native.GWL_EXSTYLE);
-    Native.SetWindowLong(hwnd, Native.GWL_EXSTYLE, on ? style | bits : style & ~bits);
+    _ = Native.SetWindowLong(hwnd, Native.GWL_EXSTYLE, on ? style | bits : style & ~bits);
   }
 }

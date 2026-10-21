@@ -6,6 +6,8 @@ namespace GeminiLive;
 /// Stays resident after the first launch so the next Win+C is instant (fast path). The first
 /// process owns the mutex; any later process just forwards its trigger and exits.
 /// </summary>
+// The mutex lives as long as the process: releasing it early would let a second instance start.
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1001", Justification = "Held for the process lifetime")]
 public partial class App : Application {
   private const string _instanceName = @"Local\GeminiLive.SingleInstance";
   private const int _forwardAttempts = 10;

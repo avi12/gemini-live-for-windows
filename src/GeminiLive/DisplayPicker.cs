@@ -46,7 +46,7 @@ public static class DisplayPicker {
     menu.Closed += (_, _) => timer.Stop();
   }
 
-  private static FrameworkElement PreviewOf(MonitorInfo display, bool selected, ImageBrush live) {
+  private static StackPanel PreviewOf(MonitorInfo display, bool selected, ImageBrush live) {
     var panel = new StackPanel { Margin = new Thickness(0, 4, 0, 4) };
     // A border only clips its background (not a child image) to its corners, so the live feed is
     // the border's background. Sized by the display's own aspect, independent of the frame.

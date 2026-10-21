@@ -49,7 +49,7 @@ public sealed class ScreenSource(MonitorInfo monitor) : IDisposable {
 
   private void CaptureOnce() {
     byte[] jpeg = ScreenGrabber.Grab(_monitor).Jpeg;
-    byte[] hash = MD5.HashData(jpeg);
+    byte[] hash = SHA256.HashData(jpeg);
     bool unchanged = _lastHash is not null && hash.AsSpan().SequenceEqual(_lastHash);
     if (unchanged && DateTime.UtcNow - _lastSent < _refresh) {
       return;

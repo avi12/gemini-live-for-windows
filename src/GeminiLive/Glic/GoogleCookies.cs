@@ -80,7 +80,8 @@ public static class GoogleCookies {
 
   // The Google login/session family; the rest of a jar is analytics noise.
   private static bool IsAuthCookie(string name) {
-    return name.StartsWith("__Secure-") || name.StartsWith("__Host-")
+    return name.StartsWith("__Secure-", StringComparison.Ordinal)
+        || name.StartsWith("__Host-", StringComparison.Ordinal)
         || name is "SID" or "HSID" or "SSID" or "APISID" or "SAPISID" or "LSID" or "OSID"
                 or "NID" or "SIDCC" or "ACCOUNT_CHOOSER" or "LSOLH" or "GAPS";
   }

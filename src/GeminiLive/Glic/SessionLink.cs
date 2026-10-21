@@ -96,8 +96,11 @@ public sealed class SessionLink {
       return;
     }
 
+    // RFC 6455 fixes SHA-1 for the handshake; it is not used for security here.
+#pragma warning disable CA5350
     string accept =
         Convert.ToBase64String(SHA1.HashData(Encoding.ASCII.GetBytes(key + _webSocketGuid)));
+#pragma warning restore CA5350
     await stream.WriteAsync(Encoding.ASCII.GetBytes(
         "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n"
         + $"Sec-WebSocket-Accept: {accept}\r\n\r\n"));
