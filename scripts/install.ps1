@@ -29,6 +29,11 @@ pnpm --dir (Join-Path $root 'extension') install --silent
 pnpm --dir (Join-Path $root 'extension') build
 if ($LASTEXITCODE) { throw 'extension build failed' }
 
+Write-Host '== bridge'
+pnpm --dir (Join-Path $root 'bridge') install --silent
+pnpm --dir (Join-Path $root 'bridge') build
+if ($LASTEXITCODE) { throw 'bridge build failed' }
+
 Write-Host '== publish'
 if (Test-Path $layout) { Remove-Item $layout -Recurse -Force }
 dotnet publish (Join-Path $root 'src\GeminiLive\GeminiLive.csproj') -c Release -o $layout --nologo -v q

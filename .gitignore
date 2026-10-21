@@ -1,6 +1,7 @@
 bin/
 obj/
 build/
+node_modules/
 *.user
 .vs/
 
