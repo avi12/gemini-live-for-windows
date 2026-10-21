@@ -37,7 +37,10 @@ public partial class App : Application {
     var glic = new Glic.GlicHost(link);
     _ = glic.WarmUpAsync().ContinueWith(t => Log.Write($"warm-up failed: {t.Exception}"),
                                         TaskContinuationOptions.OnlyOnFaulted);
-    var pill = new MainWindow(glic);
+    var home = new Glic.HomeHost(link);
+    _ = home.WarmUpAsync().ContinueWith(t => Log.Write($"home warm-up failed: {t.Exception}"),
+                                        TaskContinuationOptions.OnlyOnFaulted);
+    var pill = new MainWindow(glic, home);
     CopilotKey.RegisterFastPath(pill.Handle, pill.OnTrigger);
     CopilotKey.ListenForForwardedTriggers(t => Dispatcher.Invoke(() => pill.OnTrigger(t)));
     pill.OnTrigger(trigger ?? KeyTrigger.Tap);

@@ -24,6 +24,7 @@ public partial class MainWindow : Window {
   private readonly Settings _settings = Settings.Load();
   private readonly ShareBorder _border = new();
   private readonly Glic.GlicHost _glic;
+  private readonly Glic.HomeHost _home;
   private readonly CaptionPresenter _captions;
   private readonly GlowAnimator _glow;
 
@@ -38,8 +39,9 @@ public partial class MainWindow : Window {
 
   private MonitorInfo? Shared => _conversation?.Monitor;
 
-  public MainWindow(Glic.GlicHost glic) {
+  public MainWindow(Glic.GlicHost glic, Glic.HomeHost home) {
     _glic = glic;
+    _home = home;
     InitializeComponent();
     Handle = Overlay.Prepare(this, clickThrough: false);
     _glow = new GlowAnimator(Glow);
@@ -117,7 +119,7 @@ public partial class MainWindow : Window {
 
   private ILiveEngine CreateEngine(MonitorInfo monitor) {
     if (_settings.Engine == EngineKind.Google) {
-      return new Glic.GlicConversation(_glic, monitor);
+      return new Glic.GlicConversation(_glic, _home, monitor);
     }
     return new Conversation(_settings, monitor);
   }

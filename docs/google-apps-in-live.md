@@ -156,3 +156,24 @@ impersonates Google's apps. Findings:
   The Assistant SDK is the retiring Assistant, not Gemini.
 - Verified on the phone that Gemini (Robin) itself answers Home correctly ("AC is on, 24°C, cool"), so
   the account and devices are fine; only the surface is missing.
+
+## UPDATE 2026-10-06 (evening): a sanctioned independent route exists
+
+The "only the surface is missing / no route" conclusion above is **superseded for independent control**.
+Google shipped a **Home API / Home MCP server** in 2026 that any AI agent (Claude included) can use to
+control a user's Home devices - phone-free, no impersonation, no Gemini:
+
+- Endpoint `https://home.googleapis.com/mcp` (preprod `preprod-home.sandbox.googleapis.com/mcp`), SSE,
+  OAuth 2.0 scope `https://www.googleapis.com/auth/home.platform.v2`, the user's own Google Cloud project
+  + Web OAuth client. Tools: `list_homes`, `list_home_resources`, `list_home_states`, `run_home_actions`,
+  `list_home_history`. Early access.
+- This is NOT "Home through Gemini's own tools" - it is the app calling the Home API directly, the same
+  detect-intent-and-route pattern already used for Calendar/Keep/Tasks/Gmail. Home becomes a reachable
+  integration backed by the Home API, not by Gemini's tool slot.
+- Two gates before building: (1) needs a **Google Home Premium Advanced** subscription (a current bug also
+  admits Nest Aware Plus); (2) verify the dev/test device ("Custom AC", a cloud-to-cloud virtual device)
+  actually appears via `list_home_resources` - test devices in HomeGraph aren't guaranteed to be exposed.
+- Re-confirmed by RE of the Google app (`com.google.android.googlequicksearchbox` 17.64): the phone path
+  is `robinfrontend-pa.googleapis.com` advertising capability 311; still off-limits (signed-app token).
+- Fastest proof: Claude Code is itself an MCP client - wire the Home MCP server in and toggle the device
+  before writing any WPF code.

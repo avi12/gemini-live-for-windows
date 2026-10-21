@@ -21,11 +21,13 @@ public sealed partial class GlicConversation : ILiveEngine {
   private static readonly TimeSpan _intentSettle = TimeSpan.FromMilliseconds(1100);
 
   private readonly GlicHost _host;
+  private readonly HomeHost _home;
   private readonly DispatcherTimer _intentTimer;
   private readonly SpeechPlayer _speech = new();
 
-  public GlicConversation(GlicHost host, MonitorInfo monitor) {
+  public GlicConversation(GlicHost host, HomeHost home, MonitorInfo monitor) {
     _host = host;
+    _home = home;
     host.Monitor = monitor;
     host.State += OnState;
     host.Caption += OnCaption;
@@ -101,10 +103,16 @@ public sealed partial class GlicConversation : ILiveEngine {
   // The user's request has stopped changing: if it plainly targets a Google app, handle it now.
   private void OnIntentSettled(object? sender, EventArgs e) {
     _intentTimer.Stop();
-    if (_runningAction || _lastUserUtterance == _handledUtterance || !TargetsApp(_lastUserUtterance)) {
+    if (_runningAction || _lastUserUtterance == _handledUtterance) {
       return;
     }
-    _ = RunAppActionAsync(_lastUserUtterance);
+    if (TryLightsCommand(_lastUserUtterance, out bool on)) {
+      _ = RunLightsAsync(_lastUserUtterance, on);
+      return;
+    }
+    if (TargetsApp(_lastUserUtterance)) {
+      _ = RunAppActionAsync(_lastUserUtterance);
+    }
   }
 
   // Live has no access to the account's Google apps; its text turns do. When Gemini says it can't
@@ -133,6 +141,50 @@ public sealed partial class GlicConversation : ILiveEngine {
     } finally {
       _runningAction = false;
     }
+  }
+
+  // The PC lights live in Google Home, which Gemini's text path can't reach; flip them on the Home
+  // web app instead and speak the result. Unlike an app action this runs off the Live page, so Live
+  // keeps listening and the spoken result simply lands over it.
+  private async Task RunLightsAsync(string request, bool on) {
+    if (_runningAction) {
+      return;
+    }
+    _runningAction = true;
+    _handledUtterance = request;  // so the trigger doesn't re-fire for the same request
+    Status?.Invoke($"Turning the lights {(on ? "on" : "off")}…");
+    try {
+      string answer = await _home.SetLightsAsync(on);
+      Transcript?.Invoke(answer, false);
+      await _speech.SpeakAsync(answer);
+    } catch (Exception e) {
+      Log.Write($"lights action failed: {e.Message}");
+      const string trouble = "I had trouble reaching the lights.";
+      Transcript?.Invoke(trouble, false);
+      await _speech.SpeakAsync(trouble);
+    } finally {
+      _runningAction = false;
+      Status?.Invoke(LiveStatus.Listening);
+    }
+  }
+
+  // A plain spoken command to switch the lights: it names the lights, with a switch verb and a clear
+  // direction. Questions ("are the lights on?") and Calendar/Keep/Tasks requests that merely mention
+  // lights ("remind me to turn off the lights") fall through to their own paths, so the light is
+  // never toggled by accident.
+  private static bool TryLightsCommand(string text, out bool on) {
+    on = false;
+    if (Question().IsMatch(text) || AppTopic().IsMatch(text)
+        || !LightsTopic().IsMatch(text) || !SwitchVerb().IsMatch(text)) {
+      return false;
+    }
+    bool wantsOn = TurnOn().IsMatch(text);
+    bool wantsOff = TurnOff().IsMatch(text);
+    if (wantsOn == wantsOff) {
+      return false;
+    }
+    on = wantsOn;
+    return true;
   }
 
   // Gemini refusing an app it can't reach in Live: a "can't / don't have" paired with an app topic.
@@ -189,4 +241,23 @@ public sealed partial class GlicConversation : ILiveEngine {
       @"\b(add|create|schedule|set|make|new|delete|remove|cancel|move|reschedule|turn on|turn off|switch on|switch off|dim|list|show|check|read|send|mark|star|archive|do i have|what'?s on|what is on|what'?s my|what are my|when'?s|when is)\b",
       RegexOptions.IgnoreCase)]
   private static partial Regex Intent();
+
+  // The one Home device we control for now; "lights" is enough to name it in a spoken command.
+  [GeneratedRegex(@"\blights?\b", RegexOptions.IgnoreCase)]
+  private static partial Regex LightsTopic();
+
+  // A command needs a switch verb so a mention isn't mistaken for an instruction.
+  [GeneratedRegex(@"\b(turn|switch|put|flip|kill)\b", RegexOptions.IgnoreCase)]
+  private static partial Regex SwitchVerb();
+
+  [GeneratedRegex(@"\bon\b", RegexOptions.IgnoreCase)]
+  private static partial Regex TurnOn();
+
+  [GeneratedRegex(@"\b(off|out)\b", RegexOptions.IgnoreCase)]
+  private static partial Regex TurnOff();
+
+  // Leading interrogative: a question about the lights, not a command to switch them.
+  [GeneratedRegex(@"^\s*(are|is|was|were|do|does|did|can|could|would|will|should|what|which|when|how|why|whose)\b",
+                  RegexOptions.IgnoreCase)]
+  private static partial Regex Question();
 }
