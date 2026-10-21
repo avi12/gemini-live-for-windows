@@ -42,12 +42,16 @@ public sealed class GlicHost : GoogleWebViewHost {
   public MonitorInfo Monitor { get; set; } = Monitors.All()[0];
   public bool Active { get; private set; }
 
+  /// <summary>True while the webcam is the frame source instead of the screen.</summary>
+  public bool UseCamera { get; private set; }
+
   private TaskCompletionSource? _ready;
   private IReadOnlyList<GoogleCookie> _session = [];
   private string _sessionPrint = "";
   private string? _microphoneId;
   private bool _booted;
   private bool _unavailable;
+  private WebcamSource? _camera;
   private static readonly TimeSpan _refreshGrace = TimeSpan.FromSeconds(25);
 
   /// <summary>The session failures the page reports (ErrorMessage in glic_bridge.js).</summary>
@@ -148,6 +152,39 @@ public sealed class GlicHost : GoogleWebViewHost {
 
   public void SetMuted(bool muted) {
     _ = CallBridge($"setMuted({(muted ? "true" : "false")})");
+  }
+
+  /// <summary>
+  /// Shares the webcam instead of the screen, or switches back. Gemini pulls frames the same way
+  /// either way (see <see cref="SendFrame"/>); this only changes which source answers. Opening the
+  /// camera triggers Windows' one-time camera consent for the app. Returns false if the camera
+  /// could not be opened, leaving the screen as the source.
+  /// </summary>
+  public async Task<bool> UseCameraAsync(bool on) {
+    if (on == UseCamera) {
+      return true;
+    }
+    if (on) {
+      try {
+        var camera = new WebcamSource();
+        await camera.InitializeAsync();
+        _camera = camera;
+        UseCamera = true;
+        Log.Write("glic: sharing the camera");
+        return true;
+      } catch (Exception e) {
+        Log.Write($"camera unavailable: {e.Message}");
+        return false;
+      }
+    }
+    UseCamera = false;
+    WebcamSource? old = _camera;
+    _camera = null;
+    if (old is not null) {
+      await old.DisposeAsync();
+    }
+    Log.Write("glic: sharing the screen");
+    return true;
   }
 
   /// <summary>
@@ -333,10 +370,24 @@ public sealed class GlicHost : GoogleWebViewHost {
   }
 
   private void SendFrame(int id) {
+    if (UseCamera && _camera is { } camera) {
+      _ = SendCameraFrameAsync(id, camera);
+      return;
+    }
     MonitorInfo monitor = Monitor;
     Task.Run(() => TryGrab(monitor))
         .ContinueWith(t => PostFrame(id, t.Result),
                       TaskScheduler.FromCurrentSynchronizationContext());
+  }
+
+  private async Task SendCameraFrameAsync(int id, WebcamSource camera) {
+    ScreenGrabber.Frame? frame = null;
+    try {
+      frame = await camera.GrabAsync();
+    } catch (Exception e) {
+      Log.Write($"camera grab failed: {e.Message}");
+    }
+    PostFrame(id, frame);
   }
 
   private static ScreenGrabber.Frame? TryGrab(MonitorInfo monitor) {

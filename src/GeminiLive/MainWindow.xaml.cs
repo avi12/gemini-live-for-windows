@@ -370,6 +370,27 @@ public partial class MainWindow : Window {
     foreach ((string id, string name) in await _glic.ListMicrophonesAsync()) {
       AddMicrophone(menu, name, id);
     }
+    // Camera share rides the Google engine's frame pull (Gemini sees it as its viewport); the
+    // API-key engine pushes the screen itself, so the toggle only applies there.
+    if (_settings.Engine == EngineKind.Google) {
+      menu.Items.Add(new Separator());
+      menu.Items.Add(new MenuItem {
+        Header = "Share",
+        Style = (Style)FindResource("LiveMenuHeader"),
+      });
+      var camera = new MenuItem {
+        Header = "Camera instead of screen",
+        IsCheckable = true,
+        IsChecked = _glic.UseCamera,
+      };
+      camera.Click += async (_, _) => {
+        if (!await _glic.UseCameraAsync(camera.IsChecked)) {
+          camera.IsChecked = false;  // camera wouldn't open; stay on the screen
+        }
+      };
+      menu.Items.Add(camera);
+    }
+
     menu.Items.Add(new Separator());
     var quit = new MenuItem { Header = "Quit Gemini Live" };
     quit.Click += (_, _) => {
