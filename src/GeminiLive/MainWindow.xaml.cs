@@ -191,7 +191,16 @@ public partial class MainWindow : Window {
   }
 
   private void Dock() {
-    Dock(new Size(ActualWidth, ActualHeight));
+    Dock(ContentSize());
+  }
+
+  /// <summary>
+  /// The size the window is about to have, read from its content: on first show the window's own
+  /// size is still an interim one, which docked the pill far above the taskbar.
+  /// </summary>
+  private Size ContentSize() {
+    Root.Measure(new Size(Width, double.PositiveInfinity));
+    return new Size(Width, Root.DesiredSize.Height);  // DesiredSize already counts the margins
   }
 
   /// <summary>
