@@ -1,3 +1,5 @@
+import { defineMessaging, type Messenger, type Transport } from '@gemini-live/messaging';
+import { type BrowserCookie, LinkMessage, type LinkProtocolMap } from '@/lib/link-protocol';
 import { ReconnectController } from '@/lib/reconnect';
 import { refreshGoogleSession } from '@/lib/refresh';
 
@@ -14,37 +16,14 @@ const RECONNECT_MS = 5000;
 // with the right token, is not the app and never gets the session.
 const HELLO_TIMEOUT_MS = 5000;
 
+// The app answers from its own process at once; a slower reply means the link is gone.
+const MESSAGE_TIMEOUT_MS = 10000;
+
 // A sign-in or rotation changes several cookies at once; push them as one.
 const ROTATION_DEBOUNCE_MS = 1500;
 
 // Everything on google.com and its subdomains; the app picks the auth cookies it needs.
 const GOOGLE_COOKIE_DOMAIN = 'google.com';
-
-/**
- * Every message type on the link, both directions. The app's side is LinkMessageType in
- * src/GeminiLive/Glic/SessionLink.cs; the wire value is the lower-cased enum name.
- */
-const MessageType = {
-  /** App → extension, first: this run's token, proving it is the app that wrote the link file. */
-  HELLO: 'hello',
-  /** Extension → app: the current Google cookies. */
-  COOKIES: 'cookies',
-  /** App → extension: send the current cookies now. */
-  QUERY: 'query',
-  /** App → extension: the session the app has stopped working; refresh it, then send it. */
-  REFRESH: 'refresh',
-  /** App → extension: keepalive, answered with PONG. */
-  PING: 'ping',
-  PONG: 'pong',
-} as const;
-
-type MessageType = (typeof MessageType)[keyof typeof MessageType];
-
-/** Messages the app sends down the link. */
-interface AppMessage {
-  type?: MessageType;
-  token?: string;
-}
 
 /** Where this run of the app listens (the link file). */
 interface LinkInfo {
@@ -53,11 +32,13 @@ interface LinkInfo {
 }
 
 /**
- * One attempt at the link: reading the link file, then the socket. `trusted` once the app's Hello
- * carried the file's token; nothing is sent before that.
+ * One attempt at the link: reading the link file, then the socket and its messenger (from the
+ * moment the socket opens). `trusted` once the app's Hello carried the file's token; nothing is
+ * sent or answered before that.
  */
 interface Link {
   socket?: WebSocket;
+  messenger?: Messenger<LinkProtocolMap>;
   trusted: boolean;
   closed: boolean;
 }
@@ -89,14 +70,38 @@ function isLinkActive(link: Link): boolean {
   return !link.closed;
 }
 
-/** The trusted, open socket to the app, if there is one. */
-function trustedSocket(): WebSocket | undefined {
+/** The messenger of the trusted, open link to the app, if there is one. */
+function trustedMessenger(): Messenger<LinkProtocolMap> | undefined {
   const link = connection.current;
-  const socket = link?.socket;
-  return link?.trusted && socket?.readyState === WebSocket.OPEN ? socket : undefined;
+  return link?.trusted && link.socket?.readyState === WebSocket.OPEN ? link.messenger : undefined;
 }
 
-async function collectCookies() {
+/** The link's socket as a messaging transport: JSON text frames both ways. */
+function socketTransport(socket: WebSocket): Transport {
+  return {
+    post(envelope) {
+      // A closing socket drops the frame; its sender's timeout reports it.
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify(envelope));
+      }
+    },
+    listen(receive) {
+      socket.addEventListener('message', ({ data }) => {
+        if (typeof data !== 'string') {
+          return;
+        }
+
+        try {
+          receive(JSON.parse(data));
+        } catch {
+          // Not ours to interpret; the app only sends JSON.
+        }
+      });
+    },
+  };
+}
+
+async function collectCookies(): Promise<BrowserCookie[]> {
   const cookies = await browser.cookies.getAll({ domain: GOOGLE_COOKIE_DOMAIN });
   return cookies.map(cookie => ({
     name: cookie.name,
@@ -111,18 +116,19 @@ async function collectCookies() {
 }
 
 async function pushSession(): Promise<void> {
-  const socket = trustedSocket();
-  if (!socket) {
+  const messenger = trustedMessenger();
+  if (!messenger) {
     return;
   }
 
   const cookies = await collectCookies();
-  // The socket can drop during the async cookie read; never answer through a replacement.
-  if (trustedSocket() !== socket) {
+  // The link can drop during the async cookie read; never answer through a replacement.
+  if (trustedMessenger() !== messenger) {
     return;
   }
 
-  socket.send(JSON.stringify({ type: MessageType.COOKIES, cookies }));
+  // The link may drop before the app's receipt arrives; the next connect pushes again.
+  messenger.sendMessage(LinkMessage.Cookies, cookies).catch(() => undefined);
 }
 
 /** The link file as the app last wrote it, or undefined before the app has ever run. */
@@ -138,19 +144,6 @@ async function readLinkInfo(): Promise<LinkInfo | undefined> {
   }
 }
 
-function parseMessage(data: unknown): AppMessage | undefined {
-  if (typeof data !== 'string') {
-    return undefined;
-  }
-
-  try {
-    return JSON.parse(data) as AppMessage;
-  } catch {
-    // Not ours to interpret; the app only sends JSON.
-    return undefined;
-  }
-}
-
 /** Ends this attempt once, and lets the controller schedule the next. */
 function closeLink(link: Link): void {
   if (link.closed) {
@@ -158,8 +151,19 @@ function closeLink(link: Link): void {
   }
 
   link.closed = true;
+  link.messenger?.removeAllListeners();
   link.socket?.close();
   connection.disconnected(link);
+}
+
+/** Refuses anything but a Hello before the app has proven itself, ending the link as before. */
+function requireTrusted(link: Link): void {
+  if (connection.current === link && link.trusted) {
+    return;
+  }
+
+  closeLink(link);
+  throw new Error('Not trusted: Hello first');
 }
 
 function connect(): Link {
@@ -184,42 +188,36 @@ function open(link: Link, info: LinkInfo): void {
   link.socket = socket;
   const helloTimer = setTimeout(() => closeLink(link), HELLO_TIMEOUT_MS);
 
-  socket.addEventListener('message', ({ data }) => {
-    if (connection.current !== link) {
-      return;
-    }
+  socket.addEventListener('open', () => {
+    const messenger = defineMessaging<LinkProtocolMap>(socketTransport(socket), {
+      timeoutMs: MESSAGE_TIMEOUT_MS,
+    });
+    link.messenger = messenger;
 
-    const message = parseMessage(data);
-    if (!link.trusted) {
-      if (message?.type !== MessageType.HELLO || message.token !== info.token) {
+    messenger.onMessage(LinkMessage.Hello, ({ data: token }) => {
+      if (connection.current !== link || token !== info.token) {
         closeLink(link);
-        return;
+        throw new Error('Wrong token');
       }
 
       clearTimeout(helloTimer);
       link.trusted = true;
       void pushSession();
-      return;
-    }
-
-    switch (message?.type) {
-      // The app wants the current session now (e.g. it has none yet).
-      case MessageType.QUERY:
-        void pushSession();
-        return;
-      // The app's copy stopped working (Gemini says signed out / unavailable). Send what we have,
-      // and refresh it; the refreshed cookies follow through the cookie-change push.
-      case MessageType.REFRESH:
-        void pushSession();
-        void refreshGoogleSession();
-        return;
-      // The app pings every ~20 s; answering keeps this service worker alive while it runs.
-      case MessageType.PING:
-        socket.send(JSON.stringify({ type: MessageType.PONG }));
-        return;
-      default:
-        return;
-    }
+    });
+    // The app wants the current session now (e.g. it has none yet).
+    messenger.onMessage(LinkMessage.Query, () => {
+      requireTrusted(link);
+      return collectCookies();
+    });
+    // The app's copy stopped working (Gemini says signed out / unavailable). Send what we have,
+    // and refresh it; the refreshed cookies follow through the cookie-change push.
+    messenger.onMessage(LinkMessage.Refresh, () => {
+      requireTrusted(link);
+      void pushSession();
+      void refreshGoogleSession();
+    });
+    // The app pings every ~20 s; the reply is the keepalive that holds this service worker awake.
+    messenger.onMessage(LinkMessage.Ping, () => requireTrusted(link));
   });
   socket.addEventListener('close', () => {
     clearTimeout(helloTimer);

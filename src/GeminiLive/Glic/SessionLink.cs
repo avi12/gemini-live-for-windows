@@ -3,27 +3,15 @@ using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
+using System.Threading.Channels;
 
 namespace GeminiLive.Glic;
 
 /// <summary>
-/// Every message type on the link, both directions (MessageType in link.ts). The wire value is
-/// <see cref="WireName"/>'s lower-cased name: "query", "refresh", …
-/// </summary>
-public enum LinkMessageType {
-  Hello,    // app → extension, first: this run's token, proving it's the app that wrote link.json
-  Cookies,  // extension → app: the current Google cookies
-  Query,    // app → extension: send the cookies now
-  Refresh,  // app → extension: ours stopped working; refresh the browser's session, then send it
-  Ping,     // app → extension: keepalive
-  Pong,     // extension → app: keepalive answer
-}
-
-/// <summary>
 /// The loopback WebSocket the companion browser extension (extension/ in this repo) keeps open.
 /// It pushes the browser's Google cookies on connect and on every rotation; we can also ask for
-/// them on demand. Only the extension's pinned ID may connect.
+/// them on demand. Only the extension's pinned ID may connect. Each connection speaks
+/// <see cref="LinkProtocol"/> through its own <see cref="Messenger{TType}"/>.
 ///
 /// No fixed port, since any port can already be taken: we listen on a free one and publish it with
 /// a fresh token in the extension's folder (<see cref="ExtensionSetup.PublishLink"/>). The
@@ -41,8 +29,10 @@ public sealed class SessionLink {
   private const int _maxHandshakeBytes = 16 * 1024;
   private const int _receiveBufferBytes = 64 * 1024;
   private static readonly TimeSpan _pingInterval = TimeSpan.FromSeconds(20);
+  // The extension answers from a live service worker at once; a slower reply means it is gone.
+  private static readonly TimeSpan _messageTimeout = TimeSpan.FromSeconds(10);
 
-  private readonly List<WebSocket> _clients = [];
+  private readonly List<Messenger<LinkMessage>> _clients = [];
   private readonly object _gate = new();
   private readonly string _token = Convert.ToHexString(RandomNumberGenerator.GetBytes(_tokenBytes));
 
@@ -71,7 +61,9 @@ public sealed class SessionLink {
 
   /// <summary>Ask the extension for the current session right now.</summary>
   public void RequestCookies() {
-    Send(LinkMessageType.Query);
+    foreach (Messenger<LinkMessage> client in Clients()) {
+      _ = QueryAsync(client);
+    }
   }
 
   /// <summary>
@@ -79,7 +71,7 @@ public sealed class SessionLink {
   /// refreshed cookies arrive like any rotation.
   /// </summary>
   public void RequestRefresh() {
-    Send(LinkMessageType.Refresh);
+    Broadcast(LinkProtocol.Refresh);
   }
 
   private async Task AcceptLoopAsync(TcpListener listener) {
@@ -116,64 +108,106 @@ public sealed class SessionLink {
 
     using WebSocket socket = WebSocket.CreateFromStream(
         stream, isServer: true, subProtocol: null, keepAliveInterval: TimeSpan.Zero);
-    byte[] hello = Encoding.UTF8.GetBytes(
-        JsonSerializer.Serialize(new { type = WireName.Of(LinkMessageType.Hello), token = _token }));
-    await socket.SendAsync(hello, WebSocketMessageType.Text, true, CancellationToken.None);
-    lock (_gate) {
-      _clients.Add(socket);
+    // A WebSocket takes one send at a time, so every frame queues here for one sender.
+    Channel<string> outbox =
+        Channel.CreateUnbounded<string>(new UnboundedChannelOptions { SingleReader = true });
+    Task sending = SendLoopAsync(socket, outbox.Reader);
+    var messenger = new Messenger<LinkMessage>(json => outbox.Writer.TryWrite(json), _messageTimeout);
+    messenger.OnMessage(LinkProtocol.Cookies, cookies => {
+      Deliver(cookies);
+      return default(None);
+    });
+    // Replies, the Hello's included, arrive through this loop, so it runs before anything is sent.
+    Task receiving = ReceiveLoopAsync(socket, messenger);
+    try {
+      try {
+        await messenger.SendMessageAsync(LinkProtocol.Hello, _token);
+      } catch (Exception e) {
+        Log.Write($"session link: hello refused: {e.Message}");
+        socket.Abort();
+        return;
+      }
+      lock (_gate) {
+        _clients.Add(messenger);
+      }
+      Log.Write("session link: extension connected");
+      Connected?.Invoke();
+      await receiving;
+    } finally {
+      bool wasConnected;
+      lock (_gate) {
+        wasConnected = _clients.Remove(messenger);
+      }
+      if (wasConnected) {
+        Log.Write("session link: extension disconnected");
+      }
+      await receiving;
+      outbox.Writer.TryComplete();
+      await sending;
     }
-    Log.Write("session link: extension connected");
-    Connected?.Invoke();
+  }
+
+  /// <summary>Feeds every text frame to the messenger until the socket closes.</summary>
+  private static async Task ReceiveLoopAsync(WebSocket socket, Messenger<LinkMessage> messenger) {
     try {
       while (socket.State == WebSocketState.Open) {
         string? message = await ReceiveTextAsync(socket);
         if (message is null) {
           break;
         }
-        Handle(message);
+        messenger.Receive(message);
       }
     } catch (Exception e) {
       Log.Write($"session link: {e.Message}");
-    } finally {
-      lock (_gate) {
-        _clients.Remove(socket);
-      }
-      Log.Write("session link: extension disconnected");
     }
   }
 
-  private void Handle(string message) {
-    using JsonDocument doc = JsonDocument.Parse(message);
-    if (doc.RootElement.GetProperty("type").GetString() != WireName.Of(LinkMessageType.Cookies)) {
-      return;
+  /// <summary>Sends the queued frames one at a time, as the socket requires.</summary>
+  private static async Task SendLoopAsync(WebSocket socket, ChannelReader<string> outbox) {
+    await foreach (string json in outbox.ReadAllAsync()) {
+      try {
+        await socket.SendAsync(Encoding.UTF8.GetBytes(json), WebSocketMessageType.Text, true,
+                               CancellationToken.None);
+      } catch (Exception e) {
+        Log.Write($"session link send: {e.Message}");
+      }
     }
-    List<GoogleCookie> cookies = GoogleCookies.Parse(doc.RootElement.GetProperty("cookies"));
-    Log.Write($"session link: {cookies.Count} auth cookies from the browser");
-    CookiesReceived?.Invoke(cookies);
+  }
+
+  private void Deliver(IReadOnlyList<GoogleCookie> cookies) {
+    List<GoogleCookie> auth = GoogleCookies.AuthCookies(cookies);
+    Log.Write($"session link: {auth.Count} auth cookies from the browser");
+    CookiesReceived?.Invoke(auth);
+  }
+
+  private async Task QueryAsync(Messenger<LinkMessage> client) {
+    try {
+      Deliver(await client.SendMessageAsync(LinkProtocol.Query));
+    } catch (Exception e) {
+      Log.Write($"session link query: {e.Message}");
+    }
   }
 
   private async Task PingLoopAsync() {
     using var timer = new PeriodicTimer(_pingInterval);
     while (await timer.WaitForNextTickAsync()) {
-      Send(LinkMessageType.Ping);
+      Broadcast(LinkProtocol.Ping);
     }
   }
 
-  private void Send(LinkMessageType type) {
-    Broadcast(JsonSerializer.Serialize(new { type = WireName.Of(type) }));
+  /// <summary>Sends a message without data to every connected extension; failures are logged.</summary>
+  private void Broadcast(Protocol<LinkMessage, None, None> message) {
+    foreach (Messenger<LinkMessage> client in Clients()) {
+      _ = client.SendMessageAsync(message).ContinueWith(
+          t => Log.Write(
+              $"session link {WireName.Of(message.Type)}: {t.Exception?.InnerException?.Message}"),
+          TaskContinuationOptions.OnlyOnFaulted);
+    }
   }
 
-  private void Broadcast(string json) {
-    WebSocket[] clients;
+  private Messenger<LinkMessage>[] Clients() {
     lock (_gate) {
-      clients = [.. _clients];
-    }
-    byte[] bytes = Encoding.UTF8.GetBytes(json);
-    foreach (WebSocket client in clients) {
-      _ = client.SendAsync(bytes, WebSocketMessageType.Text, true, CancellationToken.None)
-          .ContinueWith(
-              t => Log.Write($"session link send: {t.Exception?.InnerException?.Message}"),
-              TaskContinuationOptions.OnlyOnFaulted);
+      return [.. _clients];
     }
   }
 

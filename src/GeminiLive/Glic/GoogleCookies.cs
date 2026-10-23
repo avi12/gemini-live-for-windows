@@ -19,8 +19,9 @@ public static class GoogleCookies {
   private static readonly string _store = Path.Combine(Log.Dir, "google-session.bin");
   private static readonly JsonSerializerOptions _json = new(JsonSerializerDefaults.Web);
 
-  public static List<GoogleCookie> Parse(JsonElement array) {
-    return array.Deserialize<List<GoogleCookie>>(_json)!.Where(c => IsAuthCookie(c.Name)).ToList();
+  /// <summary>The Google login/session cookies among everything the browser sent.</summary>
+  public static List<GoogleCookie> AuthCookies(IEnumerable<GoogleCookie> cookies) {
+    return cookies.Where(c => IsAuthCookie(c.Name)).ToList();
   }
 
   /// <summary>True when the jar has a Google login at all.</summary>
