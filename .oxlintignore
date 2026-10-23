@@ -1,0 +1,8 @@
+**/node_modules/**
+**/.output/**
+**/.wxt/**
+**/bin/**
+**/obj/**
+.fallow/**
+.claude/worktrees/**
+src/GeminiLive/Glic/*.js
