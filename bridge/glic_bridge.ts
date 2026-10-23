@@ -10,40 +10,25 @@
 // bootstrap listener with a synthetic event. Our host then answers its getters - including the
 // viewport screenshots Live pulls while sharing, which we fetch from the C# side (ScreenGrabber).
 //
-// Wire to C#: chrome.webview.postMessage({kind, ...}) up; {kind:"frame", id, ...} replies down.
+// Wire to C#: the typed messenger (GlicProtocolMap in glic_protocol.ts) over chrome.webview. The page
+// reports to GlicHost and asks it for frames and screen text; GlicHost sends the session commands.
 
+import { defineMessaging } from '@gemini-live/messaging';
+import {
+  Direction,
+  GlicMessage,
+  type GlicProtocolMap,
+  type Microphone,
+  type ScreenView,
+  State,
+} from './glic_protocol';
 import { gateMicrophone, type MicGate } from './mic_gate';
-import { annotatedPageContent, type Block, byteStream } from './page_content';
+import { annotatedPageContent, byteStream } from './page_content';
+import { webViewTransport } from './webview_transport';
 
 // ===========================================================================
 // Vocabulary: every string we match on Glic's page or exchange with C#, in one place.
 // ===========================================================================
-
-/** Message kinds on the WebView2 channel (GlicHost.OnMessage switches on these). */
-enum Kind {
-  Booted = 'booted',
-  Capture = 'capture',
-  Error = 'error',
-  Frame = 'frame',
-  Read = 'read',
-  Ready = 'ready',
-  State = 'state',
-  Transcript = 'transcript',
-  View = 'view',
-}
-
-/** Live states reported to C# (GlicHost.OnMessage reads the "state" message). */
-enum State {
-  Idle = 'idle',
-  Listening = 'listening',
-  Resuming = 'resuming',
-}
-
-/** Who spoke a transcript line (GlicHost.OnMessage reads the "transcript" message's direction). */
-enum Direction {
-  Assistant = 'assistant',
-  User = 'user',
-}
 
 /**
  * Error messages. SignedOut and Unavailable are codes GlicHost matches on to wait for a fresh
@@ -142,39 +127,13 @@ const TRY_AGAIN_GAP_MS = 5000;
 const BROKEN_AFTER_MS = 15_000;
 
 // ===========================================================================
-// Types for the page, the WebView2 channel and the host object Glic expects.
+// Types for the page and the host object Glic expects.
 // ===========================================================================
 
 interface Utterance {
   direction: Direction;
   text: string;
 }
-
-interface FrameMessage {
-  kind: Kind.Frame;
-  id: number;
-  base64?: string;
-  mimeType: string;
-  width: number;
-  height: number;
-}
-
-/** The text of the window on screen (ScreenText.View in C#). */
-interface ScreenView {
-  title: string;
-  app: string;
-  blocks: Block[];
-  version: string;
-}
-
-interface ViewMessage {
-  kind: Kind.View;
-  id: number;
-  view: ScreenView | null;
-}
-
-/** What C# answers a request with. */
-type Reply = FrameMessage | ViewMessage;
 
 /** What Glic asks of a tab's context. */
 interface ContextOptions {
@@ -187,11 +146,6 @@ interface Screenshot {
   mimeType: string;
   widthPixels: number;
   heightPixels: number;
-}
-
-interface WebViewChannel {
-  postMessage(message: unknown): void;
-  addEventListener(type: 'message', listener: (e: MessageEvent<unknown>) => void): void;
 }
 
 type Subscriber<T> = (value: T) => void;
@@ -222,27 +176,19 @@ interface TabContext {
   screenshotInfo?: { widthPixels: number; heightPixels: number };
 }
 
-interface GlicBridge {
-  start(): void;
-  stop(): void;
-  setMuted(value: boolean): void;
-  listMics(): Promise<{ id: string; label: string }[]>;
-  setMic(id: string | null): void;
-  beginAction(): Promise<boolean>;
-  submitAndRead(): Promise<string>;
-}
-
 declare global {
   interface Window {
-    __glicBridge?: GlicBridge;
+    __glicBridgeInstalled?: boolean;
     internalAutoGlicBoot?: () => unknown;
     default_BardChatUi?: Record<string, unknown>;
-    chrome?: { webview?: WebViewChannel };
   }
 }
 
 // Top frame only, install once.
-if (!window.__glicBridge && window.top === window) {
+if (!window.__glicBridgeInstalled && window.top === window) {
+  window.__glicBridgeInstalled = true;
+  const app = defineMessaging<GlicProtocolMap>(webViewTransport(), { timeoutMs: REQUEST_TIMEOUT_MS });
+
   // ===========================================================================
   // Session state shared by the sections below.
   // ===========================================================================
@@ -257,24 +203,15 @@ if (!window.__glicBridge && window.top === window) {
   let lastState: State | null = null;
 
   // ===========================================================================
-  // Channel to C# and page helpers.
+  // Reports to C# and page helpers.
   // ===========================================================================
 
-  const native = window.chrome?.webview;
-
-  /** Posts {kind, ...extra} to C#. */
-  const emit = (kind: Kind, extra?: Record<string, unknown>): void => {
-    if (!native) {
-      return;
-    }
-    try {
-      native.postMessage({ kind, ...extra });
-    } catch {
-      // The host is gone; nobody is listening.
-    }
+  /** Sends a report to C#, which may be gone (no WebView2, or the app is closing): drops a failure. */
+  const report = (sent: Promise<void>): void => {
+    sent.catch(() => {});
   };
 
-  const reportError = (message: ErrorMessage): void => emit(Kind.Error, { message });
+  const reportError = (message: ErrorMessage): void => report(app.sendMessage(GlicMessage.Error, message));
 
   const pageText = (): string => document.body?.innerText || '';
 
@@ -315,7 +252,7 @@ if (!window.__glicBridge && window.top === window) {
       return;
     }
     lastState = state;
-    emit(Kind.State, { state });
+    report(app.sendMessage(GlicMessage.State, state));
   };
 
   // ===========================================================================
@@ -399,7 +336,7 @@ if (!window.__glicBridge && window.top === window) {
   };
 
   /** Real microphones only, without Chromium's default-device aliases. */
-  const listMics = async (): Promise<{ id: string; label: string }[]> => {
+  const listMics = async (): Promise<Microphone[]> => {
     const devices = await navigator.mediaDevices.enumerateDevices();
     return devices
       .filter((d) => d.kind === 'audioinput' && d.deviceId && !MIC_ALIAS_IDS.has(d.deviceId))
@@ -450,67 +387,31 @@ if (!window.__glicBridge && window.top === window) {
   }
 
   // ===========================================================================
-  // Screen frames from C#: request/response over the WebView2 message channel.
+  // Screen frames and text from C#, asked for over the messenger; null if none comes in time.
   // ===========================================================================
-
-  let nextRequestId = 1;
-  const pendingReplies = new Map<number, (reply: Reply | null) => void>();
-
-  const decodeFrame = (message: FrameMessage): Screenshot | null => {
-    if (!message.base64) {
-      return null;
-    }
-    const bytes = Uint8Array.from(atob(message.base64), (c) => c.charCodeAt(0));
-    return {
-      data: bytes.buffer,
-      mimeType: message.mimeType,
-      widthPixels: message.width,
-      heightPixels: message.height,
-    };
-  };
-
-  native?.addEventListener('message', (e) => {
-    const message = e.data as Reply | null;
-    if (!message || (message.kind !== Kind.Frame && message.kind !== Kind.View)) {
-      return;
-    }
-    const resolve = pendingReplies.get(message.id);
-    if (!resolve) {
-      return;
-    }
-    pendingReplies.delete(message.id);
-    resolve(message);
-  });
-
-  /** Asks C# and waits for the reply that carries the same id; null if none comes in time. */
-  const ask = (kind: Kind.Capture | Kind.Read): Promise<Reply | null> => {
-    const id = nextRequestId++;
-    return new Promise((resolve) => {
-      pendingReplies.set(id, resolve);
-      emit(kind, { id });
-      setTimeout(() => {
-        if (pendingReplies.delete(id)) {
-          resolve(null);
-        }
-      }, REQUEST_TIMEOUT_MS);
-    });
-  };
 
   const captureFrame = async (): Promise<Screenshot | null> => {
     if (!active) {
       return null;
     }
-    const reply = await ask(Kind.Capture);
-    return reply?.kind === Kind.Frame ? decodeFrame(reply) : null;
+    const picture = await app.sendMessage(GlicMessage.Capture).catch(() => null);
+    if (!picture) {
+      return null;
+    }
+    const bytes = Uint8Array.from(atob(picture.data), (c) => c.charCodeAt(0));
+    return {
+      data: bytes.buffer,
+      mimeType: picture.mimeType,
+      widthPixels: picture.width,
+      heightPixels: picture.height,
+    };
   };
 
   /** The newest text copy of the screen, shared with every picture; null when there is none. */
   let latestView: ScreenView | null = null;
 
-  const readScreen = async (): Promise<ScreenView | null> => {
-    const reply = await ask(Kind.Read);
-    return reply?.kind === Kind.View ? reply.view : null;
-  };
+  const readScreen = (): Promise<ScreenView | null> =>
+    app.sendMessage(GlicMessage.Read).catch(() => null);
 
   // ===========================================================================
   // The GlicBrowserHost we hand the web client (ported from Chrome's own dev host).
@@ -683,7 +584,7 @@ if (!window.__glicBridge && window.top === window) {
         .then(() => webClient.initialize(host))
         .then(() => {
           booted = true;
-          emit(Kind.Booted);
+          report(app.sendMessage(GlicMessage.Booted));
           setTimeout(() => {
             if (webClient.notifyPanelWillOpen) {
               notify((state) => webClient.notifyPanelWillOpen?.(state), PANEL_STATE);
@@ -798,7 +699,7 @@ if (!window.__glicBridge && window.top === window) {
       return;
     }
     relayed[index] = trimmed;
-    emit(Kind.Transcript, { text: trimmed, direction, index });
+    report(app.sendMessage(GlicMessage.Transcript, { text: trimmed, direction, index }));
   };
 
   /** Opens a new utterance; its index. */
@@ -1041,7 +942,7 @@ if (!window.__glicBridge && window.top === window) {
         return;
       }
       relayed[index] = text;
-      emit(Kind.Transcript, { text, direction, index });
+      report(app.sendMessage(GlicMessage.Transcript, { text, direction, index }));
     });
   };
 
@@ -1207,7 +1108,7 @@ if (!window.__glicBridge && window.top === window) {
       }
       if (findButton(Button.PauseLive)) {
         clearInterval(startTimer);
-        emit(Kind.Ready);
+        report(app.sendMessage(GlicMessage.Ready));
         markLive(Date.now());
         beginMonitor();
         return;
@@ -1352,8 +1253,17 @@ if (!window.__glicBridge && window.top === window) {
     return text;
   };
 
-  // Only what GlicHost calls.
-  window.__glicBridge = { start, stop, setMuted, listMics, setMic, beginAction, submitAndRead };
+  // ===========================================================================
+  // Commands from GlicHost.
+  // ===========================================================================
+
+  app.onMessage(GlicMessage.Start, () => start());
+  app.onMessage(GlicMessage.Stop, () => stop());
+  app.onMessage(GlicMessage.SetMuted, ({ data }) => setMuted(data));
+  app.onMessage(GlicMessage.ListMics, () => listMics());
+  app.onMessage(GlicMessage.SetMic, ({ data }) => setMic(data));
+  app.onMessage(GlicMessage.BeginAction, () => beginAction());
+  app.onMessage(GlicMessage.SubmitAndRead, () => submitAndRead());
 }
 
 export {};

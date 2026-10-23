@@ -1,5 +1,4 @@
 using System.Reflection;
-using System.Text.Json.Nodes;
 using System.Windows;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
@@ -203,22 +202,6 @@ public abstract class GoogleWebViewHost<TMessage> : Window where TMessage : stru
       Log.Write($"{_logTag}: recovery failed: {ex.Message}");
       OnRecoveryFailed(RecoveryFailure.RebuildFailed, ex);
     }
-  }
-
-  /// <summary>Evaluates an expression in the page, awaiting a promise, and returns its value.</summary>
-  protected async Task<JsonNode?> EvalAsync(string expression) {
-    if (Core is not { } core) {
-      return null;
-    }
-    // ExecuteScriptAsync doesn't await promises; Runtime.evaluate does.
-    var request = new JsonObject {
-      ["expression"] = expression,
-      ["awaitPromise"] = true,
-      ["returnByValue"] = true,
-    };
-    string json =
-        await core.CallDevToolsProtocolMethodAsync("Runtime.evaluate", request.ToJsonString());
-    return JsonNode.Parse(json)?["result"]?["value"];
   }
 
   private string BridgeScript() {
