@@ -112,7 +112,8 @@ enum HostCapability {
   Invoke = 8,
 }
 
-const PANEL_STATE = { kind: PanelStateKind.Attached, windowId: 'desktop' };
+const TAB_ID = 'desktop';
+const PANEL_STATE = { kind: PanelStateKind.Attached, windowId: TAB_ID };
 const BOOT_POLL_MS = 100;
 const MAX_BOOT_TRIES = 150;
 const UNAVAILABLE_POLL_MS = 500;
@@ -120,6 +121,9 @@ const START_POLL_MS = 300;
 const MAX_START_TRIES = 100;
 const MONITOR_POLL_MS = 300;
 const FRAME_TIMEOUT_MS = 3000;
+// Glic sends Live one screenshot per focused tab id, so a fixed id gives one picture per turn. A
+// new id this often makes its viewport input pull a fresh frame each time, like Live on Android.
+const SCREEN_NUDGE_MS = 1000;
 // Glic pauses Live by itself (idle timeouts, a turn it treats as finished). Only the user ends a
 // session here - Win+C or X - so unpause straight away, backing off if Live won't come back.
 const RESUME_GAP_MS = 2000;
@@ -505,14 +509,29 @@ if (!window.__glicBridge && window.top === window) {
 
   // Captions on: Glic's caption overlay is the only page-visible source of the spoken text.
   const captionSetting = settableObservable(true);
-  const FOCUSED_TAB = {
-    tabId: 'desktop',
+
+  /** How many times the shared screen was announced as a new tab; part of its tab id. */
+  let nudges = 0;
+  let lastNudge = 0;
+
+  const focusedTab = () => ({
+    tabId: `${TAB_ID}-${nudges}`,
     url: 'https://localhost/desktop',
     title: 'Desktop',
     faviconUrl: '',
     documentMimeType: 'text/html',
     isMediaActive: false,
+  });
+  const focusedTabState = () => ({ hasFocus: { tabData: focusedTab() } });
+  const focusedTabSetting = settableObservable(focusedTabState());
+
+  /** Announces the screen under a new tab id, so Glic pulls a fresh frame of it. */
+  const nudgeScreen = (now: number): void => {
+    lastNudge = now;
+    nudges++;
+    focusedTabSetting.set(focusedTabState());
   };
+
   const resolved =
     <T>(value: T) =>
     (): Promise<T> =>
@@ -534,12 +553,12 @@ if (!window.__glicBridge && window.top === window) {
     }),
     getPanelState: () => observable(PANEL_STATE),
     panelActive: () => observable(true),
-    getFocusedTabStateV2: () => observable({ hasFocus: { tabData: FOCUSED_TAB } }),
-    getContextFromFocusedTab: resolved({ tabData: FOCUSED_TAB }),
+    getFocusedTabStateV2: () => focusedTabSetting,
+    getContextFromFocusedTab: () => Promise.resolve({ tabData: focusedTab() }),
     captureScreenshot: () => captureFrame(),
-    // Live's continuous viewport: Glic pulls a screenshot per frame through here.
+    // Live's viewport: Glic pulls a screenshot through here for each new focused tab id.
     async getContextFromTab(_tabId: string, options?: { viewportScreenshot?: boolean }) {
-      const context: TabContext = { tabData: FOCUSED_TAB };
+      const context: TabContext = { tabData: focusedTab() };
       if (!options?.viewportScreenshot) {
         return context;
       }
@@ -1017,6 +1036,10 @@ if (!window.__glicBridge && window.top === window) {
   const monitorTick = (): void => {
     if (!active) {
       return;
+    }
+    const now = Date.now();
+    if (now - lastNudge >= SCREEN_NUDGE_MS) {
+      nudgeScreen(now);
     }
     // "Your audio couldn't be heard" is Glic's own transient notice while the mic is silent - which
     // it is whenever the user mutes or just isn't talking. Glic recovers on its own when sound

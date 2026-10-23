@@ -5,7 +5,8 @@
   var RESUME_BUTTONS = ["Start live mode" /* StartLive */, "Go Live" /* GoLive */];
   var SIGN_IN_PATTERN = /\bSign in\b/;
   var MIC_ALIAS_IDS = /* @__PURE__ */ new Set(["default", "communications"]);
-  var PANEL_STATE = { kind: 2 /* Attached */, windowId: "desktop" };
+  var TAB_ID = "desktop";
+  var PANEL_STATE = { kind: 2 /* Attached */, windowId: TAB_ID };
   var BOOT_POLL_MS = 100;
   var MAX_BOOT_TRIES = 150;
   var UNAVAILABLE_POLL_MS = 500;
@@ -13,6 +14,7 @@
   var MAX_START_TRIES = 100;
   var MONITOR_POLL_MS = 300;
   var FRAME_TIMEOUT_MS = 3e3;
+  var SCREEN_NUDGE_MS = 1e3;
   var RESUME_GAP_MS = 2e3;
   var MAX_RESUME_TRIES = 5;
   if (!window.__glicBridge && window.top === window) {
@@ -238,13 +240,22 @@
       };
     };
     const captionSetting = settableObservable(true);
-    const FOCUSED_TAB = {
-      tabId: "desktop",
+    let nudges = 0;
+    let lastNudge = 0;
+    const focusedTab = () => ({
+      tabId: `${TAB_ID}-${nudges}`,
       url: "https://localhost/desktop",
       title: "Desktop",
       faviconUrl: "",
       documentMimeType: "text/html",
       isMediaActive: false
+    });
+    const focusedTabState = () => ({ hasFocus: { tabData: focusedTab() } });
+    const focusedTabSetting = settableObservable(focusedTabState());
+    const nudgeScreen = (now) => {
+      lastNudge = now;
+      nudges++;
+      focusedTabSetting.set(focusedTabState());
     };
     const resolved = (value) => () => Promise.resolve(value);
     const host = {
@@ -262,12 +273,12 @@
       }),
       getPanelState: () => observable(PANEL_STATE),
       panelActive: () => observable(true),
-      getFocusedTabStateV2: () => observable({ hasFocus: { tabData: FOCUSED_TAB } }),
-      getContextFromFocusedTab: resolved({ tabData: FOCUSED_TAB }),
+      getFocusedTabStateV2: () => focusedTabSetting,
+      getContextFromFocusedTab: () => Promise.resolve({ tabData: focusedTab() }),
       captureScreenshot: () => captureFrame(),
-      // Live's continuous viewport: Glic pulls a screenshot per frame through here.
+      // Live's viewport: Glic pulls a screenshot through here for each new focused tab id.
       async getContextFromTab(_tabId, options) {
-        const context = { tabData: FOCUSED_TAB };
+        const context = { tabData: focusedTab() };
         if (!options?.viewportScreenshot) {
           return context;
         }
@@ -631,6 +642,10 @@
     const monitorTick = () => {
       if (!active) {
         return;
+      }
+      const now = Date.now();
+      if (now - lastNudge >= SCREEN_NUDGE_MS) {
+        nudgeScreen(now);
       }
       if (findButton("Pause live mode" /* PauseLive */)) {
         resumeTries = 0;
