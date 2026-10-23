@@ -52,6 +52,7 @@ public sealed class GlicHost : GoogleWebViewHost {
   private bool _booted;
   private bool _unavailable;
   private WebcamSource? _camera;
+  private ScreenGrabber.Frame? _lastFrame;
   private static readonly TimeSpan _refreshGrace = TimeSpan.FromSeconds(25);
   // A broken Live is reloaded into a new conversation, but a page that keeps breaking is given up on.
   private const int _maxRestarts = 3;
@@ -169,6 +170,7 @@ public sealed class GlicHost : GoogleWebViewHost {
     if (on == UseCamera) {
       return true;
     }
+    _lastFrame = null;  // the other source's picture is no stand-in for this one
     if (on) {
       try {
         var camera = new WebcamSource();
@@ -423,7 +425,7 @@ public sealed class GlicHost : GoogleWebViewHost {
 
   private static ScreenGrabber.Frame? TryGrab(MonitorInfo monitor) {
     try {
-      return ScreenGrabber.Grab(monitor);
+      return ScreenGrabber.Grab(monitor, ScreenGrabber.Detail.Sharp);
     } catch (Exception e) {
       Log.Write($"grab failed: {e.Message}");
       return null;
@@ -431,6 +433,9 @@ public sealed class GlicHost : GoogleWebViewHost {
   }
 
   private void PostFrame(int id, ScreenGrabber.Frame? frame) {
+    // A failed grab keeps the last good picture rather than leaving Gemini blind for a frame.
+    frame ??= _lastFrame;
+    _lastFrame = frame;
     var reply = new JsonObject {
       ["kind"] = WireName.Of(PageMessageKind.Frame),
       ["id"] = id,
