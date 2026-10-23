@@ -31,7 +31,6 @@ public sealed class GlicHost : GoogleWebViewHost {
   private const string _bridgeResource = "GeminiLive.Glic.glic_bridge.js";
   private const string _bridge = "window.__glicBridge";  // the object glic_bridge.js installs
   private const string _dispatchKeyEvent = "Input.dispatchKeyEvent";
-  private const int _debugPort = 9333;
   private const int _pageWidth = 900;
   private const int _pageHeight = 720;
   private static readonly string _profile = Path.Combine(Log.Dir, "WebView2");
@@ -88,7 +87,7 @@ public sealed class GlicHost : GoogleWebViewHost {
   }
 
   public GlicHost(SessionLink link)
-      : base("Gemini Live - web client", "glic", _profile, _debugPort, _bridgeResource, _pageWidth,
+      : base("Gemini Live - web client", "glic", _profile, _bridgeResource, _pageWidth,
              _pageHeight) {
     _link = link;
     link.CookiesReceived += cookies => Dispatcher.BeginInvoke(() => AdoptSession(cookies));

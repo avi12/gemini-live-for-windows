@@ -8,7 +8,7 @@ public static class Log {
 
   /// <summary>
   /// GEMINI_LIVE_DEBUG=1, or a debug.flag file in <see cref="Dir"/> (for launches that can't carry
-  /// env vars): devtools + CDP on localhost:9333, and our overlays stay visible to screenshots.
+  /// env vars): devtools + CDP on a free port the log names, and our overlays stay visible to screenshots.
   /// </summary>
   public static readonly bool Debugging =
       Environment.GetEnvironmentVariable("GEMINI_LIVE_DEBUG") is not null

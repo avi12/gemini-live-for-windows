@@ -32,7 +32,6 @@ public abstract class GoogleWebViewHost : Window {
 
   private readonly string _logTag;
   private readonly string _profile;
-  private readonly int _debugPort;
   private readonly string _bridgeResource;
   private readonly int _pageWidth;
   private readonly int _pageHeight;
@@ -48,11 +47,10 @@ public abstract class GoogleWebViewHost : Window {
   /// </summary>
   protected CoreWebView2? Core { get; private set; }
 
-  protected GoogleWebViewHost(string title, string logTag, string profileDir, int debugPort,
+  protected GoogleWebViewHost(string title, string logTag, string profileDir,
                               string bridgeResource, int pageWidth, int pageHeight) {
     _logTag = logTag;
     _profile = profileDir;
-    _debugPort = debugPort;
     _bridgeResource = bridgeResource;
     _pageWidth = pageWidth;
     _pageHeight = pageHeight;
@@ -127,11 +125,15 @@ public abstract class GoogleWebViewHost : Window {
       await loaded.Task;
     }
 
-    string arguments = _arguments + (Log.Debugging ? $" --remote-debugging-port={_debugPort}" : "");
+    // Port 0: Chromium picks a free port, so debugging never collides with another app's.
+    string arguments = _arguments + (Log.Debugging ? " --remote-debugging-port=0" : "");
     CoreWebView2Environment env = await CoreWebView2Environment.CreateAsync(
         null, _profile, new CoreWebView2EnvironmentOptions(arguments));
     await web.EnsureCoreWebView2Async(env);
     CoreWebView2 core = web.CoreWebView2;
+    if (Log.Debugging) {
+      LogDebugPort(env.UserDataFolder);
+    }
 
     core.Settings.AreDevToolsEnabled = Log.Debugging;
     core.Settings.IsStatusBarEnabled = false;
@@ -145,6 +147,19 @@ public abstract class GoogleWebViewHost : Window {
 
     Core = core;
     OnCoreReady(core);
+  }
+
+  /// <summary>
+  /// Logs the port Chromium picked for CDP, which it writes to DevToolsActivePort (port, then the
+  /// browser target's path) in the user data folder.
+  /// </summary>
+  private void LogDebugPort(string userDataFolder) {
+    try {
+      string port = File.ReadLines(Path.Combine(userDataFolder, "DevToolsActivePort")).First();
+      Log.Write($"{_logTag}: devtools on localhost:{port}");
+    } catch (Exception e) {
+      Log.Write($"{_logTag}: devtools port unknown: {e.Message}");
+    }
   }
 
   /// <summary>

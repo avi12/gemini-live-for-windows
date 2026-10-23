@@ -21,5 +21,5 @@ Stay signed in to Google in that browser. If you sign out there, Gemini Live wai
 ## Debugging
 
 - Log: `%LOCALAPPDATA%\GeminiLive\log.txt` (packaged installs: the package's LocalCache).
-- Create `%LOCALAPPDATA%\GeminiLive\debug.flag` to turn on DevTools and CDP on `localhost:9333` for the hidden Gemini page, and to keep the overlays visible in screenshots.
+- Create `%LOCALAPPDATA%\GeminiLive\debug.flag` to turn on DevTools and CDP for the hidden pages, each on a free port the log names (`glic: devtools on localhost:<port>`), and to keep the overlays visible in screenshots.
 - `.\scripts\install.ps1 -Mode Register` gives an unsigned dev-mode install for fast iteration. Windows only lists signed providers in the Copilot key setting.

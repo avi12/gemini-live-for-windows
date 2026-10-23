@@ -14,7 +14,6 @@ public sealed class HomeHost : GoogleWebViewHost {
   private const string _homeUrl = "https://home.google.com/";
   private const string _bridgeResource = "GeminiLive.Glic.home_bridge.js";
   private const string _bridge = "window.__homeBridge";
-  private const int _debugPort = 9334;  // glic owns 9333
   private const int _pageWidth = 1100;  // wide enough that the device grid lays out, not the phone view
   private const int _pageHeight = 900;
   private static readonly string _profile = Path.Combine(Log.Dir, "WebView2Home");
@@ -23,7 +22,7 @@ public sealed class HomeHost : GoogleWebViewHost {
   private static readonly TimeSpan _settle = TimeSpan.FromMilliseconds(1600);  // tile reflects the new state
 
   public HomeHost(SessionLink link)
-      : base("Gemini Live - Home", "home", _profile, _debugPort, _bridgeResource, _pageWidth,
+      : base("Gemini Live - Home", "home", _profile, _bridgeResource, _pageWidth,
              _pageHeight) {
     link.CookiesReceived += cookies => Dispatcher.BeginInvoke(() => AdoptSession(cookies));
   }
