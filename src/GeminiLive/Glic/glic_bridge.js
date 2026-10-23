@@ -16,7 +16,9 @@
   var FRAME_TIMEOUT_MS = 3e3;
   var SCREEN_NUDGE_MS = 1e3;
   var RESUME_GAP_MS = 2e3;
-  var MAX_RESUME_TRIES = 5;
+  var MAX_RESUME_BACKOFF = 5;
+  var TRY_AGAIN_GAP_MS = 5e3;
+  var BROKEN_AFTER_MS = 15e3;
   if (!window.__glicBridge && window.top === window) {
     let booted = false;
     let active = false;
@@ -622,22 +624,28 @@
     };
     let lastResume = 0;
     let resumeTries = 0;
+    let lastLive = 0;
+    let lastTryAgain = 0;
+    let brokenReported = false;
     let consentAccepted = false;
     let monitorTimer = null;
     let startTimer;
-    const resume = () => {
-      const now = Date.now();
-      if (now - lastResume < RESUME_GAP_MS * (resumeTries + 1)) {
+    const resume = (now) => {
+      if (now - lastResume < RESUME_GAP_MS * Math.min(resumeTries + 1, MAX_RESUME_BACKOFF)) {
         return;
       }
-      if (++resumeTries > MAX_RESUME_TRIES) {
-        if (resumeTries === MAX_RESUME_TRIES + 1) {
-          reportError("Gemini Live paused and won't resume" /* LiveWontResume */);
-        }
-        return;
-      }
+      resumeTries++;
       lastResume = now;
       clickButton(...RESUME_BUTTONS);
+    };
+    const tryAgainButton = () => [...document.querySelectorAll("button")].find(
+      (b) => `${b.getAttribute("aria-label") ?? ""} ${b.textContent ?? ""}`.includes("Try again" /* TryAgain */)
+    );
+    const markLive = (now) => {
+      lastLive = now;
+      resumeTries = 0;
+      brokenReported = false;
+      setState("listening" /* Listening */);
     };
     const monitorTick = () => {
       if (!active) {
@@ -647,14 +655,26 @@
       if (now - lastNudge >= SCREEN_NUDGE_MS) {
         nudgeScreen(now);
       }
-      if (findButton("Pause live mode" /* PauseLive */)) {
-        resumeTries = 0;
-        setState("listening" /* Listening */);
-      } else if (findButton(...RESUME_BUTTONS)) {
-        setState("resuming" /* Resuming */);
-        resume();
-      }
       pumpCaptions();
+      const wentWrong = pageSays("Something went wrong" /* WentWrong */);
+      if (findButton("Pause live mode" /* PauseLive */) && !wentWrong) {
+        markLive(now);
+        return;
+      }
+      setState("resuming" /* Resuming */);
+      if (!wentWrong && findButton(...RESUME_BUTTONS)) {
+        resume(now);
+        return;
+      }
+      const retry = tryAgainButton();
+      if (retry && now - lastTryAgain > TRY_AGAIN_GAP_MS) {
+        lastTryAgain = now;
+        retry.click();
+      }
+      if (wentWrong && now - lastLive > BROKEN_AFTER_MS && !brokenReported) {
+        brokenReported = true;
+        reportError("live-broke" /* LiveBroke */);
+      }
     };
     const beginMonitor = () => {
       if (monitorTimer) {
@@ -700,7 +720,7 @@
         if (findButton("Pause live mode" /* PauseLive */)) {
           clearInterval(startTimer);
           emit("ready" /* Ready */);
-          setState("listening" /* Listening */);
+          markLive(Date.now());
           beginMonitor();
           return;
         }

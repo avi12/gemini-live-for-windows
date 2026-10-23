@@ -42,14 +42,14 @@ enum Direction {
 
 /**
  * Error messages. SignedOut and Unavailable are codes GlicHost matches on to wait for a fresh
- * session; the rest are shown to the user.
+ * session, LiveBroke one it answers by reloading the page; the rest are shown to the user.
  */
 enum ErrorMessage {
   SignedOut = 'signed-out',
   Unavailable = 'unavailable',
+  LiveBroke = 'live-broke',
   PageDidNotStart = 'Gemini page did not start',
   LiveDidNotStart = 'Gemini Live did not start (sign-in or rate limit)',
-  LiveWontResume = "Gemini Live paused and won't resume",
 }
 
 /** Fragments of Glic's button aria-labels. */
@@ -78,6 +78,7 @@ enum Button {
   StopResponse = 'Stop response',
   Submit = 'Submit',
   TextMode = 'Switch to text mode',
+  TryAgain = 'Try again',
   TurnOnCaptions = 'Turn on live captions',
   Update = 'Update',
 }
@@ -89,6 +90,7 @@ const RESUME_BUTTONS = [Button.StartLive, Button.GoLive];
 enum Phrase {
   MicConsent = 'Live will use your microphone',
   Unavailable = "isn't available right now",
+  WentWrong = 'Something went wrong',
 }
 const SIGN_IN_PATTERN = /\bSign in\b/;
 
@@ -125,9 +127,14 @@ const FRAME_TIMEOUT_MS = 3000;
 // new id this often makes its viewport input pull a fresh frame each time, like Live on Android.
 const SCREEN_NUDGE_MS = 1000;
 // Glic pauses Live by itself (idle timeouts, a turn it treats as finished). Only the user ends a
-// session here - Win+C or X - so unpause straight away, backing off if Live won't come back.
+// session here - Win+C or X - so unpause straight away, backing off up to a cap but never giving
+// up: a pause only ever means resume.
 const RESUME_GAP_MS = 2000;
-const MAX_RESUME_TRIES = 5;
+const MAX_RESUME_BACKOFF = 5;
+// Live breaking shows "Something went wrong": press Glic's own Try again, at most this often, and
+// only if Live is still broken this long after it last ran, have the host reload the page.
+const TRY_AGAIN_GAP_MS = 5000;
+const BROKEN_AFTER_MS = 15_000;
 
 // ===========================================================================
 // Types for the page, the WebView2 channel and the host object Glic expects.
@@ -1014,23 +1021,36 @@ if (!window.__glicBridge && window.top === window) {
 
   let lastResume = 0;
   let resumeTries = 0;
+  /** When Live was last seen running. */
+  let lastLive = 0;
+  let lastTryAgain = 0;
+  /** Live breaking was reported; the host reloads us, so say it once. */
+  let brokenReported = false;
   let consentAccepted = false;
   let monitorTimer: ReturnType<typeof setInterval> | null = null;
   let startTimer: ReturnType<typeof setInterval> | undefined;
 
-  const resume = (): void => {
-    const now = Date.now();
-    if (now - lastResume < RESUME_GAP_MS * (resumeTries + 1)) {
+  const resume = (now: number): void => {
+    if (now - lastResume < RESUME_GAP_MS * Math.min(resumeTries + 1, MAX_RESUME_BACKOFF)) {
       return;
     }
-    if (++resumeTries > MAX_RESUME_TRIES) {
-      if (resumeTries === MAX_RESUME_TRIES + 1) {
-        reportError(ErrorMessage.LiveWontResume);
-      }
-      return;
-    }
+    resumeTries++;
     lastResume = now;
     clickButton(...RESUME_BUTTONS);
+  };
+
+  /** Matches on visible text too: Glic's Try again is not always labelled. */
+  const tryAgainButton = (): HTMLButtonElement | undefined =>
+    [...document.querySelectorAll('button')].find((b) =>
+      `${b.getAttribute('aria-label') ?? ''} ${b.textContent ?? ''}`.includes(Button.TryAgain),
+    );
+
+  /** Live is running: forget any pause or breakage. */
+  const markLive = (now: number): void => {
+    lastLive = now;
+    resumeTries = 0;
+    brokenReported = false;
+    setState(State.Listening);
   };
 
   const monitorTick = (): void => {
@@ -1041,17 +1061,29 @@ if (!window.__glicBridge && window.top === window) {
     if (now - lastNudge >= SCREEN_NUDGE_MS) {
       nudgeScreen(now);
     }
+    pumpCaptions();
     // "Your audio couldn't be heard" is Glic's own transient notice while the mic is silent - which
     // it is whenever the user mutes or just isn't talking. Glic recovers on its own when sound
     // returns, so this is never fatal; ending the session here is what made muting un-undoable.
-    if (findButton(Button.PauseLive)) {
-      resumeTries = 0;
-      setState(State.Listening);
-    } else if (findButton(...RESUME_BUTTONS)) {
-      setState(State.Resuming);
-      resume();
+    const wentWrong = pageSays(Phrase.WentWrong);
+    if (findButton(Button.PauseLive) && !wentWrong) {
+      markLive(now);
+      return;
     }
-    pumpCaptions();
+    setState(State.Resuming);
+    if (!wentWrong && findButton(...RESUME_BUTTONS)) {
+      resume(now);
+      return;
+    }
+    const retry = tryAgainButton();
+    if (retry && now - lastTryAgain > TRY_AGAIN_GAP_MS) {
+      lastTryAgain = now;
+      retry.click();
+    }
+    if (wentWrong && now - lastLive > BROKEN_AFTER_MS && !brokenReported) {
+      brokenReported = true;
+      reportError(ErrorMessage.LiveBroke);
+    }
   };
 
   const beginMonitor = (): void => {
@@ -1104,7 +1136,7 @@ if (!window.__glicBridge && window.top === window) {
       if (findButton(Button.PauseLive)) {
         clearInterval(startTimer);
         emit(Kind.Ready);
-        setState(State.Listening);
+        markLive(Date.now());
         beginMonitor();
         return;
       }

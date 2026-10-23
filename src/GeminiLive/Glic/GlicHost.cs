@@ -53,14 +53,19 @@ public sealed class GlicHost : GoogleWebViewHost {
   private bool _unavailable;
   private WebcamSource? _camera;
   private static readonly TimeSpan _refreshGrace = TimeSpan.FromSeconds(25);
+  // A broken Live is reloaded into a new conversation, but a page that keeps breaking is given up on.
+  private const int _maxRestarts = 3;
+  private static readonly TimeSpan _restartWindow = TimeSpan.FromMinutes(10);
+  private readonly Queue<DateTime> _restarts = new();
 
-  /// <summary>The session failures the page reports (ErrorMessage in glic_bridge.js).</summary>
-  private enum PageError { Other, SignedOut, Unavailable }
+  /// <summary>The failures the page reports by code (ErrorMessage in glic_bridge.js).</summary>
+  private enum PageError { Other, SignedOut, Unavailable, LiveBroke }
 
   private static readonly IReadOnlyDictionary<string, PageError> PageErrors =
       new Dictionary<string, PageError> {
         ["signed-out"] = PageError.SignedOut,
         ["unavailable"] = PageError.Unavailable,
+        ["live-broke"] = PageError.LiveBroke,
       };
 
   /// <summary>
@@ -365,8 +370,34 @@ public sealed class GlicHost : GoogleWebViewHost {
     if (!Active) {
       return;
     }
+    if (PageErrors.GetValueOrDefault(message) is PageError.LiveBroke) {
+      if (TryRestart()) {
+        return;
+      }
+      message = "Gemini Live stopped working";
+    }
     _ready?.TrySetException(new InvalidOperationException(message));
     Failed?.Invoke(message);
+  }
+
+  /// <summary>
+  /// Live broke and Glic's own Try again didn't bring it back: reload the page, whose Booted starts
+  /// Live again since the session is still active. False once the restart budget is spent.
+  /// </summary>
+  private bool TryRestart() {
+    DateTime now = DateTime.UtcNow;
+    while (_restarts.Count > 0 && now - _restarts.Peek() > _restartWindow) {
+      _restarts.Dequeue();
+    }
+    if (_restarts.Count >= _maxRestarts || Core is not { } core) {
+      return false;
+    }
+    _restarts.Enqueue(now);
+    Log.Write($"glic: Live broke, reloading ({_restarts.Count}/{_maxRestarts})");
+    Notice?.Invoke(SessionNotice.Reconnecting);
+    _booted = false;
+    core.Navigate(_glicUrl);
+    return true;
   }
 
   private void SendFrame(int id) {
