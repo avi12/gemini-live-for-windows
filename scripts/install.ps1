@@ -24,19 +24,20 @@ $name      = $manifest.Package.Identity.Name
 # Stop a running copy so its files can be replaced.
 Get-Process GeminiLive -ErrorAction SilentlyContinue | Stop-Process -Force
 
-# The typed messaging the extension and the bridges share; linked, so its own deps install here.
+# One pnpm workspace: the messaging package, the extension and the bridges install together.
+Write-Host '== install'
+pnpm --dir $root install --silent
+if ($LASTEXITCODE) { throw 'pnpm install failed' }
+
 Write-Host '== messaging'
-pnpm --dir (Join-Path $root 'messaging') install --silent
 pnpm --dir (Join-Path $root 'messaging') typecheck
 if ($LASTEXITCODE) { throw 'messaging typecheck failed' }
 
 Write-Host '== extension'
-pnpm --dir (Join-Path $root 'extension') install --silent
 pnpm --dir (Join-Path $root 'extension') build
 if ($LASTEXITCODE) { throw 'extension build failed' }
 
 Write-Host '== bridge'
-pnpm --dir (Join-Path $root 'bridge') install --silent
 pnpm --dir (Join-Path $root 'bridge') build
 if ($LASTEXITCODE) { throw 'bridge build failed' }
 

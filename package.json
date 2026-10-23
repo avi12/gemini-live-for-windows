@@ -1,0 +1,47 @@
+{
+  "name": "gemini-live-windows",
+  "private": true,
+  "type": "module",
+  "description": "Workspace root: the page bridges, the companion extension and the messaging they share, linted as one.",
+  "scripts": {
+    "prepare": "simple-git-hooks",
+    "lint": "oxlint --type-aware --ignore-path .oxlintignore --fix -c .oxlintrc.fix.json && eslint --fix && oxlint --type-aware --ignore-path .oxlintignore",
+    "lint:cs": "dotnet format src/GeminiLive/GeminiLive.csproj --verify-no-changes --severity warn",
+    "fallow": "fallow audit --base HEAD",
+    "dev:lint": "pnpm fallow && pnpm lint && pnpm lint:cs"
+  },
+  "devDependencies": {
+    "@stylistic/eslint-plugin": "^5.10.0",
+    "eslint": "^10.13.0",
+    "eslint-plugin-import-newlines": "^2.0.0",
+    "eslint-plugin-perfectionist": "^5.13.0",
+    "eslint-plugin-unused-imports": "^4.4.1",
+    "fallow": "2.103.0",
+    "globals": "^17.13.0",
+    "lint-staged": "^17.6.0",
+    "oxlint": "1.72.0",
+    "oxlint-tsgolint": "0.24.0",
+    "simple-git-hooks": "^2.14.0",
+    "typescript": "^5.9.0",
+    "typescript-eslint": "^8.72.0"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "pnpm lint-staged"
+  },
+  "lint-staged": {
+    "{bridge,extension/src,messaging/src,eslint-rules}/**/*.{ts,js,mjs}": [
+      "oxlint --ignore-path .oxlintignore --fix -c .oxlintrc.fix.json",
+      "eslint --fix --no-warn-ignored",
+      "oxlint --ignore-path .oxlintignore"
+    ],
+    "eslint.config.js": [
+      "oxlint --ignore-path .oxlintignore --fix -c .oxlintrc.fix.json",
+      "eslint --fix --no-warn-ignored",
+      "oxlint --ignore-path .oxlintignore"
+    ],
+    "src/GeminiLive/**/*.cs": [
+      "dotnet format src/GeminiLive/GeminiLive.csproj --verify-no-changes --severity warn --include"
+    ]
+  },
+  "packageManager": "pnpm@11.13.1"
+}
