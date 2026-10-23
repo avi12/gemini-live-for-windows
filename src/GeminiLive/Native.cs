@@ -87,6 +87,9 @@ internal static unsafe class Native {
   public static extern IntPtr GetForegroundWindow();
 
   [DllImport("user32.dll")]
+  public static extern uint GetWindowThreadProcessId(IntPtr hwnd, out uint processId);
+
+  [DllImport("user32.dll")]
   public static extern bool SetForegroundWindow(IntPtr hwnd);
 
   [DllImport("user32.dll")]
