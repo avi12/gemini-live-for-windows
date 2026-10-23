@@ -34,7 +34,7 @@ const trackGate = (microphone: MediaStream): MicGate => ({
     for (const track of microphone.getAudioTracks()) {
       track.enabled = open;
     }
-  },
+  }
 });
 
 /**
@@ -48,8 +48,8 @@ export const gateMicrophone = async (microphone: MediaStream): Promise<MicGate> 
 const audioGate = async (microphone: MediaStream): Promise<MicGate | null> => {
   const context = new AudioContext();
   const running = await Promise.race([
-    context.resume().then(() => context.state === 'running'),
-    new Promise<boolean>((resolve) => setTimeout(() => resolve(false), RESUME_TIMEOUT_MS)),
+    context.resume().then(() => context.state === "running"),
+    new Promise<boolean>(resolve => setTimeout(() => resolve(false), RESUME_TIMEOUT_MS))
   ]).catch(() => false);
   if (!running) {
     void context.close();
@@ -78,6 +78,6 @@ const audioGate = async (microphone: MediaStream): Promise<MicGate | null> => {
     stream: destination.stream,
     setOpen(open) {
       gate.gain.setTargetAtTime(open ? 1 : 0, context.currentTime, GATE_RAMP_SECONDS);
-    },
+    }
   };
 };

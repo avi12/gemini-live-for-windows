@@ -5,8 +5,8 @@
 
 /** A block of the screen's text (ScreenText.BlockKind on the C# side). */
 export enum BlockKind {
-  Heading = 'heading',
-  Paragraph = 'paragraph',
+  Heading = "heading",
+  Paragraph = "paragraph"
 }
 
 export interface Block {
@@ -16,36 +16,36 @@ export interface Block {
 
 enum WireType {
   Varint = 0,
-  Bytes = 2,
+  Bytes = 2
 }
 
 enum ContentAttributeType {
   Root = 1,
   Paragraph = 4,
   Heading = 5,
-  Text = 20,
+  Text = 20
 }
 
 enum AnnotatedPageContentField {
   Version = 1,
   RootNode = 2,
-  MainFrameData = 3,
+  MainFrameData = 3
 }
 enum ContentNodeField {
   Children = 1,
-  Attributes = 2,
+  Attributes = 2
 }
 enum ContentAttributesField {
   DomNodeId = 2,
   Type = 3,
-  TextData = 10,
+  TextData = 10
 }
 enum TextInfoField {
-  TextContent = 1,
+  TextContent = 1
 }
 enum FrameDataField {
   Url = 4,
-  Title = 5,
+  Title = 5
 }
 
 const APC_VERSION_1_0 = 1;
@@ -55,7 +55,7 @@ const TAG_WIRE_TYPE_BITS = 3;
 
 const BLOCK_TYPE: Record<BlockKind, ContentAttributeType> = {
   [BlockKind.Heading]: ContentAttributeType.Heading,
-  [BlockKind.Paragraph]: ContentAttributeType.Paragraph,
+  [BlockKind.Paragraph]: ContentAttributeType.Paragraph
 };
 
 const encoder = new TextEncoder();
@@ -78,7 +78,7 @@ const varintField = (field: number, value: number): number[] => [...tag(field, W
 const bytesField = (field: number, bytes: ArrayLike<number>): number[] => [
   ...tag(field, WireType.Bytes),
   ...varint(bytes.length),
-  ...Array.from(bytes),
+  ...Array.from(bytes)
 ];
 
 const stringField = (field: number, text: string): number[] => bytesField(field, encoder.encode(text));
@@ -89,11 +89,11 @@ const contentNode = (type: ContentAttributeType, id: number, text?: string, chil
     ...varintField(ContentAttributesField.Type, type),
     ...(text === undefined
       ? []
-      : bytesField(ContentAttributesField.TextData, stringField(TextInfoField.TextContent, text))),
+      : bytesField(ContentAttributesField.TextData, stringField(TextInfoField.TextContent, text)))
   ];
   return [
-    ...children.flatMap((child) => bytesField(ContentNodeField.Children, child)),
-    ...bytesField(ContentNodeField.Attributes, attributes),
+    ...children.flatMap(child => bytesField(ContentNodeField.Children, child)),
+    ...bytesField(ContentNodeField.Attributes, attributes)
   ];
 };
 
@@ -110,7 +110,7 @@ export const annotatedPageContent = (title: string, url: string, blocks: Block[]
   return new Uint8Array([
     ...varintField(AnnotatedPageContentField.Version, APC_VERSION_1_0),
     ...bytesField(AnnotatedPageContentField.RootNode, root),
-    ...bytesField(AnnotatedPageContentField.MainFrameData, frame),
+    ...bytesField(AnnotatedPageContentField.MainFrameData, frame)
   ]);
 };
 
@@ -120,5 +120,5 @@ export const byteStream = (bytes: Uint8Array): ReadableStream<Uint8Array> =>
     start(controller) {
       controller.enqueue(bytes);
       controller.close();
-    },
+    }
   });

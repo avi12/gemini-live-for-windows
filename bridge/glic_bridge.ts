@@ -13,18 +13,18 @@
 // Wire to C#: the typed messenger (GlicProtocolMap in glic_protocol.ts) over chrome.webview. The page
 // reports to GlicHost and asks it for frames and screen text; GlicHost sends the session commands.
 
-import { defineMessaging } from '@gemini-live/messaging';
 import {
   Direction,
   GlicMessage,
   type GlicProtocolMap,
   type Microphone,
   type ScreenView,
-  State,
-} from './glic_protocol';
-import { gateMicrophone, type MicGate } from './mic_gate';
-import { annotatedPageContent, byteStream } from './page_content';
-import { webViewTransport } from './webview_transport';
+  State
+} from "./glic_protocol";
+import { gateMicrophone, type MicGate } from "./mic_gate";
+import { annotatedPageContent, byteStream } from "./page_content";
+import { webViewTransport } from "./webview_transport";
+import { defineMessaging } from "@gemini-live/messaging";
 
 // ===========================================================================
 // Vocabulary: every string we match on Glic's page or exchange with C#, in one place.
@@ -35,42 +35,42 @@ import { webViewTransport } from './webview_transport';
  * session, LiveBroke one it answers by reloading the page; the rest are shown to the user.
  */
 enum ErrorMessage {
-  SignedOut = 'signed-out',
-  Unavailable = 'unavailable',
-  LiveBroke = 'live-broke',
-  PageDidNotStart = 'Gemini page did not start',
-  LiveDidNotStart = 'Gemini Live did not start (sign-in or rate limit)',
+  SignedOut = "signed-out",
+  Unavailable = "unavailable",
+  LiveBroke = "live-broke",
+  PageDidNotStart = "Gemini page did not start",
+  LiveDidNotStart = "Gemini Live did not start (sign-in or rate limit)"
 }
 
 /** Fragments of Glic's button aria-labels. */
 enum Button {
-  AddEvent = 'Add event',
-  AddEventTitleCase = 'Add Event',
-  Confirm = 'Confirm',
-  ConfirmsActions = 'Button that confirms actions',
-  Copy = 'Copy',
-  Create = 'Create',
-  Delete = 'Delete',
-  End = 'End',
-  GoBack = 'Go back',
-  GoLive = 'Go Live',
-  GoodResponse = 'Good response',
-  NoThanks = 'No thanks',
-  Ok = 'OK',
-  PauseLive = 'Pause live mode',
-  Regenerate = 'Regenerate',
-  Remove = 'Remove',
-  Save = 'Save',
-  Send = 'Send',
-  SendMessage = 'Send message',
-  Skip = 'Skip',
-  StartLive = 'Start live mode',
-  StopResponse = 'Stop response',
-  Submit = 'Submit',
-  TextMode = 'Switch to text mode',
-  TryAgain = 'Try again',
-  TurnOnCaptions = 'Turn on live captions',
-  Update = 'Update',
+  AddEvent = "Add event",
+  AddEventTitleCase = "Add Event",
+  Confirm = "Confirm",
+  ConfirmsActions = "Button that confirms actions",
+  Copy = "Copy",
+  Create = "Create",
+  Delete = "Delete",
+  End = "End",
+  GoBack = "Go back",
+  GoLive = "Go Live",
+  GoodResponse = "Good response",
+  NoThanks = "No thanks",
+  Ok = "OK",
+  PauseLive = "Pause live mode",
+  Regenerate = "Regenerate",
+  Remove = "Remove",
+  Save = "Save",
+  Send = "Send",
+  SendMessage = "Send message",
+  Skip = "Skip",
+  StartLive = "Start live mode",
+  StopResponse = "Stop response",
+  Submit = "Submit",
+  TextMode = "Switch to text mode",
+  TryAgain = "Try again",
+  TurnOnCaptions = "Turn on live captions",
+  Update = "Update"
 }
 
 /** Either one shows while Live is paused; clicking it resumes. */
@@ -78,34 +78,37 @@ const RESUME_BUTTONS = [Button.StartLive, Button.GoLive];
 
 /** Phrases in Glic's visible text. */
 enum Phrase {
-  MicConsent = 'Live will use your microphone',
+  MicConsent = "Live will use your microphone",
   Unavailable = "isn't available right now",
-  WentWrong = 'Something went wrong',
+  WentWrong = "Something went wrong"
 }
 const SIGN_IN_PATTERN = /\bSign in\b/;
 
 // "default" and "communications" are aliases Chromium adds for Windows' default devices.
-const MIC_ALIAS_IDS = new Set(['default', 'communications']);
+const MIC_ALIAS_IDS = new Set(["default", "communications"]);
 
 // Glic host API enums we answer with, values from Chromium's glic_api_generated.ts.
 enum PanelStateKind {
-  Attached = 2,
+  Attached = 2
 }
 /** LINUX is what the original port reported; kept as is. */
 enum Platform {
-  Linux = 3,
+  Linux = 3
 }
 enum FormFactor {
-  Desktop = 1,
+  Desktop = 1
 }
 enum HostCapability {
   MultiInstance = 3,
   PdfZeroState = 7,
-  Invoke = 8,
+  Invoke = 8
 }
 
-const TAB_ID = 'desktop';
-const PANEL_STATE = { kind: PanelStateKind.Attached, windowId: TAB_ID };
+const TAB_ID = "desktop";
+const PANEL_STATE = {
+  kind: PanelStateKind.Attached,
+  windowId: TAB_ID
+};
 const BOOT_POLL_MS = 100;
 const MAX_BOOT_TRIES = 150;
 const UNAVAILABLE_POLL_MS = 500;
@@ -173,7 +176,10 @@ interface TabContext {
   tabData: unknown;
   annotatedPageData?: { annotatedPageContent: ReadableStream<Uint8Array> };
   viewportScreenshot?: Screenshot;
-  screenshotInfo?: { widthPixels: number; heightPixels: number };
+  screenshotInfo?: {
+    widthPixels: number;
+    heightPixels: number;
+  };
 }
 
 declare global {
@@ -213,15 +219,15 @@ if (!window.__glicBridgeInstalled && window.top === window) {
 
   const reportError = (message: ErrorMessage): void => report(app.sendMessage(GlicMessage.Error, message));
 
-  const pageText = (): string => document.body?.innerText || '';
+  const pageText = (): string => document.body?.innerText || "";
 
   const pageSays = (phrase: Phrase): boolean => pageText().includes(phrase);
 
   /** Finds the first button whose aria-label contains one of the fragments, trying them in order. */
   const findButton = (...fragments: Button[]): HTMLButtonElement | null => {
-    const buttons = [...document.querySelectorAll('button')];
+    const buttons = [...document.querySelectorAll("button")];
     for (const fragment of fragments) {
-      const match = buttons.find((b) => (b.getAttribute('aria-label') || '').includes(fragment));
+      const match = buttons.find(b => (b.getAttribute("aria-label") || "").includes(fragment));
       if (match) {
         return match;
       }
@@ -235,12 +241,13 @@ if (!window.__glicBridgeInstalled && window.top === window) {
     if (!button) {
       return false;
     }
+
     button.click();
     return true;
   };
 
   const isSignedOut = (): boolean =>
-    location.hostname === 'accounts.google.com' ||
+    location.hostname === "accounts.google.com" ||
     (SIGN_IN_PATTERN.test(pageText()) && !findButton(Button.GoLive));
 
   /** Reports a failed start, preferring "signed-out" so the host can wait for a session. */
@@ -251,6 +258,7 @@ if (!window.__glicBridgeInstalled && window.top === window) {
     if (lastState === state) {
       return;
     }
+
     lastState = state;
     report(app.sendMessage(GlicMessage.State, state));
   };
@@ -260,9 +268,15 @@ if (!window.__glicBridgeInstalled && window.top === window) {
   // ===========================================================================
 
   try {
-    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' });
-    Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });
-    document.addEventListener('visibilitychange', (e) => e.stopImmediatePropagation(), true);
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      get: () => "visible"
+    });
+    Object.defineProperty(document, "hidden", {
+      configurable: true,
+      get: () => false
+    });
+    document.addEventListener("visibilitychange", e => e.stopImmediatePropagation(), true);
   } catch {
     // Best effort: a page that froze these keeps its own visibility.
   }
@@ -282,15 +296,18 @@ if (!window.__glicBridgeInstalled && window.top === window) {
     if (!constraints) {
       return constraints;
     }
+
     // Glic's camera-share mode asks for video, which pops a Windows camera prompt. We only share
     // the screen (frames from C#), so the camera is never opened.
     const { video, ...rest } = constraints;
     if (video && !rest.audio) {
-      throw new DOMException('Camera is not shared on desktop', 'NotAllowedError');
+      throw new DOMException("Camera is not shared on desktop", "NotAllowedError");
     }
+
     if (!rest.audio) {
       return rest;
     }
+
     const requested = rest.audio === true ? {} : rest.audio;
     return {
       ...rest,
@@ -302,19 +319,24 @@ if (!window.__glicBridgeInstalled && window.top === window) {
         // voiceIsolation is Chromium-only and not in the DOM typings.
         ...({ voiceIsolation: true } as object),
         // ideal, not exact: an unplugged pick falls back to the default instead of failing Live.
-        ...(micId ? { deviceId: { ideal: micId } } : {}),
-      },
+        ...(micId ? {
+          deviceId: {
+            ideal: micId
+          }
+        } : {})
+      }
     };
   };
 
   try {
     const media = navigator.mediaDevices;
     const getUserMedia = media.getUserMedia.bind(media);
-    media.getUserMedia = async (constraints) => {
+    media.getUserMedia = async constraints => {
       const stream = await getUserMedia(withDesktopConstraints(constraints));
       if (stream.getAudioTracks().length === 0) {
         return stream;
       }
+
       const gate = await gateMicrophone(stream);
       gate.setOpen(!muted);
       micGates.add(gate);
@@ -327,7 +349,7 @@ if (!window.__glicBridgeInstalled && window.top === window) {
   const setMuted = (value: boolean): void => {
     muted = value;
     for (const gate of micGates) {
-      if (gate.stream.getAudioTracks().some((t) => t.readyState === 'live')) {
+      if (gate.stream.getAudioTracks().some(t => t.readyState === "live")) {
         gate.setOpen(!value);
       } else {
         micGates.delete(gate);
@@ -339,8 +361,11 @@ if (!window.__glicBridgeInstalled && window.top === window) {
   const listMics = async (): Promise<Microphone[]> => {
     const devices = await navigator.mediaDevices.enumerateDevices();
     return devices
-      .filter((d) => d.kind === 'audioinput' && d.deviceId && !MIC_ALIAS_IDS.has(d.deviceId))
-      .map((d) => ({ id: d.deviceId, label: d.label || 'Microphone' }));
+      .filter(d => d.kind === "audioinput" && d.deviceId && !MIC_ALIAS_IDS.has(d.deviceId))
+      .map(d => ({
+        id: d.deviceId,
+        label: d.label || "Microphone"
+      }));
   };
 
   /** A running session holds its stream, so a new pick restarts Live to reopen the mic. */
@@ -349,10 +374,13 @@ if (!window.__glicBridgeInstalled && window.top === window) {
     if (next === micId) {
       return;
     }
+
     micId = next;
+
     if (!active) {
       return;
     }
+
     stop();
     start();
   };
@@ -360,23 +388,25 @@ if (!window.__glicBridgeInstalled && window.top === window) {
   /** Which device "default" currently names, or '' if unknown. */
   const defaultMicLabel = async (): Promise<string> => {
     const devices = await navigator.mediaDevices.enumerateDevices();
-    return devices.find((d) => d.kind === 'audioinput' && d.deviceId === 'default')?.label ?? '';
+    return devices.find(d => d.kind === "audioinput" && d.deviceId === "default")?.label ?? "";
   };
 
   // A stream opened on "default" stays on the device that was default then, so when Windows' default
   // input changes (and no mic is picked in the menu) restart Live to reopen it on the new one.
   try {
-    let followedDefault = '';
+    let followedDefault = "";
     defaultMicLabel().then(
-      (label) => (followedDefault = label),
-      () => {},
+      label => (followedDefault = label),
+      () => {}
     );
-    navigator.mediaDevices.addEventListener('devicechange', async () => {
+    navigator.mediaDevices.addEventListener("devicechange", async () => {
       const label = await defaultMicLabel().catch(() => followedDefault);
       if (label === followedDefault) {
         return;
       }
+
       followedDefault = label;
+
       if (active && !micId) {
         stop();
         start();
@@ -394,16 +424,18 @@ if (!window.__glicBridgeInstalled && window.top === window) {
     if (!active) {
       return null;
     }
+
     const picture = await app.sendMessage(GlicMessage.Capture).catch(() => null);
     if (!picture) {
       return null;
     }
-    const bytes = Uint8Array.from(atob(picture.data), (c) => c.charCodeAt(0));
+
+    const bytes = Uint8Array.from(atob(picture.data), c => c.charCodeAt(0));
     return {
       data: bytes.buffer,
       mimeType: picture.mimeType,
       widthPixels: picture.width,
-      heightPixels: picture.height,
+      heightPixels: picture.height
     };
   };
 
@@ -431,7 +463,7 @@ if (!window.__glicBridgeInstalled && window.top === window) {
     subscribe(change) {
       notify(change, value);
       return { unsubscribe() {} };
-    },
+    }
   });
 
   const settableObservable = <T>(initial: T) => {
@@ -454,9 +486,9 @@ if (!window.__glicBridgeInstalled && window.top === window) {
             if (i >= 0) {
               subscribers.splice(i, 1);
             }
-          },
+          }
         };
-      },
+      }
     };
   };
 
@@ -469,13 +501,17 @@ if (!window.__glicBridgeInstalled && window.top === window) {
 
   const focusedTab = () => ({
     tabId: `${TAB_ID}-${nudges}`,
-    url: 'https://localhost/desktop',
-    title: latestView?.title || 'Desktop',
-    faviconUrl: '',
-    documentMimeType: 'text/html',
-    isMediaActive: false,
+    url: "https://localhost/desktop",
+    title: latestView?.title || "Desktop",
+    faviconUrl: "",
+    documentMimeType: "text/html",
+    isMediaActive: false
   });
-  const focusedTabState = () => ({ hasFocus: { tabData: focusedTab() } });
+  const focusedTabState = () => ({
+    hasFocus: {
+      tabData: focusedTab()
+    }
+  });
   const focusedTabSetting = settableObservable(focusedTabState());
 
   /** Announces the screen under a new tab id, so Glic pulls a fresh frame of it. */
@@ -492,10 +528,12 @@ if (!window.__glicBridgeInstalled && window.top === window) {
     if (reading) {
       return;
     }
+
     reading = true;
     lastNudge = now;
     latestView = await readScreen();
     reading = false;
+
     if (active) {
       nudgeScreen(Date.now());
     }
@@ -507,28 +545,39 @@ if (!window.__glicBridgeInstalled && window.top === window) {
     if (!options?.annotatedPageContent || !latestView) {
       return { tabData };
     }
+
     const content = annotatedPageContent(tabData.title, tabData.url, latestView.blocks);
-    return { tabData, annotatedPageData: { annotatedPageContent: byteStream(content) } };
+    return {
+      tabData,
+      annotatedPageData: {
+        annotatedPageContent: byteStream(content)
+      }
+    };
   };
 
   const resolved =
     <T>(value: T) =>
-    (): Promise<T> =>
-      Promise.resolve(value);
+      (): Promise<T> =>
+        Promise.resolve(value);
 
   const host = {
-    getChromeVersion: resolved({ major: 130, minor: 0, build: 0, patch: 0 }),
+    getChromeVersion: resolved({
+      major: 130,
+      minor: 0,
+      build: 0,
+      patch: 0
+    }),
     getPlatform: () => Platform.Linux,
     getFormFactor: () => FormFactor.Desktop,
     getHostCapabilities: () =>
       new Set([HostCapability.MultiInstance, HostCapability.PdfZeroState, HostCapability.Invoke]),
     getUserProfileInfo: resolved({
-      displayName: 'You',
-      email: '',
-      givenName: 'You',
-      localProfileName: 'You',
+      displayName: "You",
+      email: "",
+      givenName: "You",
+      localProfileName: "You",
       isManaged: false,
-      avatarIcon: resolved(undefined),
+      avatarIcon: resolved(undefined)
     }),
     getPanelState: () => observable(PANEL_STATE),
     panelActive: () => observable(true),
@@ -542,11 +591,16 @@ if (!window.__glicBridgeInstalled && window.top === window) {
       if (!options?.viewportScreenshot) {
         return context;
       }
+
       const shot = await captureFrame();
       if (shot) {
         context.viewportScreenshot = shot;
-        context.screenshotInfo = { widthPixels: shot.widthPixels, heightPixels: shot.heightPixels };
+        context.screenshotInfo = {
+          widthPixels: shot.widthPixels,
+          heightPixels: shot.heightPixels
+        };
       }
+
       return context;
     },
     getTabContextPermissionStateV2: () => observable(true),
@@ -559,7 +613,7 @@ if (!window.__glicBridgeInstalled && window.top === window) {
     isBrowserOpen: () => observable(true),
     isManuallyResizing: () => observable(false),
     getOsMicrophonePermissionStatus: resolved(true),
-    getOsHotkeyState: () => observable({ hotkey: '' }),
+    getOsHotkeyState: () => observable({ hotkey: "" }),
     resizeWindow: resolved(undefined),
     setTabContextPermissionState: resolved(undefined),
     setMicrophonePermissionState: resolved(undefined),
@@ -570,7 +624,7 @@ if (!window.__glicBridgeInstalled && window.top === window) {
     closePanel(): Promise<void> {
       setState(State.Idle);
       return Promise.resolve();
-    },
+    }
   };
 
   // ===========================================================================
@@ -587,36 +641,41 @@ if (!window.__glicBridgeInstalled && window.top === window) {
           report(app.sendMessage(GlicMessage.Booted));
           setTimeout(() => {
             if (webClient.notifyPanelWillOpen) {
-              notify((state) => webClient.notifyPanelWillOpen?.(state), PANEL_STATE);
+              notify(state => webClient.notifyPanelWillOpen?.(state), PANEL_STATE);
             }
           }, 0);
         });
-    },
+    }
   };
   window.internalAutoGlicBoot = () => registry;
 
   const bootstrapHandlers: EventListener[] = [];
   const originalAddEventListener = EventTarget.prototype.addEventListener;
-  Object.defineProperty(window, 'addEventListener', {
+  Object.defineProperty(window, "addEventListener", {
     configurable: true,
     writable: true,
     value(type: string, listener: EventListenerOrEventListenerObject, options?: AddEventListenerOptions | boolean) {
-      if (type === 'message' && typeof listener === 'function') {
+      if (type === "message" && typeof listener === "function") {
         bootstrapHandlers.push(listener);
       }
+
       originalAddEventListener.call(window, type, listener, options);
-    },
+    }
   });
-  const bootstrapEvent = new MessageEvent('message', {
-    origin: 'chrome://glic',
+  const bootstrapEvent = new MessageEvent("message", {
+    origin: "chrome://glic",
     source: window,
-    data: { type: 'glic-bootstrap', glicApiSource: 'data:text/javascript,//desktop' },
+    data: {
+      type: "glic-bootstrap",
+      glicApiSource: "data:text/javascript,//desktop"
+    }
   });
 
   const tryBootstrap = (): void => {
     if (booted) {
       return;
     }
+
     for (const handler of bootstrapHandlers) {
       notify(handler, bootstrapEvent);
     }
@@ -625,10 +684,13 @@ if (!window.__glicBridgeInstalled && window.top === window) {
   let bootTries = 0;
   const bootTimer = setInterval(() => {
     tryBootstrap();
+
     if (!booted && ++bootTries <= MAX_BOOT_TRIES) {
       return;
     }
+
     clearInterval(bootTimer);
+
     if (!booted) {
       reportStartFailure(ErrorMessage.PageDidNotStart);
     }
@@ -640,6 +702,7 @@ if (!window.__glicBridgeInstalled && window.top === window) {
     if (!pageSays(Phrase.Unavailable)) {
       return;
     }
+
     clearInterval(unavailableTimer);
     unavailableReported = true;
     reportError(ErrorMessage.Unavailable);
@@ -654,20 +717,20 @@ if (!window.__glicBridgeInstalled && window.top === window) {
   // ===========================================================================
 
   /** The Live channel; its long-poll GETs are the downlink (POSTs carry the mic up). */
-  const LIVE_CHANNEL_PATH = '/v1/processSession';
+  const LIVE_CHANNEL_PATH = "/v1/processSession";
 
   /** Field indexes in a server message, MSG. */
   enum MsgField {
     Seq = 0,
     ServerContent = 1,
-    InputTranscription = 7,
+    InputTranscription = 7
   }
 
   /** Field indexes in MSG[ServerContent]. */
   enum ContentField {
     GenerationComplete = 2,
     Interrupted = 3,
-    OutputTranscription = 5,
+    OutputTranscription = 5
   }
 
   /** Utterances in the order the wire opened them; the array index is the transcript index. */
@@ -694,25 +757,37 @@ if (!window.__glicBridgeInstalled && window.top === window) {
 
   const relayUtterance = (index: number): void => {
     const { direction, text } = utterances[index]!;
-    const trimmed = text.replace(/\s+/g, ' ').trim();
+    const trimmed = text.replace(/\s+/g, " ").trim();
     if (!active || !trimmed || relayed[index] === trimmed) {
       return;
     }
+
     relayed[index] = trimmed;
-    report(app.sendMessage(GlicMessage.Transcript, { text: trimmed, direction, index }));
+    report(
+      app.sendMessage(GlicMessage.Transcript, {
+        text: trimmed,
+        direction,
+        index
+      })
+    );
   };
 
   /** Opens a new utterance; its index. */
-  const openUtterance = (direction: Direction): number => utterances.push({ direction, text: '' }) - 1;
+  const openUtterance = (direction: Direction): number => utterances.push({
+    direction,
+    text: ""
+  }) - 1;
 
   /** The first string anywhere in a nested array, depth first. */
   const firstString = (value: unknown): string | null => {
-    if (typeof value === 'string') {
+    if (typeof value === "string") {
       return value;
     }
+
     if (!Array.isArray(value)) {
       return null;
     }
+
     for (const item of value) {
       const found = firstString(item);
       if (found !== null) {
@@ -731,6 +806,7 @@ if (!window.__glicBridgeInstalled && window.top === window) {
     if (text === null) {
       return;
     }
+
     const isFinal = field[0] === null;
     // A late final belongs to the utterance Gemini's reply closed, not to a new one.
     const index =
@@ -751,15 +827,17 @@ if (!window.__glicBridgeInstalled && window.top === window) {
    */
   const onOutputTranscript = (field: unknown[]): void => {
     const [fragment, , , first] = field;
-    if (typeof fragment !== 'string') {
+    if (typeof fragment !== "string") {
       return;
     }
+
     if (openAssistant < 0 || first === 1) {
       openAssistant = openUtterance(Direction.Assistant);
       // Gemini answering means the user's turn is over, even if its final transcript never came.
       unfinishedUser = openUser;
       openUser = -1;
     }
+
     utterances[openAssistant]!.text += fragment;
     relayUtterance(openAssistant);
   };
@@ -770,23 +848,27 @@ if (!window.__glicBridgeInstalled && window.top === window) {
    * end Gemini's utterance. Audio ([0] config, [1] mp3) and acks are ignored.
    */
   const onServerMessage = (msg: unknown): void => {
-    if (!Array.isArray(msg) || typeof msg[MsgField.Seq] !== 'string') {
+    if (!Array.isArray(msg) || typeof msg[MsgField.Seq] !== "string") {
       return;
     }
+
     const input: unknown = msg[MsgField.InputTranscription];
     if (Array.isArray(input)) {
       wireSeen = true;
       onInputTranscript(input);
     }
+
     const content: unknown = msg[MsgField.ServerContent];
     if (!Array.isArray(content)) {
       return;
     }
+
     const output: unknown = content[ContentField.OutputTranscription];
     if (Array.isArray(output)) {
       wireSeen = true;
       onOutputTranscript(output);
     }
+
     if (content[ContentField.GenerationComplete] != null || content[ContentField.Interrupted] != null) {
       openAssistant = -1;
     }
@@ -803,14 +885,17 @@ if (!window.__glicBridgeInstalled && window.top === window) {
     } catch {
       return;
     }
+
     if (!Array.isArray(frames)) {
       return;
     }
+
     for (const frame of frames) {
       const payload: unknown = Array.isArray(frame) ? frame[1] : null;
       if (!Array.isArray(payload)) {
         continue;
       }
+
       for (const entry of payload) {
         if (Array.isArray(entry) && entry[0] === null) {
           onServerMessage(entry[1]);
@@ -834,15 +919,17 @@ if (!window.__glicBridgeInstalled && window.top === window) {
         return; // a binary responseType: not a WebChannel downlink
       }
       while (true) {
-        const newline = text.indexOf('\n', offset);
+        const newline = text.indexOf("\n", offset);
         if (newline < 0) {
           return;
         }
+
         const length = Number(text.slice(offset, newline));
         const end = newline + 1 + length;
         if (!Number.isInteger(length) || text.length < end) {
           return;
         }
+
         const chunk = text.slice(newline + 1, end);
         offset = end;
         try {
@@ -852,8 +939,8 @@ if (!window.__glicBridgeInstalled && window.top === window) {
         }
       }
     };
-    xhr.addEventListener('progress', read);
-    xhr.addEventListener('readystatechange', read);
+    xhr.addEventListener("progress", read);
+    xhr.addEventListener("readystatechange", read);
   };
 
   // Glic's WebChannel uses XMLHttpRequest (not fetch). Patch the prototype at document-start so
@@ -863,17 +950,19 @@ if (!window.__glicBridgeInstalled && window.top === window) {
     const xhrSend = XMLHttpRequest.prototype.send;
     const downlinks = new WeakSet<XMLHttpRequest>();
     XMLHttpRequest.prototype.open = function (this: XMLHttpRequest, method: string, url: string | URL, ...rest: unknown[]) {
-      if (String(method).toUpperCase() === 'GET' && String(url).includes(LIVE_CHANNEL_PATH)) {
+      if (String(method).toUpperCase() === "GET" && String(url).includes(LIVE_CHANNEL_PATH)) {
         downlinks.add(this);
       } else {
         downlinks.delete(this);
       }
+
       return (xhrOpen as (...args: unknown[]) => void).call(this, method, url, ...rest);
     } as typeof XMLHttpRequest.prototype.open;
     XMLHttpRequest.prototype.send = function (this: XMLHttpRequest, ...args: [Document | XMLHttpRequestBodyInit | null | undefined]) {
       if (downlinks.has(this)) {
         tapDownlink(this);
       }
+
       return xhrSend.apply(this, args);
     };
   } catch {
@@ -888,27 +977,32 @@ if (!window.__glicBridgeInstalled && window.top === window) {
   // ===========================================================================
 
   const captionsRoot = (): Element | null => {
-    const scroller = document.querySelector('captions-scroller');
+    const scroller = document.querySelector("captions-scroller");
     if (!scroller) {
       return null;
     }
+
     return (
-      scroller.querySelector('.captions-scroller-container .captions-scroller') ||
-      scroller.querySelector('.captions-scroller-container') ||
+      scroller.querySelector(".captions-scroller-container .captions-scroller") ||
+      scroller.querySelector(".captions-scroller-container") ||
       scroller
     );
   };
 
   // Only a bold node that is exactly a speaker label starts an utterance. Gemini bolds words in its
   // own answers too ("**your** schedule"), and those are part of the sentence, not a new speaker.
-  const SPEAKER_LABELS: Record<string, Direction> = { you: Direction.User, gemini: Direction.Assistant };
+  const SPEAKER_LABELS: Record<string, Direction> = {
+    you: Direction.User,
+    gemini: Direction.Assistant
+  };
 
   /** The transcript direction a bold node stands for, or null for bold text. */
   const directionOf = (node: Node): Direction | null => {
-    if (!(node instanceof Element) || node.tagName !== 'B') {
+    if (!(node instanceof Element) || node.tagName !== "B") {
       return null;
     }
-    const label = (node.textContent || '').trim().replace(/:$/, '').toLowerCase();
+
+    const label = (node.textContent || "").trim().replace(/:$/, "").toLowerCase();
     return SPEAKER_LABELS[label] ?? null;
   };
 
@@ -918,31 +1012,46 @@ if (!window.__glicBridgeInstalled && window.top === window) {
     for (const node of root.childNodes) {
       const direction = directionOf(node);
       if (direction) {
-        current = { direction, text: '' };
+        current = {
+          direction,
+          text: ""
+        };
         found.push(current);
       } else if (current) {
-        current.text += node.textContent || '';
+        current.text += node.textContent || "";
       }
     }
     return found
-      .map((u) => ({ direction: u.direction, text: u.text.replace(/\s+/g, ' ').trim() }))
-      .filter((u) => u.text);
+      .map(u => ({
+        direction: u.direction,
+        text: u.text.replace(/\s+/g, " ").trim()
+      }))
+      .filter(u => u.text);
   };
 
   const pumpCaptions = (): void => {
     if (wireSeen) {
       return;
     }
+
     const root = captionsRoot();
     if (!root) {
       return;
     }
+
     readUtterances(root).forEach(({ direction, text }, index) => {
       if (relayed[index] === text) {
         return;
       }
+
       relayed[index] = text;
-      report(app.sendMessage(GlicMessage.Transcript, { text, direction, index }));
+      report(
+        app.sendMessage(GlicMessage.Transcript, {
+          text,
+          direction,
+          index
+        })
+      );
     });
   };
 
@@ -957,10 +1066,10 @@ if (!window.__glicBridgeInstalled && window.top === window) {
   const DAY_S = 24 * 60 * 60;
   const DAY_MS = DAY_S * 1000;
   const LIVE_TIMEOUT_FLAGS: Record<string, number> = {
-    '45681081': DAY_S, // inactivity in "listening", seconds
-    '45681082': DAY_S, // same, while a tab is shared, seconds
-    '45687231': DAY_MS, // mic silence, ms
-    '45677155': DAY_MS, // privacy cap, ms
+    45681081: DAY_S, // inactivity in "listening", seconds
+    45681082: DAY_S, // same, while a tab is shared, seconds
+    45687231: DAY_MS, // mic silence, ms
+    45677155: DAY_MS // privacy cap, ms
   };
   let timeoutsPatched = false;
 
@@ -969,16 +1078,19 @@ if (!window.__glicBridgeInstalled && window.top === window) {
     if (timeoutsPatched) {
       return true;
     }
+
     const namespace = window.default_BardChatUi;
     if (!namespace) {
       return false;
     }
+
     let found = 0;
     for (const flag of Object.values(namespace) as (ClientFlag | null)[]) {
-      const value = flag && typeof flag === 'object' && flag.key ? LIVE_TIMEOUT_FLAGS[flag.key] : undefined;
+      const value = flag && typeof flag === "object" && flag.key ? LIVE_TIMEOUT_FLAGS[flag.key] : undefined;
       if (value === undefined) {
         continue;
       }
+
       // The flag service returns defaultValue when the server sent no value, else ctor(raw).
       flag!.defaultValue = value;
       flag!.ctor = () => value;
@@ -1007,6 +1119,7 @@ if (!window.__glicBridgeInstalled && window.top === window) {
     if (now - lastResume < RESUME_GAP_MS * Math.min(resumeTries + 1, MAX_RESUME_BACKOFF)) {
       return;
     }
+
     resumeTries++;
     lastResume = now;
     clickButton(...RESUME_BUTTONS);
@@ -1014,9 +1127,8 @@ if (!window.__glicBridgeInstalled && window.top === window) {
 
   /** Matches on visible text too: Glic's Try again is not always labelled. */
   const tryAgainButton = (): HTMLButtonElement | undefined =>
-    [...document.querySelectorAll('button')].find((b) =>
-      `${b.getAttribute('aria-label') ?? ''} ${b.textContent ?? ''}`.includes(Button.TryAgain),
-    );
+    [...document.querySelectorAll("button")].find(b =>
+      `${b.getAttribute("aria-label") ?? ""} ${b.textContent ?? ""}`.includes(Button.TryAgain));
 
   /** Live is running: forget any pause or breakage. */
   const markLive = (now: number): void => {
@@ -1030,10 +1142,12 @@ if (!window.__glicBridgeInstalled && window.top === window) {
     if (!active) {
       return;
     }
+
     const now = Date.now();
     if (now - lastNudge >= SCREEN_NUDGE_MS) {
       void readThenNudge(now);
     }
+
     pumpCaptions();
     // "Your audio couldn't be heard" is Glic's own transient notice while the mic is silent - which
     // it is whenever the user mutes or just isn't talking. Glic recovers on its own when sound
@@ -1043,16 +1157,20 @@ if (!window.__glicBridgeInstalled && window.top === window) {
       markLive(now);
       return;
     }
+
     setState(State.Resuming);
+
     if (!wentWrong && findButton(...RESUME_BUTTONS)) {
       resume(now);
       return;
     }
+
     const retry = tryAgainButton();
     if (retry && now - lastTryAgain > TRY_AGAIN_GAP_MS) {
       lastTryAgain = now;
       retry.click();
     }
+
     if (wentWrong && now - lastLive > BROKEN_AFTER_MS && !brokenReported) {
       brokenReported = true;
       reportError(ErrorMessage.LiveBroke);
@@ -1063,6 +1181,7 @@ if (!window.__glicBridgeInstalled && window.top === window) {
     if (monitorTimer) {
       return;
     }
+
     monitorTimer = setInterval(monitorTick, MONITOR_POLL_MS);
   };
 
@@ -1075,14 +1194,17 @@ if (!window.__glicBridgeInstalled && window.top === window) {
       consentAccepted = true;
       return;
     }
+
     const skip = findButton(Button.Skip);
     if (skip && findButton(Button.GoBack) && findButton(Button.TurnOnCaptions)) {
       skip.click();
       return;
     }
+
     if (clickButton(Button.StartLive) || consentAccepted) {
       return;
     }
+
     clickButton(Button.GoLive);
   };
 
@@ -1100,12 +1222,15 @@ if (!window.__glicBridgeInstalled && window.top === window) {
         clearInterval(startTimer);
         return;
       }
+
       tryBootstrap();
+
       // Live must not start before its timeouts are rewritten, or it reads the defaults.
       if (!patchLiveTimeouts() && tries < MAX_START_TRIES / 2) {
         tries++;
         return;
       }
+
       if (findButton(Button.PauseLive)) {
         clearInterval(startTimer);
         report(app.sendMessage(GlicMessage.Ready));
@@ -1113,10 +1238,13 @@ if (!window.__glicBridgeInstalled && window.top === window) {
         beginMonitor();
         return;
       }
+
       advanceToLive();
+
       if (++tries <= MAX_START_TRIES) {
         return;
       }
+
       clearInterval(startTimer);
       reportStartFailure(ErrorMessage.LiveDidNotStart);
     }, START_POLL_MS);
@@ -1157,13 +1285,13 @@ if (!window.__glicBridgeInstalled && window.top === window) {
     Button.Remove,
     Button.Delete,
     Button.Update,
-    Button.Confirm,
+    Button.Confirm
   ];
   const SUBMIT = [Button.Submit, Button.SendMessage, Button.Send];
   /** Glic shows these under an answer only once it has finished. */
   const REPLY_DONE = [Button.Copy, Button.GoodResponse, Button.Regenerate];
 
-  const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+  const sleep = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
 
   const waitFor = async <T>(predicate: () => T | null, timeoutMs: number): Promise<T | null> => {
     const deadline = Date.now() + timeoutMs;
@@ -1172,12 +1300,13 @@ if (!window.__glicBridgeInstalled && window.top === window) {
       if (value) {
         return value;
       }
+
       await sleep(150);
     }
     return null;
   };
 
-  const editor = (): HTMLElement | null => document.querySelector<HTMLElement>('[contenteditable="true"]');
+  const editor = (): HTMLElement | null => document.querySelector<HTMLElement>("[contenteditable=\"true\"]");
 
   /**
    * The newest model answer. Prefer the whole response container
@@ -1188,33 +1317,37 @@ if (!window.__glicBridgeInstalled && window.top === window) {
    * accessibility prefix the container carries.
    */
   const lastReplyText = (): string => {
-    const containers = document.querySelectorAll<HTMLElement>('.presented-response-container');
+    const containers = document.querySelectorAll<HTMLElement>(".presented-response-container");
     let last = containers[containers.length - 1];
     if (!last) {
       const nodes = document.querySelectorAll<HTMLElement>(
-        'message-content, .model-response-text, .markdown, [data-response-index]',
+        "message-content, .model-response-text, .markdown, [data-response-index]"
       );
       last = nodes[nodes.length - 1];
     }
-    return (last ? last.innerText : '').replace(/\s+/g, ' ').replace(/^Gemini said\s*/i, '').trim();
+
+    return (last ? last.innerText : "").replace(/\s+/g, " ").replace(/^Gemini said\s*/i, "").trim();
   };
 
   /** Switch to text mode and hand C# a focused, empty editor. */
   const beginAction = async (): Promise<boolean> => {
     active = false;
     clearInterval(startTimer);
+
     if (monitorTimer) {
       clearInterval(monitorTimer);
     }
+
     monitorTimer = null;
     clickButton(Button.TextMode);
     const box = await waitFor(editor, ACTION_READY_MS);
     if (!box) {
       return false;
     }
+
     box.focus();
-    document.execCommand('selectAll');
-    document.execCommand('delete');
+    document.execCommand("selectAll");
+    document.execCommand("delete");
     return true;
   };
 
@@ -1224,7 +1357,7 @@ if (!window.__glicBridgeInstalled && window.top === window) {
    */
   const submitAndRead = async (): Promise<string> => {
     clickButton(...SUBMIT);
-    let text = '';
+    let text = "";
     let stableSince = 0;
     const deadline = Date.now() + ACTION_REPLY_MS;
     while (Date.now() < deadline) {
@@ -1232,6 +1365,7 @@ if (!window.__glicBridgeInstalled && window.top === window) {
       const done = findButton(...REPLY_DONE);
       if (now && now === text && done) {
         stableSince = stableSince || Date.now();
+
         if (Date.now() - stableSince > ACTION_SETTLE_MS) {
           break;
         }
@@ -1239,17 +1373,21 @@ if (!window.__glicBridgeInstalled && window.top === window) {
         stableSince = 0;
         text = now;
       }
+
       await sleep(200);
     }
+
     // Out of time with the reply still running (a tool call that never returns): stop it. While a
     // reply runs Glic hides its Live button, so Live could never resume.
     if (clickButton(Button.StopResponse)) {
       await sleep(ACTION_SETTLE_MS);
     }
+
     if (clickButton(...ACTION_CONFIRM)) {
       await sleep(ACTION_SETTLE_MS);
       text = lastReplyText() || text;
     }
+
     return text;
   };
 

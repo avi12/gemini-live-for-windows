@@ -7,74 +7,6 @@
       __defProp(target, name, { get: all[name], enumerable: true });
   };
 
-  // ../messaging/src/index.ts
-  var isRecord = (value) => typeof value === "object" && value !== null;
-  var isRequest = (value) => isRecord(value) && typeof value.id === "number" && typeof value.type === "string" && typeof value.timestamp === "number";
-  var isReply = (value) => isRecord(value) && typeof value.replyTo === "number" && (value.err === void 0 || value.err === null || typeof value.err === "string");
-  var defineMessaging = (transport, config) => {
-    const handlers = /* @__PURE__ */ new Map();
-    const pending = /* @__PURE__ */ new Map();
-    let nextId = 1;
-    const answer = async (request) => {
-      const handler = handlers.get(request.type);
-      if (!handler) {
-        transport.post({ replyTo: request.id, err: `No listener for "${request.type}"` });
-        return;
-      }
-      try {
-        const res = await handler(request);
-        transport.post({ replyTo: request.id, res: res ?? null });
-      } catch (error) {
-        transport.post({ replyTo: request.id, err: error instanceof Error ? error.message : String(error) });
-      }
-    };
-    const settle = (reply) => {
-      const waiting = pending.get(reply.replyTo);
-      if (!waiting) {
-        return;
-      }
-      pending.delete(reply.replyTo);
-      if (reply.err != null) {
-        waiting.reject(new Error(reply.err));
-        return;
-      }
-      waiting.resolve(reply.res);
-    };
-    transport.listen((envelope) => {
-      if (isRequest(envelope)) {
-        void answer(envelope);
-        return;
-      }
-      if (isReply(envelope)) {
-        settle(envelope);
-      }
-    });
-    const sendMessage = (type, data) => {
-      const id = nextId++;
-      return new Promise((resolve, reject) => {
-        pending.set(id, { resolve, reject });
-        setTimeout(() => {
-          if (pending.delete(id)) {
-            reject(new Error(`No reply to "${String(type)}" in ${config.timeoutMs} ms`));
-          }
-        }, config.timeoutMs);
-        transport.post({ id, type, data: data ?? null, timestamp: Date.now() });
-      });
-    };
-    return {
-      sendMessage,
-      onMessage(type, onReceived) {
-        const key = String(type);
-        if (handlers.has(key)) {
-          throw new Error(`"${key}" already has a listener`);
-        }
-        handlers.set(key, onReceived);
-        return () => handlers.delete(key);
-      },
-      removeAllListeners: () => handlers.clear()
-    };
-  };
-
   // ../node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
   var external_exports = {};
   __export(external_exports, {
@@ -4146,6 +4078,91 @@
     };
   };
 
+  // ../messaging/src/index.ts
+  var isRecord = (value) => typeof value === "object" && value !== null;
+  var isRequest = (value) => isRecord(value) && typeof value.id === "number" && typeof value.type === "string" && typeof value.timestamp === "number";
+  var isReply = (value) => isRecord(value) && typeof value.replyTo === "number" && (value.err === void 0 || value.err === null || typeof value.err === "string");
+  var defineMessaging = (transport, config) => {
+    const handlers = /* @__PURE__ */ new Map();
+    const pending = /* @__PURE__ */ new Map();
+    let nextId = 1;
+    const answer = async (request) => {
+      const handler = handlers.get(request.type);
+      if (!handler) {
+        transport.post({
+          replyTo: request.id,
+          err: `No listener for "${request.type}"`
+        });
+        return;
+      }
+      try {
+        const res = await handler(request);
+        transport.post({
+          replyTo: request.id,
+          res: res ?? null
+        });
+      } catch (error) {
+        transport.post({
+          replyTo: request.id,
+          err: error instanceof Error ? error.message : String(error)
+        });
+      }
+    };
+    const settle = (reply) => {
+      const waiting = pending.get(reply.replyTo);
+      if (!waiting) {
+        return;
+      }
+      pending.delete(reply.replyTo);
+      if (reply.err != null) {
+        waiting.reject(new Error(reply.err));
+        return;
+      }
+      waiting.resolve(reply.res);
+    };
+    transport.listen((envelope) => {
+      if (isRequest(envelope)) {
+        void answer(envelope);
+        return;
+      }
+      if (isReply(envelope)) {
+        settle(envelope);
+      }
+    });
+    const sendMessage = (type, data) => {
+      const id = nextId++;
+      return new Promise((resolve, reject) => {
+        pending.set(id, {
+          resolve,
+          reject
+        });
+        setTimeout(() => {
+          if (pending.delete(id)) {
+            reject(new Error(`No reply to "${String(type)}" in ${config.timeoutMs} ms`));
+          }
+        }, config.timeoutMs);
+        transport.post({
+          id,
+          type,
+          data: data ?? null,
+          timestamp: Date.now()
+        });
+      });
+    };
+    return {
+      sendMessage,
+      onMessage(type, onReceived) {
+        const key = String(type);
+        if (handlers.has(key)) {
+          throw new Error(`"${key}" already has a listener`);
+        }
+        handlers.set(key, onReceived);
+        return () => handlers.delete(key);
+      },
+      removeAllListeners: () => handlers.clear()
+    };
+  };
+
   // home_bridge.ts
   var DEVICE = "PC Lights";
   var CARD_MIN_W = 300;
@@ -4163,7 +4180,9 @@
         } catch {
         }
         for (const kid of node.querySelectorAll("*")) {
-          if (kid.shadowRoot) walk(kid.shadowRoot);
+          if (kid.shadowRoot) {
+            walk(kid.shadowRoot);
+          }
         }
       };
       walk(root);
@@ -4185,7 +4204,9 @@
       );
       for (let node = label?.parentElement ?? null; node; node = node.parentElement) {
         const rect = node.getBoundingClientRect();
-        if (rect.width > CARD_MIN_W && rect.height > CARD_MIN_H) return node;
+        if (rect.width > CARD_MIN_W && rect.height > CARD_MIN_H) {
+          return node;
+        }
       }
       return null;
     };
@@ -4194,7 +4215,9 @@
     const measure = () => {
       dismissCards();
       const card = deviceCard(DEVICE);
-      if (!card) return PcLightsState.parse({ found: false });
+      if (!card) {
+        return PcLightsState.parse({ found: false });
+      }
       card.scrollIntoView({ block: "center" });
       const rect = card.getBoundingClientRect();
       const text = cardText(card);

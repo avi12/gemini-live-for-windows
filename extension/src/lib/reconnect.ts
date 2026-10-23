@@ -4,7 +4,7 @@ type TimerHandle = ReturnType<typeof setTimeout>;
 // `this` to the wrapping object, which the service worker rejects with "Illegal invocation".
 const clock = {
   clear: (handle: TimerHandle) => clearTimeout(handle),
-  set: (callback: () => void, delayMs: number) => setTimeout(callback, delayMs),
+  set: (callback: () => void, delayMs: number) => setTimeout(callback, delayMs)
 };
 
 /**
@@ -19,7 +19,7 @@ export class ReconnectController<Connection> {
   constructor(
     private readonly connect: () => Connection,
     private readonly isActive: (connection: Connection) => boolean,
-    private readonly delayMs: number,
+    private readonly delayMs: number
   ) {}
 
   /** The live (or connecting) connection, if any. */
@@ -44,6 +44,7 @@ export class ReconnectController<Connection> {
     }
 
     this.currentConnection = undefined;
+
     if (this.retry !== undefined) {
       return;
     }

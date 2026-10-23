@@ -3,12 +3,12 @@
 
 export enum LinkMessage {
   // app → extension
-  Hello = 'hello',
-  Query = 'query',
-  Refresh = 'refresh',
-  Ping = 'ping',
+  Hello = "hello",
+  Query = "query",
+  Refresh = "refresh",
+  Ping = "ping",
   // extension → app
-  Cookies = 'cookies',
+  Cookies = "cookies"
 }
 
 /** One cookie as chrome.cookies reports it (GoogleCookie in C#). */

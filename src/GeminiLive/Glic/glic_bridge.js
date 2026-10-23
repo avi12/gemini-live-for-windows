@@ -1,74 +1,6 @@
 // GENERATED from bridge/glic_bridge.ts - edit the TypeScript, then `pnpm --dir bridge build`.
 "use strict";
 (() => {
-  // ../messaging/src/index.ts
-  var isRecord = (value) => typeof value === "object" && value !== null;
-  var isRequest = (value) => isRecord(value) && typeof value.id === "number" && typeof value.type === "string" && typeof value.timestamp === "number";
-  var isReply = (value) => isRecord(value) && typeof value.replyTo === "number" && (value.err === void 0 || value.err === null || typeof value.err === "string");
-  var defineMessaging = (transport, config) => {
-    const handlers = /* @__PURE__ */ new Map();
-    const pending = /* @__PURE__ */ new Map();
-    let nextId = 1;
-    const answer = async (request) => {
-      const handler = handlers.get(request.type);
-      if (!handler) {
-        transport.post({ replyTo: request.id, err: `No listener for "${request.type}"` });
-        return;
-      }
-      try {
-        const res = await handler(request);
-        transport.post({ replyTo: request.id, res: res ?? null });
-      } catch (error) {
-        transport.post({ replyTo: request.id, err: error instanceof Error ? error.message : String(error) });
-      }
-    };
-    const settle = (reply) => {
-      const waiting = pending.get(reply.replyTo);
-      if (!waiting) {
-        return;
-      }
-      pending.delete(reply.replyTo);
-      if (reply.err != null) {
-        waiting.reject(new Error(reply.err));
-        return;
-      }
-      waiting.resolve(reply.res);
-    };
-    transport.listen((envelope) => {
-      if (isRequest(envelope)) {
-        void answer(envelope);
-        return;
-      }
-      if (isReply(envelope)) {
-        settle(envelope);
-      }
-    });
-    const sendMessage = (type, data) => {
-      const id = nextId++;
-      return new Promise((resolve, reject) => {
-        pending.set(id, { resolve, reject });
-        setTimeout(() => {
-          if (pending.delete(id)) {
-            reject(new Error(`No reply to "${String(type)}" in ${config.timeoutMs} ms`));
-          }
-        }, config.timeoutMs);
-        transport.post({ id, type, data: data ?? null, timestamp: Date.now() });
-      });
-    };
-    return {
-      sendMessage,
-      onMessage(type, onReceived) {
-        const key = String(type);
-        if (handlers.has(key)) {
-          throw new Error(`"${key}" already has a listener`);
-        }
-        handlers.set(key, onReceived);
-        return () => handlers.delete(key);
-      },
-      removeAllListeners: () => handlers.clear()
-    };
-  };
-
   // mic_gate.ts
   var COMFORT_NOISE_LEVEL = 1e-3;
   var GATE_RAMP_SECONDS = 0.01;
@@ -204,12 +136,100 @@
     };
   };
 
+  // ../messaging/src/index.ts
+  var isRecord = (value) => typeof value === "object" && value !== null;
+  var isRequest = (value) => isRecord(value) && typeof value.id === "number" && typeof value.type === "string" && typeof value.timestamp === "number";
+  var isReply = (value) => isRecord(value) && typeof value.replyTo === "number" && (value.err === void 0 || value.err === null || typeof value.err === "string");
+  var defineMessaging = (transport, config) => {
+    const handlers = /* @__PURE__ */ new Map();
+    const pending = /* @__PURE__ */ new Map();
+    let nextId = 1;
+    const answer = async (request) => {
+      const handler = handlers.get(request.type);
+      if (!handler) {
+        transport.post({
+          replyTo: request.id,
+          err: `No listener for "${request.type}"`
+        });
+        return;
+      }
+      try {
+        const res = await handler(request);
+        transport.post({
+          replyTo: request.id,
+          res: res ?? null
+        });
+      } catch (error) {
+        transport.post({
+          replyTo: request.id,
+          err: error instanceof Error ? error.message : String(error)
+        });
+      }
+    };
+    const settle = (reply) => {
+      const waiting = pending.get(reply.replyTo);
+      if (!waiting) {
+        return;
+      }
+      pending.delete(reply.replyTo);
+      if (reply.err != null) {
+        waiting.reject(new Error(reply.err));
+        return;
+      }
+      waiting.resolve(reply.res);
+    };
+    transport.listen((envelope) => {
+      if (isRequest(envelope)) {
+        void answer(envelope);
+        return;
+      }
+      if (isReply(envelope)) {
+        settle(envelope);
+      }
+    });
+    const sendMessage = (type, data) => {
+      const id = nextId++;
+      return new Promise((resolve, reject) => {
+        pending.set(id, {
+          resolve,
+          reject
+        });
+        setTimeout(() => {
+          if (pending.delete(id)) {
+            reject(new Error(`No reply to "${String(type)}" in ${config.timeoutMs} ms`));
+          }
+        }, config.timeoutMs);
+        transport.post({
+          id,
+          type,
+          data: data ?? null,
+          timestamp: Date.now()
+        });
+      });
+    };
+    return {
+      sendMessage,
+      onMessage(type, onReceived) {
+        const key = String(type);
+        if (handlers.has(key)) {
+          throw new Error(`"${key}" already has a listener`);
+        }
+        handlers.set(key, onReceived);
+        return () => handlers.delete(key);
+      },
+      removeAllListeners: () => handlers.clear()
+    };
+  };
+
   // glic_bridge.ts
   var RESUME_BUTTONS = ["Start live mode" /* StartLive */, "Go Live" /* GoLive */];
   var SIGN_IN_PATTERN = /\bSign in\b/;
   var MIC_ALIAS_IDS = /* @__PURE__ */ new Set(["default", "communications"]);
   var TAB_ID = "desktop";
-  var PANEL_STATE = { kind: 2 /* Attached */, windowId: TAB_ID };
+  var PANEL_STATE = {
+    kind: 2 /* Attached */,
+    windowId: TAB_ID
+  };
   var BOOT_POLL_MS = 100;
   var MAX_BOOT_TRIES = 150;
   var UNAVAILABLE_POLL_MS = 500;
@@ -264,8 +284,14 @@
       report(app.sendMessage("state" /* State */, state));
     };
     try {
-      Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "visible" });
-      Object.defineProperty(document, "hidden", { configurable: true, get: () => false });
+      Object.defineProperty(document, "visibilityState", {
+        configurable: true,
+        get: () => "visible"
+      });
+      Object.defineProperty(document, "hidden", {
+        configurable: true,
+        get: () => false
+      });
       document.addEventListener("visibilitychange", (e) => e.stopImmediatePropagation(), true);
     } catch {
     }
@@ -294,7 +320,11 @@
           // voiceIsolation is Chromium-only and not in the DOM typings.
           ...{ voiceIsolation: true },
           // ideal, not exact: an unplugged pick falls back to the default instead of failing Live.
-          ...micId ? { deviceId: { ideal: micId } } : {}
+          ...micId ? {
+            deviceId: {
+              ideal: micId
+            }
+          } : {}
         }
       };
     };
@@ -325,7 +355,10 @@
     };
     const listMics = async () => {
       const devices = await navigator.mediaDevices.enumerateDevices();
-      return devices.filter((d) => d.kind === "audioinput" && d.deviceId && !MIC_ALIAS_IDS.has(d.deviceId)).map((d) => ({ id: d.deviceId, label: d.label || "Microphone" }));
+      return devices.filter((d) => d.kind === "audioinput" && d.deviceId && !MIC_ALIAS_IDS.has(d.deviceId)).map((d) => ({
+        id: d.deviceId,
+        label: d.label || "Microphone"
+      }));
     };
     const setMic = (id) => {
       const next = id || null;
@@ -430,7 +463,11 @@
       documentMimeType: "text/html",
       isMediaActive: false
     });
-    const focusedTabState = () => ({ hasFocus: { tabData: focusedTab() } });
+    const focusedTabState = () => ({
+      hasFocus: {
+        tabData: focusedTab()
+      }
+    });
     const focusedTabSetting = settableObservable(focusedTabState());
     const nudgeScreen = (now) => {
       lastNudge = now;
@@ -456,11 +493,21 @@
         return { tabData };
       }
       const content = annotatedPageContent(tabData.title, tabData.url, latestView.blocks);
-      return { tabData, annotatedPageData: { annotatedPageContent: byteStream(content) } };
+      return {
+        tabData,
+        annotatedPageData: {
+          annotatedPageContent: byteStream(content)
+        }
+      };
     };
     const resolved = (value) => () => Promise.resolve(value);
     const host = {
-      getChromeVersion: resolved({ major: 130, minor: 0, build: 0, patch: 0 }),
+      getChromeVersion: resolved({
+        major: 130,
+        minor: 0,
+        build: 0,
+        patch: 0
+      }),
       getPlatform: () => 3 /* Linux */,
       getFormFactor: () => 1 /* Desktop */,
       getHostCapabilities: () => /* @__PURE__ */ new Set([3 /* MultiInstance */, 7 /* PdfZeroState */, 8 /* Invoke */]),
@@ -487,7 +534,10 @@
         const shot = await captureFrame();
         if (shot) {
           context.viewportScreenshot = shot;
-          context.screenshotInfo = { widthPixels: shot.widthPixels, heightPixels: shot.heightPixels };
+          context.screenshotInfo = {
+            widthPixels: shot.widthPixels,
+            heightPixels: shot.heightPixels
+          };
         }
         return context;
       },
@@ -544,7 +594,10 @@
     const bootstrapEvent = new MessageEvent("message", {
       origin: "chrome://glic",
       source: window,
-      data: { type: "glic-bootstrap", glicApiSource: "data:text/javascript,//desktop" }
+      data: {
+        type: "glic-bootstrap",
+        glicApiSource: "data:text/javascript,//desktop"
+      }
     });
     const tryBootstrap = () => {
       if (booted) {
@@ -606,9 +659,18 @@
         return;
       }
       relayed[index] = trimmed;
-      report(app.sendMessage("transcript" /* Transcript */, { text: trimmed, direction, index }));
+      report(
+        app.sendMessage("transcript" /* Transcript */, {
+          text: trimmed,
+          direction,
+          index
+        })
+      );
     };
-    const openUtterance = (direction) => utterances.push({ direction, text: "" }) - 1;
+    const openUtterance = (direction) => utterances.push({
+      direction,
+      text: ""
+    }) - 1;
     const firstString = (value) => {
       if (typeof value === "string") {
         return value;
@@ -750,7 +812,10 @@
       }
       return scroller.querySelector(".captions-scroller-container .captions-scroller") || scroller.querySelector(".captions-scroller-container") || scroller;
     };
-    const SPEAKER_LABELS = { you: "user" /* User */, gemini: "assistant" /* Assistant */ };
+    const SPEAKER_LABELS = {
+      you: "user" /* User */,
+      gemini: "assistant" /* Assistant */
+    };
     const directionOf = (node) => {
       if (!(node instanceof Element) || node.tagName !== "B") {
         return null;
@@ -764,13 +829,19 @@
       for (const node of root.childNodes) {
         const direction = directionOf(node);
         if (direction) {
-          current = { direction, text: "" };
+          current = {
+            direction,
+            text: ""
+          };
           found.push(current);
         } else if (current) {
           current.text += node.textContent || "";
         }
       }
-      return found.map((u) => ({ direction: u.direction, text: u.text.replace(/\s+/g, " ").trim() })).filter((u) => u.text);
+      return found.map((u) => ({
+        direction: u.direction,
+        text: u.text.replace(/\s+/g, " ").trim()
+      })).filter((u) => u.text);
     };
     const pumpCaptions = () => {
       if (wireSeen) {
@@ -785,19 +856,25 @@
           return;
         }
         relayed[index] = text;
-        report(app.sendMessage("transcript" /* Transcript */, { text, direction, index }));
+        report(
+          app.sendMessage("transcript" /* Transcript */, {
+            text,
+            direction,
+            index
+          })
+        );
       });
     };
     const DAY_S = 24 * 60 * 60;
     const DAY_MS = DAY_S * 1e3;
     const LIVE_TIMEOUT_FLAGS = {
-      "45681081": DAY_S,
+      45681081: DAY_S,
       // inactivity in "listening", seconds
-      "45681082": DAY_S,
+      45681082: DAY_S,
       // same, while a tab is shared, seconds
-      "45687231": DAY_MS,
+      45687231: DAY_MS,
       // mic silence, ms
-      "45677155": DAY_MS
+      45677155: DAY_MS
       // privacy cap, ms
     };
     let timeoutsPatched = false;
@@ -838,9 +915,7 @@
       lastResume = now;
       clickButton(...RESUME_BUTTONS);
     };
-    const tryAgainButton = () => [...document.querySelectorAll("button")].find(
-      (b) => `${b.getAttribute("aria-label") ?? ""} ${b.textContent ?? ""}`.includes("Try again" /* TryAgain */)
-    );
+    const tryAgainButton = () => [...document.querySelectorAll("button")].find((b) => `${b.getAttribute("aria-label") ?? ""} ${b.textContent ?? ""}`.includes("Try again" /* TryAgain */));
     const markLive = (now) => {
       lastLive = now;
       resumeTries = 0;

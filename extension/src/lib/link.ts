@@ -1,13 +1,13 @@
-import { defineMessaging, type Messenger, type Transport } from '@gemini-live/messaging';
-import { type BrowserCookie, LinkMessage, type LinkProtocolMap } from '@/lib/link-protocol';
-import { ReconnectController } from '@/lib/reconnect';
-import { refreshGoogleSession } from '@/lib/refresh';
+import { type BrowserCookie, LinkMessage, type LinkProtocolMap } from "@/lib/link-protocol";
+import { ReconnectController } from "@/lib/reconnect";
+import { refreshGoogleSession } from "@/lib/refresh";
+import { defineMessaging, type Messenger, type Transport } from "@gemini-live/messaging";
 
 // The loopback WebSocket the desktop app hosts. It accepts only this extension's pinned ID. Its
 // port is free-picked per run, so the app writes it, with a token, into this extension's own folder
 // (ExtensionSetup.PublishLink in src/GeminiLive/Glic/ExtensionSetup.cs).
-const LINK_FILE = 'link.json';
-const LINK_PATH = '/google-session';
+const LINK_FILE = "link.json";
+const LINK_PATH = "/google-session";
 
 // The app may not be running yet; retry quietly until it is.
 const RECONNECT_MS = 5000;
@@ -23,7 +23,7 @@ const MESSAGE_TIMEOUT_MS = 10000;
 const ROTATION_DEBOUNCE_MS = 1500;
 
 // Everything on google.com and its subdomains; the app picks the auth cookies it needs.
-const GOOGLE_COOKIE_DOMAIN = 'google.com';
+const GOOGLE_COOKIE_DOMAIN = "google.com";
 
 /** Where this run of the app listens (the link file). */
 interface LinkInfo {
@@ -86,8 +86,8 @@ function socketTransport(socket: WebSocket): Transport {
       }
     },
     listen(receive) {
-      socket.addEventListener('message', ({ data }) => {
-        if (typeof data !== 'string') {
+      socket.addEventListener("message", ({ data }) => {
+        if (typeof data !== "string") {
           return;
         }
 
@@ -97,7 +97,7 @@ function socketTransport(socket: WebSocket): Transport {
           // Not ours to interpret; the app only sends JSON.
         }
       });
-    },
+    }
   };
 }
 
@@ -111,7 +111,7 @@ async function collectCookies(): Promise<BrowserCookie[]> {
     secure: cookie.secure,
     httpOnly: cookie.httpOnly,
     sameSite: cookie.sameSite,
-    expirationDate: cookie.expirationDate ?? null,
+    expirationDate: cookie.expirationDate ?? null
   }));
 }
 
@@ -134,10 +134,13 @@ async function pushSession(): Promise<void> {
 /** The link file as the app last wrote it, or undefined before the app has ever run. */
 async function readLinkInfo(): Promise<LinkInfo | undefined> {
   try {
-    const response = await fetch(new URL(LINK_FILE, location.origin), { cache: 'no-store' });
+    const response = await fetch(new URL(LINK_FILE, location.origin), { cache: "no-store" });
     const info = (await response.json()) as Partial<LinkInfo>;
-    return typeof info.port === 'number' && typeof info.token === 'string'
-      ? { port: info.port, token: info.token }
+    return typeof info.port === "number" && typeof info.token === "string"
+      ? {
+        port: info.port,
+        token: info.token
+      }
       : undefined;
   } catch {
     return undefined;
@@ -163,11 +166,14 @@ function requireTrusted(link: Link): void {
   }
 
   closeLink(link);
-  throw new Error('Not trusted: Hello first');
+  throw new Error("Not trusted: Hello first");
 }
 
 function connect(): Link {
-  const link: Link = { trusted: false, closed: false };
+  const link: Link = {
+    trusted: false,
+    closed: false
+  };
   void readLinkInfo().then(info => {
     if (link.closed) {
       return;
@@ -188,16 +194,16 @@ function open(link: Link, info: LinkInfo): void {
   link.socket = socket;
   const helloTimer = setTimeout(() => closeLink(link), HELLO_TIMEOUT_MS);
 
-  socket.addEventListener('open', () => {
+  socket.addEventListener("open", () => {
     const messenger = defineMessaging<LinkProtocolMap>(socketTransport(socket), {
-      timeoutMs: MESSAGE_TIMEOUT_MS,
+      timeoutMs: MESSAGE_TIMEOUT_MS
     });
     link.messenger = messenger;
 
     messenger.onMessage(LinkMessage.Hello, ({ data: token }) => {
       if (connection.current !== link || token !== info.token) {
         closeLink(link);
-        throw new Error('Wrong token');
+        throw new Error("Wrong token");
       }
 
       clearTimeout(helloTimer);
@@ -219,9 +225,9 @@ function open(link: Link, info: LinkInfo): void {
     // The app pings every ~20 s; the reply is the keepalive that holds this service worker awake.
     messenger.onMessage(LinkMessage.Ping, () => requireTrusted(link));
   });
-  socket.addEventListener('close', () => {
+  socket.addEventListener("close", () => {
     clearTimeout(helloTimer);
     closeLink(link);
   });
-  socket.addEventListener('error', () => closeLink(link));
+  socket.addEventListener("error", () => closeLink(link));
 }

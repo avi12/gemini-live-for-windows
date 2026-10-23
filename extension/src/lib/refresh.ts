@@ -6,7 +6,7 @@
 // minimized window that never takes focus, lets Google's page do exactly what it does in a tab;
 // the cookie changes then reach the app through the normal push.
 
-const REFRESH_URL = 'https://gemini.google.com/app';
+const REFRESH_URL = "https://gemini.google.com/app";
 
 // Long enough for the page to load and rotate its cookies.
 const REFRESH_PAGE_MS = 15_000;
@@ -21,12 +21,13 @@ export async function refreshGoogleSession(): Promise<void> {
   if (Date.now() - lastRefreshAt < REFRESH_COOLDOWN_MS) {
     return;
   }
+
   lastRefreshAt = Date.now();
 
   const window = await browser.windows.create({
     url: REFRESH_URL,
-    state: 'minimized',
-    focused: false,
+    state: "minimized",
+    focused: false
   });
   setTimeout(() => {
     if (window?.id !== undefined) {

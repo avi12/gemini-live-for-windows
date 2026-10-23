@@ -1,3 +1,5 @@
+import { HomeMessage, type HomeProtocolMap, PcLightsState } from "./home_protocol";
+import { webViewTransport } from "./webview_transport";
 // Injected at document-start into home.google.com inside our hidden WebView2 (bundled to
 // home_bridge.js by build.mjs). The Home web app is signed in with the browser's Google session and
 // does all the auth and device wiring; we only locate the PC Lights tile, read whether it is on from
@@ -5,11 +7,9 @@
 // (HomeProtocolMap in home_protocol.ts) and does the click itself as a trusted CDP mouse event,
 // because the tiles ignore synthetic DOM clicks (same reason glic types with trusted keys).
 // Scoped to the PC lights for now.
-import { defineMessaging } from '@gemini-live/messaging';
-import { HomeMessage, PcLightsState, type HomeProtocolMap } from './home_protocol';
-import { webViewTransport } from './webview_transport';
+import { defineMessaging } from "@gemini-live/messaging";
 
-const DEVICE = 'PC Lights';
+const DEVICE = "PC Lights";
 const CARD_MIN_W = 300;
 const CARD_MIN_H = 60;
 const DISMISS_TEXT = /^(ok|got it|no thanks|not now|dismiss|done)$/i;
@@ -36,8 +36,10 @@ if (!window.__homeBridgeInstalled && window.top === window) {
       } catch {
         // A selector a particular root rejects; skip it.
       }
-      for (const kid of node.querySelectorAll('*')) {
-        if (kid.shadowRoot) walk(kid.shadowRoot);
+      for (const kid of node.querySelectorAll("*")) {
+        if (kid.shadowRoot) {
+          walk(kid.shadowRoot);
+        }
       }
     };
     walk(root);
@@ -47,10 +49,10 @@ if (!window.__homeBridgeInstalled && window.top === window) {
   // Close any onboarding or survey card covering the grid. Scoped to dialog roots, so a normal
   // "Done"/"OK" button elsewhere on the page is left alone.
   const dismissCards = (): void => {
-    for (const overlay of deepQuery(document, '[role="dialog"],[role="alertdialog"]')) {
-      for (const button of overlay.querySelectorAll<HTMLElement>('button,[role="button"]')) {
-        const label = `${button.getAttribute('aria-label') ?? ''} ${button.textContent ?? ''}`;
-        if (DISMISS_TEXT.test((button.textContent ?? '').trim()) || /\b(close|dismiss)\b/i.test(label)) {
+    for (const overlay of deepQuery(document, "[role=\"dialog\"],[role=\"alertdialog\"]")) {
+      for (const button of overlay.querySelectorAll<HTMLElement>("button,[role=\"button\"]")) {
+        const label = `${button.getAttribute("aria-label") ?? ""} ${button.textContent ?? ""}`;
+        if (DISMISS_TEXT.test((button.textContent ?? "").trim()) || /\b(close|dismiss)\b/i.test(label)) {
           button.click();
         }
       }
@@ -59,12 +61,14 @@ if (!window.__homeBridgeInstalled && window.top === window) {
 
   // The tile card: the sizeable clickable ancestor of the device-name label.
   const deviceCard = (name: string): HTMLElement | null => {
-    const label = deepQuery(document, '*').find(
-      (el) => el.children.length === 0 && (el.textContent ?? '').trim() === name,
+    const label = deepQuery(document, "*").find(
+      el => el.children.length === 0 && (el.textContent ?? "").trim() === name
     );
     for (let node = label?.parentElement ?? null; node; node = node.parentElement) {
       const rect = node.getBoundingClientRect();
-      if (rect.width > CARD_MIN_W && rect.height > CARD_MIN_H) return node;
+      if (rect.width > CARD_MIN_W && rect.height > CARD_MIN_H) {
+        return node;
+      }
     }
     return null;
   };
@@ -74,15 +78,18 @@ if (!window.__homeBridgeInstalled && window.top === window) {
   // it via innerText, where the lines are space-separated; textContent glues them ("PC LightsOff"),
   // where a word boundary never matches. Off wins over On, since an "on" tile may also read "On •
   // 100%" but only an off one says "Off". null until the state word has loaded in.
-  const cardText = (card: HTMLElement): string => card.innerText.replace(/\s+/g, ' ').trim();
+  const cardText = (card: HTMLElement): string => card.innerText.replace(/\s+/g, " ").trim();
   const stateOf = (text: string): boolean | null =>
     /\boff\b/i.test(text) ? false : /\bon\b/i.test(text) ? true : null;
 
   const measure = (): PcLightsState => {
     dismissCards();
     const card = deviceCard(DEVICE);
-    if (!card) return PcLightsState.parse({ found: false });
-    card.scrollIntoView({ block: 'center' }); // bring it into the hidden view so the click lands
+    if (!card) {
+      return PcLightsState.parse({ found: false });
+    }
+
+    card.scrollIntoView({ block: "center" }); // bring it into the hidden view so the click lands
     const rect = card.getBoundingClientRect();
     const text = cardText(card);
     return PcLightsState.parse({
@@ -91,7 +98,7 @@ if (!window.__homeBridgeInstalled && window.top === window) {
       on: stateOf(text),
       text,
       x: Math.round(rect.x + rect.width / 2),
-      y: Math.round(rect.y + rect.height / 2),
+      y: Math.round(rect.y + rect.height / 2)
     });
   };
 

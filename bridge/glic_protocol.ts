@@ -1,37 +1,37 @@
 // Every message between the glic page's bridge and the app (GlicHost), as a protocol map keyed by
 // an enum. The app's side is src/GeminiLive/Glic/GlicProtocol.cs.
-import type { Block } from './page_content';
+import type { Block } from "./page_content";
 
 export enum GlicMessage {
   // app → page
-  Start = 'start',
-  Stop = 'stop',
-  SetMuted = 'setMuted',
-  ListMics = 'listMics',
-  SetMic = 'setMic',
-  BeginAction = 'beginAction',
-  SubmitAndRead = 'submitAndRead',
+  Start = "start",
+  Stop = "stop",
+  SetMuted = "setMuted",
+  ListMics = "listMics",
+  SetMic = "setMic",
+  BeginAction = "beginAction",
+  SubmitAndRead = "submitAndRead",
   // page → app
-  Booted = 'booted',
-  Ready = 'ready',
-  State = 'state',
-  Transcript = 'transcript',
-  Error = 'error',
-  Capture = 'capture',
-  Read = 'read',
+  Booted = "booted",
+  Ready = "ready",
+  State = "state",
+  Transcript = "transcript",
+  Error = "error",
+  Capture = "capture",
+  Read = "read"
 }
 
 /** The Live states the page reports. */
 export enum State {
-  Idle = 'idle',
-  Listening = 'listening',
-  Resuming = 'resuming',
+  Idle = "idle",
+  Listening = "listening",
+  Resuming = "resuming"
 }
 
 /** Who spoke a transcript line. */
 export enum Direction {
-  Assistant = 'assistant',
-  User = 'user',
+  Assistant = "assistant",
+  User = "user"
 }
 
 export interface Microphone {
