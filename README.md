@@ -4,7 +4,7 @@ Press **Win+C** (or the Copilot key) → Gemini Live starts listening and sees t
 
 ## How it runs
 
-- **Google account engine (default).** The real Gemini web client (`gemini.google.com/glic`, the one behind Gemini in Chrome) runs in a hidden WebView2. It owns the mic, echo cancellation, the Live connection and Gemini's voice, and it pulls screen stills from the app. It's signed in with **your browser's Google session**, which the companion extension pushes over `ws://127.0.0.1:8479` whenever Google rotates it. The app never rotates the cookies itself, so your browser stays the only owner of the session.
+- **Google account engine (default).** The real Gemini web client (`gemini.google.com/glic`, the one behind Gemini in Chrome) runs in a hidden WebView2. It owns the mic, echo cancellation, the Live connection and Gemini's voice, and it pulls screen stills from the app: a fresh one each second (the app announces the screen under a new tab id, since Glic sends one picture per tab id), each with an exact text copy of the foreground window read through UI Automation, so small text Gemini can't make out in the picture still reaches it word for word. A Live that breaks is retried with Gemini's own *Try again*, then reloaded (up to three times in ten minutes). It's signed in with **your browser's Google session**, which the companion extension pushes over `ws://127.0.0.1:8479` whenever Google rotates it. The app never rotates the cookies itself, so your browser stays the only owner of the session.
 - **API key engine (fallback, gear menu).** The public Gemini Live API over a WebSocket, with Windows' echo-cancelled audio and ~1 fps JPEG screen frames.
 
 ## Setup
