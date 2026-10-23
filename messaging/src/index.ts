@@ -16,7 +16,6 @@ import type {
   Message,
   RemoveListenerCallback,
 } from '@webext-core/messaging';
-import { z } from 'zod';
 
 export type { RemoveListenerCallback };
 
@@ -59,18 +58,34 @@ export interface MessagingConfig {
   timeoutMs: number;
 }
 
-// The two envelopes, shared with Messenger.cs: a request, and the reply to one.
-const requestSchema = z.object({
-  id: z.number(),
-  type: z.string(),
-  data: z.unknown(),
-  timestamp: z.number(),
-});
-const replySchema = z.object({
-  replyTo: z.number(),
-  res: z.unknown().optional(),
-  err: z.string().nullish(),
-});
+// The two envelopes, shared with Messenger.cs: a request, and the reply to one. Checked by hand
+// rather than with zod, which would otherwise ride along in every page bridge's bundle.
+interface Request {
+  id: number;
+  type: string;
+  data: unknown;
+  timestamp: number;
+}
+
+interface Reply {
+  replyTo: number;
+  res?: unknown;
+  err?: string | null;
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+const isRequest = (value: unknown): value is Request =>
+  isRecord(value) &&
+  typeof value.id === 'number' &&
+  typeof value.type === 'string' &&
+  typeof value.timestamp === 'number';
+
+const isReply = (value: unknown): value is Reply =>
+  isRecord(value) &&
+  typeof value.replyTo === 'number' &&
+  (value.err === undefined || value.err === null || typeof value.err === 'string');
 
 /** Messages to and from the other end of `transport`, typed by `TProtocolMap`. */
 export const defineMessaging = <TProtocolMap extends ProtocolMap>(
@@ -82,7 +97,7 @@ export const defineMessaging = <TProtocolMap extends ProtocolMap>(
   const pending = new Map<number, { resolve(res: unknown): void; reject(error: Error): void }>();
   let nextId = 1;
 
-  const answer = async (request: z.infer<typeof requestSchema>): Promise<void> => {
+  const answer = async (request: Request): Promise<void> => {
     const handler = handlers.get(request.type);
     if (!handler) {
       transport.post({ replyTo: request.id, err: `No listener for "${request.type}"` });
@@ -96,7 +111,7 @@ export const defineMessaging = <TProtocolMap extends ProtocolMap>(
     }
   };
 
-  const settle = (reply: z.infer<typeof replySchema>): void => {
+  const settle = (reply: Reply): void => {
     const waiting = pending.get(reply.replyTo);
     if (!waiting) {
       return; // timed out already, or not ours
@@ -110,14 +125,12 @@ export const defineMessaging = <TProtocolMap extends ProtocolMap>(
   };
 
   transport.listen((envelope) => {
-    const request = requestSchema.safeParse(envelope);
-    if (request.success) {
-      void answer(request.data);
+    if (isRequest(envelope)) {
+      void answer(envelope);
       return;
     }
-    const reply = replySchema.safeParse(envelope);
-    if (reply.success) {
-      settle(reply.data);
+    if (isReply(envelope)) {
+      settle(envelope);
     }
   });
 
