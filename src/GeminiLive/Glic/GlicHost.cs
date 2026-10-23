@@ -410,9 +410,34 @@ public sealed class GlicHost : GoogleWebViewHost {
       return;
     }
     MonitorInfo monitor = Monitor;
-    Task.Run(() => TryGrab(monitor))
-        .ContinueWith(t => PostFrame(id, t.Result),
-                      TaskScheduler.FromCurrentSynchronizationContext());
+    AnswerOffThread(() => Attempt("grab", () => ScreenGrabber.Grab(monitor,
+                                                                   ScreenGrabber.Detail.Sharp)),
+                    frame => PostFrame(id, frame));
+  }
+
+  /// <summary>
+  /// Does slow work on the thread pool and answers the page from the UI thread, which owns Core.
+  /// </summary>
+  private static void AnswerOffThread<T>(Func<T> work, Action<T> answer) {
+    Task.Run(work).ContinueWith(t => answer(t.Result),
+                                TaskScheduler.FromCurrentSynchronizationContext());
+  }
+
+  /// <summary>Runs <paramref name="work"/>; null, logged, if it throws.</summary>
+  private static T? Attempt<T>(string what, Func<T?> work) where T : class {
+    try {
+      return work();
+    } catch (Exception e) {
+      Log.Write($"{what} failed: {e.Message}");
+      return null;
+    }
+  }
+
+  /// <summary>Answers the page's request <paramref name="id"/> with a message of <paramref name="kind"/>.</summary>
+  private void PostReply(PageMessageKind kind, int id, JsonObject fields) {
+    fields["kind"] = WireName.Of(kind);
+    fields["id"] = id;
+    Core?.PostWebMessageAsJson(fields.ToJsonString());
   }
 
   private async Task SendCameraFrameAsync(int id, WebcamSource camera) {
@@ -425,66 +450,43 @@ public sealed class GlicHost : GoogleWebViewHost {
     PostFrame(id, frame);
   }
 
-  private static ScreenGrabber.Frame? TryGrab(MonitorInfo monitor) {
-    try {
-      return ScreenGrabber.Grab(monitor, ScreenGrabber.Detail.Sharp);
-    } catch (Exception e) {
-      Log.Write($"grab failed: {e.Message}");
-      return null;
-    }
-  }
-
   /// <summary>
   /// Answers the page with an exact text copy of the window on the shared display, which it hands
   /// Gemini as the tab's page content next to each picture. None while the camera is shared.
   /// </summary>
   private void SendView(int id) {
-    MonitorInfo monitor = Monitor;
-    bool camera = UseCamera;
-    Task.Run(() => camera ? null : TryRead(monitor))
-        .ContinueWith(t => PostView(id, t.Result),
-                      TaskScheduler.FromCurrentSynchronizationContext());
-  }
-
-  private static ScreenText.View? TryRead(MonitorInfo monitor) {
-    try {
-      return ScreenText.Read(monitor);
-    } catch (Exception e) {
-      Log.Write($"screen text failed: {e.Message}");
-      return null;
+    if (UseCamera) {
+      PostView(id, null);
+      return;
     }
+    MonitorInfo monitor = Monitor;
+    AnswerOffThread(() => Attempt("screen text", () => ScreenText.Read(monitor)),
+                    view => PostView(id, view));
   }
 
   private void PostView(int id, ScreenText.View? view) {
-    JsonObject? body = view is null ? null : new JsonObject {
-      ["title"] = view.Title,
-      ["app"] = view.App,
-      ["version"] = view.Version,
-      ["blocks"] = new JsonArray([.. view.Blocks.Select(b => (JsonNode)new JsonObject {
-        ["kind"] = WireName.Of(b.Kind),
-        ["text"] = b.Text,
-      })]),
-    };
-    var reply = new JsonObject {
-      ["kind"] = WireName.Of(PageMessageKind.View),
-      ["id"] = id,
-      ["view"] = body,
-    };
-    Core?.PostWebMessageAsJson(reply.ToJsonString());
+    PostReply(PageMessageKind.View, id, new JsonObject {
+      ["view"] = view is null ? null : new JsonObject {
+        ["title"] = view.Title,
+        ["app"] = view.App,
+        ["version"] = view.Version,
+        ["blocks"] = new JsonArray([.. view.Blocks.Select(b => (JsonNode)new JsonObject {
+          ["kind"] = WireName.Of(b.Kind),
+          ["text"] = b.Text,
+        })]),
+      },
+    });
   }
 
   private void PostFrame(int id, ScreenGrabber.Frame? frame) {
     // A failed grab keeps the last good picture rather than leaving Gemini blind for a frame.
     frame ??= _lastFrame;
     _lastFrame = frame;
-    var reply = new JsonObject {
-      ["kind"] = WireName.Of(PageMessageKind.Frame),
-      ["id"] = id,
+    PostReply(PageMessageKind.Frame, id, new JsonObject {
       ["base64"] = frame is null ? null : Convert.ToBase64String(frame.Jpeg),
       ["mimeType"] = ScreenGrabber.MimeType,
       ["width"] = frame?.Width ?? 0,
       ["height"] = frame?.Height ?? 0,
-    };
-    Core?.PostWebMessageAsJson(reply.ToJsonString());
+    });
   }
 }
