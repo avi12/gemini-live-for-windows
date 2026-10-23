@@ -17,7 +17,16 @@
     noise.start();
     return noise;
   };
-  var gateMicrophone = async (microphone) => {
+  var trackGate = (microphone) => ({
+    stream: microphone,
+    setOpen(open) {
+      for (const track of microphone.getAudioTracks()) {
+        track.enabled = open;
+      }
+    }
+  });
+  var gateMicrophone = async (microphone) => await audioGate(microphone).catch(() => null) ?? trackGate(microphone);
+  var audioGate = async (microphone) => {
     const context = new AudioContext();
     const running = await Promise.race([
       context.resume().then(() => context.state === "running"),
@@ -217,14 +226,7 @@
         if (stream.getAudioTracks().length === 0) {
           return stream;
         }
-        const gate = await gateMicrophone(stream).catch(() => null) ?? {
-          stream,
-          setOpen(open) {
-            for (const track of stream.getAudioTracks()) {
-              track.enabled = open;
-            }
-          }
-        };
+        const gate = await gateMicrophone(stream);
         gate.setOpen(!muted);
         micGates.add(gate);
         return gate.stream;

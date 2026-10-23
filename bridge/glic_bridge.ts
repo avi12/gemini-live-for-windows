@@ -378,15 +378,7 @@ if (!window.__glicBridge && window.top === window) {
       if (stream.getAudioTracks().length === 0) {
         return stream;
       }
-      // Without audio to run the gate on, mute falls back to disabling the tracks.
-      const gate = (await gateMicrophone(stream).catch(() => null)) ?? {
-        stream,
-        setOpen(open: boolean) {
-          for (const track of stream.getAudioTracks()) {
-            track.enabled = open;
-          }
-        },
-      };
+      const gate = await gateMicrophone(stream);
       gate.setOpen(!muted);
       micGates.add(gate);
       return gate.stream;

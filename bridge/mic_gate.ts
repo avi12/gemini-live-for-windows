@@ -27,11 +27,25 @@ const comfortNoise = (context: AudioContext): AudioBufferSourceNode => {
   return noise;
 };
 
+/** Without audio to run a gate on, muting falls back to disabling the tracks. */
+const trackGate = (microphone: MediaStream): MicGate => ({
+  stream: microphone,
+  setOpen(open) {
+    for (const track of microphone.getAudioTracks()) {
+      track.enabled = open;
+    }
+  },
+});
+
 /**
- * Routes the microphone through a gate; null when audio can't run here, so the
- * caller keeps the microphone as it is. Stopping the gated track stops the microphone too.
+ * Routes the microphone through a gate, or falls back to {@link trackGate} when audio can't run
+ * here. Never throws: a mute that can't be built must not cost Live its microphone.
  */
-export const gateMicrophone = async (microphone: MediaStream): Promise<MicGate | null> => {
+export const gateMicrophone = async (microphone: MediaStream): Promise<MicGate> =>
+  (await audioGate(microphone).catch(() => null)) ?? trackGate(microphone);
+
+/** The gain gate with comfort noise; null when this page can't run audio. */
+const audioGate = async (microphone: MediaStream): Promise<MicGate | null> => {
   const context = new AudioContext();
   const running = await Promise.race([
     context.resume().then(() => context.state === 'running'),
@@ -47,6 +61,7 @@ export const gateMicrophone = async (microphone: MediaStream): Promise<MicGate |
   context.createMediaStreamSource(microphone).connect(gate).connect(destination);
   comfortNoise(context).connect(destination);
 
+  // Stopping the gated track stops the microphone too.
   const [gated] = destination.stream.getAudioTracks();
   if (gated) {
     const stopGated = gated.stop.bind(gated);
