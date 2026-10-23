@@ -7,13 +7,13 @@ namespace GeminiLive.Glic;
 /// Controls the account's Google Home devices by driving the real Home web app (home.google.com)
 /// in a hidden WebView2 - the same "ride the browser's Google session" approach as
 /// <see cref="GlicHost"/>, for the one thing Gemini's text path can't reach. The page owns auth and
-/// the device graph; <c>home_bridge.js</c> finds a tile and reads its lit state, and we flip it with
-/// a trusted click. The page is loaded on demand, never kept live in the background. PC lights only.
+/// the device graph; <c>home_bridge.js</c> finds a tile and reads its lit state when asked over the
+/// <see cref="HomeProtocol"/> messages, and we flip it with a trusted click. The page is loaded on
+/// demand, never kept live in the background. PC lights only.
 /// </summary>
 public sealed class HomeHost : GoogleWebViewHost<HomeMessage> {
   private const string _homeUrl = "https://home.google.com/";
   private const string _bridgeResource = "GeminiLive.Glic.home_bridge.js";
-  private const string _bridge = "window.__homeBridge";
   private const int _pageWidth = 1100;  // wide enough that the device grid lays out, not the phone view
   private const int _pageHeight = 900;
   // Readiness is polled while the page loads, when messages are dropped; fail fast and poll again.
@@ -38,32 +38,40 @@ public sealed class HomeHost : GoogleWebViewHost<HomeMessage> {
     if (!await WaitReadyAsync()) {
       return "I couldn't reach your Google Home.";
     }
-    JsonNode? state = await EvalAsync($"{_bridge}.pcLights()");
-    if (state?["found"]?.GetValue<bool>() != true) {
+    PcLights? state = await ReadLightsAsync();
+    if (state is not { Found: true }) {
       return "I couldn't find the PC lights.";
     }
-    string name = state["name"]?.GetValue<string>() ?? "PC lights";
-    bool? current = state["on"]?.GetValue<bool>();  // null when the tile shows no state word yet
-    Log.Write($"home: {name} text='{state["text"]}' on={current}");
-    if (current is null) {
+    string name = state.Name ?? "PC lights";
+    Log.Write($"home: {name} text='{state.Text}' on={state.On}");
+    if (state.On is null) {
       return $"I couldn't tell whether the {name} are on.";
     }
-    if (current == on) {
+    if (state.On == on) {
       return $"The {name} are already {OnOff(on)}.";
     }
 
-    await ClickAsync(state["x"]!.GetValue<int>(), state["y"]!.GetValue<int>());
+    await ClickAsync(state.X, state.Y);
     await Task.Delay(_settle);
-    JsonNode? after = await EvalAsync($"{_bridge}.pcLights()");
-    bool? nowOn = after?["on"]?.GetValue<bool>();
-    if (after?["found"]?.GetValue<bool>() != true || nowOn is null) {
+    PcLights? after = await ReadLightsAsync();
+    if (after is not { Found: true, On: { } nowOn }) {
       return "I couldn't confirm the lights changed.";
     }
-    Log.Write($"home: {name} after text='{after["text"]}' on={nowOn}");
+    Log.Write($"home: {name} after text='{after.Text}' on={nowOn}");
     return nowOn == on ? $"Turned the {name} {OnOff(on)}." : "I couldn't switch the lights.";
   }
 
   private static string OnOff(bool on) => on ? "on" : "off";
+
+  /// <summary>The PC Lights tile as the page reads it, or null when the page didn't answer.</summary>
+  private async Task<PcLights?> ReadLightsAsync() {
+    try {
+      return await Messenger.SendMessageAsync(HomeProtocol.PcLights);
+    } catch (Exception e) {
+      Log.Write($"home: reading the lights: {e.Message}");
+      return null;
+    }
+  }
 
   // The engine is up; the Home page itself loads on demand (see EnsureHomeAsync), so leave it blank.
   // Home is idle most of the time, so a crash has no session to resume - the next command reloads it.
@@ -99,12 +107,22 @@ public sealed class HomeHost : GoogleWebViewHost<HomeMessage> {
       if (Core is null) {
         return false;
       }
-      if ((await EvalAsync($"{_bridge} && {_bridge}.ready()"))?.GetValue<bool>() == true) {
+      if (await IsReadyAsync()) {
         return true;
       }
       await Task.Delay(_readyPoll);
     }
     return false;
+  }
+
+  // While the page is still loading the bridge isn't listening yet (no listener) or the message is
+  // lost to the navigation (timeout); either just means not ready yet.
+  private async Task<bool> IsReadyAsync() {
+    try {
+      return await Messenger.SendMessageAsync(HomeProtocol.Ready);
+    } catch (Exception e) when (e is TimeoutException or InvalidOperationException) {
+      return false;
+    }
   }
 
   // The Home tiles ignore synthetic DOM clicks, so flip the light with a trusted CDP mouse event -

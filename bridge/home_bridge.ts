@@ -1,44 +1,32 @@
 // Injected at document-start into home.google.com inside our hidden WebView2 (bundled to
 // home_bridge.js by build.mjs). The Home web app is signed in with the browser's Google session and
 // does all the auth and device wiring; we only locate the PC Lights tile, read whether it is on from
-// its own "On"/"Off" text, and report where to click. HomeHost does the click as a trusted CDP mouse
-// event, because the tiles ignore synthetic DOM clicks (same reason glic types with trusted keys).
+// its own "On"/"Off" text, and report where to click. HomeHost asks over the typed messenger
+// (HomeProtocolMap in home_protocol.ts) and does the click itself as a trusted CDP mouse event,
+// because the tiles ignore synthetic DOM clicks (same reason glic types with trusted keys).
 // Scoped to the PC lights for now.
-import { z } from 'zod';
+import { defineMessaging } from '@gemini-live/messaging';
+import { HomeMessage, PcLightsState, type HomeProtocolMap } from './home_protocol';
+import { webViewTransport } from './webview_transport';
 
 const DEVICE = 'PC Lights';
 const CARD_MIN_W = 300;
 const CARD_MIN_H = 60;
 const DISMISS_TEXT = /^(ok|got it|no thanks|not now|dismiss|done)$/i;
-
-// The shape HomeHost reads back. Zod enforces it at runtime, so a Home-app DOM change that breaks our
-// reading surfaces as a validation error here instead of a silently wrong value in C#.
-const PcLightsState = z.discriminatedUnion('found', [
-  z.object({ found: z.literal(false) }),
-  z.object({
-    found: z.literal(true),
-    name: z.string(),
-    on: z.boolean().nullable(), // null when the tile shows no state word yet
-    text: z.string(),
-    x: z.number().int(),
-    y: z.number().int(),
-  }),
-]);
-type PcLightsState = z.infer<typeof PcLightsState>;
-
-interface HomeBridge {
-  ready(): boolean;
-  pcLights(): PcLightsState;
-}
+// The page only answers HomeHost and never asks it anything, so this bounds nothing in practice.
+const MESSAGE_TIMEOUT_MS = 1000;
 
 declare global {
   interface Window {
-    __homeBridge?: HomeBridge;
+    __homeBridgeInstalled?: boolean;
   }
 }
 
 // Top frame only, install once.
-if (!window.__homeBridge && window.top === window) {
+if (!window.__homeBridgeInstalled && window.top === window) {
+  window.__homeBridgeInstalled = true;
+  const app = defineMessaging<HomeProtocolMap>(webViewTransport(), { timeoutMs: MESSAGE_TIMEOUT_MS });
+
   // Walk open shadow roots as well as the light DOM - the Home app is deep web components.
   const deepQuery = (root: Document | ShadowRoot | Element, selector: string): Element[] => {
     const out: Element[] = [];
@@ -107,12 +95,10 @@ if (!window.__homeBridge && window.top === window) {
     });
   };
 
-  window.__homeBridge = {
-    ready: (): boolean => {
-      dismissCards(); // an onboarding overlay mustn't hold the readiness gate false
-      const card = deviceCard(DEVICE);
-      return card !== null && stateOf(cardText(card)) !== null; // wait for the device state to load
-    },
-    pcLights: (): PcLightsState => measure(),
-  };
+  app.onMessage(HomeMessage.Ready, (): boolean => {
+    dismissCards(); // an onboarding overlay mustn't hold the readiness gate false
+    const card = deviceCard(DEVICE);
+    return card !== null && stateOf(cardText(card)) !== null; // wait for the device state to load
+  });
+  app.onMessage(HomeMessage.PcLights, (): PcLightsState => measure());
 }
