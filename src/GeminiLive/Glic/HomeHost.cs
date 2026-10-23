@@ -10,12 +10,14 @@ namespace GeminiLive.Glic;
 /// the device graph; <c>home_bridge.js</c> finds a tile and reads its lit state, and we flip it with
 /// a trusted click. The page is loaded on demand, never kept live in the background. PC lights only.
 /// </summary>
-public sealed class HomeHost : GoogleWebViewHost {
+public sealed class HomeHost : GoogleWebViewHost<HomeMessage> {
   private const string _homeUrl = "https://home.google.com/";
   private const string _bridgeResource = "GeminiLive.Glic.home_bridge.js";
   private const string _bridge = "window.__homeBridge";
   private const int _pageWidth = 1100;  // wide enough that the device grid lays out, not the phone view
   private const int _pageHeight = 900;
+  // Readiness is polled while the page loads, when messages are dropped; fail fast and poll again.
+  private static readonly TimeSpan _messageTimeout = TimeSpan.FromSeconds(1);
   private static readonly string _profile = Path.Combine(Log.Dir, "WebView2Home");
   private static readonly TimeSpan _readyPoll = TimeSpan.FromMilliseconds(400);
   private static readonly TimeSpan _readyTimeout = TimeSpan.FromSeconds(20);
@@ -23,7 +25,7 @@ public sealed class HomeHost : GoogleWebViewHost {
 
   public HomeHost(SessionLink link)
       : base("Gemini Live - Home", "home", _profile, _bridgeResource, _pageWidth,
-             _pageHeight) {
+             _pageHeight, _messageTimeout) {
     link.CookiesReceived += cookies => Dispatcher.BeginInvoke(() => AdoptSession(cookies));
   }
 

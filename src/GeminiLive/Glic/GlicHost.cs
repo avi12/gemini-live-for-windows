@@ -3,9 +3,6 @@ using Microsoft.Web.WebView2.Core;
 
 namespace GeminiLive.Glic;
 
-/// <summary>The Live states the page reports (State in glic_bridge.js).</summary>
-public enum GlicState { Idle, Listening, Resuming }
-
 /// <summary>
 /// Hosts the real Gemini web client (gemini.google.com/glic - what powers Gemini in Chrome) in a
 /// WebView2 that lives off-screen for the whole app lifetime, so Win+C starts Live without a page
@@ -17,7 +14,7 @@ public enum GlicState { Idle, Listening, Resuming }
 /// rotates the cookies itself (RotateCookies is blocked), it just takes each rotation the browser
 /// makes - otherwise the two copies would invalidate each other.
 /// </summary>
-public sealed class GlicHost : GoogleWebViewHost {
+public sealed class GlicHost : GoogleWebViewHost<GlicMessage> {
   public event Action<GlicState>? State;
   public event Action<string, bool, int>? Caption;  // text, isUser, utterance index
   public event Action<string>? Notice;  // waiting-for-session style status, not fatal
@@ -33,6 +30,7 @@ public sealed class GlicHost : GoogleWebViewHost {
   private const string _dispatchKeyEvent = "Input.dispatchKeyEvent";
   private const int _pageWidth = 900;
   private const int _pageHeight = 720;
+  private static readonly TimeSpan _messageTimeout = TimeSpan.FromSeconds(3);
   private static readonly string _profile = Path.Combine(Log.Dir, "WebView2");
 
   private readonly SessionLink _link;
@@ -88,7 +86,7 @@ public sealed class GlicHost : GoogleWebViewHost {
 
   public GlicHost(SessionLink link)
       : base("Gemini Live - web client", "glic", _profile, _bridgeResource, _pageWidth,
-             _pageHeight) {
+             _pageHeight, _messageTimeout) {
     _link = link;
     link.CookiesReceived += cookies => Dispatcher.BeginInvoke(() => AdoptSession(cookies));
     link.Connected += () => Dispatcher.BeginInvoke(() => ExtensionNeeded?.Invoke(false));

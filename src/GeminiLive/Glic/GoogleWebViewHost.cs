@@ -13,12 +13,14 @@ public enum RecoveryFailure { CrashLoop, RebuildFailed }
 /// A parked, off-screen window hosting a WebView2 that rides the browser's Google session - the base
 /// of Gemini's glic page (<see cref="GlicHost"/>) and the Home page (<see cref="HomeHost"/>). It owns
 /// what is identical between them: the window chrome, the Chromium flags, the cookie-rotation block,
-/// the injected bridge, page evaluation, and surviving a crashed browser process.
+/// the injected bridge and the typed <see cref="Messenger"/> to it, and surviving a crashed browser
+/// process.
 ///
 /// A browser-process crash leaves the WPF control permanently invalid - every later touch, including
 /// re-initialising it, throws - so recovery replaces the control itself, never just its core.
 /// </summary>
-public abstract class GoogleWebViewHost : Window {
+/// <typeparam name="TMessage">The page protocol's message types.</typeparam>
+public abstract class GoogleWebViewHost<TMessage> : Window where TMessage : struct, Enum {
   // Parked off-screen reads as occluded, which would throttle the page's timers; the voice must also
   // play without a click inside the page. Both matter for glic and are harmless for Home.
   private const string _arguments =
@@ -47,8 +49,16 @@ public abstract class GoogleWebViewHost : Window {
   /// </summary>
   protected CoreWebView2? Core { get; private set; }
 
+  /// <summary>
+  /// Messages to and from the page's bridge. A message sent while the page navigates is lost, so
+  /// every send times out.
+  /// </summary>
+  protected Messenger<TMessage> Messenger { get; }
+
   protected GoogleWebViewHost(string title, string logTag, string profileDir,
-                              string bridgeResource, int pageWidth, int pageHeight) {
+                              string bridgeResource, int pageWidth, int pageHeight,
+                              TimeSpan messageTimeout) {
+    Messenger = new Messenger<TMessage>(json => Core?.PostWebMessageAsJson(json), messageTimeout);
     _logTag = logTag;
     _profile = profileDir;
     _bridgeResource = bridgeResource;
@@ -138,6 +148,7 @@ public abstract class GoogleWebViewHost : Window {
     core.Settings.AreDevToolsEnabled = Log.Debugging;
     core.Settings.IsStatusBarEnabled = false;
     core.ProcessFailed += OnProcessFailed;
+    core.WebMessageReceived += (_, e) => Messenger.Receive(e.WebMessageAsJson);
     // This WebView2 only ever adopts the rotations the browser makes; two writers would invalidate
     // each other's session.
     core.AddWebResourceRequestedFilter(_rotateCookiesFilter, CoreWebView2WebResourceContext.All);
