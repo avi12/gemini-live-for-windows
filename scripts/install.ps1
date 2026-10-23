@@ -24,6 +24,12 @@ $name      = $manifest.Package.Identity.Name
 # Stop a running copy so its files can be replaced.
 Get-Process GeminiLive -ErrorAction SilentlyContinue | Stop-Process -Force
 
+# The typed messaging the extension and the bridges share; linked, so its own deps install here.
+Write-Host '== messaging'
+pnpm --dir (Join-Path $root 'messaging') install --silent
+pnpm --dir (Join-Path $root 'messaging') typecheck
+if ($LASTEXITCODE) { throw 'messaging typecheck failed' }
+
 Write-Host '== extension'
 pnpm --dir (Join-Path $root 'extension') install --silent
 pnpm --dir (Join-Path $root 'extension') build

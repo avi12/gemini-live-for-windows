@@ -9,6 +9,7 @@
     "build": "tsc --noEmit && node build.mjs"
   },
   "dependencies": {
+    "@gemini-live/messaging": "link:../messaging",
     "zod": "^3.24.1"
   },
   "devDependencies": {

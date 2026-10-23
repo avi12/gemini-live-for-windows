@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@gemini-live/messaging':
+        specifier: link:../messaging
+        version: link:../messaging
       zod:
         specifier: ^3.24.1
         version: 3.25.76

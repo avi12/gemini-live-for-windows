@@ -11,6 +11,9 @@
     "compile": "tsc --noEmit",
     "postinstall": "wxt prepare"
   },
+  "dependencies": {
+    "@gemini-live/messaging": "link:../messaging"
+  },
   "devDependencies": {
     "@types/chrome": "^0.2.2",
     "typescript": "^5.7.0",
