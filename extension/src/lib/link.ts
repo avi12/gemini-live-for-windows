@@ -151,7 +151,8 @@ function parseMessage(data: unknown): AppMessage | undefined {
   }
 }
 
-function close(link: Link): void {
+/** Ends this attempt once, and lets the controller schedule the next. */
+function closeLink(link: Link): void {
   if (link.closed) {
     return;
   }
@@ -169,7 +170,7 @@ function connect(): Link {
     }
 
     if (!info) {
-      close(link);
+      closeLink(link);
       return;
     }
 
@@ -181,7 +182,7 @@ function connect(): Link {
 function open(link: Link, info: LinkInfo): void {
   const socket = new WebSocket(`ws://127.0.0.1:${info.port}${LINK_PATH}`);
   link.socket = socket;
-  const helloTimer = setTimeout(() => close(link), HELLO_TIMEOUT_MS);
+  const helloTimer = setTimeout(() => closeLink(link), HELLO_TIMEOUT_MS);
 
   socket.addEventListener('message', ({ data }) => {
     if (connection.current !== link) {
@@ -191,7 +192,7 @@ function open(link: Link, info: LinkInfo): void {
     const message = parseMessage(data);
     if (!link.trusted) {
       if (message?.type !== MessageType.HELLO || message.token !== info.token) {
-        close(link);
+        closeLink(link);
         return;
       }
 
@@ -222,7 +223,7 @@ function open(link: Link, info: LinkInfo): void {
   });
   socket.addEventListener('close', () => {
     clearTimeout(helloTimer);
-    close(link);
+    closeLink(link);
   });
-  socket.addEventListener('error', () => close(link));
+  socket.addEventListener('error', () => closeLink(link));
 }
