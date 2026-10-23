@@ -1,12 +1,18 @@
 import { ReconnectController } from '@/lib/reconnect';
 import { refreshGoogleSession } from '@/lib/refresh';
 
-// The loopback WebSocket the desktop app hosts. It accepts only this extension's pinned ID.
-// Port = SessionLink.Port in src/GeminiLive/Glic/SessionLink.cs.
-const LINK_URL = 'ws://127.0.0.1:8479/google-session';
+// The loopback WebSocket the desktop app hosts. It accepts only this extension's pinned ID. Its
+// port is free-picked per run, so the app writes it, with a token, into this extension's own folder
+// (ExtensionSetup.PublishLink in src/GeminiLive/Glic/ExtensionSetup.cs).
+const LINK_FILE = 'link.json';
+const LINK_PATH = '/google-session';
 
 // The app may not be running yet; retry quietly until it is.
 const RECONNECT_MS = 5000;
+
+// The app says Hello the moment the socket opens. Whatever is on a stale port without saying it,
+// with the right token, is not the app and never gets the session.
+const HELLO_TIMEOUT_MS = 5000;
 
 // A sign-in or rotation changes several cookies at once; push them as one.
 const ROTATION_DEBOUNCE_MS = 1500;
@@ -19,6 +25,8 @@ const GOOGLE_COOKIE_DOMAIN = 'google.com';
  * src/GeminiLive/Glic/SessionLink.cs; the wire value is the lower-cased enum name.
  */
 const MessageType = {
+  /** App → extension, first: this run's token, proving it is the app that wrote the link file. */
+  HELLO: 'hello',
   /** Extension → app: the current Google cookies. */
   COOKIES: 'cookies',
   /** App → extension: send the current cookies now. */
@@ -35,9 +43,26 @@ type MessageType = (typeof MessageType)[keyof typeof MessageType];
 /** Messages the app sends down the link. */
 interface AppMessage {
   type?: MessageType;
+  token?: string;
 }
 
-const connection = new ReconnectController(connect, isSocketActive, RECONNECT_MS);
+/** Where this run of the app listens (the link file). */
+interface LinkInfo {
+  port: number;
+  token: string;
+}
+
+/**
+ * One attempt at the link: reading the link file, then the socket. `trusted` once the app's Hello
+ * carried the file's token; nothing is sent before that.
+ */
+interface Link {
+  socket?: WebSocket;
+  trusted: boolean;
+  closed: boolean;
+}
+
+const connection = new ReconnectController(connect, isLinkActive, RECONNECT_MS);
 
 let pendingPush: ReturnType<typeof setTimeout> | undefined;
 
@@ -60,8 +85,15 @@ export function pushSessionSoon(): void {
   pendingPush = setTimeout(() => void pushSession(), ROTATION_DEBOUNCE_MS);
 }
 
-function isSocketActive(socket: WebSocket): boolean {
-  return socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING;
+function isLinkActive(link: Link): boolean {
+  return !link.closed;
+}
+
+/** The trusted, open socket to the app, if there is one. */
+function trustedSocket(): WebSocket | undefined {
+  const link = connection.current;
+  const socket = link?.socket;
+  return link?.trusted && socket?.readyState === WebSocket.OPEN ? socket : undefined;
 }
 
 async function collectCookies() {
@@ -79,18 +111,31 @@ async function collectCookies() {
 }
 
 async function pushSession(): Promise<void> {
-  const socket = connection.current;
-  if (socket?.readyState !== WebSocket.OPEN) {
+  const socket = trustedSocket();
+  if (!socket) {
     return;
   }
 
   const cookies = await collectCookies();
   // The socket can drop during the async cookie read; never answer through a replacement.
-  if (connection.current !== socket || socket.readyState !== WebSocket.OPEN) {
+  if (trustedSocket() !== socket) {
     return;
   }
 
   socket.send(JSON.stringify({ type: MessageType.COOKIES, cookies }));
+}
+
+/** The link file as the app last wrote it, or undefined before the app has ever run. */
+async function readLinkInfo(): Promise<LinkInfo | undefined> {
+  try {
+    const response = await fetch(new URL(LINK_FILE, location.origin), { cache: 'no-store' });
+    const info = (await response.json()) as Partial<LinkInfo>;
+    return typeof info.port === 'number' && typeof info.token === 'string'
+      ? { port: info.port, token: info.token }
+      : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function parseMessage(data: unknown): AppMessage | undefined {
@@ -106,16 +151,57 @@ function parseMessage(data: unknown): AppMessage | undefined {
   }
 }
 
-function connect(): WebSocket {
-  const socket = new WebSocket(LINK_URL);
+function close(link: Link): void {
+  if (link.closed) {
+    return;
+  }
 
-  socket.addEventListener('open', () => void pushSession());
-  socket.addEventListener('message', ({ data }) => {
-    if (connection.current !== socket) {
+  link.closed = true;
+  link.socket?.close();
+  connection.disconnected(link);
+}
+
+function connect(): Link {
+  const link: Link = { trusted: false, closed: false };
+  void readLinkInfo().then(info => {
+    if (link.closed) {
       return;
     }
 
-    switch (parseMessage(data)?.type) {
+    if (!info) {
+      close(link);
+      return;
+    }
+
+    open(link, info);
+  });
+  return link;
+}
+
+function open(link: Link, info: LinkInfo): void {
+  const socket = new WebSocket(`ws://127.0.0.1:${info.port}${LINK_PATH}`);
+  link.socket = socket;
+  const helloTimer = setTimeout(() => close(link), HELLO_TIMEOUT_MS);
+
+  socket.addEventListener('message', ({ data }) => {
+    if (connection.current !== link) {
+      return;
+    }
+
+    const message = parseMessage(data);
+    if (!link.trusted) {
+      if (message?.type !== MessageType.HELLO || message.token !== info.token) {
+        close(link);
+        return;
+      }
+
+      clearTimeout(helloTimer);
+      link.trusted = true;
+      void pushSession();
+      return;
+    }
+
+    switch (message?.type) {
       // The app wants the current session now (e.g. it has none yet).
       case MessageType.QUERY:
         void pushSession();
@@ -134,7 +220,9 @@ function connect(): WebSocket {
         return;
     }
   });
-  socket.addEventListener('close', () => connection.disconnected(socket));
-  socket.addEventListener('error', () => socket.close());
-  return socket;
+  socket.addEventListener('close', () => {
+    clearTimeout(helloTimer);
+    close(link);
+  });
+  socket.addEventListener('error', () => close(link));
 }

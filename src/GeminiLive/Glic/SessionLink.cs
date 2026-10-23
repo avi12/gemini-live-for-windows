@@ -12,6 +12,7 @@ namespace GeminiLive.Glic;
 /// <see cref="WireName"/>'s lower-cased name: "query", "refresh", …
 /// </summary>
 public enum LinkMessageType {
+  Hello,    // app → extension, first: this run's token, proving it's the app that wrote link.json
   Cookies,  // extension → app: the current Google cookies
   Query,    // app → extension: send the cookies now
   Refresh,  // app → extension: ours stopped working; refresh the browser's session, then send it
@@ -23,12 +24,17 @@ public enum LinkMessageType {
 /// The loopback WebSocket the companion browser extension (extension/ in this repo) keeps open.
 /// It pushes the browser's Google cookies on connect and on every rotation; we can also ask for
 /// them on demand. Only the extension's pinned ID may connect.
+///
+/// No fixed port, since any port can already be taken: we listen on a free one and publish it with
+/// a fresh token in the extension's folder (<see cref="ExtensionSetup.PublishLink"/>). The
+/// extension sends cookies only after our Hello carries that token, so whatever else ends up on a
+/// stale port never gets the session.
 /// </summary>
 public sealed class SessionLink {
   public event Action<IReadOnlyList<GoogleCookie>>? CookiesReceived;
   public event Action? Connected;
 
-  private const int _port = 8479;  // = LINK_URL in extension/src/lib/link.ts
+  private const int _tokenBytes = 32;
   // From the manifest "key", so only our extension can hand us a Google session.
   private const string _extensionOrigin = "chrome-extension://logpjalpegggobmjjimpacngnnhaakmd";
   private const string _webSocketGuid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";  // RFC 6455
@@ -38,6 +44,7 @@ public sealed class SessionLink {
 
   private readonly List<WebSocket> _clients = [];
   private readonly object _gate = new();
+  private readonly string _token = Convert.ToHexString(RandomNumberGenerator.GetBytes(_tokenBytes));
 
   public bool IsExtensionConnected {
     get {
@@ -48,7 +55,18 @@ public sealed class SessionLink {
   }
 
   public void Start() {
-    _ = Task.Run(AcceptLoopAsync);
+    TcpListener listener;
+    try {
+      listener = new TcpListener(IPAddress.Loopback, 0);
+      listener.Start();
+    } catch (Exception e) {
+      Log.Write($"session link: cannot listen: {e.Message}");
+      return;
+    }
+    int port = ((IPEndPoint)listener.LocalEndpoint).Port;
+    Log.Write($"session link: listening on {port}");
+    ExtensionSetup.PublishLink(port, _token);
+    _ = Task.Run(() => AcceptLoopAsync(listener));
   }
 
   /// <summary>Ask the extension for the current session right now.</summary>
@@ -64,16 +82,7 @@ public sealed class SessionLink {
     Send(LinkMessageType.Refresh);
   }
 
-  private async Task AcceptLoopAsync() {
-    TcpListener listener;
-    try {
-      listener = new TcpListener(IPAddress.Loopback, _port);
-      listener.Start();
-    } catch (Exception e) {
-      Log.Write($"session link: cannot listen on {_port}: {e.Message}");
-      return;
-    }
-
+  private async Task AcceptLoopAsync(TcpListener listener) {
     _ = Task.Run(PingLoopAsync);
     while (true) {
       TcpClient client = await listener.AcceptTcpClientAsync();
@@ -107,6 +116,9 @@ public sealed class SessionLink {
 
     using WebSocket socket = WebSocket.CreateFromStream(
         stream, isServer: true, subProtocol: null, keepAliveInterval: TimeSpan.Zero);
+    byte[] hello = Encoding.UTF8.GetBytes(
+        JsonSerializer.Serialize(new { type = WireName.Of(LinkMessageType.Hello), token = _token }));
+    await socket.SendAsync(hello, WebSocketMessageType.Text, true, CancellationToken.None);
     lock (_gate) {
       _clients.Add(socket);
     }
