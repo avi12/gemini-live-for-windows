@@ -109,6 +109,7 @@ public sealed class Messenger<TType> where TType : struct, Enum {
     if (!_handlers.TryAdd(message.Type, handler)) {
       throw new InvalidOperationException($"\"{WireName.Of(message.Type)}\" already has a listener");
     }
+
     return () => _handlers.TryRemove(message.Type, out _);
   }
 
@@ -135,13 +136,16 @@ public sealed class Messenger<TType> where TType : struct, Enum {
     } catch (JsonException) {
       return;  // not one of ours
     }
+
     if (envelope.ValueKind != JsonValueKind.Object) {
       return;
     }
+
     if (envelope.TryGetProperty("replyTo", out JsonElement replyTo)) {
       Settle(replyTo.GetInt32(), envelope);
       return;
     }
+
     Request? request = envelope.Deserialize<Request>(_json);
     if (request is not null) {
       _ = AnswerAsync(request);
@@ -152,10 +156,12 @@ public sealed class Messenger<TType> where TType : struct, Enum {
     if (!_pending.TryGetValue(id, out TaskCompletionSource<JsonElement>? reply)) {
       return;  // timed out already
     }
+
     if (envelope.TryGetProperty("err", out JsonElement err) && err.ValueKind == JsonValueKind.String) {
       reply.TrySetException(new InvalidOperationException(err.GetString()));
       return;
     }
+
     reply.TrySetResult(envelope.TryGetProperty("res", out JsonElement res) ? res.Clone() : default);
   }
 
@@ -171,6 +177,7 @@ public sealed class Messenger<TType> where TType : struct, Enum {
         reply = new Reply(request.Id, null, e.Message);
       }
     }
+
     _post(JsonSerializer.Serialize(reply, _json));
   }
 }

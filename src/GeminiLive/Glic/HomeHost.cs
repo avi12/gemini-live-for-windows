@@ -35,18 +35,23 @@ public sealed class HomeHost : GoogleWebViewHost<HomeMessage> {
   /// </summary>
   public async Task<string> SetLightsAsync(bool on) {
     await EnsureHomeAsync();
+
     if (!await WaitReadyAsync()) {
       return "I couldn't reach your Google Home.";
     }
+
     PcLights? state = await ReadLightsAsync();
     if (state is not { Found: true }) {
       return "I couldn't find the PC lights.";
     }
+
     string name = state.Name ?? "PC lights";
     Log.Write($"home: {name} text='{state.Text}' on={state.On}");
+
     if (state.On is null) {
       return $"I couldn't tell whether the {name} are on.";
     }
+
     if (state.On == on) {
       return $"The {name} are already {OnOff(on)}.";
     }
@@ -57,6 +62,7 @@ public sealed class HomeHost : GoogleWebViewHost<HomeMessage> {
     if (after is not { Found: true, On: { } nowOn }) {
       return "I couldn't confirm the lights changed.";
     }
+
     Log.Write($"home: {name} after text='{after.Text}' on={nowOn}");
     return nowOn == on ? $"Turned the {name} {OnOff(on)}." : "I couldn't switch the lights.";
   }
@@ -85,10 +91,13 @@ public sealed class HomeHost : GoogleWebViewHost<HomeMessage> {
   // glic's session. Brings the engine back first if a crash took it down.
   private async Task EnsureHomeAsync() {
     await EnsureCoreAsync();
+
     if (Core is not { } core) {
       return;
     }
+
     GoogleCookies.Inject(core.CookieManager, GoogleCookies.Load());
+
     if (!(core.Source ?? "").StartsWith(_homeUrl + "home", StringComparison.Ordinal)) {
       core.Navigate(_homeUrl);
       await Task.Delay(_settle);  // let the navigation start before we poll readiness
@@ -107,9 +116,11 @@ public sealed class HomeHost : GoogleWebViewHost<HomeMessage> {
       if (Core is null) {
         return false;
       }
+
       if (await IsReadyAsync()) {
         return true;
       }
+
       await Task.Delay(_readyPoll);
     }
     return false;
@@ -131,9 +142,15 @@ public sealed class HomeHost : GoogleWebViewHost<HomeMessage> {
     if (Core is not { } core) {
       return;
     }
+
     foreach (string type in new[] { "mousePressed", "mouseReleased" }) {
       var e = new JsonObject {
-        ["type"] = type, ["x"] = x, ["y"] = y, ["button"] = "left", ["buttons"] = 1, ["clickCount"] = 1,
+        ["type"] = type,
+        ["x"] = x,
+        ["y"] = y,
+        ["button"] = "left",
+        ["buttons"] = 1,
+        ["clickCount"] = 1,
       };
       await core.CallDevToolsProtocolMethodAsync("Input.dispatchMouseEvent", e.ToJsonString());
     }

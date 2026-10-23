@@ -31,9 +31,11 @@ public sealed class Settings {
       if (Environment.GetEnvironmentVariable("GEMINI_API_KEY") is { Length: > 0 } env) {
         return env;
       }
+
       if (ProtectedApiKey is not { Length: > 0 } sealedKey) {
         return "";
       }
+
       return Encoding.UTF8.GetString(UserSecret.Unseal(Convert.FromBase64String(sealedKey)));
     }
   }
@@ -45,6 +47,7 @@ public sealed class Settings {
     if (!File.Exists(_filePath)) {
       return new();
     }
+
     try {
       return JsonSerializer.Deserialize<Settings>(File.ReadAllText(_filePath), _json) ?? new();
     } catch (Exception e) {

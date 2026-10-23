@@ -138,9 +138,11 @@ public sealed class SessionLink {
       lock (_gate) {
         wasConnected = _clients.Remove(messenger);
       }
+
       if (wasConnected) {
         Log.Write("session link: extension disconnected");
       }
+
       await receiving;
       outbox.Writer.TryComplete();
       await sending;
@@ -155,6 +157,7 @@ public sealed class SessionLink {
         if (message is null) {
           break;
         }
+
         messenger.Receive(message);
       }
     } catch (Exception e) {
@@ -219,7 +222,9 @@ public sealed class SessionLink {
       if (r.MessageType == WebSocketMessageType.Close) {
         return null;
       }
+
       message.Write(buffer, 0, r.Count);
+
       if (r.EndOfMessage) {
         return Encoding.UTF8.GetString(message.ToArray());
       }
@@ -234,7 +239,9 @@ public sealed class SessionLink {
       if (await stream.ReadAsync(one) == 0) {
         return null;
       }
+
       bytes.Add(one[0]);
+
       if (EndsWithBlankLine(bytes)) {
         break;
       }

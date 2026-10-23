@@ -70,6 +70,7 @@ public sealed class LiveSession : IAsyncDisposable {
   public async ValueTask DisposeAsync() {
     _cts.Cancel();
     _outbox.Writer.TryComplete();
+
     if (_socket is { State: WebSocketState.Open } socket) {
       try {
         await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None)
@@ -78,6 +79,7 @@ public sealed class LiveSession : IAsyncDisposable {
         // Closing politely is best-effort; the socket is disposed either way.
       }
     }
+
     _socket?.Dispose();
   }
 
@@ -95,6 +97,7 @@ public sealed class LiveSession : IAsyncDisposable {
       throw new InvalidOperationException(
           $"Setup rejected: {first?.ToJsonString() ?? _socket.CloseStatusDescription}");
     }
+
     Status?.Invoke(_resumeHandle is null ? "Connected" : "Reconnected");
     _ = Task.Run(ReceiveLoopAsync);
   }
@@ -139,6 +142,7 @@ public sealed class LiveSession : IAsyncDisposable {
       if (_socket?.State != WebSocketState.Open) {
         continue;
       }
+
       try {
         await SendNowAsync(message);
       } catch (Exception e) when (!_cts.IsCancellationRequested) {
@@ -167,7 +171,9 @@ public sealed class LiveSession : IAsyncDisposable {
       if (r.MessageType == WebSocketMessageType.Close) {
         return null;
       }
+
       message.Write(buffer, 0, r.Count);
+
       // The server sends JSON in binary frames; both frame types carry UTF-8 JSON.
       if (r.EndOfMessage) {
         return JsonNode.Parse(message.ToArray());
@@ -183,10 +189,12 @@ public sealed class LiveSession : IAsyncDisposable {
         if (msg is null) {
           break;
         }
+
         if (Handle(msg)) {
           return;  // goAway: a fresh socket took over
         }
       }
+
       if (socket == _socket && !_cts.IsCancellationRequested) {
         Closed?.Invoke(
             socket?.CloseStatusDescription is { Length: > 0 } reason ? reason : "Session ended");
@@ -214,6 +222,7 @@ public sealed class LiveSession : IAsyncDisposable {
     if (msg["goAway"] is not { } goAway) {
       return false;
     }
+
     Log.Write($"goAway {goAway.ToJsonString()} - resuming");
     Status?.Invoke(LiveStatus.Reconnecting);
     _ = Task.Run(ResumeAsync);
@@ -224,6 +233,7 @@ public sealed class LiveSession : IAsyncDisposable {
     if (content["interrupted"]?.GetValue<bool>() == true) {
       Interrupted?.Invoke();
     }
+
     if (content["modelTurn"]?["parts"] is JsonArray parts) {
       foreach (JsonNode? part in parts) {
         if (part?["inlineData"]?["data"]?.GetValue<string>() is { } base64) {
@@ -231,9 +241,11 @@ public sealed class LiveSession : IAsyncDisposable {
         }
       }
     }
+
     if (content["inputTranscription"]?["text"]?.GetValue<string>() is { Length: > 0 } heard) {
       UserText?.Invoke(heard);
     }
+
     if (content["outputTranscription"]?["text"]?.GetValue<string>() is { Length: > 0 } said) {
       ModelText?.Invoke(said);
     }

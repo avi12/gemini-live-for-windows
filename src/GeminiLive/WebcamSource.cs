@@ -54,6 +54,7 @@ public sealed class WebcamSource : IAsyncDisposable {
       capture.Dispose();
       throw new InvalidOperationException($"camera reader start: {status}");
     }
+
     _capture = capture;
     _reader = reader;
   }
@@ -73,6 +74,7 @@ public sealed class WebcamSource : IAsyncDisposable {
       _reader.Dispose();
       _reader = null;
     }
+
     _capture?.Dispose();
     _capture = null;
   }
@@ -95,10 +97,12 @@ public sealed class WebcamSource : IAsyncDisposable {
     if (bitmap is null) {
       return;
     }
+
     DateTime now = DateTime.UtcNow;
     if (now - _lastEncoded < _minGap) {
       return;  // cap the encode rate; the pull only needs about one a second
     }
+
     _lastEncoded = now;
     _ = EncodeAsync(SoftwareBitmap.Copy(bitmap));  // own a copy; the frame is released at scope exit
   }
@@ -118,6 +122,7 @@ public sealed class WebcamSource : IAsyncDisposable {
         encoder.BitmapTransform.ScaledWidth = (uint)width;
         encoder.BitmapTransform.ScaledHeight = (uint)height;
       }
+
       await encoder.FlushAsync();
 
       var bytes = new byte[stream.Size];
@@ -136,6 +141,7 @@ public sealed class WebcamSource : IAsyncDisposable {
       if (!ReferenceEquals(bgra, frame)) {
         bgra.Dispose();
       }
+
       frame.Dispose();
     }
   }

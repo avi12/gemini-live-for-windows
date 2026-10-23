@@ -39,6 +39,7 @@ public sealed class SpeechPlayer : IDisposable {
     if (string.IsNullOrWhiteSpace(text)) {
       return;  // nothing to say
     }
+
     Stop();  // a new answer supersedes whatever was speaking
     int generation = _generation;
     try {
@@ -47,6 +48,7 @@ public sealed class SpeechPlayer : IDisposable {
         stream.Dispose();
         return;  // stopped or superseded while synthesizing
       }
+
       _player.Source = MediaSource.CreateFromStream(stream, stream.ContentType);
       _player.Play();
     } catch (Exception e) {
@@ -57,9 +59,11 @@ public sealed class SpeechPlayer : IDisposable {
   /// <summary>Stops any current playback. Cheap when nothing is playing; safe from any thread.</summary>
   public void Stop() {
     Interlocked.Increment(ref _generation);
+
     if (_player.Source is null) {
       return;
     }
+
     (_player.Source as IDisposable)?.Dispose();
     _player.Source = null;
   }
@@ -78,8 +82,10 @@ public sealed class SpeechPlayer : IDisposable {
       if (voice is not null) {
         _synthesizer.Voice = voice;
       }
+
       Log.Write($"SpeechPlayer: voice '{_synthesizer.Voice?.DisplayName}'");
     }
+
     return _synthesizer;
   }
 

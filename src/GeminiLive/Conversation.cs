@@ -65,6 +65,7 @@ public sealed class Conversation : ILiveEngine {
     if (isUser != _utteranceIsUser) {
       _utterance = "";
     }
+
     _utteranceIsUser = isUser;
     _utterance += fragment;
     Transcript?.Invoke(_utterance.Trim(), isUser);

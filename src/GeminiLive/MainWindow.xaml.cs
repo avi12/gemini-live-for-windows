@@ -79,6 +79,7 @@ public partial class MainWindow : Window {
   private async Task StartAsync(MonitorInfo monitor) {
     _captions.Clear();
     ShowOn(monitor);
+
     if (_settings.Engine == EngineKind.ApiKey && !_settings.HasApiKey) {
       _pendingMonitor = monitor;
       AskForKey();
@@ -97,20 +98,26 @@ public partial class MainWindow : Window {
     UpdateShareButton();
     try {
       await engine.StartAsync();
+
       if (_conversation != engine) {
         return;  // ended while connecting
       }
+
       SetStatus(LiveStatus.Listening);
+
       if (!engine.ReportsLevels) {
         _glow.Breathe();
       }
+
       SetMuted(false);
     } catch (Exception e) {
       if (_conversation != engine) {
         return;
       }
+
       Log.Write($"start failed: {e}");
       Fail(engine, e.Message);
+
       if (e.Message.Contains("API key", StringComparison.OrdinalIgnoreCase)) {
         AskForKey();
       }
@@ -121,6 +128,7 @@ public partial class MainWindow : Window {
     if (_settings.Engine == EngineKind.Google) {
       return new Glic.GlicConversation(_glic, _home, monitor);
     }
+
     return new Conversation(_settings, monitor);
   }
 
@@ -138,6 +146,7 @@ public partial class MainWindow : Window {
     if (_conversation != engine) {
       return;
     }
+
     Log.Write($"ended: {reason}");
     Detach();
     SetStatus("Gemini Live stopped", detail: reason);
@@ -149,6 +158,7 @@ public partial class MainWindow : Window {
     ILiveEngine? engine = _conversation;
     Detach();
     Leave();
+
     if (engine is not null) {
       await engine.DisposeAsync();
     }
@@ -173,6 +183,7 @@ public partial class MainWindow : Window {
     Show();
     UpdateLayout();
     Dock();
+
     if (arriving) {
       Motion.Enter(Root, rise: _pillRise, scaleFrom: _pillScaleFrom);
     }
@@ -185,6 +196,7 @@ public partial class MainWindow : Window {
       if (!_leaving) {
         return;
       }
+
       _leaving = false;
       Hide();
     });
@@ -212,6 +224,7 @@ public partial class MainWindow : Window {
     if (_dockedOn is not { } monitor || !IsVisible) {
       return;
     }
+
     DpiScale dpi = VisualTreeHelper.GetDpi(this);
     Overlay.PlaceBottomRight(Handle, monitor.WorkRight - _dockGap, monitor.WorkBottom - _dockGap,
                              (int)Math.Round(size.Width * dpi.DpiScaleX),
@@ -234,6 +247,7 @@ public partial class MainWindow : Window {
     if (all.Count < 2) {
       return;
     }
+
     ContextMenu menu = MenuAbove(ShareButton);
     DisplayPicker.Fill(menu, all, Shared, Share);
     menu.IsOpen = true;
@@ -243,6 +257,7 @@ public partial class MainWindow : Window {
     if (_conversation is null) {
       return;
     }
+
     _conversation.Share(monitor);
     _border.Cover(monitor);
     UpdateShareButton();
@@ -253,13 +268,16 @@ public partial class MainWindow : Window {
   private void OnDisplaysChanged() {
     IReadOnlyList<MonitorInfo> all = Monitors.All();
     Log.Write($"displays changed: {all.Count}");
+
     // Re-share even when the display survived: its bounds may have moved.
     if (Shared is { } shared) {
       Share(Monitors.Reconcile(all, shared));
     }
+
     if (_dockedOn is { } docked) {
       _dockedOn = Monitors.Reconcile(all, docked);
     }
+
     UpdateShareButton();
     Dock();
   }
@@ -269,22 +287,28 @@ public partial class MainWindow : Window {
   /// <summary>Crossfades to the new status while the pill is up; sets it outright if not.</summary>
   private void SetStatus(string status, string? detail = null) {
     StatusText.ToolTip = detail;
+
     if (status == _status) {
       return;
     }
+
     _status = status;
+
     if (!IsVisible || _leaving) {
       StatusText.Text = status;
       return;
     }
+
     Motion.Swap(StatusText, () => StatusText.Text = _status);
   }
 
   private void OnExtensionNeeded(bool needed) {
     ConnectPanel.Visibility = needed ? Visibility.Visible : Visibility.Collapsed;
+
     if (!needed) {
       ConnectSteps.Visibility = Visibility.Collapsed;
     }
+
     UpdateCard();
   }
 
@@ -295,6 +319,7 @@ public partial class MainWindow : Window {
         || KeyPanel.Visibility == Visibility.Visible;
     bool appearing = any && CaptionCard.Visibility != Visibility.Visible;
     CaptionCard.Visibility = any ? Visibility.Visible : Visibility.Collapsed;
+
     if (appearing) {
       Motion.Enter(CaptionCard, rise: _cardRise);
     }
@@ -304,14 +329,17 @@ public partial class MainWindow : Window {
 
   private void SetMuted(bool muted) {
     _muted = muted;
+
     if (_conversation is not null) {
       _conversation.Muted = muted;
     }
+
     string glyph = muted ? Glyphs.MicOff : Glyphs.Mic;
     bool changed = MicGlyph.Text.Length > 0 && MicGlyph.Text != glyph;
     MicButton.Tag = muted ? "muted" : null;  // App.xaml's round button crossfades on this tag
     MicGlyph.Text = glyph;
     MicButton.ToolTip = muted ? "Unmute microphone" : "Mute microphone";
+
     if (changed) {
       Motion.Bounce(MicGlyph);
     }
@@ -370,6 +398,7 @@ public partial class MainWindow : Window {
     foreach ((string id, string name) in await _glic.ListMicrophonesAsync()) {
       AddMicrophone(menu, name, id);
     }
+
     // Camera share rides the Google engine's frame pull (Gemini sees it as its viewport); the
     // API-key engine pushes the screen itself, so the toggle only applies there.
     if (_settings.Engine == EngineKind.Google) {
@@ -435,6 +464,7 @@ public partial class MainWindow : Window {
     if (e.Key != Key.Enter || KeyBox.Password.Trim().Length == 0) {
       return;
     }
+
     _settings.SetApiKey(KeyBox.Password);
     KeyBox.Clear();
     KeyPanel.Visibility = Visibility.Collapsed;

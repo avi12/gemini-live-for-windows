@@ -132,6 +132,7 @@ public sealed class GlicHost : GoogleWebViewHost<GlicMessage> {
   public Task StartAsync() {
     Active = true;
     _ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
     if (Core is null) {
       _ = RebuildAsync();  // a crash recovery gave up earlier; this is the retry
     } else if (_unavailable || !GoogleCookies.HasSession(_session)) {
@@ -139,6 +140,7 @@ public sealed class GlicHost : GoogleWebViewHost<GlicMessage> {
     } else if (_booted) {
       Send(GlicProtocol.Start);
     }
+
     // else: OnBooted starts it as soon as the page is up.
     return _ready.Task;
   }
@@ -173,7 +175,9 @@ public sealed class GlicHost : GoogleWebViewHost<GlicMessage> {
     if (on == UseCamera) {
       return true;
     }
+
     _lastFrame = null;  // the other source's picture is no stand-in for this one
+
     if (on) {
       try {
         var camera = new WebcamSource();
@@ -187,12 +191,15 @@ public sealed class GlicHost : GoogleWebViewHost<GlicMessage> {
         return false;
       }
     }
+
     UseCamera = false;
     WebcamSource? old = _camera;
     _camera = null;
+
     if (old is not null) {
       await old.DisposeAsync();
     }
+
     Log.Write("glic: sharing the screen");
     return true;
   }
@@ -212,6 +219,7 @@ public sealed class GlicHost : GoogleWebViewHost<GlicMessage> {
     if (Core is null) {
       return [];
     }
+
     try {
       IReadOnlyList<Microphone> microphones =
           await Messenger.SendMessageAsync(GlicProtocol.ListMics);
@@ -232,15 +240,20 @@ public sealed class GlicHost : GoogleWebViewHost<GlicMessage> {
     if (Core is not { } core) {
       return "";
     }
+
     bool ready = await Messenger.SendMessageAsync(GlicProtocol.BeginAction,
                                                   timeout: _beginActionTimeout);
     if (!ready) {
       throw new InvalidOperationException("Gemini's text box didn't open for the action");
     }
+
     foreach (char ch in prompt) {
       string key = ch.ToString();
       var down = new JsonObject {
-        ["type"] = "keyDown", ["text"] = key, ["unmodifiedText"] = key, ["key"] = key,
+        ["type"] = "keyDown",
+        ["text"] = key,
+        ["unmodifiedText"] = key,
+        ["key"] = key,
       };
       await core.CallDevToolsProtocolMethodAsync(_dispatchKeyEvent, down.ToJsonString());
       var up = new JsonObject { ["type"] = "keyUp", ["key"] = key };
@@ -270,19 +283,23 @@ public sealed class GlicHost : GoogleWebViewHost<GlicMessage> {
     if (print == _sessionPrint) {
       return;
     }
+
     _session = cookies;
     _sessionPrint = print;
     GoogleCookies.Save(cookies);
+
     if (Core is not { } core) {
       return;  // OnCoreReady injects the saved copy
     }
 
     GoogleCookies.Inject(core.CookieManager, cookies);
     Log.Write("glic: session updated from the browser");
+
     // A page that loaded without a valid session has to start over with this one.
     if (_booted && !_unavailable) {
       return;
     }
+
     _unavailable = false;
     core.Navigate(_glicUrl);
   }
@@ -292,6 +309,7 @@ public sealed class GlicHost : GoogleWebViewHost<GlicMessage> {
     if (!Active) {
       return;
     }
+
     bool connected = _link.IsExtensionConnected;
     // A saved session only ever comes from the extension, so having one means it's installed: it
     // is just asleep (its worker wakes on a timer after the app starts) or the browser is closed.
@@ -303,6 +321,7 @@ public sealed class GlicHost : GoogleWebViewHost<GlicMessage> {
                    : installed ? SessionNotice.WaitingForBrowser
                    : SessionNotice.Setup);
     ExtensionNeeded?.Invoke(!installed);
+
     if (stale) {
       _link.RequestRefresh();
       // The extension's refresh page runs ~15 s; still failing after that means really signed out.
@@ -326,6 +345,7 @@ public sealed class GlicHost : GoogleWebViewHost<GlicMessage> {
     if (Core is null) {
       return;
     }
+
     try {
       await Messenger.SendMessageAsync(command, data);
     } catch (Exception e) {
@@ -348,9 +368,11 @@ public sealed class GlicHost : GoogleWebViewHost<GlicMessage> {
   private void OnBooted() {
     _booted = true;
     Log.Write("glic: host adopted");
+
     if (_microphoneId is not null) {
       SetMicrophone(_microphoneId);
     }
+
     if (Active && !_unavailable) {
       Send(GlicProtocol.Start);
     }
@@ -359,21 +381,26 @@ public sealed class GlicHost : GoogleWebViewHost<GlicMessage> {
   private void OnPageError(string? message) {
     message ??= "Gemini error";
     Log.Write($"glic error: {message}");
+
     // Signed out or a stale session: get the browser's current one.
     if (PageErrors.GetValueOrDefault(message) is PageError.SignedOut or PageError.Unavailable) {
       _unavailable = true;
       WaitForSession();
       return;
     }
+
     if (!Active) {
       return;
     }
+
     if (PageErrors.GetValueOrDefault(message) is PageError.LiveBroke) {
       if (TryRestart()) {
         return;
       }
+
       message = "Gemini Live stopped working";
     }
+
     _ready?.TrySetException(new InvalidOperationException(message));
     Failed?.Invoke(message);
   }
@@ -387,9 +414,11 @@ public sealed class GlicHost : GoogleWebViewHost<GlicMessage> {
     while (_restarts.Count > 0 && now - _restarts.Peek() > _restartWindow) {
       _restarts.Dequeue();
     }
+
     if (_restarts.Count >= _maxRestarts || Core is not { } core) {
       return false;
     }
+
     _restarts.Enqueue(now);
     Log.Write($"glic: Live broke, reloading ({_restarts.Count}/{_maxRestarts})");
     Notice?.Invoke(SessionNotice.Reconnecting);
@@ -412,6 +441,7 @@ public sealed class GlicHost : GoogleWebViewHost<GlicMessage> {
       frame = await Task.Run(() => Attempt("grab", () => ScreenGrabber.Grab(
           monitor, ScreenGrabber.Detail.Sharp)));
     }
+
     frame ??= _lastFrame;
     _lastFrame = frame;
     return frame is null ? null
@@ -436,6 +466,7 @@ public sealed class GlicHost : GoogleWebViewHost<GlicMessage> {
     if (UseCamera) {
       return null;
     }
+
     MonitorInfo monitor = Monitor;
     return await Task.Run(() => Attempt("screen text", () => ScreenText.Read(monitor)));
   }

@@ -30,9 +30,11 @@ public sealed class CubicBezierEase : EasingFunctionBase {
     if (normalizedTime <= 0) {
       return 0;
     }
+
     if (normalizedTime >= 1) {
       return 1;
     }
+
     return Bezier(ParameterAt(normalizedTime), _y1, _y2);
   }
 
@@ -59,10 +61,12 @@ public sealed class CubicBezierEase : EasingFunctionBase {
       if (Math.Abs(error) < _epsilon) {
         return t;
       }
+
       double slope = Slope(t, _x1, _x2);
       if (Math.Abs(slope) < _epsilon) {
         break;
       }
+
       t = Math.Clamp(t - error / slope, 0, 1);
     }
 
@@ -75,11 +79,13 @@ public sealed class CubicBezierEase : EasingFunctionBase {
       if (Math.Abs(error) < _epsilon) {
         break;
       }
+
       if (error > 0) {
         high = t;
       } else {
         low = t;
       }
+
       t = (low + high) / 2;
     }
     return t;

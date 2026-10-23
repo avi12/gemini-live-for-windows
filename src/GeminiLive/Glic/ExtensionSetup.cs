@@ -29,9 +29,11 @@ public static class ExtensionSetup {
   /// </summary>
   public static void PublishLink(int port, string token) {
     _link = JsonSerializer.Serialize(new { port, token });
+
     if (!Directory.Exists(_folder)) {
       return;  // Begin writes it along with the files
     }
+
     try {
       WriteLink();
     } catch (Exception e) {
@@ -44,6 +46,7 @@ public static class ExtensionSetup {
     if (_link is null) {
       return;
     }
+
     string target = Path.Combine(_folder, _linkFile);
     string temporary = target + ".tmp";
     File.WriteAllText(temporary, _link);
@@ -74,6 +77,7 @@ public static class ExtensionSetup {
     if (!Directory.Exists(_folder)) {
       return;
     }
+
     try {
       CopyShippedFiles();
     } catch (Exception e) {
@@ -99,9 +103,11 @@ public static class ExtensionSetup {
     if (progId.StartsWith("Chrome", StringComparison.OrdinalIgnoreCase)) {
       return ("chrome", "chrome://extensions");
     }
+
     if (progId.StartsWith("Brave", StringComparison.OrdinalIgnoreCase)) {
       return ("brave", "brave://extensions");
     }
+
     return ("msedge", "edge://extensions");
   }
 }

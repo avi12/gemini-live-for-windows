@@ -14,16 +14,20 @@ public static class Overlay {
     if (clickThrough) {
       style |= Native.WS_EX_TRANSPARENT;
     }
+
     SetExStyle(hwnd, style, on: true);
+
     if (!Log.Debugging && !Native.SetWindowDisplayAffinity(hwnd, Native.WDA_EXCLUDEFROMCAPTURE)) {
       Log.Write("could not exclude overlay from capture");
     }
+
     return hwnd;
   }
 
   /// <summary>Lets the window take focus (and come forward) only while it must, to type.</summary>
   public static void SetFocusable(IntPtr hwnd, bool focusable) {
     SetExStyle(hwnd, Native.WS_EX_NOACTIVATE, on: !focusable);
+
     if (focusable) {
       Native.SetForegroundWindow(hwnd);
     }
@@ -34,6 +38,7 @@ public static class Overlay {
     if (width is null) {
       flags |= Native.SWP_NOSIZE;
     }
+
     Native.SetWindowPos(hwnd, Native.HWND_TOPMOST, x, y, width ?? 0, height ?? 0, flags);
   }
 

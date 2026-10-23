@@ -55,6 +55,7 @@ public static class CopilotKey {
             handled = true;
             onTrigger((KeyTrigger)TriggerOf(wParam));
           }
+
           return IntPtr.Zero;
         });
   }
@@ -101,6 +102,7 @@ public static class CopilotKey {
     if (Native.SHGetPropertyStoreForWindow(hwnd, ref iid, out Native.IPropertyStore store) != 0) {
       return false;
     }
+
     var key = new Native.PROPERTYKEY { fmtid = _fastPathFmtId, pid = 2 };
     var value = new Native.PROPVARIANT { vt = Native.VT_UINT, uintVal = _wmCopilot };
     store.SetValue(ref key, ref value);

@@ -51,9 +51,11 @@ public sealed class CaptionPresenter {
     } else {
       AppendLine(text, isUser);
     }
+
     if (!isUser) {
       AddLinks(LinkExtractor.Find(text));
     }
+
     Refresh();
   }
 
@@ -94,6 +96,7 @@ public sealed class CaptionPresenter {
       if (!_links.Add(link.Url)) {
         continue;
       }
+
       Button chip = ChipFor(link);
       _linkTray.Children.Add(chip);
       Motion.Enter(chip, rise: 0, scaleFrom: _chipScaleFrom, delay: Motion.Stagger * arrived++);

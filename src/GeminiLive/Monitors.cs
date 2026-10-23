@@ -31,6 +31,7 @@ public static class Monitors {
       if (Native.GetMonitorInfo(handle, ref info)) {
         raw.Add((handle, info));
       }
+
       return true;
     }, IntPtr.Zero);
 

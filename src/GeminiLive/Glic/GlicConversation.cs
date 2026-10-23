@@ -84,11 +84,13 @@ public sealed partial class GlicConversation : ILiveEngine {
   private void OnCaption(string text, bool isUser, int index) {
     string clean = MarkdownEscape().Replace(text, "$1");
     Transcript?.Invoke(clean, isUser);
+
     if (isUser) {
       _speech.Stop();  // the user is talking; don't read over them
       // Act on the request as soon as it settles, before Gemini can say it can't (proactive). The
       // utterance revises in place, so restart the settle timer on each update.
       _lastUserUtterance = clean;
+
       if (!_runningAction) {
         _intentTimer.Stop();
         _intentTimer.Start();
@@ -103,13 +105,16 @@ public sealed partial class GlicConversation : ILiveEngine {
   // The user's request has stopped changing: if it plainly targets a Google app, handle it now.
   private void OnIntentSettled(object? sender, EventArgs e) {
     _intentTimer.Stop();
+
     if (_runningAction || _lastUserUtterance == _handledUtterance) {
       return;
     }
+
     if (TryLightsCommand(_lastUserUtterance, out bool on)) {
       _ = RunLightsAsync(_lastUserUtterance, on);
       return;
     }
+
     if (TargetsApp(_lastUserUtterance)) {
       _ = RunAppActionAsync(_lastUserUtterance);
     }
@@ -122,16 +127,19 @@ public sealed partial class GlicConversation : ILiveEngine {
     if (_runningAction) {
       return;
     }
+
     _runningAction = true;
     _handledUtterance = request;  // so neither trigger re-fires for the same request
     Status?.Invoke($"Checking {AppName(request)}…");
     try {
       string answer = await _host.RunActionAsync(request);
       Log.Write($"app action: {answer.Length} chars back");
+
       if (answer.Length > 0) {
         Transcript?.Invoke(answer, false);
         _ = _speech.SpeakAsync(answer);  // Live can't speak it on resume, so read it aloud
       }
+
       await _host.StartAsync();  // resume Live, now holding the answer in context
       Status?.Invoke(LiveStatus.Listening);
     } catch (Exception e) {
@@ -150,6 +158,7 @@ public sealed partial class GlicConversation : ILiveEngine {
     if (_runningAction) {
       return;
     }
+
     _runningAction = true;
     _handledUtterance = request;  // so the trigger doesn't re-fire for the same request
     Status?.Invoke($"Turning the lights {(on ? "on" : "off")}…");
@@ -174,15 +183,18 @@ public sealed partial class GlicConversation : ILiveEngine {
   // never toggled by accident.
   private static bool TryLightsCommand(string text, out bool on) {
     on = false;
+
     if (Question().IsMatch(text) || AppTopic().IsMatch(text)
         || !LightsTopic().IsMatch(text) || !SwitchVerb().IsMatch(text)) {
       return false;
     }
+
     bool wantsOn = TurnOn().IsMatch(text);
     bool wantsOff = TurnOff().IsMatch(text);
     if (wantsOn == wantsOff) {
       return false;
     }
+
     on = wantsOn;
     return true;
   }

@@ -21,6 +21,7 @@ public partial class App : Application {
               + $"args=[{string.Join(' ', e.Args)}]");
 
     _instance = new Mutex(true, _instanceName, out bool first);
+
     if (!first) {
       ForwardAndExit(trigger);
       return;
@@ -54,6 +55,7 @@ public partial class App : Application {
       if (CopilotKey.TryForwardToRunningInstance(trigger)) {
         break;
       }
+
       Thread.Sleep(100);
     }
     Shutdown();

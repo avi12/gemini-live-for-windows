@@ -51,6 +51,7 @@ public static partial class LinkExtractor {
     if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? uri)) {
       return url;
     }
+
     return uri.Host + uri.AbsolutePath.TrimEnd('/');
   }
 

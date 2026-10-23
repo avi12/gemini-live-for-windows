@@ -54,6 +54,7 @@ public sealed class ScreenSource(MonitorInfo monitor) : IDisposable {
     if (unchanged && DateTime.UtcNow - _lastSent < _refresh) {
       return;
     }
+
     _lastHash = hash;
     _lastSent = DateTime.UtcNow;
     Frame?.Invoke(jpeg);

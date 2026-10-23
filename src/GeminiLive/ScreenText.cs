@@ -55,7 +55,9 @@ public static partial class ScreenText {
         || Native.MonitorFromWindow(hwnd, Native.MONITOR_DEFAULTTONEAREST) != monitor.Handle) {
       return null;
     }
+
     _ = Native.GetWindowThreadProcessId(hwnd, out uint pid);
+
     if (pid == Environment.ProcessId) {
       return null;
     }
@@ -77,6 +79,7 @@ public static partial class ScreenText {
       if (text.Length == 0 || chars >= _maxChars || !seen.Add(text)) {
         return;
       }
+
       text = text[..Math.Min(text.Length, _maxChars - chars)];
       chars += text.Length;
       blocks.Add(new Block(kind, text));
@@ -96,6 +99,7 @@ public static partial class ScreenText {
           if (!Visit(element, Add)) {
             continue;
           }
+
           TreeWalker walker = TreeWalker.ControlViewWalker;
           for (AutomationElement? child = walker.GetFirstChild(element, _cache); child is not null;
                child = walker.GetNextSibling(child, _cache)) {
@@ -112,6 +116,7 @@ public static partial class ScreenText {
     if (blocks.Count == 0) {
       return null;
     }
+
     return new View(title, AppName(pid), blocks, Hash(title, blocks));
   }
 
@@ -148,6 +153,7 @@ public static partial class ScreenText {
     } else if (info.ControlType == ControlType.Text || info.ControlType == ControlType.ListItem) {
       add(BlockKind.Paragraph, info.Name);
     }
+
     return true;
   }
 
@@ -156,6 +162,7 @@ public static partial class ScreenText {
     if (info.ControlType == ControlType.Header || info.ControlType == ControlType.HeaderItem) {
       return true;
     }
+
     object level = element.GetCachedPropertyValue(AutomationElement.HeadingLevelProperty);
     int number = level switch {
       int i => i,

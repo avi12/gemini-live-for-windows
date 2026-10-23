@@ -39,10 +39,12 @@ public static class GoogleCookies {
         "lax" => CoreWebView2CookieSameSiteKind.Lax,
         _ => CoreWebView2CookieSameSiteKind.None,
       };
+
       if (c.ExpirationDate is { } seconds) {
         cookie.Expires =
             DateTimeOffset.FromUnixTimeMilliseconds((long)(seconds * 1000)).UtcDateTime;
       }
+
       try {
         jar.AddOrUpdateCookie(cookie);
       } catch (Exception e) {
@@ -61,6 +63,7 @@ public static class GoogleCookies {
     if (!File.Exists(_store)) {
       return [];
     }
+
     try {
       byte[] plain = UserSecret.Unseal(File.ReadAllBytes(_store));
       return JsonSerializer.Deserialize<List<GoogleCookie>>(plain, _json) ?? [];

@@ -1,6 +1,5 @@
 using Windows.Media.Audio;
 using Windows.Media.Capture;
-using Windows.Media.MediaProperties;
 using Windows.Media.Render;
 
 namespace GeminiLive;
@@ -25,6 +24,7 @@ public sealed class AudioEngine : IDisposable {
       if (from == to || input.Length == 0) {
         return input;
       }
+
       var output = new List<float>(input.Length * to / from + 2);
       float At(int i) => i < 0 ? _last : input[i];
 
@@ -47,6 +47,7 @@ public sealed class AudioEngine : IDisposable {
           _pos += _step;
         }
       }
+
       _pos -= input.Length;
       _last = input[^1];
       return output.ToArray();
@@ -83,6 +84,7 @@ public sealed class AudioEngine : IDisposable {
     if (created.Status != AudioGraphCreationStatus.Success) {
       throw new InvalidOperationException($"Audio graph: {created.Status}");
     }
+
     _graph = created.Graph;
     _graphRate = (int)_graph.EncodingProperties.SampleRate;
     _graphChannels = (int)_graph.EncodingProperties.ChannelCount;
@@ -98,6 +100,7 @@ public sealed class AudioEngine : IDisposable {
       throw new InvalidOperationException(
           "Microphone access is off - allow it in Settings › Privacy › Microphone");
     }
+
     if (input.Status != AudioDeviceNodeCreationStatus.Success) {
       throw new InvalidOperationException($"Microphone: {input.Status}");
     }

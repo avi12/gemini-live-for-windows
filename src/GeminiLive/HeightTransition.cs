@@ -31,6 +31,7 @@ public sealed class HeightTransition : Decorator {
     if (Child is null) {
       return default;
     }
+
     Child.Measure(new Size(constraint.Width, double.PositiveInfinity));
     double target = Child.DesiredSize.Height;
     if (target != _target) {
@@ -39,6 +40,7 @@ public sealed class HeightTransition : Decorator {
       Motion.To(this, ShownHeightProperty, target, Motion.StandardDuration, Motion.Standard,
                 from: from);
     }
+
     return new Size(Child.DesiredSize.Width, ShownHeight);
   }
 

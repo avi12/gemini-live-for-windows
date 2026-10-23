@@ -40,6 +40,7 @@ public sealed class GlowAnimator {
     var shift = new TranslateTransform();
     brush.RelativeTransform = shift;
     glow.Background = brush;
+
     if (!Motion.Enabled) {
       return;
     }
@@ -57,11 +58,13 @@ public sealed class GlowAnimator {
   /// <summary>Gemini's page owns the audio, so there are no levels: breathe instead.</summary>
   public void Breathe() {
     Wake();
+
     if (!Motion.Enabled) {
       Motion.To(_glow, UIElement.OpacityProperty, _steadyOpacity, Motion.StandardDuration,
                 Motion.Standard);
       return;
     }
+
     _glow.BeginAnimation(UIElement.OpacityProperty,
                          new DoubleAnimation(_breatheLow, _breatheHigh, _breatheHalfPeriod) {
                            AutoReverse = true,
@@ -73,12 +76,15 @@ public sealed class GlowAnimator {
   /// <summary>Follows a voice peak (0..1) from either side of the conversation.</summary>
   public void Follow(float level, bool isUser) {
     Wake();
+
     if (!isUser) {
       SetGeminiSpeaking(level >= _quietLevel);
     }
+
     if (isUser && level < _quietLevel) {
       return;  // let Gemini's voice own the glow while the user is quiet
     }
+
     double gain = isUser ? _userGain : _geminiGain;
     double target = _levelFloor + Math.Min(1, level * 3) * gain;
     Motion.To(_glow, UIElement.OpacityProperty, target, Motion.FollowDuration, Motion.Standard);
@@ -100,7 +106,9 @@ public sealed class GlowAnimator {
     if (speaking == _geminiSpeaking) {
       return;
     }
+
     _geminiSpeaking = speaking;
+
     if (_drift is not null) {
       _drift.Controller!.SpeedRatio = speaking ? _speakingDriftSpeed : 1;
     }

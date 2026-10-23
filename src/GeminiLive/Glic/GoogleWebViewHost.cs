@@ -104,10 +104,12 @@ public abstract class GoogleWebViewHost<TMessage> : Window where TMessage : stru
     if (Core is not null) {
       return;
     }
+
     if (_building is { } pending) {
       await pending;
       return;
     }
+
     _building = BuildAsync();
     try {
       await _building;
@@ -126,8 +128,10 @@ public abstract class GoogleWebViewHost<TMessage> : Window where TMessage : stru
         Log.Write($"{_logTag}: disposing the crashed control: {e.Message}");
       }
     }
+
     _web = web;
     Content = web;
+
     if (!web.IsLoaded) {
       var loaded = new TaskCompletionSource();
       web.Loaded += (_, _) => loaded.TrySetResult();
@@ -182,9 +186,11 @@ public abstract class GoogleWebViewHost<TMessage> : Window where TMessage : stru
     if (browserDied) {
       Core = null;
     }
+
     DateTime now = DateTime.UtcNow;
     _crashStreak = now - _lastCrash < _crashWindow ? _crashStreak + 1 : 1;
     _lastCrash = now;
+
     if (_crashStreak > _maxCrashStreak) {
       Log.Write($"{_logTag}: crashing repeatedly; waiting for the next use to retry");
       OnRecoveryFailed(RecoveryFailure.CrashLoop, null);

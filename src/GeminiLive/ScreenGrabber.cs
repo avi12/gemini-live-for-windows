@@ -37,7 +37,7 @@ public static class ScreenGrabber {
                        CopyPixelOperation.SourceCopy);
     }
 
-    double scale = Math.Min(1.0, (double)maxEdge /Math.Max(monitor.Width, monitor.Height));
+    double scale = Math.Min(1.0, (double)maxEdge / Math.Max(monitor.Width, monitor.Height));
     using var small = new Bitmap((int)(monitor.Width * scale), (int)(monitor.Height * scale),
                                  PixelFormat.Format24bppRgb);
     using (Graphics g = Graphics.FromImage(small)) {

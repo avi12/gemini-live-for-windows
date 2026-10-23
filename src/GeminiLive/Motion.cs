@@ -58,6 +58,7 @@ public static class Motion {
       completed?.Invoke();
       return;
     }
+
     var animation = new DoubleAnimation(to, duration) {
       EasingFunction = easing,
       BeginTime = delay,
@@ -65,9 +66,11 @@ public static class Motion {
     if (from is { } start) {
       animation.From = start;
     }
+
     if (completed is not null) {
       animation.Completed += (_, _) => completed();
     }
+
     animatable.BeginAnimation(property, animation);
   }
 
@@ -86,6 +89,7 @@ public static class Motion {
       scale.ScaleY = 1;
       return;
     }
+
     // The resting state is the base value, so a dropped or unticked animation can never leave the
     // element stuck hidden - the pill showing at all depends on this. A staggered item alone
     // starts hidden as its base, so it doesn't flash before its turn; each property then animates
@@ -101,6 +105,7 @@ public static class Motion {
       scale.ScaleX = 1;
       scale.ScaleY = 1;
     }
+
     To(element, UIElement.OpacityProperty, 1, EnterDuration, EmphasizedDecelerate, from: 0, delay: delay);
     To(shift, TranslateTransform.YProperty, 0, EnterDuration, EmphasizedDecelerate, from: rise, delay: delay);
     To(scale, ScaleTransform.ScaleXProperty, 1, EnterDuration, EmphasizedDecelerate, from: scaleFrom, delay: delay);
@@ -140,6 +145,7 @@ public static class Motion {
     if (!Enabled) {
       return;
     }
+
     (ScaleTransform scale, _) = Transforms(element);
     foreach (DependencyProperty axis in new[] { ScaleTransform.ScaleXProperty,
                                                 ScaleTransform.ScaleYProperty }) {
@@ -160,16 +166,19 @@ public static class Motion {
   /// </summary>
   private static (ScaleTransform Scale, TranslateTransform Shift) Transforms(UIElement element) {
     if (element.RenderTransform is TransformGroup {
-          Children: [ScaleTransform existingScale, TranslateTransform existingShift]
-        }) {
+      Children: [ScaleTransform existingScale, TranslateTransform existingShift]
+    }) {
       return (existingScale, existingShift);
     }
+
     var scale = new ScaleTransform();
     var shift = new TranslateTransform();
     element.RenderTransform = new TransformGroup { Children = { scale, shift } };
+
     if (element.RenderTransformOrigin == default) {
       element.RenderTransformOrigin = new Point(0.5, 1);
     }
+
     return (scale, shift);
   }
 
