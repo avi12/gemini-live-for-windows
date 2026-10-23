@@ -1,6 +1,55 @@
 // GENERATED from bridge/glic_bridge.ts - edit the TypeScript, then `pnpm --dir bridge build`.
 "use strict";
 (() => {
+  // mic_gate.ts
+  var COMFORT_NOISE_LEVEL = 1e-3;
+  var GATE_RAMP_SECONDS = 0.01;
+  var RESUME_TIMEOUT_MS = 1e3;
+  var comfortNoise = (context) => {
+    const buffer = context.createBuffer(1, context.sampleRate, context.sampleRate);
+    const samples = buffer.getChannelData(0);
+    for (let i = 0; i < samples.length; i++) {
+      samples[i] = (Math.random() * 2 - 1) * COMFORT_NOISE_LEVEL;
+    }
+    const noise = context.createBufferSource();
+    noise.buffer = buffer;
+    noise.loop = true;
+    noise.start();
+    return noise;
+  };
+  var gateMicrophone = async (microphone) => {
+    const context = new AudioContext();
+    const running = await Promise.race([
+      context.resume().then(() => context.state === "running"),
+      new Promise((resolve) => setTimeout(() => resolve(false), RESUME_TIMEOUT_MS))
+    ]).catch(() => false);
+    if (!running) {
+      void context.close();
+      return null;
+    }
+    const destination = context.createMediaStreamDestination();
+    const gate = context.createGain();
+    context.createMediaStreamSource(microphone).connect(gate).connect(destination);
+    comfortNoise(context).connect(destination);
+    const [gated] = destination.stream.getAudioTracks();
+    if (gated) {
+      const stopGated = gated.stop.bind(gated);
+      gated.stop = () => {
+        stopGated();
+        for (const track of microphone.getTracks()) {
+          track.stop();
+        }
+        void context.close();
+      };
+    }
+    return {
+      stream: destination.stream,
+      setOpen(open) {
+        gate.gain.setTargetAtTime(open ? 1 : 0, context.currentTime, GATE_RAMP_SECONDS);
+      }
+    };
+  };
+
   // glic_bridge.ts
   var RESUME_BUTTONS = ["Start live mode" /* StartLive */, "Go Live" /* GoLive */];
   var SIGN_IN_PATTERN = /\bSign in\b/;
@@ -70,7 +119,7 @@
       document.addEventListener("visibilitychange", (e) => e.stopImmediatePropagation(), true);
     } catch {
     }
-    const micTracks = /* @__PURE__ */ new Set();
+    const micGates = /* @__PURE__ */ new Set();
     let muted = false;
     let micId = null;
     const withDesktopConstraints = (constraints) => {
@@ -104,21 +153,30 @@
       const getUserMedia = media.getUserMedia.bind(media);
       media.getUserMedia = async (constraints) => {
         const stream = await getUserMedia(withDesktopConstraints(constraints));
-        for (const track of stream.getAudioTracks()) {
-          track.enabled = !muted;
-          micTracks.add(track);
+        if (stream.getAudioTracks().length === 0) {
+          return stream;
         }
-        return stream;
+        const gate = await gateMicrophone(stream).catch(() => null) ?? {
+          stream,
+          setOpen(open) {
+            for (const track of stream.getAudioTracks()) {
+              track.enabled = open;
+            }
+          }
+        };
+        gate.setOpen(!muted);
+        micGates.add(gate);
+        return gate.stream;
       };
     } catch {
     }
     const setMuted = (value) => {
       muted = value;
-      for (const track of micTracks) {
-        if (track.readyState === "live") {
-          track.enabled = !value;
+      for (const gate of micGates) {
+        if (gate.stream.getAudioTracks().some((t) => t.readyState === "live")) {
+          gate.setOpen(!value);
         } else {
-          micTracks.delete(track);
+          micGates.delete(gate);
         }
       }
     };

@@ -12,6 +12,8 @@
 //
 // Wire to C#: chrome.webview.postMessage({kind, ...}) up; {kind:"frame", id, ...} replies down.
 
+import { gateMicrophone, type MicGate } from './mic_gate';
+
 // ===========================================================================
 // Vocabulary: every string we match on Glic's page or exchange with C#, in one place.
 // ===========================================================================
@@ -303,10 +305,10 @@ if (!window.__glicBridge && window.top === window) {
 
   // ===========================================================================
   // Mic: keep AEC, add auto-gain + voice isolation so barge-in works over desktop speakers.
-  // Also keep the tracks so the pill's mute button can silence them.
+  // Each capture goes through a gate the pill's mute button closes (see mic_gate.ts).
   // ===========================================================================
 
-  const micTracks = new Set<MediaStreamTrack>();
+  const micGates = new Set<MicGate>();
   let muted = false;
   /** The microphone picked in the app's menu (null = Windows' default), applied to every capture. */
   let micId: string | null = null;
@@ -346,11 +348,21 @@ if (!window.__glicBridge && window.top === window) {
     const getUserMedia = media.getUserMedia.bind(media);
     media.getUserMedia = async (constraints) => {
       const stream = await getUserMedia(withDesktopConstraints(constraints));
-      for (const track of stream.getAudioTracks()) {
-        track.enabled = !muted;
-        micTracks.add(track);
+      if (stream.getAudioTracks().length === 0) {
+        return stream;
       }
-      return stream;
+      // Without audio to run the gate on, mute falls back to disabling the tracks.
+      const gate = (await gateMicrophone(stream).catch(() => null)) ?? {
+        stream,
+        setOpen(open: boolean) {
+          for (const track of stream.getAudioTracks()) {
+            track.enabled = open;
+          }
+        },
+      };
+      gate.setOpen(!muted);
+      micGates.add(gate);
+      return gate.stream;
     };
   } catch {
     // Frozen mediaDevices: Glic captures with its own constraints.
@@ -358,11 +370,11 @@ if (!window.__glicBridge && window.top === window) {
 
   const setMuted = (value: boolean): void => {
     muted = value;
-    for (const track of micTracks) {
-      if (track.readyState === 'live') {
-        track.enabled = !value;
+    for (const gate of micGates) {
+      if (gate.stream.getAudioTracks().some((t) => t.readyState === 'live')) {
+        gate.setOpen(!value);
       } else {
-        micTracks.delete(track);
+        micGates.delete(gate);
       }
     }
   };
