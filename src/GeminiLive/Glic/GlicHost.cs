@@ -73,7 +73,7 @@ public sealed class GlicHost : GoogleWebViewHost {
   /// Message kinds on the WebView2 channel, both directions (Kind in glic_bridge.js). The wire
   /// value is <see cref="WireName"/>'s lower-cased name.
   /// </summary>
-  private enum PageMessageKind { Booted, Capture, Error, Frame, Ready, State, Transcript }
+  private enum PageMessageKind { Booted, Capture, Error, Frame, Read, Ready, State, Transcript, View }
 
   /// <summary>Who spoke a transcript line (Direction in glic_bridge.js).</summary>
   private enum TranscriptDirection { User, Assistant }
@@ -328,6 +328,9 @@ public sealed class GlicHost : GoogleWebViewHost {
       case PageMessageKind.Capture:
         SendFrame(m["id"]!.GetValue<int>());
         break;
+      case PageMessageKind.Read:
+        SendView(m["id"]!.GetValue<int>());
+        break;
       case PageMessageKind.Booted:
         OnBooted();
         break;
@@ -430,6 +433,45 @@ public sealed class GlicHost : GoogleWebViewHost {
       Log.Write($"grab failed: {e.Message}");
       return null;
     }
+  }
+
+  /// <summary>
+  /// Answers the page with an exact text copy of the window on the shared display, which it hands
+  /// Gemini as the tab's page content next to each picture. None while the camera is shared.
+  /// </summary>
+  private void SendView(int id) {
+    MonitorInfo monitor = Monitor;
+    bool camera = UseCamera;
+    Task.Run(() => camera ? null : TryRead(monitor))
+        .ContinueWith(t => PostView(id, t.Result),
+                      TaskScheduler.FromCurrentSynchronizationContext());
+  }
+
+  private static ScreenText.View? TryRead(MonitorInfo monitor) {
+    try {
+      return ScreenText.Read(monitor);
+    } catch (Exception e) {
+      Log.Write($"screen text failed: {e.Message}");
+      return null;
+    }
+  }
+
+  private void PostView(int id, ScreenText.View? view) {
+    JsonObject? body = view is null ? null : new JsonObject {
+      ["title"] = view.Title,
+      ["app"] = view.App,
+      ["version"] = view.Version,
+      ["blocks"] = new JsonArray([.. view.Blocks.Select(b => (JsonNode)new JsonObject {
+        ["kind"] = WireName.Of(b.Kind),
+        ["text"] = b.Text,
+      })]),
+    };
+    var reply = new JsonObject {
+      ["kind"] = WireName.Of(PageMessageKind.View),
+      ["id"] = id,
+      ["view"] = body,
+    };
+    Core?.PostWebMessageAsJson(reply.ToJsonString());
   }
 
   private void PostFrame(int id, ScreenGrabber.Frame? frame) {

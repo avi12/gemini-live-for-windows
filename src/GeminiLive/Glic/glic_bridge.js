@@ -50,6 +50,67 @@
     };
   };
 
+  // page_content.ts
+  var APC_VERSION_1_0 = 1;
+  var VARINT_CONTINUE = 128;
+  var VARINT_LOW_BITS = 127;
+  var TAG_WIRE_TYPE_BITS = 3;
+  var BLOCK_TYPE = {
+    ["heading" /* Heading */]: 5 /* Heading */,
+    ["paragraph" /* Paragraph */]: 4 /* Paragraph */
+  };
+  var encoder = new TextEncoder();
+  var varint = (value) => {
+    const bytes = [];
+    let rest = value;
+    while (rest >= VARINT_CONTINUE) {
+      bytes.push(rest & VARINT_LOW_BITS | VARINT_CONTINUE);
+      rest = Math.floor(rest / VARINT_CONTINUE);
+    }
+    bytes.push(rest);
+    return bytes;
+  };
+  var tag = (field, wireType) => varint(field << TAG_WIRE_TYPE_BITS | wireType);
+  var varintField = (field, value) => [...tag(field, 0 /* Varint */), ...varint(value)];
+  var bytesField = (field, bytes) => [
+    ...tag(field, 2 /* Bytes */),
+    ...varint(bytes.length),
+    ...Array.from(bytes)
+  ];
+  var stringField = (field, text) => bytesField(field, encoder.encode(text));
+  var contentNode = (type, id, text, children = []) => {
+    const attributes = [
+      ...varintField(2 /* DomNodeId */, id),
+      ...varintField(3 /* Type */, type),
+      ...text === void 0 ? [] : bytesField(10 /* TextData */, stringField(1 /* TextContent */, text))
+    ];
+    return [
+      ...children.flatMap((child) => bytesField(1 /* Children */, child)),
+      ...bytesField(2 /* Attributes */, attributes)
+    ];
+  };
+  var annotatedPageContent = (title, url, blocks) => {
+    let nextId = 1;
+    const children = blocks.map(({ kind, text }) => {
+      const blockId = ++nextId;
+      const textNode = contentNode(20 /* Text */, ++nextId, text);
+      return contentNode(BLOCK_TYPE[kind], blockId, void 0, [textNode]);
+    });
+    const root = contentNode(1 /* Root */, 1, void 0, children);
+    const frame = [...stringField(4 /* Url */, url), ...stringField(5 /* Title */, title)];
+    return new Uint8Array([
+      ...varintField(1 /* Version */, APC_VERSION_1_0),
+      ...bytesField(2 /* RootNode */, root),
+      ...bytesField(3 /* MainFrameData */, frame)
+    ]);
+  };
+  var byteStream = (bytes) => new ReadableStream({
+    start(controller) {
+      controller.enqueue(bytes);
+      controller.close();
+    }
+  });
+
   // glic_bridge.ts
   var RESUME_BUTTONS = ["Start live mode" /* StartLive */, "Go Live" /* GoLive */];
   var SIGN_IN_PATTERN = /\bSign in\b/;
@@ -62,7 +123,7 @@
   var START_POLL_MS = 300;
   var MAX_START_TRIES = 100;
   var MONITOR_POLL_MS = 300;
-  var FRAME_TIMEOUT_MS = 3e3;
+  var REQUEST_TIMEOUT_MS = 3e3;
   var SCREEN_NUDGE_MS = 1e3;
   var RESUME_GAP_MS = 2e3;
   var MAX_RESUME_BACKOFF = 5;
@@ -220,8 +281,8 @@
       });
     } catch {
     }
-    let nextFrameId = 1;
-    const pendingFrames = /* @__PURE__ */ new Map();
+    let nextRequestId = 1;
+    const pendingReplies = /* @__PURE__ */ new Map();
     const decodeFrame = (message) => {
       if (!message.base64) {
         return null;
@@ -236,30 +297,39 @@
     };
     native?.addEventListener("message", (e) => {
       const message = e.data;
-      if (!message || message.kind !== "frame" /* Frame */) {
+      if (!message || message.kind !== "frame" /* Frame */ && message.kind !== "view" /* View */) {
         return;
       }
-      const resolve = pendingFrames.get(message.id);
+      const resolve = pendingReplies.get(message.id);
       if (!resolve) {
         return;
       }
-      pendingFrames.delete(message.id);
-      resolve(decodeFrame(message));
+      pendingReplies.delete(message.id);
+      resolve(message);
     });
-    const captureFrame = () => {
-      if (!active) {
-        return Promise.resolve(null);
-      }
-      const id = nextFrameId++;
+    const ask = (kind) => {
+      const id = nextRequestId++;
       return new Promise((resolve) => {
-        pendingFrames.set(id, resolve);
-        emit("capture" /* Capture */, { id });
+        pendingReplies.set(id, resolve);
+        emit(kind, { id });
         setTimeout(() => {
-          if (pendingFrames.delete(id)) {
+          if (pendingReplies.delete(id)) {
             resolve(null);
           }
-        }, FRAME_TIMEOUT_MS);
+        }, REQUEST_TIMEOUT_MS);
       });
+    };
+    const captureFrame = async () => {
+      if (!active) {
+        return null;
+      }
+      const reply = await ask("capture" /* Capture */);
+      return reply?.kind === "frame" /* Frame */ ? decodeFrame(reply) : null;
+    };
+    let latestView = null;
+    const readScreen = async () => {
+      const reply = await ask("read" /* Read */);
+      return reply?.kind === "view" /* View */ ? reply.view : null;
     };
     const notify = (subscriber, value) => {
       try {
@@ -305,7 +375,7 @@
     const focusedTab = () => ({
       tabId: `${TAB_ID}-${nudges}`,
       url: "https://localhost/desktop",
-      title: "Desktop",
+      title: latestView?.title || "Desktop",
       faviconUrl: "",
       documentMimeType: "text/html",
       isMediaActive: false
@@ -316,6 +386,27 @@
       lastNudge = now;
       nudges++;
       focusedTabSetting.set(focusedTabState());
+    };
+    let reading = false;
+    const readThenNudge = async (now) => {
+      if (reading) {
+        return;
+      }
+      reading = true;
+      lastNudge = now;
+      latestView = await readScreen();
+      reading = false;
+      if (active) {
+        nudgeScreen(Date.now());
+      }
+    };
+    const tabContext = (options) => {
+      const tabData = focusedTab();
+      if (!options?.annotatedPageContent || !latestView) {
+        return { tabData };
+      }
+      const content = annotatedPageContent(tabData.title, tabData.url, latestView.blocks);
+      return { tabData, annotatedPageData: { annotatedPageContent: byteStream(content) } };
     };
     const resolved = (value) => () => Promise.resolve(value);
     const host = {
@@ -334,11 +425,12 @@
       getPanelState: () => observable(PANEL_STATE),
       panelActive: () => observable(true),
       getFocusedTabStateV2: () => focusedTabSetting,
-      getContextFromFocusedTab: () => Promise.resolve({ tabData: focusedTab() }),
+      getContextFromFocusedTab: (options) => Promise.resolve(tabContext(options)),
       captureScreenshot: () => captureFrame(),
-      // Live's viewport: Glic pulls a screenshot through here for each new focused tab id.
+      // Live's viewport: Glic pulls a screenshot and the page content through here for each new
+      // focused tab id.
       async getContextFromTab(_tabId, options) {
-        const context = { tabData: focusedTab() };
+        const context = tabContext(options);
         if (!options?.viewportScreenshot) {
           return context;
         }
@@ -711,7 +803,7 @@
       }
       const now = Date.now();
       if (now - lastNudge >= SCREEN_NUDGE_MS) {
-        nudgeScreen(now);
+        void readThenNudge(now);
       }
       pumpCaptions();
       const wentWrong = pageSays("Something went wrong" /* WentWrong */);

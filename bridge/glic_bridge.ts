@@ -13,6 +13,7 @@
 // Wire to C#: chrome.webview.postMessage({kind, ...}) up; {kind:"frame", id, ...} replies down.
 
 import { gateMicrophone, type MicGate } from './mic_gate';
+import { annotatedPageContent, type Block, byteStream } from './page_content';
 
 // ===========================================================================
 // Vocabulary: every string we match on Glic's page or exchange with C#, in one place.
@@ -24,9 +25,11 @@ enum Kind {
   Capture = 'capture',
   Error = 'error',
   Frame = 'frame',
+  Read = 'read',
   Ready = 'ready',
   State = 'state',
   Transcript = 'transcript',
+  View = 'view',
 }
 
 /** Live states reported to C# (GlicHost.OnMessage reads the "state" message). */
@@ -124,7 +127,7 @@ const UNAVAILABLE_POLL_MS = 500;
 const START_POLL_MS = 300;
 const MAX_START_TRIES = 100;
 const MONITOR_POLL_MS = 300;
-const FRAME_TIMEOUT_MS = 3000;
+const REQUEST_TIMEOUT_MS = 3000;
 // Glic sends Live one screenshot per focused tab id, so a fixed id gives one picture per turn. A
 // new id this often makes its viewport input pull a fresh frame each time, like Live on Android.
 const SCREEN_NUDGE_MS = 1000;
@@ -154,6 +157,29 @@ interface FrameMessage {
   mimeType: string;
   width: number;
   height: number;
+}
+
+/** The text of the window on screen (ScreenText.View in C#). */
+interface ScreenView {
+  title: string;
+  app: string;
+  blocks: Block[];
+  version: string;
+}
+
+interface ViewMessage {
+  kind: Kind.View;
+  id: number;
+  view: ScreenView | null;
+}
+
+/** What C# answers a request with. */
+type Reply = FrameMessage | ViewMessage;
+
+/** What Glic asks of a tab's context. */
+interface ContextOptions {
+  viewportScreenshot?: boolean;
+  annotatedPageContent?: boolean;
 }
 
 interface Screenshot {
@@ -191,6 +217,7 @@ interface ClientFlag {
 
 interface TabContext {
   tabData: unknown;
+  annotatedPageData?: { annotatedPageContent: ReadableStream<Uint8Array> };
   viewportScreenshot?: Screenshot;
   screenshotInfo?: { widthPixels: number; heightPixels: number };
 }
@@ -434,8 +461,8 @@ if (!window.__glicBridge && window.top === window) {
   // Screen frames from C#: request/response over the WebView2 message channel.
   // ===========================================================================
 
-  let nextFrameId = 1;
-  const pendingFrames = new Map<number, (shot: Screenshot | null) => void>();
+  let nextRequestId = 1;
+  const pendingReplies = new Map<number, (reply: Reply | null) => void>();
 
   const decodeFrame = (message: FrameMessage): Screenshot | null => {
     if (!message.base64) {
@@ -451,32 +478,46 @@ if (!window.__glicBridge && window.top === window) {
   };
 
   native?.addEventListener('message', (e) => {
-    const message = e.data as FrameMessage | null;
-    if (!message || message.kind !== Kind.Frame) {
+    const message = e.data as Reply | null;
+    if (!message || (message.kind !== Kind.Frame && message.kind !== Kind.View)) {
       return;
     }
-    const resolve = pendingFrames.get(message.id);
+    const resolve = pendingReplies.get(message.id);
     if (!resolve) {
       return;
     }
-    pendingFrames.delete(message.id);
-    resolve(decodeFrame(message));
+    pendingReplies.delete(message.id);
+    resolve(message);
   });
 
-  const captureFrame = (): Promise<Screenshot | null> => {
-    if (!active) {
-      return Promise.resolve(null);
-    }
-    const id = nextFrameId++;
+  /** Asks C# and waits for the reply that carries the same id; null if none comes in time. */
+  const ask = (kind: Kind.Capture | Kind.Read): Promise<Reply | null> => {
+    const id = nextRequestId++;
     return new Promise((resolve) => {
-      pendingFrames.set(id, resolve);
-      emit(Kind.Capture, { id });
+      pendingReplies.set(id, resolve);
+      emit(kind, { id });
       setTimeout(() => {
-        if (pendingFrames.delete(id)) {
+        if (pendingReplies.delete(id)) {
           resolve(null);
         }
-      }, FRAME_TIMEOUT_MS);
+      }, REQUEST_TIMEOUT_MS);
     });
+  };
+
+  const captureFrame = async (): Promise<Screenshot | null> => {
+    if (!active) {
+      return null;
+    }
+    const reply = await ask(Kind.Capture);
+    return reply?.kind === Kind.Frame ? decodeFrame(reply) : null;
+  };
+
+  /** The newest text copy of the screen, shared with every picture; null when there is none. */
+  let latestView: ScreenView | null = null;
+
+  const readScreen = async (): Promise<ScreenView | null> => {
+    const reply = await ask(Kind.Read);
+    return reply?.kind === Kind.View ? reply.view : null;
   };
 
   // ===========================================================================
@@ -536,7 +577,7 @@ if (!window.__glicBridge && window.top === window) {
   const focusedTab = () => ({
     tabId: `${TAB_ID}-${nudges}`,
     url: 'https://localhost/desktop',
-    title: 'Desktop',
+    title: latestView?.title || 'Desktop',
     faviconUrl: '',
     documentMimeType: 'text/html',
     isMediaActive: false,
@@ -549,6 +590,32 @@ if (!window.__glicBridge && window.top === window) {
     lastNudge = now;
     nudges++;
     focusedTabSetting.set(focusedTabState());
+  };
+
+  let reading = false;
+
+  /** Reads the screen's text first, so the next picture and its text reach Gemini together. */
+  const readThenNudge = async (now: number): Promise<void> => {
+    if (reading) {
+      return;
+    }
+    reading = true;
+    lastNudge = now;
+    latestView = await readScreen();
+    reading = false;
+    if (active) {
+      nudgeScreen(Date.now());
+    }
+  };
+
+  /** The shared screen's context: the tab, plus its text when Glic asks for it and there is some. */
+  const tabContext = (options?: ContextOptions): TabContext => {
+    const tabData = focusedTab();
+    if (!options?.annotatedPageContent || !latestView) {
+      return { tabData };
+    }
+    const content = annotatedPageContent(tabData.title, tabData.url, latestView.blocks);
+    return { tabData, annotatedPageData: { annotatedPageContent: byteStream(content) } };
   };
 
   const resolved =
@@ -573,11 +640,12 @@ if (!window.__glicBridge && window.top === window) {
     getPanelState: () => observable(PANEL_STATE),
     panelActive: () => observable(true),
     getFocusedTabStateV2: () => focusedTabSetting,
-    getContextFromFocusedTab: () => Promise.resolve({ tabData: focusedTab() }),
+    getContextFromFocusedTab: (options?: ContextOptions) => Promise.resolve(tabContext(options)),
     captureScreenshot: () => captureFrame(),
-    // Live's viewport: Glic pulls a screenshot through here for each new focused tab id.
-    async getContextFromTab(_tabId: string, options?: { viewportScreenshot?: boolean }) {
-      const context: TabContext = { tabData: focusedTab() };
+    // Live's viewport: Glic pulls a screenshot and the page content through here for each new
+    // focused tab id.
+    async getContextFromTab(_tabId: string, options?: ContextOptions) {
+      const context = tabContext(options);
       if (!options?.viewportScreenshot) {
         return context;
       }
@@ -1071,7 +1139,7 @@ if (!window.__glicBridge && window.top === window) {
     }
     const now = Date.now();
     if (now - lastNudge >= SCREEN_NUDGE_MS) {
-      nudgeScreen(now);
+      void readThenNudge(now);
     }
     pumpCaptions();
     // "Your audio couldn't be heard" is Glic's own transient notice while the mic is silent - which
