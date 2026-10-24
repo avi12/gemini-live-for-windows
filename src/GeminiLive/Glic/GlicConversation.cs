@@ -33,7 +33,6 @@ public sealed partial class GlicConversation : ILiveEngine {
   private readonly GlicHost _host;
   private readonly HomeHost _home;
   private readonly DispatcherTimer _intentTimer;
-  private readonly SpeechPlayer _speech = new();
 
   private bool _muted;
   private string _lastUserUtterance = "";
@@ -78,7 +77,6 @@ public sealed partial class GlicConversation : ILiveEngine {
 
   public ValueTask DisposeAsync() {
     _intentTimer.Stop();
-    _speech.Dispose();
     _host.State -= OnState;
     _host.Caption -= OnCaption;
     _host.Failed -= OnFailed;
@@ -97,7 +95,6 @@ public sealed partial class GlicConversation : ILiveEngine {
     Transcript?.Invoke(clean, isUser);
 
     if (isUser) {
-      _speech.Stop();  // the user is talking; don't read over them
       // Act on the request as soon as it settles, before Gemini can say it can't (proactive). The
       // utterance revises in place, so restart the settle timer on each update.
       _lastUserUtterance = clean;
@@ -175,8 +172,8 @@ public sealed partial class GlicConversation : ILiveEngine {
   }
 
   // Live has no access to the account's Google apps; its text turns do. When Gemini says it can't
-  // reach Calendar, Keep, Tasks or Gmail, re-run the user's request on the text path, speak
-  // the answer back into the card, and resume Live - which keeps the answer in context.
+  // reach Calendar, Keep, Tasks or Gmail, re-run the user's request on the text path, show the
+  // answer in the card, and resume Live - which keeps the answer in context.
   private Task RunAppActionAsync(string request) {
     return RunDetourAsync(request, $"Checking {SpokenIntent.AppName(request)}…",
                           () => AskTextPathAsync(request));
@@ -219,9 +216,9 @@ public sealed partial class GlicConversation : ILiveEngine {
       TextAnswer answer = await _host.RunActionAsync(request);
       Log.Write($"text turn: {answer.Text.Length} chars, {answer.Links.Count} links back");
 
+      // Shown, not read aloud: only Gemini's own voice speaks.
       if (answer.Text.Length > 0) {
         Transcript?.Invoke(answer.Text, false);
-        _ = _speech.SpeakAsync(answer.Text);  // Live can't speak it on resume, so read it aloud
       }
 
       if (answer.Links.Count > 0) {
@@ -238,8 +235,8 @@ public sealed partial class GlicConversation : ILiveEngine {
   }
 
   // The PC lights live in Google Home, which Gemini's text path can't reach; flip them on the Home
-  // web app instead and speak the result. Unlike an app action this runs off the Live page, so Live
-  // keeps listening and the spoken result simply lands over it.
+  // web app instead and show the result. Unlike an app action this runs off the Live page, so Live
+  // keeps listening throughout.
   private Task RunLightsAsync(string request, bool on) {
     return RunDetourAsync(request, $"Turning the lights {(on ? "on" : "off")}…",
                           () => SwitchLightsAsync(on));
@@ -247,14 +244,10 @@ public sealed partial class GlicConversation : ILiveEngine {
 
   private async Task SwitchLightsAsync(bool on) {
     try {
-      string answer = await _home.SetLightsAsync(on);
-      Transcript?.Invoke(answer, false);
-      await _speech.SpeakAsync(answer);
+      Transcript?.Invoke(await _home.SetLightsAsync(on), false);
     } catch (Exception e) {
       Log.Write($"lights action failed: {e.Message}");
-      const string trouble = "I had trouble reaching the lights.";
-      Transcript?.Invoke(trouble, false);
-      await _speech.SpeakAsync(trouble);
+      Transcript?.Invoke("I had trouble reaching the lights.", false);
     } finally {
       Status?.Invoke(LiveStatus.Listening);
     }
