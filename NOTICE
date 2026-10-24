@@ -1,0 +1,19 @@
+Gemini Live for Windows
+Copyright (c) 2026 Avi (https://avi12.com)
+
+This product includes software developed by Avi (https://avi12.com).
+
+Licensed under the Apache License, Version 2.0. Any distribution of this
+software or of a derivative work, including a fork, must keep this NOTICE
+file and carry the attribution above: in the accompanying documentation
+(such as the README), and in any user-facing "about", "credits" or
+third-party-notices display the distribution provides.
+
+------------------------------------------------------------------------------
+Third-party notices
+
+This project is not affiliated with, endorsed by, or sponsored by Google or
+Microsoft. "Google", "Gemini", "Google Home", "Chrome", "Microsoft", "Windows",
+"Copilot" and "Edge" are their owners' marks, used here only to say what the
+project works with. The app drives Google's own Gemini web client with the
+user's own Google session; nothing of Google's is redistributed.
