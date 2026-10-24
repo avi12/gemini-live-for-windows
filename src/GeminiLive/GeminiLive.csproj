@@ -33,6 +33,16 @@
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4258.31" />
   </ItemGroup>
 
+  <!-- The repo's lint rules that Roslyn has no built-in for (see .editorconfig), and CA1502's
+       complexity threshold. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\analyzers\GeminiLive.Analyzers\GeminiLive.Analyzers.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\..\analyzers\GeminiLive.Analyzers.CodeFixes\GeminiLive.Analyzers.CodeFixes.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <AdditionalFiles Include="CodeMetricsConfig.txt" />
+  </ItemGroup>
+
   <!-- Rebuild the embedded page bridge from its TypeScript on every build. Skipped on a clean
        C#-only checkout where the bridge's deps aren't installed; scripts\install.ps1 runs the full
        type-checked bridge build. -->

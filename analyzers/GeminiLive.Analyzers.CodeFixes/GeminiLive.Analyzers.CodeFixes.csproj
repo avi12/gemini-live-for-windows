@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Code fixes for GeminiLive.Analyzers, which `dotnet format analyzers` applies. A separate
+       assembly, because the compiler loads analyzers without the Workspaces API fixes need. -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <IsRoslynComponent>true</IsRoslynComponent>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.14.0" PrivateAssets="all" />
+    <ProjectReference Include="..\GeminiLive.Analyzers\GeminiLive.Analyzers.csproj" />
+  </ItemGroup>
+
+</Project>

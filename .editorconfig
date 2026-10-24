@@ -26,3 +26,50 @@ csharp_prefer_braces = true:warning
 dotnet_style_readonly_field = true:warning
 csharp_style_prefer_primary_constructors = false
 dotnet_diagnostic.IDE0290.severity = none
+
+# ---------------------------------------------------------------------------------------------
+# The repo's lint rules, C# side. TypeScript has them in .oxlintrc.json and eslint.config.js;
+# here built-in Roslyn rules carry what they can, and analyzers/GeminiLive.Analyzers the rest
+# (GL0001 no-nested-ternary, GL0002 id-length, GL0003 max-len, GL0004 padding around if).
+# ---------------------------------------------------------------------------------------------
+max_line_length = 120
+
+# naming: the _camelCase rule above is enforced, not suggested
+dotnet_naming_rule.private_fields.severity = warning
+
+# typescript/no-unused-vars, unused-imports: no dead usings, members, values or parameters
+dotnet_diagnostic.IDE0005.severity = warning
+dotnet_diagnostic.IDE0051.severity = warning
+dotnet_diagnostic.IDE0052.severity = warning
+dotnet_diagnostic.IDE0059.severity = warning
+dotnet_diagnostic.IDE0060.severity = warning
+csharp_style_unused_value_assignment_preference = discard_variable:warning
+
+# func-style "declaration": a local function, not a lambda stored in a variable
+csharp_style_prefer_local_over_anonymous_function = true:warning
+
+# arrow-body-style "as-needed": expression-bodied lambdas where they fit
+csharp_style_expression_bodied_lambdas = when_on_single_line:warning
+
+# object-shorthand: inferred member names
+dotnet_style_prefer_inferred_anonymous_type_member_names = true:warning
+dotnet_style_prefer_inferred_tuple_names = true:warning
+
+# fallow health, maxCognitive 30: CA1502's threshold is in CodeMetricsConfig.txt
+dotnet_diagnostic.CA1502.severity = warning
+
+# @stylistic formatting: the formatter's layout is the house style (1tbs braces, 2-space indent,
+# one initializer member per line), and drift from it is a warning
+dotnet_diagnostic.IDE0055.severity = warning
+csharp_new_line_before_open_brace = none
+csharp_new_line_before_else = false
+csharp_new_line_before_catch = false
+csharp_new_line_before_finally = false
+csharp_new_line_before_members_in_object_initializers = true
+csharp_new_line_before_members_in_anonymous_types = true
+csharp_indent_case_contents = true
+csharp_indent_switch_labels = true
+csharp_space_after_cast = false
+csharp_space_after_keywords_in_control_flow_statements = true
+csharp_preserve_single_line_statements = false
+csharp_preserve_single_line_blocks = true
