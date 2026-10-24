@@ -1,6 +1,5 @@
 using System.Net.WebSockets;
 using System.Text;
-using System.Text.Json.Nodes;
 using System.Threading.Channels;
 
 namespace GeminiLive;
@@ -32,10 +31,9 @@ public sealed class LiveSession : IAsyncDisposable {
   private static readonly TimeSpan _keepAlive = TimeSpan.FromSeconds(20);
   private static readonly TimeSpan _closeTimeout = TimeSpan.FromSeconds(1);
 
-  /// <summary>The realtimeInput streams we send; the wire field is <see cref="WireName"/>'s.</summary>
-  private enum RealtimeInput { Audio, Video }
-
   private readonly Settings _settings;
+  // Each unread server field is logged once, so a schema change shows up without flooding the log.
+  private readonly HashSet<string> _unhandledSeen = [];
   private readonly Channel<string> _outbox = Channel.CreateBounded<string>(
       new BoundedChannelOptions(256) {
         FullMode = BoundedChannelFullMode.DropOldest,
@@ -60,11 +58,11 @@ public sealed class LiveSession : IAsyncDisposable {
   // ---- upstream: realtime input ----
 
   public void SendAudio(byte[] pcm16) {
-    Enqueue(RealtimeInput.Audio, _audioMimeType, pcm16);
+    Enqueue(new RealtimeInput(Audio: new Blob(_audioMimeType, pcm16)));
   }
 
   public void SendFrame(byte[] jpeg) {
-    Enqueue(RealtimeInput.Video, ScreenGrabber.MimeType, jpeg);
+    Enqueue(new RealtimeInput(Video: new Blob(ScreenGrabber.MimeType, jpeg)));
   }
 
   public async ValueTask DisposeAsync() {
@@ -89,52 +87,38 @@ public sealed class LiveSession : IAsyncDisposable {
     _socket.Options.KeepAliveInterval = _keepAlive;
     var uri = new Uri($"{_endpoint}?key={Uri.EscapeDataString(_settings.ApiKey)}");
     await _socket.ConnectAsync(uri, _cts.Token);
-    await SendNowAsync(SetupMessage());
+    await SendNowAsync(LiveApi.Serialize(new LiveClientMessage(Setup: Setup())));
 
     // The server answers setup with setupComplete before anything else.
-    JsonNode? first = await ReceiveAsync();
-    if (first?["setupComplete"] is null) {
+    byte[]? first = await ReceiveAsync();
+    if (first is null || LiveApi.Parse(first).SetupComplete is null) {
       throw new InvalidOperationException(
-          $"Setup rejected: {first?.ToJsonString() ?? _socket.CloseStatusDescription}");
+          $"Setup rejected: {(first is null ? _socket.CloseStatusDescription : Encoding.UTF8.GetString(first))}");
     }
 
     Status?.Invoke(_resumeHandle is null ? "Connected" : "Reconnected");
     _ = Task.Run(ReceiveLoopAsync);
   }
 
-  private string SetupMessage() {
-    var setup = new JsonObject {
-      ["model"] = $"models/{_settings.Model}",
-      ["generationConfig"] = new JsonObject {
-        ["responseModalities"] = new JsonArray("AUDIO"),
-        ["mediaResolution"] = "MEDIA_RESOLUTION_MEDIUM",
-        ["speechConfig"] = new JsonObject {
-          ["voiceConfig"] = new JsonObject {
-            ["prebuiltVoiceConfig"] = new JsonObject { ["voiceName"] = _settings.Voice },
-          },
-        },
-      },
-      ["systemInstruction"] = new JsonObject {
-        ["parts"] = new JsonArray(new JsonObject { ["text"] = _systemPrompt }),
-      },
-      ["tools"] = new JsonArray(new JsonObject { ["googleSearch"] = new JsonObject() }),
-      ["inputAudioTranscription"] = new JsonObject(),
-      ["outputAudioTranscription"] = new JsonObject(),
-      // Audio+video sessions are capped at ~2 minutes of context without this.
-      ["contextWindowCompression"] = new JsonObject { ["slidingWindow"] = new JsonObject() },
-      // Lets us reconnect into the same conversation when the server sends goAway.
-      ["sessionResumption"] = _resumeHandle is null
-          ? new JsonObject()
-          : new JsonObject { ["handle"] = _resumeHandle },
-    };
-    return new JsonObject { ["setup"] = setup }.ToJsonString();
+  private LiveSetup Setup() {
+    return new LiveSetup(
+        Model: $"models/{_settings.Model}",
+        GenerationConfig: new GenerationConfig(
+            ResponseModalities: [Modality.Audio],
+            MediaResolution: MediaResolution.Medium,
+            SpeechConfig: new SpeechConfig(new VoiceConfig(new PrebuiltVoiceConfig(_settings.Voice)))),
+        SystemInstruction: new Content([new Part(Text: _systemPrompt)]),
+        Tools: [new Tool(GoogleSearch: new GoogleSearch())],
+        InputAudioTranscription: new AudioTranscriptionConfig(),
+        OutputAudioTranscription: new AudioTranscriptionConfig(),
+        // Audio+video sessions are capped at ~2 minutes of context without this.
+        ContextWindowCompression: new ContextWindowCompressionConfig(new SlidingWindow()),
+        // Lets us reconnect into the same conversation when the server sends goAway.
+        SessionResumption: new SessionResumptionConfig(_resumeHandle));
   }
 
-  private void Enqueue(RealtimeInput kind, string mimeType, byte[] data) {
-    // Built by hand: this runs 25 times a second for audio alone.
-    _outbox.Writer.TryWrite(
-        "{\"realtimeInput\":{\"" + WireName.For(kind) + "\":{\"mimeType\":\"" + mimeType + "\",\"data\":\""
-        + Convert.ToBase64String(data) + "\"}}}");
+  private void Enqueue(RealtimeInput input) {
+    _outbox.Writer.TryWrite(LiveApi.Serialize(new LiveClientMessage(RealtimeInput: input)));
   }
 
   private async Task PumpAsync() {
@@ -163,7 +147,8 @@ public sealed class LiveSession : IAsyncDisposable {
 
   // ---- downstream ----
 
-  private async Task<JsonNode?> ReceiveAsync() {
+  /// <summary>One whole message's UTF-8 JSON; null once the server closes.</summary>
+  private async Task<byte[]?> ReceiveAsync() {
     var buffer = new byte[_receiveBufferBytes];
     using var message = new MemoryStream();
     while (true) {
@@ -176,7 +161,7 @@ public sealed class LiveSession : IAsyncDisposable {
 
       // The server sends JSON in binary frames; both frame types carry UTF-8 JSON.
       if (received.EndOfMessage) {
-        return JsonNode.Parse(message.ToArray());
+        return message.ToArray();
       }
     }
   }
@@ -185,12 +170,12 @@ public sealed class LiveSession : IAsyncDisposable {
     ClientWebSocket? socket = _socket;
     try {
       while (!_cts.IsCancellationRequested) {
-        JsonNode? msg = await ReceiveAsync();
-        if (msg is null) {
+        byte[]? json = await ReceiveAsync();
+        if (json is null) {
           break;
         }
 
-        if (Handle(msg)) {
+        if (Handle(LiveApi.Parse(json))) {
           return;  // goAway: a fresh socket took over
         }
       }
@@ -208,46 +193,48 @@ public sealed class LiveSession : IAsyncDisposable {
   }
 
   /// <returns>true when this socket has been replaced and its loop should stop.</returns>
-  private bool Handle(JsonNode msg) {
-    if (msg["serverContent"] is JsonObject content) {
+  private bool Handle(LiveServerMessage msg) {
+    if (msg.ServerContent is { } content) {
       HandleContent(content);
     }
 
-    if (msg["sessionResumptionUpdate"] is JsonObject resume
-        && resume["resumable"]?.GetValue<bool>() == true
-        && resume["newHandle"]?.GetValue<string>() is { Length: > 0 } handle) {
+    if (msg.SessionResumptionUpdate is { Resumable: true, NewHandle: { Length: > 0 } handle }) {
       _resumeHandle = handle;
     }
 
-    if (msg["goAway"] is not { } goAway) {
+    foreach (string field in msg.Unhandled?.Keys ?? Enumerable.Empty<string>()) {
+      if (_unhandledSeen.Add(field)) {
+        Log.Write($"live api: ignoring \"{field}\"");
+      }
+    }
+
+    if (msg.GoAway is not { } goAway) {
       return false;
     }
 
-    Log.Write($"goAway {goAway.ToJsonString()} - resuming");
+    Log.Write($"goAway in {goAway.TimeLeft ?? "?"} - resuming");
     Status?.Invoke(LiveStatus.Reconnecting);
     _ = Task.Run(ResumeAsync);
     return true;
   }
 
-  private void HandleContent(JsonObject content) {
-    if (content["interrupted"]?.GetValue<bool>() == true) {
+  private void HandleContent(ServerContent content) {
+    if (content.Interrupted) {
       Interrupted?.Invoke();
     }
 
-    if (content["modelTurn"]?["parts"] is JsonArray parts) {
-      foreach (JsonNode? part in parts) {
-        if (part?["inlineData"]?["data"]?.GetValue<string>() is { } base64) {
-          Audio?.Invoke(Convert.FromBase64String(base64));
-        }
+    foreach (Part part in content.ModelTurn?.Parts ?? []) {
+      if (part.InlineData is { } audio) {
+        Audio?.Invoke(audio.Data);
       }
     }
 
-    if (content["inputTranscription"]?["text"]?.GetValue<string>() is { Length: > 0 } heard) {
-      UserText?.Invoke(heard);
+    if (content.InputTranscription is { Text.Length: > 0 } heard) {
+      UserText?.Invoke(heard.Text);
     }
 
-    if (content["outputTranscription"]?["text"]?.GetValue<string>() is { Length: > 0 } said) {
-      ModelText?.Invoke(said);
+    if (content.OutputTranscription is { Text.Length: > 0 } said) {
+      ModelText?.Invoke(said.Text);
     }
   }
 
