@@ -53,9 +53,6 @@ importers:
       '@gemini-live/messaging':
         specifier: workspace:*
         version: link:../messaging
-      zod:
-        specifier: ^3.24.1
-        version: 3.25.76
     devDependencies:
       esbuild:
         specifier: ^0.24.2

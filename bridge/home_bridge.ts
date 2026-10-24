@@ -1,5 +1,3 @@
-import { HomeMessage, type HomeProtocolMap, PcLightsState } from "./home_protocol";
-import { webViewTransport } from "./webview_transport";
 // Injected at document-start into home.google.com inside our hidden WebView2 (bundled to
 // home_bridge.js by build.mjs). The Home web app is signed in with the browser's Google session and
 // does all the auth and device wiring; we only locate the PC Lights tile, read whether it is on from
@@ -7,12 +5,16 @@ import { webViewTransport } from "./webview_transport";
 // (HomeProtocolMap in home_protocol.ts) and does the click itself as a trusted CDP mouse event,
 // because the tiles ignore synthetic DOM clicks (same reason glic types with trusted keys).
 // Scoped to the PC lights for now.
+import { HomeMessage, type HomeProtocolMap, type PcLightsState } from "./home_protocol";
+import { collapseWhitespace, labelAndText } from "./text";
+import { webViewTransport } from "./webview_transport";
 import { defineMessaging } from "@gemini-live/messaging";
 
 const DEVICE = "PC Lights";
 const CARD_MIN_W = 300;
 const CARD_MIN_H = 60;
 const DISMISS_TEXT = /^(ok|got it|no thanks|not now|dismiss|done)$/i;
+const DISMISS_LABEL = /\b(close|dismiss)\b/i;
 // The page only answers HomeHost and never asks it anything, so this bounds nothing in practice.
 const MESSAGE_TIMEOUT_MS = 1000;
 
@@ -51,8 +53,7 @@ if (!window.__homeBridgeInstalled && window.top === window) {
   function dismissCards(): void {
     for (const overlay of deepQuery(document, "[role=\"dialog\"],[role=\"alertdialog\"]")) {
       for (const button of overlay.querySelectorAll<HTMLElement>("button,[role=\"button\"]")) {
-        const label = `${button.getAttribute("aria-label") ?? ""} ${button.textContent ?? ""}`;
-        if (DISMISS_TEXT.test((button.textContent ?? "").trim()) || /\b(close|dismiss)\b/i.test(label)) {
+        if (DISMISS_TEXT.test((button.textContent ?? "").trim()) || DISMISS_LABEL.test(labelAndText(button))) {
           button.click();
         }
       }
@@ -79,7 +80,7 @@ if (!window.__homeBridgeInstalled && window.top === window) {
   // where a word boundary never matches. Off wins over On, since an "on" tile may also read "On •
   // 100%" but only an off one says "Off". null until the state word has loaded in.
   function cardText(card: HTMLElement): string {
-    return card.innerText.replace(/\s+/g, " ").trim();
+    return collapseWhitespace(card.innerText);
   }
   function stateOf(text: string): boolean | null {
     if (/\boff\b/i.test(text)) {
@@ -93,24 +94,34 @@ if (!window.__homeBridgeInstalled && window.top === window) {
     return null;
   }
 
+  /** A whole pixel of the view; a layout that yields none fails the request rather than a click. */
+  function pixel(value: number): number {
+    const rounded = Math.round(value);
+    if (!Number.isInteger(rounded)) {
+      throw new Error(`Not a pixel position: ${value}`);
+    }
+
+    return rounded;
+  }
+
   function measure(): PcLightsState {
     dismissCards();
     const card = deviceCard(DEVICE);
     if (!card) {
-      return PcLightsState.parse({ found: false });
+      return { found: false };
     }
 
     card.scrollIntoView({ block: "center" }); // bring it into the hidden view so the click lands
     const rect = card.getBoundingClientRect();
     const text = cardText(card);
-    return PcLightsState.parse({
+    return {
       found: true,
       name: DEVICE,
       on: stateOf(text),
       text,
-      x: Math.round(rect.x + rect.width / 2),
-      y: Math.round(rect.y + rect.height / 2)
-    });
+      x: pixel(rect.x + rect.width / 2),
+      y: pixel(rect.y + rect.height / 2)
+    };
   }
 
   app.onMessage(HomeMessage.Ready, (): boolean => {

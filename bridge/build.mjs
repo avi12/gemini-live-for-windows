@@ -1,6 +1,6 @@
 // Bundles the TypeScript page bridges to the plain JS the app embeds and injects at document-start.
-// Zod is bundled in, so the injected script is self-contained. Run via `pnpm build` (type-checks
-// first) or directly with `node build.mjs`.
+// Each bridge is one self-contained IIFE: its modules and the messaging package are bundled in. Run
+// via `pnpm build` (type-checks first) or directly with `node build.mjs`.
 import { build } from "esbuild";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";

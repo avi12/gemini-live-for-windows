@@ -21,6 +21,19 @@ export enum GlicMessage {
   Read = "read"
 }
 
+/**
+ * What GlicMessage.Error carries. SignedOut, Unavailable and LiveBroke are codes GlicHost matches
+ * on (PageError in C#) - waiting for a fresh session for the first two, reloading the page for the
+ * third; the rest are shown to the user as they are.
+ */
+export enum ErrorMessage {
+  SignedOut = "signed-out",
+  Unavailable = "unavailable",
+  LiveBroke = "live-broke",
+  PageDidNotStart = "Gemini page did not start",
+  LiveDidNotStart = "Gemini Live did not start (sign-in or rate limit)"
+}
+
 /** The Live states the page reports. */
 export enum State {
   Idle = "idle",
@@ -78,7 +91,7 @@ export interface GlicProtocolMap {
   [GlicMessage.State](state: State): void;
   [GlicMessage.Transcript](line: TranscriptLine): void;
   /** A failure: one of ErrorMessage's codes, or a message to show. */
-  [GlicMessage.Error](message: string): void;
+  [GlicMessage.Error](message: ErrorMessage): void;
   /** A picture of the shared screen or camera; null when there is none. */
   [GlicMessage.Capture](): Picture | null;
   /** An exact text copy of the window on the shared display; null when there is none. */
