@@ -4,7 +4,11 @@ Press **Win+C** (or the Copilot key) and Gemini Live starts listening and sees t
 
 Created by [Avi](https://avi12.com).
 
-![The Gemini Live pill above the taskbar, listening](docs/screenshots/pill.png)
+![The Gemini Live pill above the taskbar, listening](https://github.com/user-attachments/assets/c4367b56-29b6-4e21-8078-e141aafd031a)
+
+## Demonstration
+
+https://github.com/user-attachments/assets/cb139a57-6897-431f-bec2-910c7e42f9cf
 
 ## Requirements
 
