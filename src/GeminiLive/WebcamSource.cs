@@ -60,10 +60,9 @@ public sealed class WebcamSource : IAsyncDisposable {
   }
 
   /// <summary>The latest JPEG still, or null until the first frame has been encoded.</summary>
-  public Task<ScreenGrabber.Frame?> GrabAsync() {
+  public ScreenGrabber.Frame? Grab() {
     lock (_gate) {
-      return Task.FromResult<ScreenGrabber.Frame?>(
-          _latestJpeg is { } jpeg ? new ScreenGrabber.Frame(jpeg, _width, _height) : null);
+      return _latestJpeg is { } jpeg ? new ScreenGrabber.Frame(jpeg, _width, _height) : null;
     }
   }
 

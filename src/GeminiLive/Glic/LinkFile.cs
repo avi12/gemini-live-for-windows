@@ -9,7 +9,7 @@ namespace GeminiLive.Glic;
 /// </summary>
 public static class LinkFile {
   private static readonly string _path = Path.Combine(Log.Dir, "link.json");
-  private static readonly JsonSerializerOptions _json = new(JsonSerializerDefaults.Web);
+  private static readonly JsonSerializerOptions _json = WireName.Json;
 
   /// <summary>Replaces the file whole, so the host never reads half of it.</summary>
   public static void Write(LinkInfo link) {

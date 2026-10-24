@@ -10,6 +10,7 @@ namespace GeminiLive;
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1001", Justification = "Held for the process lifetime")]
 public partial class App : Application {
   private const int _forwardAttempts = 10;
+  private static readonly TimeSpan _forwardRetry = TimeSpan.FromMilliseconds(100);
 
   // Never read, only held: the field keeps the mutex from being collected (and released).
   [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality", "IDE0052",
@@ -40,15 +41,19 @@ public partial class App : Application {
     var link = new Glic.SessionLink();
     link.Start();
     var glic = new Glic.GlicHost(link);
-    _ = glic.WarmUpAsync().ContinueWith(t => Log.Write($"warm-up failed: {t.Exception}"),
-                                        TaskContinuationOptions.OnlyOnFaulted);
+    WarmUp(glic.WarmUpAsync(), "warm-up");
     var home = new Glic.HomeHost(link);
-    _ = home.WarmUpAsync().ContinueWith(t => Log.Write($"home warm-up failed: {t.Exception}"),
-                                        TaskContinuationOptions.OnlyOnFaulted);
+    WarmUp(home.WarmUpAsync(), "home warm-up");
     var pill = new MainWindow(glic, home);
     CopilotKey.RegisterFastPath(pill.Handle, pill.OnTrigger);
     CopilotKey.ListenForForwardedTriggers(t => Dispatcher.Invoke(() => pill.OnTrigger(t)));
     pill.OnTrigger(trigger ?? KeyTrigger.Tap);
+  }
+
+  /// <summary>Lets a host boot in the background; a failure is only logged.</summary>
+  private static void WarmUp(Task warming, string what) {
+    _ = warming.ContinueWith(t => Log.Write($"{what} failed: {t.Exception}"),
+                             TaskContinuationOptions.OnlyOnFaulted);
   }
 
   /// <summary>Another instance is running: hand it our trigger and leave.</summary>
@@ -58,7 +63,7 @@ public partial class App : Application {
         break;
       }
 
-      Thread.Sleep(100);
+      Thread.Sleep(_forwardRetry);
     }
     Shutdown();
   }

@@ -70,13 +70,9 @@ public sealed class HomeHost : GoogleWebViewHost<HomeMessage> {
   private static string OnOff(bool on) => on ? "on" : "off";
 
   /// <summary>The PC Lights tile as the page reads it, or null when the page didn't answer.</summary>
-  private async Task<PcLights?> ReadLightsAsync() {
-    try {
-      return await Messenger.SendMessageAsync(HomeProtocol.PcLights);
-    } catch (Exception e) {
-      Log.Write($"home: reading the lights: {e.Message}");
-      return null;
-    }
+  private Task<PcLights?> ReadLightsAsync() {
+    return Log.AttemptAsync("home: reading the lights",
+                            () => Messenger.SendMessageAsync(HomeProtocol.PcLights));
   }
 
   // The engine is up; the Home page itself loads on demand (see EnsureHomeAsync), so leave it blank.

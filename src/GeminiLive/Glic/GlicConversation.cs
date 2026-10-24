@@ -6,6 +6,8 @@ namespace GeminiLive.Glic;
 /// <summary>
 /// The Google-account engine: one Live session on the long-lived <see cref="GlicHost"/>. Gemini's
 /// own client does the audio, so there are no levels to show; captions arrive as whole utterances.
+/// Requests Live can't serve (<see cref="SpokenIntent"/>) take a detour: the PC lights through
+/// <see cref="HomeHost"/>, Google apps through Gemini's text path.
 /// </summary>
 public sealed partial class GlicConversation : ILiveEngine {
   public event Action<string>? Status;
@@ -25,10 +27,16 @@ public sealed partial class GlicConversation : ILiveEngine {
   private readonly DispatcherTimer _intentTimer;
   private readonly SpeechPlayer _speech = new();
 
+  private bool _muted;
+  private string _lastUserUtterance = "";
+  private string _handledUtterance = "";
+  private int _handledRefusalIndex = -1;
+  private bool _runningDetour;
+
   public GlicConversation(GlicHost host, HomeHost home, MonitorInfo monitor) {
     _host = host;
     _home = home;
-    host.Monitor = monitor;
+    host.View.Monitor = monitor;
     host.State += OnState;
     host.Caption += OnCaption;
     host.Failed += OnFailed;
@@ -37,7 +45,7 @@ public sealed partial class GlicConversation : ILiveEngine {
     _intentTimer.Tick += OnIntentSettled;
   }
 
-  public MonitorInfo Monitor => _host.Monitor;
+  public MonitorInfo Monitor => _host.View.Monitor;
 
   public bool Muted {
     get => _muted;
@@ -49,12 +57,6 @@ public sealed partial class GlicConversation : ILiveEngine {
 
   public bool ReportsLevels => false;
 
-  private bool _muted;
-  private string _lastUserUtterance = "";
-  private string _handledUtterance = "";
-  private int _handledRefusalIndex = -1;
-  private bool _runningAction;
-
   // No timeout here: the page reports its own start failure, and waiting for the browser's
   // Google session (extension not yet connected, user signing in) can legitimately take a while.
   public Task StartAsync() {
@@ -62,7 +64,7 @@ public sealed partial class GlicConversation : ILiveEngine {
   }
 
   public void Share(MonitorInfo monitor) {
-    _host.Monitor = monitor;
+    _host.View.Monitor = monitor;
   }
 
   public ValueTask DisposeAsync() {
@@ -91,11 +93,12 @@ public sealed partial class GlicConversation : ILiveEngine {
       // utterance revises in place, so restart the settle timer on each update.
       _lastUserUtterance = clean;
 
-      if (!_runningAction) {
+      if (!_runningDetour) {
         _intentTimer.Stop();
         _intentTimer.Start();
       }
-    } else if (NeedsApp(clean) && index != _handledRefusalIndex && _lastUserUtterance.Length > 0) {
+    } else if (SpokenIntent.NeedsApp(clean) && index != _handledRefusalIndex
+               && _lastUserUtterance.Length > 0) {
       // Fallback: Gemini got there first and refused. Fix it with the text path.
       _handledRefusalIndex = index;
       _ = RunAppActionAsync(_lastUserUtterance);
@@ -106,31 +109,48 @@ public sealed partial class GlicConversation : ILiveEngine {
   private void OnIntentSettled(object? sender, EventArgs e) {
     _intentTimer.Stop();
 
-    if (_runningAction || _lastUserUtterance == _handledUtterance) {
+    if (_runningDetour || _lastUserUtterance == _handledUtterance) {
       return;
     }
 
-    if (TryLightsCommand(_lastUserUtterance, out bool on)) {
+    if (SpokenIntent.TryLightsCommand(_lastUserUtterance, out bool on)) {
       _ = RunLightsAsync(_lastUserUtterance, on);
       return;
     }
 
-    if (TargetsApp(_lastUserUtterance)) {
+    if (SpokenIntent.TargetsApp(_lastUserUtterance)) {
       _ = RunAppActionAsync(_lastUserUtterance);
     }
   }
 
-  // Live has no access to the account's Google apps; its text turns do. When Gemini says it can't
-  // reach Calendar, Keep, Tasks, Gmail or Home, re-run the user's request on the text path, speak
-  // the answer back into the card, and resume Live - which keeps the answer in context.
-  private async Task RunAppActionAsync(string request) {
-    if (_runningAction) {
+  /// <summary>
+  /// Runs one detour at a time. The request is marked handled up front, so neither trigger
+  /// re-fires for it.
+  /// </summary>
+  private async Task RunDetourAsync(string request, string status, Func<Task> detour) {
+    if (_runningDetour) {
       return;
     }
 
-    _runningAction = true;
-    _handledUtterance = request;  // so neither trigger re-fires for the same request
-    Status?.Invoke($"Checking {AppName(request)}…");
+    _runningDetour = true;
+    _handledUtterance = request;
+    Status?.Invoke(status);
+    try {
+      await detour();
+    } finally {
+      _runningDetour = false;
+    }
+  }
+
+  // Live has no access to the account's Google apps; its text turns do. When Gemini says it can't
+  // reach Calendar, Keep, Tasks or Gmail, re-run the user's request on the text path, speak
+  // the answer back into the card, and resume Live - which keeps the answer in context.
+  private Task RunAppActionAsync(string request) {
+    return RunDetourAsync(request, $"Checking {SpokenIntent.AppName(request)}…",
+                          () => AskTextPathAsync(request));
+  }
+
+  private async Task AskTextPathAsync(string request) {
     try {
       string answer = await _host.RunActionAsync(request);
       Log.Write($"app action: {answer.Length} chars back");
@@ -146,22 +166,18 @@ public sealed partial class GlicConversation : ILiveEngine {
       Log.Write($"app action failed: {e.Message}");
       Status?.Invoke(LiveStatus.Listening);
       _ = _host.StartAsync();
-    } finally {
-      _runningAction = false;
     }
   }
 
   // The PC lights live in Google Home, which Gemini's text path can't reach; flip them on the Home
   // web app instead and speak the result. Unlike an app action this runs off the Live page, so Live
   // keeps listening and the spoken result simply lands over it.
-  private async Task RunLightsAsync(string request, bool on) {
-    if (_runningAction) {
-      return;
-    }
+  private Task RunLightsAsync(string request, bool on) {
+    return RunDetourAsync(request, $"Turning the lights {(on ? "on" : "off")}…",
+                          () => SwitchLightsAsync(on));
+  }
 
-    _runningAction = true;
-    _handledUtterance = request;  // so the trigger doesn't re-fire for the same request
-    Status?.Invoke($"Turning the lights {(on ? "on" : "off")}…");
+  private async Task SwitchLightsAsync(bool on) {
     try {
       string answer = await _home.SetLightsAsync(on);
       Transcript?.Invoke(answer, false);
@@ -172,60 +188,9 @@ public sealed partial class GlicConversation : ILiveEngine {
       Transcript?.Invoke(trouble, false);
       await _speech.SpeakAsync(trouble);
     } finally {
-      _runningAction = false;
       Status?.Invoke(LiveStatus.Listening);
     }
   }
-
-  // A plain spoken command to switch the lights: it names the lights, with a switch verb and a clear
-  // direction. Questions ("are the lights on?") and Calendar/Keep/Tasks requests that merely mention
-  // lights ("remind me to turn off the lights") fall through to their own paths, so the light is
-  // never toggled by accident.
-  private static bool TryLightsCommand(string text, out bool on) {
-    on = false;
-
-    if (Question().IsMatch(text) || AppTopic().IsMatch(text)
-        || !LightsTopic().IsMatch(text) || !SwitchVerb().IsMatch(text)) {
-      return false;
-    }
-
-    bool wantsOn = TurnOn().IsMatch(text);
-    bool wantsOff = TurnOff().IsMatch(text);
-    if (wantsOn == wantsOff) {
-      return false;
-    }
-
-    on = wantsOn;
-    return true;
-  }
-
-  // Gemini refusing an app it can't reach in Live: a "can't / don't have" paired with an app topic.
-  private static bool NeedsApp(string text) {
-    return Refusal().IsMatch(text) && AppTopic().IsMatch(text);
-  }
-
-  // The user plainly asking an app to do or report something (app topic + an imperative or a
-  // question about it) - which Live can't, so handle it on the text path up front.
-  private static bool TargetsApp(string text) {
-    return AppTopic().IsMatch(text) && Intent().IsMatch(text);
-  }
-
-  // The app a request names, for the status line while it runs; ambiguous words fall through.
-  private static string AppName(string request) {
-    foreach ((Regex pattern, string name) in _appNames) {
-      if (pattern.IsMatch(request)) {
-        return name;
-      }
-    }
-    return "your Google apps";
-  }
-
-  private static readonly (Regex Pattern, string Name)[] _appNames = [
-    (new(@"\b(gmail|e-?mail|inbox|mail)\b", RegexOptions.IgnoreCase), "Gmail"),
-    (new(@"\b(keep|note|notes)\b", RegexOptions.IgnoreCase), "Keep"),
-    (new(@"\b(task|tasks|to-?dos?)\b", RegexOptions.IgnoreCase), "Tasks"),
-    (new(@"\b(calendar|schedule|meeting|event|events)\b", RegexOptions.IgnoreCase), "Calendar"),
-  ];
 
   private void OnFailed(string message) {
     Ended?.Invoke(message);
@@ -237,39 +202,4 @@ public sealed partial class GlicConversation : ILiveEngine {
 
   [GeneratedRegex(@"\\([\\`*_{}\[\]()#+\-.!>|~])")]
   private static partial Regex MarkdownEscape();
-
-  [GeneratedRegex(@"\b(can'?t|cannot|don'?t|do not|unable|not able|no access)\b",
-                  RegexOptions.IgnoreCase)]
-  private static partial Regex Refusal();
-
-  [GeneratedRegex(
-      // Only apps Gemini's web text turns can reach (its Connected Apps page). Not Home, alarms or
-      // timers: the web has no tool for them, so the detour only paused Live for a dead end.
-      @"\b(calendar|schedule|meeting|event|remind|reminder|task|to-?do|note|keep|gmail|e-?mail|inbox|mail)\b",
-      RegexOptions.IgnoreCase)]
-  private static partial Regex AppTopic();
-
-  [GeneratedRegex(
-      @"\b(add|create|schedule|set|make|new|delete|remove|cancel|move|reschedule|turn on|turn off|switch on|switch off|dim|list|show|check|read|send|mark|star|archive|do i have|what'?s on|what is on|what'?s my|what are my|when'?s|when is)\b",
-      RegexOptions.IgnoreCase)]
-  private static partial Regex Intent();
-
-  // The one Home device we control for now; "lights" is enough to name it in a spoken command.
-  [GeneratedRegex(@"\blights?\b", RegexOptions.IgnoreCase)]
-  private static partial Regex LightsTopic();
-
-  // A command needs a switch verb so a mention isn't mistaken for an instruction.
-  [GeneratedRegex(@"\b(turn|switch|put|flip|kill)\b", RegexOptions.IgnoreCase)]
-  private static partial Regex SwitchVerb();
-
-  [GeneratedRegex(@"\bon\b", RegexOptions.IgnoreCase)]
-  private static partial Regex TurnOn();
-
-  [GeneratedRegex(@"\b(off|out)\b", RegexOptions.IgnoreCase)]
-  private static partial Regex TurnOff();
-
-  // Leading interrogative: a question about the lights, not a command to switch them.
-  [GeneratedRegex(@"^\s*(are|is|was|were|do|does|did|can|could|would|will|should|what|which|when|how|why|whose)\b",
-                  RegexOptions.IgnoreCase)]
-  private static partial Regex Question();
 }

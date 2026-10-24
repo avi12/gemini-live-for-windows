@@ -17,7 +17,7 @@ public sealed record GoogleCookie(string Name, string Value, string Domain, stri
 /// </summary>
 public static class GoogleCookies {
   private static readonly string _store = Path.Combine(Log.Dir, "google-session.bin");
-  private static readonly JsonSerializerOptions _json = new(JsonSerializerDefaults.Web);
+  private static readonly JsonSerializerOptions _json = WireName.Json;
 
   /// <summary>The Google login/session cookies among everything the browser sent.</summary>
   public static List<GoogleCookie> AuthCookies(IEnumerable<GoogleCookie> cookies) {

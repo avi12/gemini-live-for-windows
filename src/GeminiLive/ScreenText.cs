@@ -15,7 +15,7 @@ namespace GeminiLive;
 /// the browser's "annotated page content" Gemini can ask its host for.
 /// </summary>
 public static partial class ScreenText {
-  /// <summary>Wire value = lower-cased name (see <see cref="WireName"/>).</summary>
+  /// <summary>What a block of text is (wire value: <see cref="WireName"/>).</summary>
   public enum BlockKind { Heading, Paragraph }
 
   public sealed record Block(BlockKind Kind, string Text);
@@ -93,21 +93,8 @@ public static partial class ScreenText {
       int visited = 0;
       while (queue.Count > 0 && visited < _maxElements && chars < _maxChars
              && stopwatch.Elapsed < _softDeadline) {
-        AutomationElement element = queue.Dequeue();
         visited++;
-        try {
-          if (!Visit(element, Add)) {
-            continue;
-          }
-
-          TreeWalker walker = TreeWalker.ControlViewWalker;
-          for (AutomationElement? child = walker.GetFirstChild(element, _cache); child is not null;
-               child = walker.GetNextSibling(child, _cache)) {
-            queue.Enqueue(child);
-          }
-        } catch (Exception e) when (IsGone(e)) {
-          // This element changed or went away mid-walk; its siblings may still be fine.
-        }
+        VisitAndQueueChildren(queue.Dequeue(), queue, Add);
       }
     } catch (Exception e) when (IsGone(e)) {
       // The whole window went away; keep what was gathered.
@@ -118,6 +105,24 @@ public static partial class ScreenText {
     }
 
     return new View(title, AppName(pid), blocks, Hash(title, blocks));
+  }
+
+  /// <summary>Takes <paramref name="element"/>'s text, and queues its children if they're worth a look.</summary>
+  private static void VisitAndQueueChildren(AutomationElement element, Queue<AutomationElement> queue,
+                                            Action<BlockKind, string?> add) {
+    try {
+      if (!Visit(element, add)) {
+        return;
+      }
+
+      TreeWalker walker = TreeWalker.ControlViewWalker;
+      for (AutomationElement? child = walker.GetFirstChild(element, _cache); child is not null;
+           child = walker.GetNextSibling(child, _cache)) {
+        queue.Enqueue(child);
+      }
+    } catch (Exception e) when (IsGone(e)) {
+      // This element changed or went away mid-walk; its siblings may still be fine.
+    }
   }
 
   /// <summary>

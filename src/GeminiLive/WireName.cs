@@ -1,3 +1,6 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 namespace GeminiLive;
 
 /// <summary>
@@ -6,9 +9,16 @@ namespace GeminiLive;
 /// of truth.
 /// </summary>
 internal static class WireName {
+  /// <summary>
+  /// The JSON we exchange with JS and keep on disk: camelCase property names, and enums spelled as
+  /// <see cref="For{T}"/> spells them.
+  /// </summary>
+  public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) {
+    Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
+  };
+
   public static string For<T>(T value) where T : struct, Enum {
-    string name = value.ToString();
-    return char.ToLowerInvariant(name[0]) + name[1..];
+    return JsonNamingPolicy.CamelCase.ConvertName(value.ToString());
   }
 
   /// <summary>The value spelled <paramref name="wire"/> on the wire; null for anything else.</summary>

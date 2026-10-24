@@ -370,7 +370,7 @@ public partial class MainWindow : Window {
     ConnectSteps.Visibility = Visibility.Visible;
   }
 
-  // ---- settings menu (gear): microphone, quit ----
+  // ---- settings menu (gear): microphone, camera share, quit ----
 
   /// <summary>Every menu opens upward, rising out of the pill, which sits on the taskbar.</summary>
   private static ContextMenu MenuAbove(UIElement anchor) {
@@ -390,10 +390,7 @@ public partial class MainWindow : Window {
   /// </summary>
   private async Task FillSettingsMenuAsync(ContextMenu menu) {
     menu.Items.Clear();
-    menu.Items.Add(new MenuItem {
-      Header = "Microphone",
-      Style = (Style)FindResource("LiveMenuHeader"),
-    });
+    menu.Items.Add(MenuHeader("Microphone"));
     AddMicrophone(menu, "Default (Windows)", null);
     foreach ((string id, string name) in await _glic.ListMicrophonesAsync()) {
       AddMicrophone(menu, name, id);
@@ -403,17 +400,14 @@ public partial class MainWindow : Window {
     // API-key engine pushes the screen itself, so the toggle only applies there.
     if (_settings.Engine == EngineKind.Google) {
       menu.Items.Add(new Separator());
-      menu.Items.Add(new MenuItem {
-        Header = "Share",
-        Style = (Style)FindResource("LiveMenuHeader"),
-      });
+      menu.Items.Add(MenuHeader("Share"));
       var camera = new MenuItem {
         Header = "Camera instead of screen",
         IsCheckable = true,
-        IsChecked = _glic.UseCamera,
+        IsChecked = _glic.View.UseCamera,
       };
       camera.Click += async (_, _) => {
-        if (!await _glic.UseCameraAsync(camera.IsChecked)) {
+        if (!await _glic.View.UseCameraAsync(camera.IsChecked)) {
           camera.IsChecked = false;  // camera wouldn't open; stay on the screen
         }
       };
@@ -427,6 +421,11 @@ public partial class MainWindow : Window {
       Application.Current.Shutdown();
     };
     menu.Items.Add(quit);
+  }
+
+  /// <summary>A section title in a menu, not a choice.</summary>
+  private MenuItem MenuHeader(string title) {
+    return new MenuItem { Header = title, Style = (Style)FindResource("LiveMenuHeader") };
   }
 
   private void AddMicrophone(ContextMenu menu, string name, string? id) {

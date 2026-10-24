@@ -124,13 +124,10 @@ public sealed class SessionLink {
     // Replies, the Hello's included, arrive through this loop, so it runs before anything is sent.
     Task receiving = ReceiveLoopAsync(socket, messenger);
     try {
-      try {
-        await messenger.SendMessageAsync(LinkProtocol.Hello, _token);
-      } catch (Exception e) {
-        Log.Write($"session link: hello refused: {e.Message}");
-        socket.Abort();
+      if (!await GreetAsync(socket, messenger)) {
         return;
       }
+
       lock (_gate) {
         _clients.Add(messenger);
       }
@@ -150,6 +147,18 @@ public sealed class SessionLink {
       await receiving;
       outbox.Writer.TryComplete();
       await sending;
+    }
+  }
+
+  /// <summary>Sends this run's Hello; false, with the socket dropped, when the extension refuses it.</summary>
+  private async Task<bool> GreetAsync(WebSocket socket, Messenger<LinkMessage> messenger) {
+    try {
+      await messenger.SendMessageAsync(LinkProtocol.Hello, _token);
+      return true;
+    } catch (Exception e) {
+      Log.Write($"session link: hello refused: {e.Message}");
+      socket.Abort();
+      return false;
     }
   }
 

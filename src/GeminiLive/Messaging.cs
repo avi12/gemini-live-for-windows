@@ -38,11 +38,7 @@ internal sealed class NoneConverter : JsonConverter<None> {
 /// <c>{id, type, data, timestamp}</c> for a request, <c>{replyTo, res | err}</c> for its reply.
 /// </summary>
 public sealed class Messenger<TType> where TType : struct, Enum {
-  // camelCase names and enum values, the same spelling as WireName and the TypeScript side.
-  private static readonly JsonSerializerOptions _json = new(JsonSerializerDefaults.Web) {
-    DefaultIgnoreCondition = JsonIgnoreCondition.Never,
-    Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
-  };
+  private static readonly JsonSerializerOptions _json = WireName.Json;
 
   private readonly Action<string> _post;
   private readonly TimeSpan _timeout;
@@ -101,32 +97,26 @@ public sealed class Messenger<TType> where TType : struct, Enum {
 
   /// <summary>
   /// Answers every <paramref name="message"/> the other end sends with
-  /// <paramref name="onReceived"/>; one listener per type. Returns what removes it.
+  /// <paramref name="onReceived"/>; one listener per type, for the messenger's lifetime.
   /// </summary>
-  public Action OnMessage<TData, TReturn>(Protocol<TType, TData, TReturn> message,
-                                          Func<TData, Task<TReturn>> onReceived) {
+  public void OnMessage<TData, TReturn>(Protocol<TType, TData, TReturn> message,
+                                        Func<TData, Task<TReturn>> onReceived) {
     async Task<object?> Handle(JsonElement data) => await onReceived(Read<TData>(data));
 
     if (!_handlers.TryAdd(message.Type, Handle)) {
       throw new InvalidOperationException($"\"{WireName.For(message.Type)}\" already has a listener");
     }
-
-    return () => _handlers.TryRemove(message.Type, out _);
   }
 
   /// <summary>A listener that answers at once.</summary>
-  public Action OnMessage<TData, TReturn>(Protocol<TType, TData, TReturn> message,
-                                          Func<TData, TReturn> onReceived) {
-    return OnMessage(message, data => Task.FromResult(onReceived(data)));
+  public void OnMessage<TData, TReturn>(Protocol<TType, TData, TReturn> message,
+                                        Func<TData, TReturn> onReceived) {
+    OnMessage(message, data => Task.FromResult(onReceived(data)));
   }
 
   /// <summary>A field of an envelope as <typeparamref name="T"/>; a missing one reads as null.</summary>
   private static T Read<T>(JsonElement value) {
     return value.ValueKind == JsonValueKind.Undefined ? default! : value.Deserialize<T>(_json)!;
-  }
-
-  public void RemoveAllListeners() {
-    _handlers.Clear();
   }
 
   /// <summary>Takes one envelope from the other end: a request to answer or a reply to settle.</summary>

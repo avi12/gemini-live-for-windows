@@ -39,7 +39,7 @@ public static class DisplayPicker {
     var timer = new DispatcherTimer { Interval = _refresh };
     timer.Tick += (_, _) => {
       foreach ((MonitorInfo display, ImageBrush brush) in feeds) {
-        RefreshAsync(brush, display);
+        RefreshOffThread(brush, display);
       }
     };
     menu.Opened += (_, _) => timer.Start();
@@ -67,7 +67,7 @@ public static class DisplayPicker {
   }
 
   /// <summary>Grabs a frame off the UI thread and swaps it into the brush when it lands.</summary>
-  private static void RefreshAsync(ImageBrush brush, MonitorInfo display) {
+  private static void RefreshOffThread(ImageBrush brush, MonitorInfo display) {
     Task.Run(() => Grab(display)).ContinueWith(
         task => {
           if (task.Result is { } image) {
@@ -85,7 +85,7 @@ public static class DisplayPicker {
 
   /// <summary>One downscaled, frozen still of the display, or null when it can't be captured.</summary>
   private static BitmapImage? Grab(MonitorInfo display) {
-    try {
+    return Log.Attempt($"preview of {display.DeviceName}", () => {
       ScreenGrabber.Frame frame = ScreenGrabber.Grab(display);
       var image = new BitmapImage();
       image.BeginInit();
@@ -95,9 +95,6 @@ public static class DisplayPicker {
       image.EndInit();
       image.Freeze();
       return image;
-    } catch (Exception e) {
-      Log.Write($"preview of {display.DeviceName} failed: {e.Message}");
-      return null;
-    }
+    });
   }
 }

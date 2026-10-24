@@ -27,4 +27,24 @@ public static class Log {
       // Logging must never take the app down.
     }
   }
+
+  /// <summary>Runs <paramref name="work"/>; null, logged as "<paramref name="what"/> failed", if it throws.</summary>
+  public static T? Attempt<T>(string what, Func<T?> work) where T : class {
+    try {
+      return work();
+    } catch (Exception e) {
+      Write($"{what} failed: {e.Message}");
+      return null;
+    }
+  }
+
+  /// <summary>The async <see cref="Attempt{T}"/>.</summary>
+  public static async Task<T?> AttemptAsync<T>(string what, Func<Task<T>> work) where T : class {
+    try {
+      return await work();
+    } catch (Exception e) {
+      Write($"{what} failed: {e.Message}");
+      return null;
+    }
+  }
 }

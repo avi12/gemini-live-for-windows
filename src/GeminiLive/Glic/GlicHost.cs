@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Web.WebView2.Core;
 
@@ -33,16 +34,18 @@ public sealed class GlicHost : GoogleWebViewHost<GlicMessage> {
   // The page waits up to 6 s for its text box, and up to 30 s for an answer plus a few settles.
   private static readonly TimeSpan _beginActionTimeout = TimeSpan.FromSeconds(10);
   private static readonly TimeSpan _submitTimeout = TimeSpan.FromSeconds(45);
+  private static readonly TimeSpan _refreshGrace = TimeSpan.FromSeconds(25);
+  // A broken Live is reloaded into a new conversation, but a page that keeps breaking is given up on.
+  private const int _maxRestarts = 3;
+  private static readonly TimeSpan _restartWindow = TimeSpan.FromMinutes(10);
   private static readonly string _profile = Path.Combine(Log.Dir, "WebView2");
 
   private readonly SessionLink _link;
+  private readonly Queue<DateTime> _restarts = new();
 
-  /// <summary>Which display the frames come from.</summary>
-  public MonitorInfo Monitor { get; set; } = Monitors.All()[0];
+  /// <summary>What Gemini sees: the display or the camera it pulls frames from.</summary>
+  public SharedView View { get; } = new();
   public bool Active { get; private set; }
-
-  /// <summary>True while the webcam is the frame source instead of the screen.</summary>
-  public bool UseCamera { get; private set; }
 
   private TaskCompletionSource? _ready;
   private IReadOnlyList<GoogleCookie> _session = [];
@@ -50,23 +53,12 @@ public sealed class GlicHost : GoogleWebViewHost<GlicMessage> {
   private string? _microphoneId;
   private bool _booted;
   private bool _unavailable;
-  private WebcamSource? _camera;
-  private ScreenGrabber.Frame? _lastFrame;
-  private static readonly TimeSpan _refreshGrace = TimeSpan.FromSeconds(25);
-  // A broken Live is reloaded into a new conversation, but a page that keeps breaking is given up on.
-  private const int _maxRestarts = 3;
-  private static readonly TimeSpan _restartWindow = TimeSpan.FromMinutes(10);
-  private readonly Queue<DateTime> _restarts = new();
 
-  /// <summary>The failures the page reports by code (ErrorMessage in glic_bridge.js).</summary>
+  /// <summary>
+  /// The failures the page reports by code (ErrorMessage in bridge/glic_bridge.ts; wire value: the
+  /// kebab-cased name, see <see cref="PageErrorOf"/>). Anything else is a message to show.
+  /// </summary>
   private enum PageError { Other, SignedOut, Unavailable, LiveBroke }
-
-  private static readonly IReadOnlyDictionary<string, PageError> _pageErrors =
-      new Dictionary<string, PageError> {
-        ["signed-out"] = PageError.SignedOut,
-        ["unavailable"] = PageError.Unavailable,
-        ["live-broke"] = PageError.LiveBroke,
-      };
 
   /// <summary>The waiting-for-session lines <see cref="Notice"/> shows.</summary>
   private static class SessionNotice {
@@ -74,7 +66,6 @@ public sealed class GlicHost : GoogleWebViewHost<GlicMessage> {
     public const string SignIn = "Sign in to Google in your browser";
     public const string WaitingForBrowser = "Waiting for your browser…";
     public const string Setup = "One-time setup";
-    public const string Reconnecting = "Reconnecting…";
   }
 
   public GlicHost(SessionLink link)
@@ -95,8 +86,8 @@ public sealed class GlicHost : GoogleWebViewHost<GlicMessage> {
     OnReport(GlicProtocol.Transcript, line => Caption?.Invoke(
         line.Text, line.Direction == TranscriptDirection.User, line.Index));
     OnReport(GlicProtocol.Error, message => OnPageError(message));
-    Messenger.OnMessage(GlicProtocol.Capture, _ => CaptureAsync());
-    Messenger.OnMessage(GlicProtocol.Read, _ => ReadAsync());
+    Messenger.OnMessage(GlicProtocol.Capture, _ => View.CaptureAsync());
+    Messenger.OnMessage(GlicProtocol.Read, _ => View.ReadAsync());
   }
 
   /// <summary>
@@ -117,7 +108,7 @@ public sealed class GlicHost : GoogleWebViewHost<GlicMessage> {
 
   protected override void OnRecovering() {
     _booted = false;
-    Notice?.Invoke(SessionNotice.Reconnecting);
+    Notice?.Invoke(LiveStatus.Reconnecting);
   }
 
   protected override void OnRecoveryFailed(RecoveryFailure failure, Exception? cause) {
@@ -166,45 +157,6 @@ public sealed class GlicHost : GoogleWebViewHost<GlicMessage> {
   }
 
   /// <summary>
-  /// Shares the webcam instead of the screen, or switches back. Gemini pulls frames the same way
-  /// either way (see <see cref="CaptureAsync"/>); this only changes which source answers. Opening
-  /// the camera triggers Windows' one-time camera consent for the app. Returns false if the camera
-  /// could not be opened, leaving the screen as the source.
-  /// </summary>
-  public async Task<bool> UseCameraAsync(bool on) {
-    if (on == UseCamera) {
-      return true;
-    }
-
-    _lastFrame = null;  // the other source's picture is no stand-in for this one
-
-    if (on) {
-      try {
-        var camera = new WebcamSource();
-        await camera.InitializeAsync();
-        _camera = camera;
-        UseCamera = true;
-        Log.Write("glic: sharing the camera");
-        return true;
-      } catch (Exception e) {
-        Log.Write($"camera unavailable: {e.Message}");
-        return false;
-      }
-    }
-
-    UseCamera = false;
-    WebcamSource? old = _camera;
-    _camera = null;
-
-    if (old is not null) {
-      await old.DisposeAsync();
-    }
-
-    Log.Write("glic: sharing the screen");
-    return true;
-  }
-
-  /// <summary>
   /// The page's own microphone id (null = Windows' default). Re-applied on every page load.
   /// </summary>
   public void SetMicrophone(string? id) {
@@ -220,19 +172,14 @@ public sealed class GlicHost : GoogleWebViewHost<GlicMessage> {
       return [];
     }
 
-    try {
-      IReadOnlyList<Microphone> microphones =
-          await Messenger.SendMessageAsync(GlicProtocol.ListMics);
-      return [.. microphones.Select(m => (m.Id, m.Label))];
-    } catch (Exception e) {
-      Log.Write($"glic: listing microphones failed: {e.Message}");
-      return [];
-    }
+    IReadOnlyList<Microphone>? microphones = await Log.AttemptAsync(
+        "glic: listing microphones", () => Messenger.SendMessageAsync(GlicProtocol.ListMics));
+    return [.. (microphones ?? []).Select(m => (m.Id, m.Label))];
   }
 
   /// <summary>
-  /// Runs a Google-apps request (Calendar, Keep, Tasks, Gmail, Home - whatever the account's text
-  /// path has) as a text turn in the same conversation, auto-confirming the result card, and
+  /// Runs a Google-apps request (Calendar, Keep, Tasks, Gmail - whatever the account's text path
+  /// has) as a text turn in the same conversation, auto-confirming the result card, and
   /// returns the answer. The caller resumes Live with <see cref="StartAsync"/>. Typing uses trusted
   /// CDP key events, because synthetic input never enables Glic's Submit.
   /// </summary>
@@ -270,8 +217,8 @@ public sealed class GlicHost : GoogleWebViewHost<GlicMessage> {
       // A parked window can never show a permission prompt, so grant the mic up front.
       e.State = CoreWebView2PermissionState.Allow;
     } else if (e.PermissionKind is CoreWebView2PermissionKind.Camera) {
-      // We share the screen, never the camera; denying here keeps Chromium from opening the
-      // device, which is what triggers Windows' camera prompt.
+      // The page never opens the camera itself (SharedView captures it in-process); denying here
+      // keeps Chromium from opening the device, which is what triggers Windows' camera prompt.
       e.State = CoreWebView2PermissionState.Deny;
     }
   }
@@ -387,9 +334,9 @@ public sealed class GlicHost : GoogleWebViewHost<GlicMessage> {
   private void OnPageError(string? message) {
     message ??= "Gemini error";
     Log.Write($"glic error: {message}");
-
+    PageError error = PageErrorOf(message);
     // Signed out or a stale session: get the browser's current one.
-    if (_pageErrors.GetValueOrDefault(message) is PageError.SignedOut or PageError.Unavailable) {
+    if (error is PageError.SignedOut or PageError.Unavailable) {
       _unavailable = true;
       WaitForSession();
       return;
@@ -399,7 +346,7 @@ public sealed class GlicHost : GoogleWebViewHost<GlicMessage> {
       return;
     }
 
-    if (_pageErrors.GetValueOrDefault(message) is PageError.LiveBroke) {
+    if (error is PageError.LiveBroke) {
       if (TryRestart()) {
         return;
       }
@@ -409,6 +356,11 @@ public sealed class GlicHost : GoogleWebViewHost<GlicMessage> {
 
     _ready?.TrySetException(new InvalidOperationException(message));
     Failed?.Invoke(message);
+  }
+
+  private static PageError PageErrorOf(string message) {
+    return Enum.GetValues<PageError>().FirstOrDefault(
+        error => JsonNamingPolicy.KebabCaseLower.ConvertName(error.ToString()) == message);
   }
 
   /// <summary>
@@ -427,63 +379,9 @@ public sealed class GlicHost : GoogleWebViewHost<GlicMessage> {
 
     _restarts.Enqueue(now);
     Log.Write($"glic: Live broke, reloading ({_restarts.Count}/{_maxRestarts})");
-    Notice?.Invoke(SessionNotice.Reconnecting);
+    Notice?.Invoke(LiveStatus.Reconnecting);
     _booted = false;
     core.Navigate(_glicUrl);
     return true;
-  }
-
-  /// <summary>
-  /// Answers the page's pull for a picture: the camera's, or a sharp grab of the shared display
-  /// made off the UI thread. A failed grab keeps the last good picture rather than leaving Gemini
-  /// blind for a frame.
-  /// </summary>
-  private async Task<Picture?> CaptureAsync() {
-    ScreenGrabber.Frame? frame;
-    if (UseCamera && _camera is { } camera) {
-      frame = await GrabCameraAsync(camera);
-    } else {
-      MonitorInfo monitor = Monitor;
-      frame = await Task.Run(() => Attempt("grab", () => ScreenGrabber.Grab(
-          monitor, ScreenGrabber.Detail.Sharp)));
-    }
-
-    frame ??= _lastFrame;
-    _lastFrame = frame;
-    return frame is null ? null
-                         : new Picture(frame.Jpeg, ScreenGrabber.MimeType, frame.Width, frame.Height);
-  }
-
-  private static async Task<ScreenGrabber.Frame?> GrabCameraAsync(WebcamSource camera) {
-    try {
-      return await camera.GrabAsync();
-    } catch (Exception e) {
-      Log.Write($"camera grab failed: {e.Message}");
-      return null;
-    }
-  }
-
-  /// <summary>
-  /// Answers the page with an exact text copy of the window on the shared display, read off the UI
-  /// thread, which it hands Gemini as the tab's page content next to each picture. None while the
-  /// camera is shared.
-  /// </summary>
-  private async Task<ScreenText.View?> ReadAsync() {
-    if (UseCamera) {
-      return null;
-    }
-
-    MonitorInfo monitor = Monitor;
-    return await Task.Run(() => Attempt("screen text", () => ScreenText.Read(monitor)));
-  }
-
-  /// <summary>Runs <paramref name="work"/>; null, logged, if it throws.</summary>
-  private static T? Attempt<T>(string what, Func<T?> work) where T : class {
-    try {
-      return work();
-    } catch (Exception e) {
-      Log.Write($"{what} failed: {e.Message}");
-      return null;
-    }
   }
 }

@@ -11,10 +11,7 @@ public static class ExtensionSetup {
   private const string _httpsChoiceKey = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\Shell"
                                          + @"\Associations\UrlAssociations\https\UserChoice";
 
-  // Not under AppData, so an MSIX install doesn't virtualize it away from the browser.
-  private static readonly string _folder =
-      Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                   ".gemini-live", "extension");
+  private static readonly string _folder = Path.Combine(BrowserFolder.Dir, "extension");
 
   private static readonly string _shipped = Path.Combine(AppContext.BaseDirectory, "extension");
 

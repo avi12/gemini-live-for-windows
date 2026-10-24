@@ -12,10 +12,8 @@ namespace GeminiLive.Glic;
 public static class NativeHost {
   private const string _hostExe = "GeminiLiveHost.exe";  // = AssemblyName in GeminiLiveHost.csproj
 
-  // Not under AppData, so an MSIX install doesn't virtualize it away from the browser.
   private static readonly string _manifestFile =
-      Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                   ".gemini-live", $"{NativeProtocol.HostName}.json");
+      Path.Combine(BrowserFolder.Dir, $"{NativeProtocol.HostName}.json");
 
   // Each Chromium browser looks for its hosts under its own key; the default value names the manifest.
   private static readonly string[] _browserKeys = [

@@ -5,11 +5,12 @@ using Windows.Media.SpeechSynthesis;
 namespace GeminiLive;
 
 /// <summary>
-/// Reads a text answer aloud. Gemini Live falls back to a text turn when it can't reach a Google
-/// app (Calendar, Keep, Tasks, Gmail, Home); the answer it hands back is shown in the caption card,
-/// and this speaks it. Gemini's own cloud voice can't be reproduced offline, so we use the nicest
-/// voice Windows ships: WinRT's <see cref="SpeechSynthesizer"/> exposes the OneCore / "Natural"
-/// voices (far better than the old System.Speech ones).
+/// Reads a text answer aloud. When Live can't reach a Google app (Calendar, Keep, Tasks, Gmail) we
+/// fall back to a text turn, and the PC lights we switch through Google Home ourselves; the answer
+/// either hands back is shown in the caption card, and this speaks it. Gemini's own cloud voice
+/// can't be reproduced offline, so we use the nicest voice Windows ships: WinRT's
+/// <see cref="SpeechSynthesizer"/> exposes the OneCore / "Natural" voices (far better than the old
+/// System.Speech ones).
 ///
 /// Playback is WinRT's <see cref="MediaPlayer"/>, which runs on Media Foundation. WPF's own
 /// MediaPlayer needs the legacy Windows Media Player, which current Windows 11 builds no longer
