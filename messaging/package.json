@@ -5,6 +5,7 @@
   "type": "module",
   "description": "Typed request/reply messaging in @webext-core/messaging's protocol-map style, over any channel.",
   "exports": "./src/index.ts",
+  "sideEffects": false,
   "scripts": {
     "typecheck": "tsc --noEmit"
   },

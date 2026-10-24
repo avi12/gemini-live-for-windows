@@ -24,14 +24,14 @@ export async function refreshGoogleSession(): Promise<void> {
 
   lastRefreshAt = Date.now();
 
-  const window = await browser.windows.create({
+  const opened = await browser.windows.create({
     url: REFRESH_URL,
     state: "minimized",
     focused: false
   });
   setTimeout(() => {
-    if (window?.id !== undefined) {
-      void browser.windows.remove(window.id).catch(() => undefined);  // the user may have closed it
+    if (opened?.id !== undefined) {
+      void browser.windows.remove(opened.id).catch(() => undefined); // the user may have closed it
     }
   }, REFRESH_PAGE_MS);
 }
