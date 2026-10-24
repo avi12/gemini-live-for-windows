@@ -34,7 +34,7 @@ public sealed class MaxLineLengthAnalyzer : DiagnosticAnalyzer {
         continue;
       }
       context.ReportDiagnostic(Diagnostic.Create(
-          Rules.MaxLineLength, Location.Create(context.Tree, line.Span), length));
+          Rules.MaxLineLength, Location.Create(context.Tree, line.Span), length, _maxLength));
     }
   }
 

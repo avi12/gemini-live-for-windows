@@ -51,7 +51,8 @@ public sealed class IdentifierLengthAnalyzer : DiagnosticAnalyzer {
     if (text.Length == 0 || text.Length >= _minLength || _exceptions.Contains(text)) {
       return;
     }
-    context.ReportDiagnostic(Diagnostic.Create(Rules.IdentifierLength, name.GetLocation(), text));
+    context.ReportDiagnostic(
+        Diagnostic.Create(Rules.IdentifierLength, name.GetLocation(), text, _minLength));
   }
 
   // A positional record's parameters are its properties.

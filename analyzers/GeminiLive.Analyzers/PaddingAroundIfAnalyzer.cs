@@ -40,12 +40,9 @@ public sealed class PaddingAroundIfAnalyzer : DiagnosticAnalyzer {
 
   private static void Analyze(SyntaxNodeAnalysisContext context) {
     var statement = (IfStatementSyntax)context.Node;
-    if (statement.Parent is not BlockSyntax and not SwitchSectionSyntax) {
+    if (Siblings(statement) is not { } siblings) {
       return;  // an else if, or a lone if as another statement's body
     }
-    SyntaxList<StatementSyntax> siblings = statement.Parent is BlockSyntax block
-        ? block.Statements
-        : ((SwitchSectionSyntax)statement.Parent).Statements;
     int index = siblings.IndexOf(statement);
     if (index > 0) {
       CheckBefore(context, statement, siblings[index - 1]);
@@ -55,6 +52,18 @@ public sealed class PaddingAroundIfAnalyzer : DiagnosticAnalyzer {
         && !StartsWithBlankLine(siblings[index + 1])) {
       Report(context, statement.IfKeyword, Fix.AddAfter);
     }
+  }
+
+  /// <summary>
+  /// The statement list <paramref name="statement"/> stands in (a block's or a switch section's);
+  /// null when it is no statement of its own, such as an else if. The code fix reads it too.
+  /// </summary>
+  public static SyntaxList<StatementSyntax>? Siblings(StatementSyntax statement) {
+    return statement.Parent switch {
+      BlockSyntax block => block.Statements,
+      SwitchSectionSyntax section => section.Statements,
+      _ => null,
+    };
   }
 
   private static void CheckBefore(SyntaxNodeAnalysisContext context, IfStatementSyntax statement,

@@ -18,13 +18,13 @@ internal static class Rules {
   /// <summary>id-length, min 3 with the same exceptions (.oxlintrc.json).</summary>
   public static readonly DiagnosticDescriptor IdentifierLength = new(
       "GL0002", "Identifier name is too short",
-      "Identifier '{0}' is shorter than 3 characters; name it in full words",
+      "Identifier '{0}' is shorter than {1} characters; name it in full words",
       _category, DiagnosticSeverity.Warning, isEnabledByDefault: true);
 
   /// <summary>@stylistic/max-len 120, ignoring strings and URLs (eslint.config.js).</summary>
   public static readonly DiagnosticDescriptor MaxLineLength = new(
       "GL0003", "Line is too long",
-      "Line is {0} characters long; the limit is 120",
+      "Line is {0} characters long; the limit is {1}",
       _category, DiagnosticSeverity.Warning, isEnabledByDefault: true);
 
   /// <summary>@stylistic/padding-line-between-statements around if (eslint.config.js).</summary>

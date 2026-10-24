@@ -55,11 +55,7 @@ public sealed class PaddingAroundIfCodeFix : CodeFixProvider {
   }
 
   private static StatementSyntax? NextStatement(IfStatementSyntax ifStatement) {
-    SyntaxList<StatementSyntax> siblings = ifStatement.Parent switch {
-      BlockSyntax block => block.Statements,
-      SwitchSectionSyntax section => section.Statements,
-      _ => default,
-    };
+    SyntaxList<StatementSyntax> siblings = PaddingAroundIfAnalyzer.Siblings(ifStatement) ?? default;
     int index = siblings.IndexOf(ifStatement);
     return index >= 0 && index < siblings.Count - 1 ? siblings[index + 1] : null;
   }
