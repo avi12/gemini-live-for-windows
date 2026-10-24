@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Windows.Media.Core;
 using Windows.Media.Playback;
 using Windows.Media.SpeechSynthesis;
@@ -17,7 +18,10 @@ namespace GeminiLive;
 /// ship - there it fails every time, and its Stop() stalls the UI thread mid-animation. The WinRT
 /// player has no thread affinity and plays the synthesized stream directly, with no temp file.
 /// </summary>
-public sealed class SpeechPlayer : IDisposable {
+public sealed partial class SpeechPlayer : IDisposable {
+  private const string _english = "en-US";
+  private const string _hebrew = "he-IL";
+
   private readonly MediaPlayer _player = new() { AudioCategory = MediaPlayerAudioCategory.Speech };
 
   // The one synthesizer, created lazily with its voice chosen once (see PickVoice).
@@ -43,8 +47,17 @@ public sealed class SpeechPlayer : IDisposable {
 
     Stop();  // a new answer supersedes whatever was speaking
     int generation = _generation;
+    VoiceInformation? voice = VoiceFor(text);
+    if (voice is null) {
+      // Better silent than an English voice spelling out Hebrew; the card still shows the answer.
+      Log.Write("SpeechPlayer: no voice installed for the answer's language; showing it only");
+      return;
+    }
+
     try {
-      SpeechSynthesisStream stream = await Synthesizer().SynthesizeTextToStreamAsync(text);
+      SpeechSynthesizer synthesizer = Synthesizer();
+      synthesizer.Voice = voice;
+      SpeechSynthesisStream stream = await synthesizer.SynthesizeTextToStreamAsync(text);
       if (generation != _generation) {
         stream.Dispose();
         return;  // stopped or superseded while synthesizing
@@ -75,39 +88,41 @@ public sealed class SpeechPlayer : IDisposable {
     _synthesizer?.Dispose();
   }
 
-  /// <summary>The lazily built synthesizer, with the chosen voice applied exactly once.</summary>
+  /// <summary>The lazily built synthesizer; each answer sets its voice (<see cref="VoiceFor"/>).</summary>
   private SpeechSynthesizer Synthesizer() {
-    if (_synthesizer is null) {
-      _synthesizer = new SpeechSynthesizer();
-      VoiceInformation? voice = PickVoice();
-      if (voice is not null) {
-        _synthesizer.Voice = voice;
-      }
-
-      Log.Write($"SpeechPlayer: voice '{_synthesizer.Voice?.DisplayName}'");
-    }
-
-    return _synthesizer;
+    return _synthesizer ??= new SpeechSynthesizer();
   }
 
   /// <summary>
-  /// The single place voice selection lives. Prefers a natural/online-style en-US female voice,
-  /// then relaxes: natural en-US, any en-US female, any en-US, and finally the system default.
-  /// "Natural"/"Online" names mark the neural voices, which sound closest to Gemini.
+  /// The single place voice selection lives: a Hebrew voice for an answer in Hebrew (null when
+  /// none is installed), otherwise English.
   /// </summary>
-  private static VoiceInformation? PickVoice() {
-    var voices = SpeechSynthesizer.AllVoices;
-    bool EnUs(VoiceInformation voice) =>
-        voice.Language.StartsWith("en-US", StringComparison.OrdinalIgnoreCase);
+  private static VoiceInformation? VoiceFor(string text) {
+    return HebrewLetter().IsMatch(text)
+        ? PickVoice(_hebrew)
+        : PickVoice(_english) ?? SpeechSynthesizer.DefaultVoice;
+  }
+
+  /// <summary>
+  /// The nicest installed voice for <paramref name="language"/>: natural/online-style female first,
+  /// then any natural one, any female one, any at all. "Natural"/"Online" names mark the neural
+  /// voices, which sound closest to Gemini.
+  /// </summary>
+  private static VoiceInformation? PickVoice(string language) {
+    var voices = SpeechSynthesizer.AllVoices
+        .Where(voice => voice.Language.StartsWith(language, StringComparison.OrdinalIgnoreCase))
+        .ToList();
     bool Female(VoiceInformation voice) => voice.Gender == VoiceGender.Female;
     bool Natural(VoiceInformation voice) =>
         voice.DisplayName.Contains("Natural", StringComparison.OrdinalIgnoreCase)
         || voice.DisplayName.Contains("Online", StringComparison.OrdinalIgnoreCase);
 
-    return voices.FirstOrDefault(voice => EnUs(voice) && Female(voice) && Natural(voice))
-        ?? voices.FirstOrDefault(voice => EnUs(voice) && Natural(voice))
-        ?? voices.FirstOrDefault(voice => EnUs(voice) && Female(voice))
-        ?? voices.FirstOrDefault(EnUs)
-        ?? SpeechSynthesizer.DefaultVoice;
+    return voices.FirstOrDefault(voice => Female(voice) && Natural(voice))
+        ?? voices.FirstOrDefault(Natural)
+        ?? voices.FirstOrDefault(Female)
+        ?? voices.FirstOrDefault();
   }
+
+  [GeneratedRegex(@"\p{IsHebrew}")]
+  private static partial Regex HebrewLetter();
 }
