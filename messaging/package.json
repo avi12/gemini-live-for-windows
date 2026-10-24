@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "description": "Typed request/reply messaging in @webext-core/messaging's protocol-map style, over any channel.",
+  "license": "Apache-2.0",
+  "author": "Avi (https://avi12.com)",
   "exports": "./src/index.ts",
   "sideEffects": false,
   "scripts": {

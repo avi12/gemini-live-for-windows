@@ -3,6 +3,9 @@
   "private": true,
   "type": "module",
   "description": "Workspace root: the page bridges, the companion extension and the messaging they share, linted as one.",
+  "license": "Apache-2.0",
+  "author": "Avi (https://avi12.com)",
+  "repository": "github:avi12/gemini-live-for-windows",
   "scripts": {
     "prepare": "simple-git-hooks",
     "lint": "oxlint --type-aware --ignore-path .oxlintignore --fix -c .oxlintrc.fix.json && eslint --fix && oxlint --type-aware --ignore-path .oxlintignore",

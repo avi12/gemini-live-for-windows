@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "description": "Typed page bridges injected into the app's hidden WebView2s, bundled to plain JS.",
+  "license": "Apache-2.0",
+  "author": "Avi (https://avi12.com)",
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit && node build.mjs"
