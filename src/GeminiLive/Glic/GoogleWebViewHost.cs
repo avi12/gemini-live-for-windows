@@ -165,11 +165,13 @@ public abstract class GoogleWebViewHost<TMessage> : Window where TMessage : stru
 
   /// <summary>
   /// Logs the port Chromium picked for CDP, which it writes to DevToolsActivePort (port, then the
-  /// browser target's path) in the user data folder.
+  /// browser target's path) in its profile, the EBWebView folder WebView2 keeps in the user data
+  /// folder.
   /// </summary>
   private void LogDebugPort(string userDataFolder) {
     try {
-      string port = File.ReadLines(Path.Combine(userDataFolder, "DevToolsActivePort")).First();
+      string file = Path.Combine(userDataFolder, "EBWebView", "DevToolsActivePort");
+      string port = File.ReadLines(file).First();
       Log.Write($"{_logTag}: devtools on localhost:{port}");
     } catch (Exception e) {
       Log.Write($"{_logTag}: devtools port unknown: {e.Message}");
