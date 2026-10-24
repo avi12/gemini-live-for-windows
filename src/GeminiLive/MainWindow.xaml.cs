@@ -90,6 +90,7 @@ public partial class MainWindow : Window {
     _conversation = engine;
     engine.Status += status => WhileCurrent(engine, () => SetStatus(status));
     engine.Transcript += (text, isUser) => WhileCurrent(engine, () => _captions.Show(text, isUser));
+    engine.Links += links => WhileCurrent(engine, () => _captions.ShowLinks(links));
     engine.Level += (level, isUser) => WhileCurrent(engine, () => _glow.Follow(level, isUser));
     engine.Ended += reason => WhileCurrent(engine, () => Fail(engine, reason));
 

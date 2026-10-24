@@ -38,6 +38,12 @@ public sealed record TranscriptLine(string Text, TranscriptDirection Direction, 
 /// <summary>A picture for Gemini; Data travels as base64.</summary>
 public sealed record Picture(byte[] Data, string MimeType, int Width, int Height);
 
+/// <summary>A link in a text answer: a search result, a cited source, a page Gemini points at.</summary>
+public sealed record AnswerLink(string Title, string Url);
+
+/// <summary>A text turn's answer, with the links its page showed (Live can only say them).</summary>
+public sealed record TextAnswer(string Text, IReadOnlyList<AnswerLink> Links);
+
 /// <summary>
 /// The glic protocol map: each message with its data and return types, as GlicProtocolMap in
 /// bridge/glic_protocol.ts declares them.
@@ -52,8 +58,8 @@ public static class GlicProtocol {
   /// <summary>Switches to text mode; whether a focused, empty text box is ready for typing.</summary>
   public static readonly Protocol<GlicMessage, None, bool> BeginAction =
       new(GlicMessage.BeginAction);
-  /// <summary>Submits the typed request; the answer's text.</summary>
-  public static readonly Protocol<GlicMessage, None, string> SubmitAndRead =
+  /// <summary>Submits the typed request; the answer and its links.</summary>
+  public static readonly Protocol<GlicMessage, None, TextAnswer> SubmitAndRead =
       new(GlicMessage.SubmitAndRead);
 
   public static readonly Protocol<GlicMessage, None, None> Booted = new(GlicMessage.Booted);

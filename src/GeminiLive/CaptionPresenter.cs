@@ -59,6 +59,12 @@ public sealed class CaptionPresenter {
     Refresh();
   }
 
+  /// <summary>Links that came with an answer rather than in its words, as chips.</summary>
+  public void ShowLinks(IEnumerable<FoundLink> links) {
+    AddLinks(links);
+    Refresh();
+  }
+
   /// <summary>A line of our own, like why the session ended, shown on Gemini's side.</summary>
   public void AddNote(string text) {
     AppendLine(text, false);

@@ -8,6 +8,11 @@ namespace GeminiLive;
 public sealed class Conversation : ILiveEngine {
   public event Action<string>? Status;
   public event Action<string, bool>? Transcript;
+  // The API engine has no text turns, so links only come from the spoken words.
+  public event Action<IReadOnlyList<FoundLink>>? Links {
+    add { }
+    remove { }
+  }
   public event Action<float, bool>? Level;
   public event Action<string>? Ended;
 

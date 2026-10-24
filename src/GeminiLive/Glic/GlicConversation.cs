@@ -7,11 +7,13 @@ namespace GeminiLive.Glic;
 /// The Google-account engine: one Live session on the long-lived <see cref="GlicHost"/>. Gemini's
 /// own client does the audio, so there are no levels to show; captions arrive as whole utterances.
 /// Requests Live can't serve (<see cref="SpokenIntent"/>) take a detour: the PC lights through
-/// <see cref="HomeHost"/>, Google apps through Gemini's text path.
+/// <see cref="HomeHost"/>, Google apps and web searches through Gemini's text path, whose links
+/// come back as chips.
 /// </summary>
 public sealed partial class GlicConversation : ILiveEngine {
   public event Action<string>? Status;
   public event Action<string, bool>? Transcript;
+  public event Action<IReadOnlyList<FoundLink>>? Links;
   public event Action<float, bool>? Level {
     add { }
     remove { }
@@ -21,6 +23,9 @@ public sealed partial class GlicConversation : ILiveEngine {
   // Long enough that the user's utterance has settled before we act on it, short enough to beat
   // Gemini's spoken refusal most of the time.
   private static readonly TimeSpan _intentSettle = TimeSpan.FromMilliseconds(1100);
+
+  // Added to a web request so the text turn searches and cites, in whatever language it was asked.
+  private const string _webSearchAsk = "(Search the web and link the pages you used.)";
 
   private readonly GlicHost _host;
   private readonly HomeHost _home;
@@ -97,11 +102,22 @@ public sealed partial class GlicConversation : ILiveEngine {
         _intentTimer.Stop();
         _intentTimer.Start();
       }
-    } else if (SpokenIntent.NeedsApp(clean) && index != _handledRefusalIndex
-               && _lastUserUtterance.Length > 0) {
-      // Fallback: Gemini got there first and refused. Fix it with the text path.
+    } else if (index != _handledRefusalIndex && _lastUserUtterance.Length > 0) {
+      OnGeminiLine(clean, index);
+    }
+  }
+
+  // Fallback: Gemini got there first and refused something the text path can do. Fix it there.
+  private void OnGeminiLine(string line, int index) {
+    if (SpokenIntent.NeedsApp(line)) {
       _handledRefusalIndex = index;
       _ = RunAppActionAsync(_lastUserUtterance);
+      return;
+    }
+
+    if (SpokenIntent.RefusesWeb(line)) {
+      _handledRefusalIndex = index;
+      _ = RunWebSearchAsync(_lastUserUtterance);
     }
   }
 
@@ -120,6 +136,11 @@ public sealed partial class GlicConversation : ILiveEngine {
 
     if (SpokenIntent.TargetsApp(_lastUserUtterance)) {
       _ = RunAppActionAsync(_lastUserUtterance);
+      return;
+    }
+
+    if (SpokenIntent.AsksWeb(_lastUserUtterance)) {
+      _ = RunWebSearchAsync(_lastUserUtterance);
     }
   }
 
@@ -150,20 +171,32 @@ public sealed partial class GlicConversation : ILiveEngine {
                           () => AskTextPathAsync(request));
   }
 
+  // Live answers web questions by voice, so it can name a page but never hand it over, and tends to
+  // say it can't give links. The text path searches with Google and keeps the links, which become
+  // chips in the card.
+  private Task RunWebSearchAsync(string request) {
+    return RunDetourAsync(request, "Searching the web…",
+                          () => AskTextPathAsync($"{request} {_webSearchAsk}"));
+  }
+
   private async Task AskTextPathAsync(string request) {
     try {
-      string answer = await _host.RunActionAsync(request);
-      Log.Write($"app action: {answer.Length} chars back");
+      TextAnswer answer = await _host.RunActionAsync(request);
+      Log.Write($"text turn: {answer.Text.Length} chars, {answer.Links.Count} links back");
 
-      if (answer.Length > 0) {
-        Transcript?.Invoke(answer, false);
-        _ = _speech.SpeakAsync(answer);  // Live can't speak it on resume, so read it aloud
+      if (answer.Text.Length > 0) {
+        Transcript?.Invoke(answer.Text, false);
+        _ = _speech.SpeakAsync(answer.Text);  // Live can't speak it on resume, so read it aloud
+      }
+
+      if (answer.Links.Count > 0) {
+        Links?.Invoke([.. answer.Links.Select(link => new FoundLink(link.Title, link.Url, false))]);
       }
 
       await _host.StartAsync();  // resume Live, now holding the answer in context
       Status?.Invoke(LiveStatus.Listening);
     } catch (Exception e) {
-      Log.Write($"app action failed: {e.Message}");
+      Log.Write($"text turn failed: {e.Message}");
       Status?.Invoke(LiveStatus.Listening);
       _ = _host.StartAsync();
     }

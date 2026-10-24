@@ -832,6 +832,7 @@
   var SUBMIT = ["Submit" /* Submit */, "Send message" /* SendMessage */, "Send" /* Send */];
   var REPLY_DONE = ["Copy" /* Copy */, "Good response" /* GoodResponse */, "Regenerate" /* Regenerate */];
   var REPLY_PREFIX = /^Gemini said\s*/i;
+  var WEB_LINK = /^https?:\/\//i;
   function sleep(milliseconds) {
     return new Promise((resolve) => setTimeout(resolve, milliseconds));
   }
@@ -849,16 +850,33 @@
   function editor() {
     return document.querySelector('[contenteditable="true"]');
   }
-  function lastReplyText() {
+  function lastReply() {
     const containers = document.querySelectorAll(".presented-response-container");
-    let last = containers[containers.length - 1];
-    if (!last) {
-      const nodes = document.querySelectorAll(
-        "message-content, .model-response-text, .markdown, [data-response-index]"
-      );
-      last = nodes[nodes.length - 1];
+    const last = containers[containers.length - 1];
+    if (last) {
+      return last;
     }
-    return collapseWhitespace(last ? last.innerText : "").replace(REPLY_PREFIX, "");
+    const nodes = document.querySelectorAll(
+      "message-content, .model-response-text, .markdown, [data-response-index]"
+    );
+    return nodes[nodes.length - 1];
+  }
+  function lastReplyText() {
+    return collapseWhitespace(lastReply()?.innerText ?? "").replace(REPLY_PREFIX, "");
+  }
+  function lastReplyLinks() {
+    const links = /* @__PURE__ */ new Map();
+    for (const anchor of lastReply()?.querySelectorAll("a[href]") ?? []) {
+      if (!(anchor instanceof HTMLAnchorElement) || !WEB_LINK.test(anchor.href) || links.has(anchor.href)) {
+        continue;
+      }
+      const title = collapseWhitespace(anchor.innerText) || new URL(anchor.href).hostname;
+      links.set(anchor.href, {
+        title,
+        url: anchor.href
+      });
+    }
+    return [...links.values()];
   }
   async function openTextEditor() {
     clickButton("Switch to text mode" /* TextMode */);
@@ -897,7 +915,10 @@
       await sleep(ACTION_SETTLE_MS);
       text = lastReplyText() || text;
     }
-    return text;
+    return {
+      text,
+      links: lastReplyLinks()
+    };
   }
 
   // transcript.ts

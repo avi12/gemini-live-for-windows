@@ -4,7 +4,9 @@ namespace GeminiLive.Glic;
 
 /// <summary>
 /// Reads what a spoken line asks for, so <see cref="GlicConversation"/> can route the requests
-/// Live can't serve: switching the PC lights, and the Google apps only Gemini's text path reaches.
+/// Live can't serve: switching the PC lights, the Google apps only Gemini's text path reaches, and
+/// web searches whose links Live can only say. Refusals and web requests are read in English and
+/// Hebrew; Hebrew words carry prefixes ("לאתר", "הקישור"), so those match without word bounds.
 /// </summary>
 internal static partial class SpokenIntent {
   private static readonly (Regex Pattern, string Name)[] _appNames = [
@@ -51,6 +53,19 @@ internal static partial class SpokenIntent {
     return AppTopic().IsMatch(text) && Intent().IsMatch(text);
   }
 
+  /// <summary>
+  /// The user asking for a web search or a link outright - which Live answers by voice only, so it
+  /// is handled on the text path up front, where the answer comes with its links.
+  /// </summary>
+  public static bool AsksWeb(string text) {
+    return WebRequest().IsMatch(text);
+  }
+
+  /// <summary>Gemini saying it can't search, browse or give a link: a refusal plus a web topic.</summary>
+  public static bool RefusesWeb(string text) {
+    return Refusal().IsMatch(text) && WebTopic().IsMatch(text);
+  }
+
   /// <summary>The app a request names, for the status line while it runs; ambiguous words fall through.</summary>
   public static string AppName(string request) {
     foreach ((Regex pattern, string name) in _appNames) {
@@ -61,9 +76,27 @@ internal static partial class SpokenIntent {
     return "your Google apps";
   }
 
-  [GeneratedRegex(@"\b(can'?t|cannot|don'?t|do not|unable|not able|no access)\b",
-                  RegexOptions.IgnoreCase)]
+  [GeneratedRegex(
+      @"\b(can'?t|cannot|don'?t|do not|unable|not able|no access)\b"
+      + @"|(איני|אינני|אני לא|לא)\s+(יכול|יכולה|יכולים|מסוגל|מסוגלת)|אין לי (גישה|אפשרות)",
+      RegexOptions.IgnoreCase)]
   private static partial Regex Refusal();
+
+  // What a refusal to go on the web talks about.
+  [GeneratedRegex(
+      @"\b(links?|urls?|websites?|web ?pages?|browse|browsing|search(ing)?|internet|online|real-time)\b"
+      + "|קישור|לינק|כתובת|אתר|לגלוש|גלישה|לחפש|חיפוש|אינטרנט",
+      RegexOptions.IgnoreCase)]
+  private static partial Regex WebTopic();
+
+  // Plainly asking for a search or a link; a passing mention ("I linked it") isn't a request.
+  [GeneratedRegex(
+      @"\b(search (for|the web|online|google)|google (it|for|that)|look (it |that )?up"
+      + @"|find (me )?(a |the )?(link|article|page|source)|(send|give|show) me (a |the )?links?"
+      + @"|links? (to|for)|the link|urls? (for|of)|sources? (for|on))\b"
+      + "|קישור|לינק|תחפש|תחפשי|חפש לי|חפשי לי|לחפש|תמצא לי|תמצאי לי",
+      RegexOptions.IgnoreCase)]
+  private static partial Regex WebRequest();
 
   [GeneratedRegex(
       // Only apps Gemini's web text turns can reach (its Connected Apps page). Not Home, alarms or

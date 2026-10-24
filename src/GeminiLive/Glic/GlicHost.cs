@@ -178,14 +178,15 @@ public sealed class GlicHost : GoogleWebViewHost<GlicMessage> {
   }
 
   /// <summary>
-  /// Runs a Google-apps request (Calendar, Keep, Tasks, Gmail - whatever the account's text path
-  /// has) as a text turn in the same conversation, auto-confirming the result card, and
-  /// returns the answer. The caller resumes Live with <see cref="StartAsync"/>. Typing uses trusted
-  /// CDP key events, because synthetic input never enables Glic's Submit.
+  /// Runs a request Live can't serve - a Google app (Calendar, Keep, Tasks, Gmail), or a web search
+  /// whose links Live could only say - as a text turn in the same conversation, auto-confirming a
+  /// result card, and returns the answer with its links. The caller resumes Live with
+  /// <see cref="StartAsync"/>. Typing uses trusted CDP key events, because synthetic input never
+  /// enables Glic's Submit.
   /// </summary>
-  public async Task<string> RunActionAsync(string prompt) {
+  public async Task<TextAnswer> RunActionAsync(string prompt) {
     if (Core is not { } core) {
-      return "";
+      return new TextAnswer("", []);
     }
 
     bool ready = await Messenger.SendMessageAsync(GlicProtocol.BeginAction,
@@ -206,9 +207,7 @@ public sealed class GlicHost : GoogleWebViewHost<GlicMessage> {
       var up = new JsonObject { ["type"] = "keyUp", ["key"] = key };
       await core.CallDevToolsProtocolMethodAsync(_dispatchKeyEvent, up.ToJsonString());
     }
-    string? answer = await Messenger.SendMessageAsync(GlicProtocol.SubmitAndRead,
-                                                      timeout: _submitTimeout);
-    return answer ?? "";
+    return await Messenger.SendMessageAsync(GlicProtocol.SubmitAndRead, timeout: _submitTimeout);
   }
 
   private static void OnPermissionRequested(object? sender,

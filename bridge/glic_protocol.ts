@@ -67,6 +67,18 @@ export interface Picture {
   height: number;
 }
 
+/** A link in a text answer: a search result, a cited source, a page Gemini points at. */
+export interface AnswerLink {
+  title: string;
+  url: string;
+}
+
+/** A text turn's answer, with the links its page showed (Live can only say them). */
+export interface TextAnswer {
+  text: string;
+  links: AnswerLink[];
+}
+
 /** The text of the window on screen (ScreenText.View in C#). */
 export interface ScreenView {
   title: string;
@@ -83,8 +95,8 @@ export interface GlicProtocolMap {
   [GlicMessage.SetMic](id: string | null): void;
   /** Switches to text mode; whether a focused, empty text box is ready for typing. */
   [GlicMessage.BeginAction](): boolean;
-  /** Submits the typed request; the answer's text. */
-  [GlicMessage.SubmitAndRead](): string;
+  /** Submits the typed request; the answer and its links. */
+  [GlicMessage.SubmitAndRead](): TextAnswer;
 
   [GlicMessage.Booted](): void;
   [GlicMessage.Ready](): void;
