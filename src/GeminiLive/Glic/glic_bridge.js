@@ -661,6 +661,7 @@
     let unfinishedUser = -1;
     let openAssistant = -1;
     let wireSeen = false;
+    let unansweredSince = null;
     function relayUtterance(index) {
       relay(index, utterances[index]);
     }
@@ -689,6 +690,7 @@
       utterances[index].text = text;
       openUser = isFinal ? -1 : index;
       unfinishedUser = -1;
+      unansweredSince = Date.now();
       relayUtterance(index);
     }
     function onOutputTranscript(field) {
@@ -713,10 +715,14 @@
         wireSeen = true;
         onInputTranscript(input);
       }
+      if (Array.isArray(msg[3 /* Status */])) {
+        unansweredSince = null;
+      }
       const content = msg[1 /* ServerContent */];
       if (!Array.isArray(content)) {
         return;
       }
+      unansweredSince = null;
       const output = content[5 /* OutputTranscription */];
       if (Array.isArray(output)) {
         wireSeen = true;
@@ -807,8 +813,10 @@
         openUser = -1;
         unfinishedUser = -1;
         openAssistant = -1;
+        unansweredSince = null;
       },
-      seen: () => wireSeen
+      seen: () => wireSeen,
+      unansweredSince: () => unansweredSince
     };
   }
 
@@ -1068,6 +1076,7 @@
   var MAX_RESUME_BACKOFF = 5;
   var TRY_AGAIN_GAP_MS = 5e3;
   var BROKEN_AFTER_MS = 15e3;
+  var NO_REPLY_MS = 12e3;
   if (!window.__glicBridgeInstalled && window.top === window) {
     let report = function(sent) {
       sent.catch(() => {
@@ -1105,6 +1114,13 @@
       resumeTries = 0;
       brokenReported = false;
       setState("listening" /* Listening */);
+    }, restartIfUnanswered = function(now) {
+      const since = wire.unansweredSince();
+      if (since === null || since === restartedFor || now - since < NO_REPLY_MS) {
+        return false;
+      }
+      restartedFor = since;
+      return clickButton("Pause live mode" /* PauseLive */);
     }, monitorTick = function() {
       if (!active) {
         return;
@@ -1113,7 +1129,7 @@
       glic.refreshScreen(now);
       pumpCaptions();
       const wentWrong = pageSays("Something went wrong" /* WentWrong */);
-      if (findButton("Pause live mode" /* PauseLive */) && !wentWrong) {
+      if (findButton("Pause live mode" /* PauseLive */) && !wentWrong && !restartIfUnanswered(now)) {
         markLive(now);
         return;
       }
@@ -1197,7 +1213,7 @@
       monitorTimer = void 0;
       return openTextEditor();
     };
-    report2 = report, reportError2 = reportError, reportStartFailure2 = reportStartFailure, setState2 = setState, reopenMic2 = reopenMic, pumpCaptions2 = pumpCaptions, resume2 = resume, markLive2 = markLive, monitorTick2 = monitorTick, beginMonitor2 = beginMonitor, advanceToLive2 = advanceToLive, start2 = start, stop2 = stop, beginAction2 = beginAction;
+    report2 = report, reportError2 = reportError, reportStartFailure2 = reportStartFailure, setState2 = setState, reopenMic2 = reopenMic, pumpCaptions2 = pumpCaptions, resume2 = resume, markLive2 = markLive, restartIfUnanswered2 = restartIfUnanswered, monitorTick2 = monitorTick, beginMonitor2 = beginMonitor, advanceToLive2 = advanceToLive, start2 = start, stop2 = stop, beginAction2 = beginAction;
     window.__glicBridgeInstalled = true;
     const app = defineMessaging(webViewTransport(), { timeoutMs: REQUEST_TIMEOUT_MS });
     let active = false;
@@ -1233,6 +1249,7 @@
     let resumeTries = 0;
     let lastLive = 0;
     let lastTryAgain = 0;
+    let restartedFor = null;
     let brokenReported = false;
     let consentAccepted = false;
     let monitorTimer;
@@ -1253,6 +1270,7 @@
   var pumpCaptions2;
   var resume2;
   var markLive2;
+  var restartIfUnanswered2;
   var monitorTick2;
   var beginMonitor2;
   var advanceToLive2;

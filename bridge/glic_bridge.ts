@@ -52,6 +52,9 @@ const MAX_RESUME_BACKOFF = 5;
 // only if Live is still broken this long after it last ran, have the host reload the page.
 const TRY_AGAIN_GAP_MS = 5000;
 const BROKEN_AFTER_MS = 15_000;
+// Live can hang without showing anything: the user's words are transcribed, the mic keeps
+// streaming, yet Gemini never answers. Pausing and resuming opens a fresh Live session.
+const NO_REPLY_MS = 12_000;
 
 declare global {
   interface Window {
@@ -165,6 +168,8 @@ if (!window.__glicBridgeInstalled && window.top === window) {
   /** When Live was last seen running. */
   let lastLive = 0;
   let lastTryAgain = 0;
+  /** The unanswered words Live was last restarted for, so each restarts it once. */
+  let restartedFor: number | null = null;
   /** Live breaking was reported; the host reloads us, so say it once. */
   let brokenReported = false;
   let consentAccepted = false;
@@ -189,6 +194,17 @@ if (!window.__glicBridgeInstalled && window.top === window) {
     setState(State.Listening);
   }
 
+  /** Gemini left the user's words unanswered too long: pause Live, which the monitor resumes. */
+  function restartIfUnanswered(now: number): boolean {
+    const since = wire.unansweredSince();
+    if (since === null || since === restartedFor || now - since < NO_REPLY_MS) {
+      return false;
+    }
+
+    restartedFor = since;
+    return clickButton(Button.PauseLive);
+  }
+
   function monitorTick(): void {
     if (!active) {
       return;
@@ -201,7 +217,7 @@ if (!window.__glicBridgeInstalled && window.top === window) {
     // it is whenever the user mutes or just isn't talking. Glic recovers on its own when sound
     // returns, so this is never fatal; ending the session here is what made muting un-undoable.
     const wentWrong = pageSays(Phrase.WentWrong);
-    if (findButton(Button.PauseLive) && !wentWrong) {
+    if (findButton(Button.PauseLive) && !wentWrong && !restartIfUnanswered(now)) {
       markLive(now);
       return;
     }

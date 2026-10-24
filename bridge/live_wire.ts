@@ -13,6 +13,7 @@ const LIVE_CHANNEL_PATH = "/v1/processSession";
 enum MsgField {
   Seq = 0,
   ServerContent = 1,
+  Status = 3,
   InputTranscription = 7
 }
 
@@ -28,6 +29,8 @@ export interface WireTranscript {
   reset(): void;
   /** Whether the wire has carried a transcript, so the caption scrape is not needed. */
   seen(): boolean;
+  /** When the user last spoke with nothing from Gemini since (no voice, transcript or tool call), or null. */
+  unansweredSince(): number | null;
 }
 
 /** The first string anywhere in a nested array, depth first. */
@@ -63,6 +66,7 @@ export function tapLiveTranscript(relay: (index: number, utterance: Utterance) =
   /** Index of the Gemini utterance still being spoken, or -1. */
   let openAssistant = -1;
   let wireSeen = false;
+  let unansweredSince: number | null = null;
 
   function relayUtterance(index: number): void {
     relay(index, utterances[index]!);
@@ -105,6 +109,7 @@ export function tapLiveTranscript(relay: (index: number, utterance: Utterance) =
     utterances[index]!.text = text;
     openUser = isFinal ? -1 : index;
     unfinishedUser = -1;
+    unansweredSince = Date.now();
     relayUtterance(index);
   }
 
@@ -132,7 +137,8 @@ export function tapLiveTranscript(relay: (index: number, utterance: Utterance) =
   /**
    * Routes one server message. MSG = [seq, serverContent, ...]; inside serverContent, [5] is the
    * output transcription, [2] generation complete and [3] interrupted (barge-in) - both of which
-   * end Gemini's utterance. Audio ([0] config, [1] mp3) and acks are ignored.
+   * end Gemini's utterance. Audio ([0] config, [1] mp3) and acks are ignored, but any
+   * serverContent or tool status means Gemini is answering.
    */
   function onServerMessage(msg: unknown): void {
     if (!Array.isArray(msg) || typeof msg[MsgField.Seq] !== "string") {
@@ -145,10 +151,16 @@ export function tapLiveTranscript(relay: (index: number, utterance: Utterance) =
       onInputTranscript(input);
     }
 
+    if (Array.isArray(msg[MsgField.Status])) {
+      unansweredSince = null;
+    }
+
     const content: unknown = msg[MsgField.ServerContent];
     if (!Array.isArray(content)) {
       return;
     }
+
+    unansweredSince = null;
 
     const output: unknown = content[ContentField.OutputTranscription];
     if (Array.isArray(output)) {
@@ -279,7 +291,9 @@ export function tapLiveTranscript(relay: (index: number, utterance: Utterance) =
       openUser = -1;
       unfinishedUser = -1;
       openAssistant = -1;
+      unansweredSince = null;
     },
-    seen: () => wireSeen
+    seen: () => wireSeen,
+    unansweredSince: () => unansweredSince
   };
 }
