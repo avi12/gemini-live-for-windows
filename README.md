@@ -4,11 +4,11 @@ Press **Win+C** (or the Copilot key) and Gemini Live starts listening and sees t
 
 Created by [Avi](https://avi12.com).
 
-![The Gemini Live pill above the taskbar, listening](https://github.com/user-attachments/assets/c4367b56-29b6-4e21-8078-e141aafd031a)
+![The Gemini Live pill above the taskbar, listening](https://github.com/user-attachments/assets/351a125b-061b-47f5-931e-a8cbb5196957)
 
 ## Demonstration
 
-https://github.com/user-attachments/assets/cb139a57-6897-431f-bec2-910c7e42f9cf
+https://github.com/user-attachments/assets/46c1a0e1-f0db-4c0c-8835-ba38f46a29fb
 
 > [!WARNING]
 > By default, Gemini Live rides your Gemini subscription through Google's own web client, which Google doesn't offer for this use. **Google may suspend or ban an account that uses it.** If you'd rather not risk your account, switch to [your own Gemini API key](#use-your-own-api-key-instead) - the official, public Live API.
