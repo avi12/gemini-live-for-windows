@@ -7,5 +7,8 @@
          public member needs a doc comment, so CS1591 stays quiet. -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <!-- Windows 11 23H2: the first release with "Customize Copilot key on keyboard", which is how
+         Win+C opens the app. package\AppxManifest.xml's MinVersion must match (install.ps1 checks). -->
+    <SupportedOSPlatformVersion>10.0.22631.0</SupportedOSPlatformVersion>
   </PropertyGroup>
 </Project>

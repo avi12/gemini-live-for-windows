@@ -24,6 +24,14 @@ $sdk     = Get-ChildItem 'C:\Program Files (x86)\Windows Kits\10\bin\10.*\x64\ma
 $publisher = $manifest.Package.Identity.Publisher   # the one source for the cert subject
 $name      = $manifest.Package.Identity.Name
 
+# The minimum Windows lives in Directory.Build.props; the manifest has to repeat it, so stop on drift.
+[xml] $props = Get-Content (Join-Path $root 'Directory.Build.props')
+$minWindows  = $props.Project.PropertyGroup.SupportedOSPlatformVersion
+$manifestMin = $manifest.Package.Dependencies.TargetDeviceFamily.MinVersion
+if ($manifestMin -ne $minWindows) {
+    throw "AppxManifest.xml MinVersion $manifestMin differs from Directory.Build.props $minWindows"
+}
+
 $release = $Mode -eq 'Release'
 
 # Runs a native tool and stops the script if it fails; $what names it in the error.

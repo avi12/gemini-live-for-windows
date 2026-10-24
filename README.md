@@ -12,7 +12,7 @@ https://github.com/user-attachments/assets/cb139a57-6897-431f-bec2-910c7e42f9cf
 
 ## Requirements
 
-- A Windows 11 PC that lets you choose what Win+C opens: the **Customize Copilot key on keyboard** setting
+- Windows 11 23H2 or newer, up to date, so it has the **Customize Copilot key on keyboard** setting that lets you choose what Win+C opens
 - A Chromium browser (Chrome, Edge, Brave…) that can sideload an extension in Developer mode, signed in to the Google account you use Gemini with
 
 ## Install
