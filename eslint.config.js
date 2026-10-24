@@ -253,6 +253,7 @@ export default [
     "**/.wxt/",
     "**/bin/",
     "**/obj/",
+    "build/",
     ".fallow/",
     ".claude/worktrees/",
     "src/GeminiLive/Glic/*.js"

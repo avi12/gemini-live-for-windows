@@ -18,8 +18,6 @@ const AlarmName = {
   LINK: "link"
 } as const;
 
-type AlarmName = (typeof AlarmName)[keyof typeof AlarmName];
-
 // WXT discovers entrypoints by their default export, so this one file is exempt from the
 // named-exports rule.
 export default defineBackground(() => {
@@ -31,7 +29,7 @@ export default defineBackground(() => {
 
   void browser.alarms.create(AlarmName.LINK, { periodInMinutes: LINK_KEEPALIVE_MINUTES });
   browser.alarms.onAlarm.addListener(alarm => {
-    switch (alarm.name as AlarmName) {
+    switch (alarm.name) {
       case AlarmName.LINK:
         ensureLinkConnected();
         return;

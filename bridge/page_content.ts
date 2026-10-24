@@ -4,7 +4,7 @@
 // Ported from interview-prep's apps/gemini-live/src/lib/page-content.ts.
 
 /** A block of the screen's text (ScreenText.BlockKind on the C# side). */
-export enum BlockKind {
+enum BlockKind {
   Heading = "heading",
   Paragraph = "paragraph"
 }
@@ -60,7 +60,7 @@ const BLOCK_TYPE: Record<BlockKind, ContentAttributeType> = {
 
 const encoder = new TextEncoder();
 
-const varint = (value: number): number[] => {
+function varint(value: number): number[] {
   const bytes: number[] = [];
   let rest = value;
   while (rest >= VARINT_CONTINUE) {
@@ -69,21 +69,29 @@ const varint = (value: number): number[] => {
   }
   bytes.push(rest);
   return bytes;
-};
+}
 
-const tag = (field: number, wireType: WireType): number[] => varint((field << TAG_WIRE_TYPE_BITS) | wireType);
+function tag(field: number, wireType: WireType): number[] {
+  return varint((field << TAG_WIRE_TYPE_BITS) | wireType);
+}
 
-const varintField = (field: number, value: number): number[] => [...tag(field, WireType.Varint), ...varint(value)];
+function varintField(field: number, value: number): number[] {
+  return [...tag(field, WireType.Varint), ...varint(value)];
+}
 
-const bytesField = (field: number, bytes: ArrayLike<number>): number[] => [
-  ...tag(field, WireType.Bytes),
-  ...varint(bytes.length),
-  ...Array.from(bytes)
-];
+function bytesField(field: number, bytes: ArrayLike<number>): number[] {
+  return [
+    ...tag(field, WireType.Bytes),
+    ...varint(bytes.length),
+    ...Array.from(bytes)
+  ];
+}
 
-const stringField = (field: number, text: string): number[] => bytesField(field, encoder.encode(text));
+function stringField(field: number, text: string): number[] {
+  return bytesField(field, encoder.encode(text));
+}
 
-const contentNode = (type: ContentAttributeType, id: number, text?: string, children: number[][] = []): number[] => {
+function contentNode(type: ContentAttributeType, id: number, text?: string, children: number[][] = []): number[] {
   const attributes = [
     ...varintField(ContentAttributesField.DomNodeId, id),
     ...varintField(ContentAttributesField.Type, type),
@@ -95,10 +103,10 @@ const contentNode = (type: ContentAttributeType, id: number, text?: string, chil
     ...children.flatMap(child => bytesField(ContentNodeField.Children, child)),
     ...bytesField(ContentNodeField.Attributes, attributes)
   ];
-};
+}
 
 /** The page content of a screen whose window is titled `title`: a root holding one node per block. */
-export const annotatedPageContent = (title: string, url: string, blocks: Block[]): Uint8Array => {
+export function annotatedPageContent(title: string, url: string, blocks: Block[]): Uint8Array {
   let nextId = 1;
   const children = blocks.map(({ kind, text }) => {
     const blockId = ++nextId;
@@ -112,13 +120,14 @@ export const annotatedPageContent = (title: string, url: string, blocks: Block[]
     ...bytesField(AnnotatedPageContentField.RootNode, root),
     ...bytesField(AnnotatedPageContentField.MainFrameData, frame)
   ]);
-};
+}
 
 /** Glic reads the page content as a stream. */
-export const byteStream = (bytes: Uint8Array): ReadableStream<Uint8Array> =>
-  new ReadableStream({
+export function byteStream(bytes: Uint8Array): ReadableStream<Uint8Array> {
+  return new ReadableStream({
     start(controller) {
       controller.enqueue(bytes);
       controller.close();
     }
   });
+}

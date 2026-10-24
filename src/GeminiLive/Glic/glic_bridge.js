@@ -5,7 +5,7 @@
   var COMFORT_NOISE_LEVEL = 1e-3;
   var GATE_RAMP_SECONDS = 0.01;
   var RESUME_TIMEOUT_MS = 1e3;
-  var comfortNoise = (context) => {
+  function comfortNoise(context) {
     const buffer = context.createBuffer(1, context.sampleRate, context.sampleRate);
     const samples = buffer.getChannelData(0);
     for (let i = 0; i < samples.length; i++) {
@@ -16,17 +16,21 @@
     noise.loop = true;
     noise.start();
     return noise;
-  };
-  var trackGate = (microphone) => ({
-    stream: microphone,
-    setOpen(open) {
-      for (const track of microphone.getAudioTracks()) {
-        track.enabled = open;
+  }
+  function trackGate(microphone) {
+    return {
+      stream: microphone,
+      setOpen(open) {
+        for (const track of microphone.getAudioTracks()) {
+          track.enabled = open;
+        }
       }
-    }
-  });
-  var gateMicrophone = async (microphone) => await audioGate(microphone).catch(() => null) ?? trackGate(microphone);
-  var audioGate = async (microphone) => {
+    };
+  }
+  async function gateMicrophone(microphone) {
+    return await audioGate(microphone).catch(() => null) ?? trackGate(microphone);
+  }
+  async function audioGate(microphone) {
     const context = new AudioContext();
     const running = await Promise.race([
       context.resume().then(() => context.state === "running"),
@@ -57,7 +61,7 @@
         gate.gain.setTargetAtTime(open ? 1 : 0, context.currentTime, GATE_RAMP_SECONDS);
       }
     };
-  };
+  }
 
   // page_content.ts
   var APC_VERSION_1_0 = 1;
@@ -69,7 +73,7 @@
     ["paragraph" /* Paragraph */]: 4 /* Paragraph */
   };
   var encoder = new TextEncoder();
-  var varint = (value) => {
+  function varint(value) {
     const bytes = [];
     let rest = value;
     while (rest >= VARINT_CONTINUE) {
@@ -78,16 +82,24 @@
     }
     bytes.push(rest);
     return bytes;
-  };
-  var tag = (field, wireType) => varint(field << TAG_WIRE_TYPE_BITS | wireType);
-  var varintField = (field, value) => [...tag(field, 0 /* Varint */), ...varint(value)];
-  var bytesField = (field, bytes) => [
-    ...tag(field, 2 /* Bytes */),
-    ...varint(bytes.length),
-    ...Array.from(bytes)
-  ];
-  var stringField = (field, text) => bytesField(field, encoder.encode(text));
-  var contentNode = (type, id, text, children = []) => {
+  }
+  function tag(field, wireType) {
+    return varint(field << TAG_WIRE_TYPE_BITS | wireType);
+  }
+  function varintField(field, value) {
+    return [...tag(field, 0 /* Varint */), ...varint(value)];
+  }
+  function bytesField(field, bytes) {
+    return [
+      ...tag(field, 2 /* Bytes */),
+      ...varint(bytes.length),
+      ...Array.from(bytes)
+    ];
+  }
+  function stringField(field, text) {
+    return bytesField(field, encoder.encode(text));
+  }
+  function contentNode(type, id, text, children = []) {
     const attributes = [
       ...varintField(2 /* DomNodeId */, id),
       ...varintField(3 /* Type */, type),
@@ -97,8 +109,8 @@
       ...children.flatMap((child) => bytesField(1 /* Children */, child)),
       ...bytesField(2 /* Attributes */, attributes)
     ];
-  };
-  var annotatedPageContent = (title, url, blocks) => {
+  }
+  function annotatedPageContent(title, url, blocks) {
     let nextId = 1;
     const children = blocks.map(({ kind, text }) => {
       const blockId = ++nextId;
@@ -112,16 +124,18 @@
       ...bytesField(2 /* RootNode */, root),
       ...bytesField(3 /* MainFrameData */, frame)
     ]);
-  };
-  var byteStream = (bytes) => new ReadableStream({
-    start(controller) {
-      controller.enqueue(bytes);
-      controller.close();
-    }
-  });
+  }
+  function byteStream(bytes) {
+    return new ReadableStream({
+      start(controller) {
+        controller.enqueue(bytes);
+        controller.close();
+      }
+    });
+  }
 
   // webview_transport.ts
-  var webViewTransport = () => {
+  function webViewTransport() {
     const channel = window.chrome?.webview;
     return {
       post(envelope) {
@@ -134,17 +148,26 @@
         channel?.addEventListener("message", (e) => receive(e.data));
       }
     };
-  };
+  }
 
   // ../messaging/src/index.ts
-  var isRecord = (value) => typeof value === "object" && value !== null;
-  var isRequest = (value) => isRecord(value) && typeof value.id === "number" && typeof value.type === "string" && typeof value.timestamp === "number";
-  var isReply = (value) => isRecord(value) && typeof value.replyTo === "number" && (value.err === void 0 || value.err === null || typeof value.err === "string");
-  var defineMessaging = (transport, config) => {
+  function isRecord(value) {
+    return typeof value === "object" && value !== null;
+  }
+  function isRequest(value) {
+    return isRecord(value) && typeof value.id === "number" && typeof value.type === "string" && typeof value.timestamp === "number";
+  }
+  function isReply(value) {
+    return isRecord(value) && typeof value.replyTo === "number" && (value.err === void 0 || value.err === null || typeof value.err === "string");
+  }
+  function defineMessaging(transport, config) {
     const handlers = /* @__PURE__ */ new Map();
     const pending = /* @__PURE__ */ new Map();
     let nextId = 1;
-    const answer = async (request) => {
+    function isMessageOf(request, type) {
+      return request.type === String(type);
+    }
+    async function answer(request) {
       const handler = handlers.get(request.type);
       if (!handler) {
         transport.post({
@@ -165,8 +188,8 @@
           err: error instanceof Error ? error.message : String(error)
         });
       }
-    };
-    const settle = (reply) => {
+    }
+    function settle(reply) {
       const waiting = pending.get(reply.replyTo);
       if (!waiting) {
         return;
@@ -177,7 +200,7 @@
         return;
       }
       waiting.resolve(reply.res);
-    };
+    }
     transport.listen((envelope) => {
       if (isRequest(envelope)) {
         void answer(envelope);
@@ -187,7 +210,7 @@
         settle(envelope);
       }
     });
-    const sendMessage = (type, data) => {
+    function sendMessage(type, data) {
       const id = nextId++;
       return new Promise((resolve, reject) => {
         pending.set(id, {
@@ -206,7 +229,7 @@
           timestamp: Date.now()
         });
       });
-    };
+    }
     return {
       sendMessage,
       onMessage(type, onReceived) {
@@ -214,12 +237,17 @@
         if (handlers.has(key)) {
           throw new Error(`"${key}" already has a listener`);
         }
-        handlers.set(key, onReceived);
+        handlers.set(key, (request) => {
+          if (!isMessageOf(request, type)) {
+            throw new Error(`"${request.type}" reached the listener for "${key}"`);
+          }
+          return onReceived(request);
+        });
         return () => handlers.delete(key);
       },
       removeAllListeners: () => handlers.clear()
     };
-  };
+  }
 
   // glic_bridge.ts
   var RESUME_BUTTONS = ["Start live mode" /* StartLive */, "Go Live" /* GoLive */];
@@ -242,63 +270,46 @@
   var MAX_RESUME_BACKOFF = 5;
   var TRY_AGAIN_GAP_MS = 5e3;
   var BROKEN_AFTER_MS = 15e3;
+  function isClientFlag(value) {
+    return typeof value === "object" && value !== null;
+  }
   if (!window.__glicBridgeInstalled && window.top === window) {
-    window.__glicBridgeInstalled = true;
-    const app = defineMessaging(webViewTransport(), { timeoutMs: REQUEST_TIMEOUT_MS });
-    let booted = false;
-    let active = false;
-    let unavailableReported = false;
-    let lastState = null;
-    const report = (sent) => {
+    let report = function(sent) {
       sent.catch(() => {
       });
-    };
-    const reportError = (message) => report(app.sendMessage("error" /* Error */, message));
-    const pageText = () => document.body?.innerText || "";
-    const pageSays = (phrase) => pageText().includes(phrase);
-    const findButton = (...fragments) => {
+    }, reportError = function(message) {
+      report(app.sendMessage("error" /* Error */, message));
+    }, pageText = function() {
+      return document.body?.innerText || "";
+    }, pageSays = function(phrase) {
+      return pageText().includes(phrase);
+    }, findButton = function(...fragments) {
       const buttons = [...document.querySelectorAll("button")];
       for (const fragment of fragments) {
-        const match = buttons.find((b) => (b.getAttribute("aria-label") || "").includes(fragment));
+        const match = buttons.find((button) => (button.getAttribute("aria-label") || "").includes(fragment));
         if (match) {
           return match;
         }
       }
       return null;
-    };
-    const clickButton = (...fragments) => {
+    }, clickButton = function(...fragments) {
       const button = findButton(...fragments);
       if (!button) {
         return false;
       }
       button.click();
       return true;
-    };
-    const isSignedOut = () => location.hostname === "accounts.google.com" || SIGN_IN_PATTERN.test(pageText()) && !findButton("Go Live" /* GoLive */);
-    const reportStartFailure = (fallback) => reportError(isSignedOut() ? "signed-out" /* SignedOut */ : fallback);
-    const setState = (state) => {
+    }, isSignedOut = function() {
+      return location.hostname === "accounts.google.com" || SIGN_IN_PATTERN.test(pageText()) && !findButton("Go Live" /* GoLive */);
+    }, reportStartFailure = function(fallback) {
+      reportError(isSignedOut() ? "signed-out" /* SignedOut */ : fallback);
+    }, setState = function(state) {
       if (lastState === state) {
         return;
       }
       lastState = state;
       report(app.sendMessage("state" /* State */, state));
-    };
-    try {
-      Object.defineProperty(document, "visibilityState", {
-        configurable: true,
-        get: () => "visible"
-      });
-      Object.defineProperty(document, "hidden", {
-        configurable: true,
-        get: () => false
-      });
-      document.addEventListener("visibilitychange", (e) => e.stopImmediatePropagation(), true);
-    } catch {
-    }
-    const micGates = /* @__PURE__ */ new Set();
-    let muted = false;
-    let micId = null;
-    const withDesktopConstraints = (constraints) => {
+    }, withDesktopConstraints = function(constraints) {
       if (!constraints) {
         return constraints;
       }
@@ -310,57 +321,33 @@
         return rest;
       }
       const requested = rest.audio === true ? {} : rest.audio;
+      const audio = {
+        ...requested,
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+        voiceIsolation: true,
+        // ideal, not exact: an unplugged pick falls back to the default instead of failing Live.
+        ...micId ? {
+          deviceId: {
+            ideal: micId
+          }
+        } : {}
+      };
       return {
         ...rest,
-        audio: {
-          ...requested,
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          // voiceIsolation is Chromium-only and not in the DOM typings.
-          ...{ voiceIsolation: true },
-          // ideal, not exact: an unplugged pick falls back to the default instead of failing Live.
-          ...micId ? {
-            deviceId: {
-              ideal: micId
-            }
-          } : {}
-        }
+        audio
       };
-    };
-    try {
-      const media = navigator.mediaDevices;
-      const getUserMedia = media.getUserMedia.bind(media);
-      media.getUserMedia = async (constraints) => {
-        const stream = await getUserMedia(withDesktopConstraints(constraints));
-        if (stream.getAudioTracks().length === 0) {
-          return stream;
-        }
-        const gate = await gateMicrophone(stream);
-        gate.setOpen(!muted);
-        micGates.add(gate);
-        return gate.stream;
-      };
-    } catch {
-    }
-    const setMuted = (value) => {
+    }, setMuted = function(value) {
       muted = value;
       for (const gate of micGates) {
-        if (gate.stream.getAudioTracks().some((t) => t.readyState === "live")) {
+        if (gate.stream.getAudioTracks().some((track) => track.readyState === "live")) {
           gate.setOpen(!value);
         } else {
           micGates.delete(gate);
         }
       }
-    };
-    const listMics = async () => {
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      return devices.filter((d) => d.kind === "audioinput" && d.deviceId && !MIC_ALIAS_IDS.has(d.deviceId)).map((d) => ({
-        id: d.deviceId,
-        label: d.label || "Microphone"
-      }));
-    };
-    const setMic = (id) => {
+    }, setMic = function(id) {
       const next = id || null;
       if (next === micId) {
         return;
@@ -371,63 +358,22 @@
       }
       stop();
       start();
-    };
-    const defaultMicLabel = async () => {
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      return devices.find((d) => d.kind === "audioinput" && d.deviceId === "default")?.label ?? "";
-    };
-    try {
-      let followedDefault = "";
-      defaultMicLabel().then(
-        (label) => followedDefault = label,
-        () => {
-        }
-      );
-      navigator.mediaDevices.addEventListener("devicechange", async () => {
-        const label = await defaultMicLabel().catch(() => followedDefault);
-        if (label === followedDefault) {
-          return;
-        }
-        followedDefault = label;
-        if (active && !micId) {
-          stop();
-          start();
-        }
-      });
-    } catch {
-    }
-    const captureFrame = async () => {
-      if (!active) {
-        return null;
-      }
-      const picture = await app.sendMessage("capture" /* Capture */).catch(() => null);
-      if (!picture) {
-        return null;
-      }
-      const bytes = Uint8Array.from(atob(picture.data), (c) => c.charCodeAt(0));
-      return {
-        data: bytes.buffer,
-        mimeType: picture.mimeType,
-        widthPixels: picture.width,
-        heightPixels: picture.height
-      };
-    };
-    let latestView = null;
-    const readScreen = () => app.sendMessage("read" /* Read */).catch(() => null);
-    const notify = (subscriber, value) => {
+    }, readScreen = function() {
+      return app.sendMessage("read" /* Read */).catch(() => null);
+    }, notify = function(subscriber, value) {
       try {
         subscriber(value);
       } catch {
       }
-    };
-    const observable = (value) => ({
-      subscribe(change) {
-        notify(change, value);
-        return { unsubscribe() {
-        } };
-      }
-    });
-    const settableObservable = (initial) => {
+    }, observable = function(value) {
+      return {
+        subscribe(change) {
+          notify(change, value);
+          return { unsubscribe() {
+          } };
+        }
+      };
+    }, settableObservable = function(initial) {
       let value = initial;
       const subscribers = [];
       return {
@@ -451,43 +397,26 @@
           };
         }
       };
-    };
-    const captionSetting = settableObservable(true);
-    let nudges = 0;
-    let lastNudge = 0;
-    const focusedTab = () => ({
-      tabId: `${TAB_ID}-${nudges}`,
-      url: "https://localhost/desktop",
-      title: latestView?.title || "Desktop",
-      faviconUrl: "",
-      documentMimeType: "text/html",
-      isMediaActive: false
-    });
-    const focusedTabState = () => ({
-      hasFocus: {
-        tabData: focusedTab()
-      }
-    });
-    const focusedTabSetting = settableObservable(focusedTabState());
-    const nudgeScreen = (now) => {
+    }, focusedTab = function() {
+      return {
+        tabId: `${TAB_ID}-${nudges}`,
+        url: "https://localhost/desktop",
+        title: latestView?.title || "Desktop",
+        faviconUrl: "",
+        documentMimeType: "text/html",
+        isMediaActive: false
+      };
+    }, focusedTabState = function() {
+      return {
+        hasFocus: {
+          tabData: focusedTab()
+        }
+      };
+    }, nudgeScreen = function(now) {
       lastNudge = now;
       nudges++;
       focusedTabSetting.set(focusedTabState());
-    };
-    let reading = false;
-    const readThenNudge = async (now) => {
-      if (reading) {
-        return;
-      }
-      reading = true;
-      lastNudge = now;
-      latestView = await readScreen();
-      reading = false;
-      if (active) {
-        nudgeScreen(Date.now());
-      }
-    };
-    const tabContext = (options) => {
+    }, tabContext = function(options) {
       const tabData = focusedTab();
       if (!options?.annotatedPageContent || !latestView) {
         return { tabData };
@@ -499,8 +428,448 @@
           annotatedPageContent: byteStream(content)
         }
       };
+    }, resolved = function(value) {
+      return () => Promise.resolve(value);
+    }, tryBootstrap = function() {
+      if (booted) {
+        return;
+      }
+      for (const handler of bootstrapHandlers) {
+        notify(handler, bootstrapEvent);
+      }
+    }, resetTranscript = function() {
+      utterances = [];
+      openUser = -1;
+      unfinishedUser = -1;
+      openAssistant = -1;
+      relayed = [];
+    }, relayUtterance = function(index) {
+      const { direction, text } = utterances[index];
+      const trimmed = text.replace(/\s+/g, " ").trim();
+      if (!active || !trimmed || relayed[index] === trimmed) {
+        return;
+      }
+      relayed[index] = trimmed;
+      report(
+        app.sendMessage("transcript" /* Transcript */, {
+          text: trimmed,
+          direction,
+          index
+        })
+      );
+    }, openUtterance = function(direction) {
+      return utterances.push({
+        direction,
+        text: ""
+      }) - 1;
+    }, firstString = function(value) {
+      if (typeof value === "string") {
+        return value;
+      }
+      if (!Array.isArray(value)) {
+        return null;
+      }
+      for (const item of value) {
+        const found = firstString(item);
+        if (found !== null) {
+          return found;
+        }
+      }
+      return null;
+    }, inputUtterance = function(isFinal) {
+      if (openUser >= 0) {
+        return openUser;
+      }
+      if (isFinal && unfinishedUser >= 0) {
+        return unfinishedUser;
+      }
+      return openUtterance("user" /* User */);
+    }, onInputTranscript = function(field) {
+      const text = firstString(field);
+      if (text === null) {
+        return;
+      }
+      const isFinal = field[0] === null;
+      const index = inputUtterance(isFinal);
+      utterances[index].text = text;
+      openUser = isFinal ? -1 : index;
+      unfinishedUser = -1;
+      relayUtterance(index);
+    }, onOutputTranscript = function(field) {
+      const [fragment, , , first] = field;
+      if (typeof fragment !== "string") {
+        return;
+      }
+      if (openAssistant < 0 || first === 1) {
+        openAssistant = openUtterance("assistant" /* Assistant */);
+        unfinishedUser = openUser;
+        openUser = -1;
+      }
+      utterances[openAssistant].text += fragment;
+      relayUtterance(openAssistant);
+    }, onServerMessage = function(msg) {
+      if (!Array.isArray(msg) || typeof msg[0 /* Seq */] !== "string") {
+        return;
+      }
+      const input = msg[7 /* InputTranscription */];
+      if (Array.isArray(input)) {
+        wireSeen = true;
+        onInputTranscript(input);
+      }
+      const content = msg[1 /* ServerContent */];
+      if (!Array.isArray(content)) {
+        return;
+      }
+      const output = content[5 /* OutputTranscription */];
+      if (Array.isArray(output)) {
+        wireSeen = true;
+        onOutputTranscript(output);
+      }
+      if (content[2 /* GenerationComplete */] != null || content[3 /* Interrupted */] != null) {
+        openAssistant = -1;
+      }
+    }, onChannelChunk = function(chunk) {
+      let frames;
+      try {
+        frames = JSON.parse(chunk);
+      } catch {
+        return;
+      }
+      if (!Array.isArray(frames)) {
+        return;
+      }
+      for (const frame of frames) {
+        const payload = Array.isArray(frame) ? frame[1] : null;
+        if (!Array.isArray(payload)) {
+          continue;
+        }
+        for (const entry of payload) {
+          if (Array.isArray(entry) && entry[0] === null) {
+            onServerMessage(entry[1]);
+          }
+        }
+      }
+    }, tapDownlink = function(xhr) {
+      let offset = 0;
+      function read() {
+        let text;
+        try {
+          text = xhr.responseText;
+        } catch {
+          return;
+        }
+        while (true) {
+          const newline = text.indexOf("\n", offset);
+          if (newline < 0) {
+            return;
+          }
+          const length = Number(text.slice(offset, newline));
+          const end = newline + 1 + length;
+          if (!Number.isInteger(length) || text.length < end) {
+            return;
+          }
+          const chunk = text.slice(newline + 1, end);
+          offset = end;
+          try {
+            onChannelChunk(chunk);
+          } catch {
+          }
+        }
+      }
+      xhr.addEventListener("progress", read);
+      xhr.addEventListener("readystatechange", read);
+    }, captionsRoot = function() {
+      const scroller = document.querySelector("captions-scroller");
+      if (!scroller) {
+        return null;
+      }
+      return scroller.querySelector(".captions-scroller-container .captions-scroller") || scroller.querySelector(".captions-scroller-container") || scroller;
+    }, directionOf = function(node) {
+      if (!(node instanceof Element) || node.tagName !== "B") {
+        return null;
+      }
+      const label = (node.textContent || "").trim().replace(/:$/, "").toLowerCase();
+      return SPEAKER_LABELS[label] ?? null;
+    }, readUtterances = function(root) {
+      const found = [];
+      let current = null;
+      for (const node of root.childNodes) {
+        const direction = directionOf(node);
+        if (direction) {
+          current = {
+            direction,
+            text: ""
+          };
+          found.push(current);
+        } else if (current) {
+          current.text += node.textContent || "";
+        }
+      }
+      return found.map((utterance) => ({
+        direction: utterance.direction,
+        text: utterance.text.replace(/\s+/g, " ").trim()
+      })).filter((utterance) => utterance.text);
+    }, pumpCaptions = function() {
+      if (wireSeen) {
+        return;
+      }
+      const root = captionsRoot();
+      if (!root) {
+        return;
+      }
+      readUtterances(root).forEach(({ direction, text }, index) => {
+        if (relayed[index] === text) {
+          return;
+        }
+        relayed[index] = text;
+        report(
+          app.sendMessage("transcript" /* Transcript */, {
+            text,
+            direction,
+            index
+          })
+        );
+      });
+    }, patchLiveTimeouts = function() {
+      if (timeoutsPatched) {
+        return true;
+      }
+      const namespace = window.default_BardChatUi;
+      if (!namespace) {
+        return false;
+      }
+      let found = 0;
+      for (const flag of Object.values(namespace)) {
+        if (!isClientFlag(flag) || !flag.key) {
+          continue;
+        }
+        const value = LIVE_TIMEOUT_FLAGS[flag.key];
+        if (value === void 0) {
+          continue;
+        }
+        flag.defaultValue = value;
+        flag.ctor = () => value;
+        found++;
+      }
+      timeoutsPatched = found === Object.keys(LIVE_TIMEOUT_FLAGS).length;
+      return timeoutsPatched;
+    }, resume = function(now) {
+      if (now - lastResume < RESUME_GAP_MS * Math.min(resumeTries + 1, MAX_RESUME_BACKOFF)) {
+        return;
+      }
+      resumeTries++;
+      lastResume = now;
+      clickButton(...RESUME_BUTTONS);
+    }, tryAgainButton = function() {
+      return [...document.querySelectorAll("button")].find((button) => `${button.getAttribute("aria-label") ?? ""} ${button.textContent ?? ""}`.includes("Try again" /* TryAgain */));
+    }, markLive = function(now) {
+      lastLive = now;
+      resumeTries = 0;
+      brokenReported = false;
+      setState("listening" /* Listening */);
+    }, monitorTick = function() {
+      if (!active) {
+        return;
+      }
+      const now = Date.now();
+      if (now - lastNudge >= SCREEN_NUDGE_MS) {
+        void readThenNudge(now);
+      }
+      pumpCaptions();
+      const wentWrong = pageSays("Something went wrong" /* WentWrong */);
+      if (findButton("Pause live mode" /* PauseLive */) && !wentWrong) {
+        markLive(now);
+        return;
+      }
+      setState("resuming" /* Resuming */);
+      if (!wentWrong && findButton(...RESUME_BUTTONS)) {
+        resume(now);
+        return;
+      }
+      const retry = tryAgainButton();
+      if (retry && now - lastTryAgain > TRY_AGAIN_GAP_MS) {
+        lastTryAgain = now;
+        retry.click();
+      }
+      if (wentWrong && now - lastLive > BROKEN_AFTER_MS && !brokenReported) {
+        brokenReported = true;
+        reportError("live-broke" /* LiveBroke */);
+      }
+    }, beginMonitor = function() {
+      if (monitorTimer) {
+        return;
+      }
+      monitorTimer = setInterval(monitorTick, MONITOR_POLL_MS);
+    }, advanceToLive = function() {
+      const ok = findButton("OK" /* Okay */);
+      if (ok && findButton("No thanks" /* NoThanks */) && pageSays("Live will use your microphone" /* MicConsent */)) {
+        ok.click();
+        consentAccepted = true;
+        return;
+      }
+      const skip = findButton("Skip" /* Skip */);
+      if (skip && findButton("Go back" /* GoBack */) && findButton("Turn on live captions" /* TurnOnCaptions */)) {
+        skip.click();
+        return;
+      }
+      if (clickButton("Start live mode" /* StartLive */) || consentAccepted) {
+        return;
+      }
+      clickButton("Go Live" /* GoLive */);
+    }, start = function() {
+      active = true;
+      resetTranscript();
+      lastState = null;
+      consentAccepted = false;
+      resumeTries = 0;
+      clearInterval(startTimer);
+      let tries = 0;
+      startTimer = setInterval(() => {
+        if (!active || unavailableReported) {
+          clearInterval(startTimer);
+          return;
+        }
+        tryBootstrap();
+        if (!patchLiveTimeouts() && tries < MAX_START_TRIES / 2) {
+          tries++;
+          return;
+        }
+        if (findButton("Pause live mode" /* PauseLive */)) {
+          clearInterval(startTimer);
+          report(app.sendMessage("ready" /* Ready */));
+          markLive(Date.now());
+          beginMonitor();
+          return;
+        }
+        advanceToLive();
+        if (++tries <= MAX_START_TRIES) {
+          return;
+        }
+        clearInterval(startTimer);
+        reportStartFailure("Gemini Live did not start (sign-in or rate limit)" /* LiveDidNotStart */);
+      }, START_POLL_MS);
+    }, stop = function() {
+      active = false;
+      clearInterval(startTimer);
+      clickButton("Switch to text mode" /* TextMode */, "Pause live mode" /* PauseLive */, "End" /* End */);
+      setState("idle" /* Idle */);
+    }, sleep = function(milliseconds) {
+      return new Promise((resolve) => setTimeout(resolve, milliseconds));
+    }, editor = function() {
+      return document.querySelector('[contenteditable="true"]');
+    }, lastReplyText = function() {
+      const containers = document.querySelectorAll(".presented-response-container");
+      let last = containers[containers.length - 1];
+      if (!last) {
+        const nodes = document.querySelectorAll(
+          "message-content, .model-response-text, .markdown, [data-response-index]"
+        );
+        last = nodes[nodes.length - 1];
+      }
+      return (last ? last.innerText : "").replace(/\s+/g, " ").replace(/^Gemini said\s*/i, "").trim();
     };
-    const resolved = (value) => () => Promise.resolve(value);
+    report2 = report, reportError2 = reportError, pageText2 = pageText, pageSays2 = pageSays, findButton2 = findButton, clickButton2 = clickButton, isSignedOut2 = isSignedOut, reportStartFailure2 = reportStartFailure, setState2 = setState, withDesktopConstraints2 = withDesktopConstraints, setMuted2 = setMuted, setMic2 = setMic, readScreen2 = readScreen, notify2 = notify, observable2 = observable, settableObservable2 = settableObservable, focusedTab2 = focusedTab, focusedTabState2 = focusedTabState, nudgeScreen2 = nudgeScreen, tabContext2 = tabContext, resolved2 = resolved, tryBootstrap2 = tryBootstrap, resetTranscript2 = resetTranscript, relayUtterance2 = relayUtterance, openUtterance2 = openUtterance, firstString2 = firstString, inputUtterance2 = inputUtterance, onInputTranscript2 = onInputTranscript, onOutputTranscript2 = onOutputTranscript, onServerMessage2 = onServerMessage, onChannelChunk2 = onChannelChunk, tapDownlink2 = tapDownlink, captionsRoot2 = captionsRoot, directionOf2 = directionOf, readUtterances2 = readUtterances, pumpCaptions2 = pumpCaptions, patchLiveTimeouts2 = patchLiveTimeouts, resume2 = resume, tryAgainButton2 = tryAgainButton, markLive2 = markLive, monitorTick2 = monitorTick, beginMonitor2 = beginMonitor, advanceToLive2 = advanceToLive, start2 = start, stop2 = stop, sleep2 = sleep, editor2 = editor, lastReplyText2 = lastReplyText;
+    window.__glicBridgeInstalled = true;
+    const app = defineMessaging(webViewTransport(), { timeoutMs: REQUEST_TIMEOUT_MS });
+    let booted = false;
+    let active = false;
+    let unavailableReported = false;
+    let lastState = null;
+    try {
+      Object.defineProperty(document, "visibilityState", {
+        configurable: true,
+        get: () => "visible"
+      });
+      Object.defineProperty(document, "hidden", {
+        configurable: true,
+        get: () => false
+      });
+      document.addEventListener("visibilitychange", (e) => e.stopImmediatePropagation(), true);
+    } catch {
+    }
+    const micGates = /* @__PURE__ */ new Set();
+    let muted = false;
+    let micId = null;
+    try {
+      const media = navigator.mediaDevices;
+      const getUserMedia = media.getUserMedia.bind(media);
+      media.getUserMedia = async (constraints) => {
+        const stream = await getUserMedia(withDesktopConstraints(constraints));
+        if (stream.getAudioTracks().length === 0) {
+          return stream;
+        }
+        const gate = await gateMicrophone(stream);
+        gate.setOpen(!muted);
+        micGates.add(gate);
+        return gate.stream;
+      };
+    } catch {
+    }
+    async function listMics() {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      return devices.filter((d) => d.kind === "audioinput" && d.deviceId && !MIC_ALIAS_IDS.has(d.deviceId)).map((d) => ({
+        id: d.deviceId,
+        label: d.label || "Microphone"
+      }));
+    }
+    async function defaultMicLabel() {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      return devices.find((d) => d.kind === "audioinput" && d.deviceId === "default")?.label ?? "";
+    }
+    try {
+      let followedDefault = "";
+      defaultMicLabel().then(
+        (label) => followedDefault = label,
+        () => {
+        }
+      );
+      navigator.mediaDevices.addEventListener("devicechange", async () => {
+        const label = await defaultMicLabel().catch(() => followedDefault);
+        if (label === followedDefault) {
+          return;
+        }
+        followedDefault = label;
+        if (active && !micId) {
+          stop();
+          start();
+        }
+      });
+    } catch {
+    }
+    async function captureFrame() {
+      if (!active) {
+        return null;
+      }
+      const picture = await app.sendMessage("capture" /* Capture */).catch(() => null);
+      if (!picture) {
+        return null;
+      }
+      const bytes = Uint8Array.from(atob(picture.data), (char) => char.charCodeAt(0));
+      return {
+        data: bytes.buffer,
+        mimeType: picture.mimeType,
+        widthPixels: picture.width,
+        heightPixels: picture.height
+      };
+    }
+    let latestView = null;
+    const captionSetting = settableObservable(true);
+    let nudges = 0;
+    let lastNudge = 0;
+    const focusedTabSetting = settableObservable(focusedTabState());
+    let reading = false;
+    async function readThenNudge(now) {
+      if (reading) {
+        return;
+      }
+      reading = true;
+      lastNudge = now;
+      latestView = await readScreen();
+      reading = false;
+      if (active) {
+        nudgeScreen(Date.now());
+      }
+    }
     const host = {
       getChromeVersion: resolved({
         major: 130,
@@ -599,14 +968,6 @@
         glicApiSource: "data:text/javascript,//desktop"
       }
     });
-    const tryBootstrap = () => {
-      if (booted) {
-        return;
-      }
-      for (const handler of bootstrapHandlers) {
-        notify(handler, bootstrapEvent);
-      }
-    };
     let bootTries = 0;
     const bootTimer = setInterval(() => {
       tryBootstrap();
@@ -645,146 +1006,6 @@
     let openAssistant = -1;
     let wireSeen = false;
     let relayed = [];
-    const resetTranscript = () => {
-      utterances = [];
-      openUser = -1;
-      unfinishedUser = -1;
-      openAssistant = -1;
-      relayed = [];
-    };
-    const relayUtterance = (index) => {
-      const { direction, text } = utterances[index];
-      const trimmed = text.replace(/\s+/g, " ").trim();
-      if (!active || !trimmed || relayed[index] === trimmed) {
-        return;
-      }
-      relayed[index] = trimmed;
-      report(
-        app.sendMessage("transcript" /* Transcript */, {
-          text: trimmed,
-          direction,
-          index
-        })
-      );
-    };
-    const openUtterance = (direction) => utterances.push({
-      direction,
-      text: ""
-    }) - 1;
-    const firstString = (value) => {
-      if (typeof value === "string") {
-        return value;
-      }
-      if (!Array.isArray(value)) {
-        return null;
-      }
-      for (const item of value) {
-        const found = firstString(item);
-        if (found !== null) {
-          return found;
-        }
-      }
-      return null;
-    };
-    const onInputTranscript = (field) => {
-      const text = firstString(field);
-      if (text === null) {
-        return;
-      }
-      const isFinal = field[0] === null;
-      const index = openUser >= 0 ? openUser : isFinal && unfinishedUser >= 0 ? unfinishedUser : openUtterance("user" /* User */);
-      utterances[index].text = text;
-      openUser = isFinal ? -1 : index;
-      unfinishedUser = -1;
-      relayUtterance(index);
-    };
-    const onOutputTranscript = (field) => {
-      const [fragment, , , first] = field;
-      if (typeof fragment !== "string") {
-        return;
-      }
-      if (openAssistant < 0 || first === 1) {
-        openAssistant = openUtterance("assistant" /* Assistant */);
-        unfinishedUser = openUser;
-        openUser = -1;
-      }
-      utterances[openAssistant].text += fragment;
-      relayUtterance(openAssistant);
-    };
-    const onServerMessage = (msg) => {
-      if (!Array.isArray(msg) || typeof msg[0 /* Seq */] !== "string") {
-        return;
-      }
-      const input = msg[7 /* InputTranscription */];
-      if (Array.isArray(input)) {
-        wireSeen = true;
-        onInputTranscript(input);
-      }
-      const content = msg[1 /* ServerContent */];
-      if (!Array.isArray(content)) {
-        return;
-      }
-      const output = content[5 /* OutputTranscription */];
-      if (Array.isArray(output)) {
-        wireSeen = true;
-        onOutputTranscript(output);
-      }
-      if (content[2 /* GenerationComplete */] != null || content[3 /* Interrupted */] != null) {
-        openAssistant = -1;
-      }
-    };
-    const onChannelChunk = (chunk) => {
-      let frames;
-      try {
-        frames = JSON.parse(chunk);
-      } catch {
-        return;
-      }
-      if (!Array.isArray(frames)) {
-        return;
-      }
-      for (const frame of frames) {
-        const payload = Array.isArray(frame) ? frame[1] : null;
-        if (!Array.isArray(payload)) {
-          continue;
-        }
-        for (const entry of payload) {
-          if (Array.isArray(entry) && entry[0] === null) {
-            onServerMessage(entry[1]);
-          }
-        }
-      }
-    };
-    const tapDownlink = (xhr) => {
-      let offset = 0;
-      const read = () => {
-        let text;
-        try {
-          text = xhr.responseText;
-        } catch {
-          return;
-        }
-        while (true) {
-          const newline = text.indexOf("\n", offset);
-          if (newline < 0) {
-            return;
-          }
-          const length = Number(text.slice(offset, newline));
-          const end = newline + 1 + length;
-          if (!Number.isInteger(length) || text.length < end) {
-            return;
-          }
-          const chunk = text.slice(newline + 1, end);
-          offset = end;
-          try {
-            onChannelChunk(chunk);
-          } catch {
-          }
-        }
-      };
-      xhr.addEventListener("progress", read);
-      xhr.addEventListener("readystatechange", read);
-    };
     try {
       const xhrOpen = XMLHttpRequest.prototype.open;
       const xhrSend = XMLHttpRequest.prototype.send;
@@ -795,7 +1016,7 @@
         } else {
           downlinks.delete(this);
         }
-        return xhrOpen.call(this, method, url, ...rest);
+        xhrOpen.call(this, method, url, ...rest);
       };
       XMLHttpRequest.prototype.send = function(...args) {
         if (downlinks.has(this)) {
@@ -805,65 +1026,9 @@
       };
     } catch {
     }
-    const captionsRoot = () => {
-      const scroller = document.querySelector("captions-scroller");
-      if (!scroller) {
-        return null;
-      }
-      return scroller.querySelector(".captions-scroller-container .captions-scroller") || scroller.querySelector(".captions-scroller-container") || scroller;
-    };
     const SPEAKER_LABELS = {
       you: "user" /* User */,
       gemini: "assistant" /* Assistant */
-    };
-    const directionOf = (node) => {
-      if (!(node instanceof Element) || node.tagName !== "B") {
-        return null;
-      }
-      const label = (node.textContent || "").trim().replace(/:$/, "").toLowerCase();
-      return SPEAKER_LABELS[label] ?? null;
-    };
-    const readUtterances = (root) => {
-      const found = [];
-      let current = null;
-      for (const node of root.childNodes) {
-        const direction = directionOf(node);
-        if (direction) {
-          current = {
-            direction,
-            text: ""
-          };
-          found.push(current);
-        } else if (current) {
-          current.text += node.textContent || "";
-        }
-      }
-      return found.map((u) => ({
-        direction: u.direction,
-        text: u.text.replace(/\s+/g, " ").trim()
-      })).filter((u) => u.text);
-    };
-    const pumpCaptions = () => {
-      if (wireSeen) {
-        return;
-      }
-      const root = captionsRoot();
-      if (!root) {
-        return;
-      }
-      readUtterances(root).forEach(({ direction, text }, index) => {
-        if (relayed[index] === text) {
-          return;
-        }
-        relayed[index] = text;
-        report(
-          app.sendMessage("transcript" /* Transcript */, {
-            text,
-            direction,
-            index
-          })
-        );
-      });
     };
     const DAY_S = 24 * 60 * 60;
     const DAY_MS = DAY_S * 1e3;
@@ -878,27 +1043,6 @@
       // privacy cap, ms
     };
     let timeoutsPatched = false;
-    const patchLiveTimeouts = () => {
-      if (timeoutsPatched) {
-        return true;
-      }
-      const namespace = window.default_BardChatUi;
-      if (!namespace) {
-        return false;
-      }
-      let found = 0;
-      for (const flag of Object.values(namespace)) {
-        const value = flag && typeof flag === "object" && flag.key ? LIVE_TIMEOUT_FLAGS[flag.key] : void 0;
-        if (value === void 0) {
-          continue;
-        }
-        flag.defaultValue = value;
-        flag.ctor = () => value;
-        found++;
-      }
-      timeoutsPatched = found === Object.keys(LIVE_TIMEOUT_FLAGS).length;
-      return timeoutsPatched;
-    };
     let lastResume = 0;
     let resumeTries = 0;
     let lastLive = 0;
@@ -907,112 +1051,6 @@
     let consentAccepted = false;
     let monitorTimer = null;
     let startTimer;
-    const resume = (now) => {
-      if (now - lastResume < RESUME_GAP_MS * Math.min(resumeTries + 1, MAX_RESUME_BACKOFF)) {
-        return;
-      }
-      resumeTries++;
-      lastResume = now;
-      clickButton(...RESUME_BUTTONS);
-    };
-    const tryAgainButton = () => [...document.querySelectorAll("button")].find((b) => `${b.getAttribute("aria-label") ?? ""} ${b.textContent ?? ""}`.includes("Try again" /* TryAgain */));
-    const markLive = (now) => {
-      lastLive = now;
-      resumeTries = 0;
-      brokenReported = false;
-      setState("listening" /* Listening */);
-    };
-    const monitorTick = () => {
-      if (!active) {
-        return;
-      }
-      const now = Date.now();
-      if (now - lastNudge >= SCREEN_NUDGE_MS) {
-        void readThenNudge(now);
-      }
-      pumpCaptions();
-      const wentWrong = pageSays("Something went wrong" /* WentWrong */);
-      if (findButton("Pause live mode" /* PauseLive */) && !wentWrong) {
-        markLive(now);
-        return;
-      }
-      setState("resuming" /* Resuming */);
-      if (!wentWrong && findButton(...RESUME_BUTTONS)) {
-        resume(now);
-        return;
-      }
-      const retry = tryAgainButton();
-      if (retry && now - lastTryAgain > TRY_AGAIN_GAP_MS) {
-        lastTryAgain = now;
-        retry.click();
-      }
-      if (wentWrong && now - lastLive > BROKEN_AFTER_MS && !brokenReported) {
-        brokenReported = true;
-        reportError("live-broke" /* LiveBroke */);
-      }
-    };
-    const beginMonitor = () => {
-      if (monitorTimer) {
-        return;
-      }
-      monitorTimer = setInterval(monitorTick, MONITOR_POLL_MS);
-    };
-    const advanceToLive = () => {
-      const ok = findButton("OK" /* Ok */);
-      if (ok && findButton("No thanks" /* NoThanks */) && pageSays("Live will use your microphone" /* MicConsent */)) {
-        ok.click();
-        consentAccepted = true;
-        return;
-      }
-      const skip = findButton("Skip" /* Skip */);
-      if (skip && findButton("Go back" /* GoBack */) && findButton("Turn on live captions" /* TurnOnCaptions */)) {
-        skip.click();
-        return;
-      }
-      if (clickButton("Start live mode" /* StartLive */) || consentAccepted) {
-        return;
-      }
-      clickButton("Go Live" /* GoLive */);
-    };
-    const start = () => {
-      active = true;
-      resetTranscript();
-      lastState = null;
-      consentAccepted = false;
-      resumeTries = 0;
-      clearInterval(startTimer);
-      let tries = 0;
-      startTimer = setInterval(() => {
-        if (!active || unavailableReported) {
-          clearInterval(startTimer);
-          return;
-        }
-        tryBootstrap();
-        if (!patchLiveTimeouts() && tries < MAX_START_TRIES / 2) {
-          tries++;
-          return;
-        }
-        if (findButton("Pause live mode" /* PauseLive */)) {
-          clearInterval(startTimer);
-          report(app.sendMessage("ready" /* Ready */));
-          markLive(Date.now());
-          beginMonitor();
-          return;
-        }
-        advanceToLive();
-        if (++tries <= MAX_START_TRIES) {
-          return;
-        }
-        clearInterval(startTimer);
-        reportStartFailure("Gemini Live did not start (sign-in or rate limit)" /* LiveDidNotStart */);
-      }, START_POLL_MS);
-    };
-    const stop = () => {
-      active = false;
-      clearInterval(startTimer);
-      clickButton("Switch to text mode" /* TextMode */, "Pause live mode" /* PauseLive */, "End" /* End */);
-      setState("idle" /* Idle */);
-    };
     const ACTION_READY_MS = 6e3;
     const ACTION_REPLY_MS = 3e4;
     const ACTION_SETTLE_MS = 1400;
@@ -1029,8 +1067,7 @@
     ];
     const SUBMIT = ["Submit" /* Submit */, "Send message" /* SendMessage */, "Send" /* Send */];
     const REPLY_DONE = ["Copy" /* Copy */, "Good response" /* GoodResponse */, "Regenerate" /* Regenerate */];
-    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-    const waitFor = async (predicate, timeoutMs) => {
+    async function waitFor(predicate, timeoutMs) {
       const deadline = Date.now() + timeoutMs;
       while (Date.now() < deadline) {
         const value = predicate();
@@ -1040,20 +1077,8 @@
         await sleep(150);
       }
       return null;
-    };
-    const editor = () => document.querySelector('[contenteditable="true"]');
-    const lastReplyText = () => {
-      const containers = document.querySelectorAll(".presented-response-container");
-      let last = containers[containers.length - 1];
-      if (!last) {
-        const nodes = document.querySelectorAll(
-          "message-content, .model-response-text, .markdown, [data-response-index]"
-        );
-        last = nodes[nodes.length - 1];
-      }
-      return (last ? last.innerText : "").replace(/\s+/g, " ").replace(/^Gemini said\s*/i, "").trim();
-    };
-    const beginAction = async () => {
+    }
+    async function beginAction() {
       active = false;
       clearInterval(startTimer);
       if (monitorTimer) {
@@ -1069,8 +1094,8 @@
       document.execCommand("selectAll");
       document.execCommand("delete");
       return true;
-    };
-    const submitAndRead = async () => {
+    }
+    async function submitAndRead() {
       clickButton(...SUBMIT);
       let text = "";
       let stableSince = 0;
@@ -1097,7 +1122,7 @@
         text = lastReplyText() || text;
       }
       return text;
-    };
+    }
     app.onMessage("start" /* Start */, () => start());
     app.onMessage("stop" /* Stop */, () => stop());
     app.onMessage("setMuted" /* SetMuted */, ({ data }) => setMuted(data));
@@ -1106,4 +1131,52 @@
     app.onMessage("beginAction" /* BeginAction */, () => beginAction());
     app.onMessage("submitAndRead" /* SubmitAndRead */, () => submitAndRead());
   }
+  var report2;
+  var reportError2;
+  var pageText2;
+  var pageSays2;
+  var findButton2;
+  var clickButton2;
+  var isSignedOut2;
+  var reportStartFailure2;
+  var setState2;
+  var withDesktopConstraints2;
+  var setMuted2;
+  var setMic2;
+  var readScreen2;
+  var notify2;
+  var observable2;
+  var settableObservable2;
+  var focusedTab2;
+  var focusedTabState2;
+  var nudgeScreen2;
+  var tabContext2;
+  var resolved2;
+  var tryBootstrap2;
+  var resetTranscript2;
+  var relayUtterance2;
+  var openUtterance2;
+  var firstString2;
+  var inputUtterance2;
+  var onInputTranscript2;
+  var onOutputTranscript2;
+  var onServerMessage2;
+  var onChannelChunk2;
+  var tapDownlink2;
+  var captionsRoot2;
+  var directionOf2;
+  var readUtterances2;
+  var pumpCaptions2;
+  var patchLiveTimeouts2;
+  var resume2;
+  var tryAgainButton2;
+  var markLive2;
+  var monitorTick2;
+  var beginMonitor2;
+  var advanceToLive2;
+  var start2;
+  var stop2;
+  var sleep2;
+  var editor2;
+  var lastReplyText2;
 })();

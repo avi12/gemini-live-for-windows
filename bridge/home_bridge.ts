@@ -28,9 +28,9 @@ if (!window.__homeBridgeInstalled && window.top === window) {
   const app = defineMessaging<HomeProtocolMap>(webViewTransport(), { timeoutMs: MESSAGE_TIMEOUT_MS });
 
   // Walk open shadow roots as well as the light DOM - the Home app is deep web components.
-  const deepQuery = (root: Document | ShadowRoot | Element, selector: string): Element[] => {
+  function deepQuery(root: Document | ShadowRoot | Element, selector: string): Element[] {
     const out: Element[] = [];
-    const walk = (node: Document | ShadowRoot | Element): void => {
+    function walk(node: Document | ShadowRoot | Element): void {
       try {
         out.push(...node.querySelectorAll(selector));
       } catch {
@@ -41,14 +41,14 @@ if (!window.__homeBridgeInstalled && window.top === window) {
           walk(kid.shadowRoot);
         }
       }
-    };
+    }
     walk(root);
     return out;
-  };
+  }
 
   // Close any onboarding or survey card covering the grid. Scoped to dialog roots, so a normal
   // "Done"/"OK" button elsewhere on the page is left alone.
-  const dismissCards = (): void => {
+  function dismissCards(): void {
     for (const overlay of deepQuery(document, "[role=\"dialog\"],[role=\"alertdialog\"]")) {
       for (const button of overlay.querySelectorAll<HTMLElement>("button,[role=\"button\"]")) {
         const label = `${button.getAttribute("aria-label") ?? ""} ${button.textContent ?? ""}`;
@@ -57,12 +57,12 @@ if (!window.__homeBridgeInstalled && window.top === window) {
         }
       }
     }
-  };
+  }
 
   // The tile card: the sizeable clickable ancestor of the device-name label.
-  const deviceCard = (name: string): HTMLElement | null => {
+  function deviceCard(name: string): HTMLElement | null {
     const label = deepQuery(document, "*").find(
-      el => el.children.length === 0 && (el.textContent ?? "").trim() === name
+      element => element.children.length === 0 && (element.textContent ?? "").trim() === name
     );
     for (let node = label?.parentElement ?? null; node; node = node.parentElement) {
       const rect = node.getBoundingClientRect();
@@ -71,18 +71,29 @@ if (!window.__homeBridgeInstalled && window.top === window) {
       }
     }
     return null;
-  };
+  }
 
   // The tile prints its own state on its own line - the reliable signal (its lit appearance is not:
   // an interacted tile keeps a bright focus highlight that looks "on" whatever the real state). Read
   // it via innerText, where the lines are space-separated; textContent glues them ("PC LightsOff"),
   // where a word boundary never matches. Off wins over On, since an "on" tile may also read "On •
   // 100%" but only an off one says "Off". null until the state word has loaded in.
-  const cardText = (card: HTMLElement): string => card.innerText.replace(/\s+/g, " ").trim();
-  const stateOf = (text: string): boolean | null =>
-    /\boff\b/i.test(text) ? false : /\bon\b/i.test(text) ? true : null;
+  function cardText(card: HTMLElement): string {
+    return card.innerText.replace(/\s+/g, " ").trim();
+  }
+  function stateOf(text: string): boolean | null {
+    if (/\boff\b/i.test(text)) {
+      return false;
+    }
 
-  const measure = (): PcLightsState => {
+    if (/\bon\b/i.test(text)) {
+      return true;
+    }
+
+    return null;
+  }
+
+  function measure(): PcLightsState {
     dismissCards();
     const card = deviceCard(DEVICE);
     if (!card) {
@@ -100,7 +111,7 @@ if (!window.__homeBridgeInstalled && window.top === window) {
       x: Math.round(rect.x + rect.width / 2),
       y: Math.round(rect.y + rect.height / 2)
     });
-  };
+  }
 
   app.onMessage(HomeMessage.Ready, (): boolean => {
     dismissCards(); // an onboarding overlay mustn't hold the readiness gate false

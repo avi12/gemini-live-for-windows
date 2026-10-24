@@ -56,7 +56,7 @@ enum Button {
   GoLive = "Go Live",
   GoodResponse = "Good response",
   NoThanks = "No thanks",
-  Ok = "OK",
+  Okay = "OK",
   PauseLive = "Pause live mode",
   Regenerate = "Regenerate",
   Remove = "Remove",
@@ -172,6 +172,16 @@ interface ClientFlag {
   ctor?: (raw: unknown) => number;
 }
 
+/** A member of Glic's flag namespace that may be a flag: any object, since every member is optional. */
+function isClientFlag(value: unknown): value is ClientFlag {
+  return typeof value === "object" && value !== null;
+}
+
+/** voiceIsolation is Chromium-only and not in the DOM typings. */
+interface DesktopAudioConstraints extends MediaTrackConstraints {
+  voiceIsolation?: boolean;
+}
+
 interface TabContext {
   tabData: unknown;
   annotatedPageData?: { annotatedPageContent: ReadableStream<Uint8Array> };
@@ -213,30 +223,36 @@ if (!window.__glicBridgeInstalled && window.top === window) {
   // ===========================================================================
 
   /** Sends a report to C#, which may be gone (no WebView2, or the app is closing): drops a failure. */
-  const report = (sent: Promise<void>): void => {
+  function report(sent: Promise<void>): void {
     sent.catch(() => {});
-  };
+  }
 
-  const reportError = (message: ErrorMessage): void => report(app.sendMessage(GlicMessage.Error, message));
+  function reportError(message: ErrorMessage): void {
+    report(app.sendMessage(GlicMessage.Error, message));
+  }
 
-  const pageText = (): string => document.body?.innerText || "";
+  function pageText(): string {
+    return document.body?.innerText || "";
+  }
 
-  const pageSays = (phrase: Phrase): boolean => pageText().includes(phrase);
+  function pageSays(phrase: Phrase): boolean {
+    return pageText().includes(phrase);
+  }
 
   /** Finds the first button whose aria-label contains one of the fragments, trying them in order. */
-  const findButton = (...fragments: Button[]): HTMLButtonElement | null => {
+  function findButton(...fragments: Button[]): HTMLButtonElement | null {
     const buttons = [...document.querySelectorAll("button")];
     for (const fragment of fragments) {
-      const match = buttons.find(b => (b.getAttribute("aria-label") || "").includes(fragment));
+      const match = buttons.find(button => (button.getAttribute("aria-label") || "").includes(fragment));
       if (match) {
         return match;
       }
     }
     return null;
-  };
+  }
 
   /** Clicks the first button {@link findButton} finds; whether one was clicked. */
-  const clickButton = (...fragments: Button[]): boolean => {
+  function clickButton(...fragments: Button[]): boolean {
     const button = findButton(...fragments);
     if (!button) {
       return false;
@@ -244,24 +260,26 @@ if (!window.__glicBridgeInstalled && window.top === window) {
 
     button.click();
     return true;
-  };
+  }
 
-  const isSignedOut = (): boolean =>
-    location.hostname === "accounts.google.com" ||
-    (SIGN_IN_PATTERN.test(pageText()) && !findButton(Button.GoLive));
+  function isSignedOut(): boolean {
+    return location.hostname === "accounts.google.com" ||
+      (SIGN_IN_PATTERN.test(pageText()) && !findButton(Button.GoLive));
+  }
 
   /** Reports a failed start, preferring "signed-out" so the host can wait for a session. */
-  const reportStartFailure = (fallback: ErrorMessage): void =>
+  function reportStartFailure(fallback: ErrorMessage): void {
     reportError(isSignedOut() ? ErrorMessage.SignedOut : fallback);
+  }
 
-  const setState = (state: State): void => {
+  function setState(state: State): void {
     if (lastState === state) {
       return;
     }
 
     lastState = state;
     report(app.sendMessage(GlicMessage.State, state));
-  };
+  }
 
   // ===========================================================================
   // Hidden WebView: never let Glic see itself as hidden, or it pauses Live.
@@ -292,7 +310,7 @@ if (!window.__glicBridgeInstalled && window.top === window) {
   let micId: string | null = null;
 
   /** Rewrites Glic's getUserMedia constraints: audio gets our processing and mic pick, video never goes through. */
-  const withDesktopConstraints = (constraints?: MediaStreamConstraints): MediaStreamConstraints | undefined => {
+  function withDesktopConstraints(constraints?: MediaStreamConstraints): MediaStreamConstraints | undefined {
     if (!constraints) {
       return constraints;
     }
@@ -309,24 +327,24 @@ if (!window.__glicBridgeInstalled && window.top === window) {
     }
 
     const requested = rest.audio === true ? {} : rest.audio;
+    const audio: DesktopAudioConstraints = {
+      ...requested,
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+      voiceIsolation: true,
+      // ideal, not exact: an unplugged pick falls back to the default instead of failing Live.
+      ...(micId ? {
+        deviceId: {
+          ideal: micId
+        }
+      } : {})
+    };
     return {
       ...rest,
-      audio: {
-        ...requested,
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true,
-        // voiceIsolation is Chromium-only and not in the DOM typings.
-        ...({ voiceIsolation: true } as object),
-        // ideal, not exact: an unplugged pick falls back to the default instead of failing Live.
-        ...(micId ? {
-          deviceId: {
-            ideal: micId
-          }
-        } : {})
-      }
+      audio
     };
-  };
+  }
 
   try {
     const media = navigator.mediaDevices;
@@ -346,19 +364,19 @@ if (!window.__glicBridgeInstalled && window.top === window) {
     // Frozen mediaDevices: Glic captures with its own constraints.
   }
 
-  const setMuted = (value: boolean): void => {
+  function setMuted(value: boolean): void {
     muted = value;
     for (const gate of micGates) {
-      if (gate.stream.getAudioTracks().some(t => t.readyState === "live")) {
+      if (gate.stream.getAudioTracks().some(track => track.readyState === "live")) {
         gate.setOpen(!value);
       } else {
         micGates.delete(gate);
       }
     }
-  };
+  }
 
   /** Real microphones only, without Chromium's default-device aliases. */
-  const listMics = async (): Promise<Microphone[]> => {
+  async function listMics(): Promise<Microphone[]> {
     const devices = await navigator.mediaDevices.enumerateDevices();
     return devices
       .filter(d => d.kind === "audioinput" && d.deviceId && !MIC_ALIAS_IDS.has(d.deviceId))
@@ -366,10 +384,10 @@ if (!window.__glicBridgeInstalled && window.top === window) {
         id: d.deviceId,
         label: d.label || "Microphone"
       }));
-  };
+  }
 
   /** A running session holds its stream, so a new pick restarts Live to reopen the mic. */
-  const setMic = (id: string | null): void => {
+  function setMic(id: string | null): void {
     const next = id || null;
     if (next === micId) {
       return;
@@ -383,13 +401,13 @@ if (!window.__glicBridgeInstalled && window.top === window) {
 
     stop();
     start();
-  };
+  }
 
   /** Which device "default" currently names, or '' if unknown. */
-  const defaultMicLabel = async (): Promise<string> => {
+  async function defaultMicLabel(): Promise<string> {
     const devices = await navigator.mediaDevices.enumerateDevices();
     return devices.find(d => d.kind === "audioinput" && d.deviceId === "default")?.label ?? "";
-  };
+  }
 
   // A stream opened on "default" stays on the device that was default then, so when Windows' default
   // input changes (and no mic is picked in the menu) restart Live to reopen it on the new one.
@@ -420,7 +438,7 @@ if (!window.__glicBridgeInstalled && window.top === window) {
   // Screen frames and text from C#, asked for over the messenger; null if none comes in time.
   // ===========================================================================
 
-  const captureFrame = async (): Promise<Screenshot | null> => {
+  async function captureFrame(): Promise<Screenshot | null> {
     if (!active) {
       return null;
     }
@@ -430,43 +448,46 @@ if (!window.__glicBridgeInstalled && window.top === window) {
       return null;
     }
 
-    const bytes = Uint8Array.from(atob(picture.data), c => c.charCodeAt(0));
+    const bytes = Uint8Array.from(atob(picture.data), char => char.charCodeAt(0));
     return {
       data: bytes.buffer,
       mimeType: picture.mimeType,
       widthPixels: picture.width,
       heightPixels: picture.height
     };
-  };
+  }
 
   /** The newest text copy of the screen, shared with every picture; null when there is none. */
   let latestView: ScreenView | null = null;
 
-  const readScreen = (): Promise<ScreenView | null> =>
-    app.sendMessage(GlicMessage.Read).catch(() => null);
+  function readScreen(): Promise<ScreenView | null> {
+    return app.sendMessage(GlicMessage.Read).catch(() => null);
+  }
 
   // ===========================================================================
   // The GlicBrowserHost we hand the web client (ported from Chrome's own dev host).
   // ===========================================================================
 
   /** Calls a subscriber, isolating us from its errors. */
-  const notify = <T>(subscriber: (value: T) => unknown, value: T): void => {
+  function notify<T>(subscriber: (value: T) => unknown, value: T): void {
     try {
       subscriber(value);
     } catch {
       // A subscriber's error is its own.
     }
-  };
+  }
 
   /** An observable that never changes. */
-  const observable = <T>(value: T): Observable<T> => ({
-    subscribe(change) {
-      notify(change, value);
-      return { unsubscribe() {} };
-    }
-  });
+  function observable<T>(value: T): Observable<T> {
+    return {
+      subscribe(change) {
+        notify(change, value);
+        return { unsubscribe() {} };
+      }
+    };
+  }
 
-  const settableObservable = <T>(initial: T) => {
+  function settableObservable<T>(initial: T) {
     let value = initial;
     const subscribers: Subscriber<T>[] = [];
     return {
@@ -490,7 +511,7 @@ if (!window.__glicBridgeInstalled && window.top === window) {
         };
       }
     };
-  };
+  }
 
   // Captions on: Glic's caption overlay is the only page-visible source of the spoken text.
   const captionSetting = settableObservable(true);
@@ -499,32 +520,36 @@ if (!window.__glicBridgeInstalled && window.top === window) {
   let nudges = 0;
   let lastNudge = 0;
 
-  const focusedTab = () => ({
-    tabId: `${TAB_ID}-${nudges}`,
-    url: "https://localhost/desktop",
-    title: latestView?.title || "Desktop",
-    faviconUrl: "",
-    documentMimeType: "text/html",
-    isMediaActive: false
-  });
-  const focusedTabState = () => ({
-    hasFocus: {
-      tabData: focusedTab()
-    }
-  });
+  function focusedTab() {
+    return {
+      tabId: `${TAB_ID}-${nudges}`,
+      url: "https://localhost/desktop",
+      title: latestView?.title || "Desktop",
+      faviconUrl: "",
+      documentMimeType: "text/html",
+      isMediaActive: false
+    };
+  }
+  function focusedTabState() {
+    return {
+      hasFocus: {
+        tabData: focusedTab()
+      }
+    };
+  }
   const focusedTabSetting = settableObservable(focusedTabState());
 
   /** Announces the screen under a new tab id, so Glic pulls a fresh frame of it. */
-  const nudgeScreen = (now: number): void => {
+  function nudgeScreen(now: number): void {
     lastNudge = now;
     nudges++;
     focusedTabSetting.set(focusedTabState());
-  };
+  }
 
   let reading = false;
 
   /** Reads the screen's text first, so the next picture and its text reach Gemini together. */
-  const readThenNudge = async (now: number): Promise<void> => {
+  async function readThenNudge(now: number): Promise<void> {
     if (reading) {
       return;
     }
@@ -537,10 +562,10 @@ if (!window.__glicBridgeInstalled && window.top === window) {
     if (active) {
       nudgeScreen(Date.now());
     }
-  };
+  }
 
   /** The shared screen's context: the tab, plus its text when Glic asks for it and there is some. */
-  const tabContext = (options?: ContextOptions): TabContext => {
+  function tabContext(options?: ContextOptions): TabContext {
     const tabData = focusedTab();
     if (!options?.annotatedPageContent || !latestView) {
       return { tabData };
@@ -553,12 +578,11 @@ if (!window.__glicBridgeInstalled && window.top === window) {
         annotatedPageContent: byteStream(content)
       }
     };
-  };
+  }
 
-  const resolved =
-    <T>(value: T) =>
-      (): Promise<T> =>
-        Promise.resolve(value);
+  function resolved<T>(value: T): () => Promise<T> {
+    return () => Promise.resolve(value);
+  }
 
   const host = {
     getChromeVersion: resolved({
@@ -671,7 +695,7 @@ if (!window.__glicBridgeInstalled && window.top === window) {
     }
   });
 
-  const tryBootstrap = (): void => {
+  function tryBootstrap(): void {
     if (booted) {
       return;
     }
@@ -679,7 +703,7 @@ if (!window.__glicBridgeInstalled && window.top === window) {
     for (const handler of bootstrapHandlers) {
       notify(handler, bootstrapEvent);
     }
-  };
+  }
 
   let bootTries = 0;
   const bootTimer = setInterval(() => {
@@ -747,15 +771,15 @@ if (!window.__glicBridgeInstalled && window.top === window) {
   let relayed: string[] = [];
 
   /** Forgets the previous session's utterances; indices restart at 0. */
-  const resetTranscript = (): void => {
+  function resetTranscript(): void {
     utterances = [];
     openUser = -1;
     unfinishedUser = -1;
     openAssistant = -1;
     relayed = [];
-  };
+  }
 
-  const relayUtterance = (index: number): void => {
+  function relayUtterance(index: number): void {
     const { direction, text } = utterances[index]!;
     const trimmed = text.replace(/\s+/g, " ").trim();
     if (!active || !trimmed || relayed[index] === trimmed) {
@@ -770,16 +794,18 @@ if (!window.__glicBridgeInstalled && window.top === window) {
         index
       })
     );
-  };
+  }
 
   /** Opens a new utterance; its index. */
-  const openUtterance = (direction: Direction): number => utterances.push({
-    direction,
-    text: ""
-  }) - 1;
+  function openUtterance(direction: Direction): number {
+    return utterances.push({
+      direction,
+      text: ""
+    }) - 1;
+  }
 
   /** The first string anywhere in a nested array, depth first. */
-  const firstString = (value: unknown): string | null => {
+  function firstString(value: unknown): string | null {
     if (typeof value === "string") {
       return value;
     }
@@ -795,37 +821,45 @@ if (!window.__glicBridgeInstalled && window.top === window) {
       }
     }
     return null;
-  };
+  }
+
+  /** The user utterance an input transcript belongs to: the open one, or else a new one. */
+  function inputUtterance(isFinal: boolean): number {
+    if (openUser >= 0) {
+      return openUser;
+    }
+
+    // A late final belongs to the utterance Gemini's reply closed, not to a new one.
+    if (isFinal && unfinishedUser >= 0) {
+      return unfinishedUser;
+    }
+
+    return openUtterance(Direction.User);
+  }
 
   /**
    * Input transcription, MSG[7]: the user's whole utterance so far, `[[text]]` while partial and
    * `[null, [text]]` once final. Cumulative, so it replaces; the final one closes the utterance.
    */
-  const onInputTranscript = (field: unknown[]): void => {
+  function onInputTranscript(field: unknown[]): void {
     const text = firstString(field);
     if (text === null) {
       return;
     }
 
     const isFinal = field[0] === null;
-    // A late final belongs to the utterance Gemini's reply closed, not to a new one.
-    const index =
-      openUser >= 0
-        ? openUser
-        : isFinal && unfinishedUser >= 0
-          ? unfinishedUser
-          : openUtterance(Direction.User);
+    const index = inputUtterance(isFinal);
     utterances[index]!.text = text;
     openUser = isFinal ? -1 : index;
     unfinishedUser = -1;
     relayUtterance(index);
-  };
+  }
 
   /**
    * Output transcription, MSG[1][5] = [fragment, startTime, endTime, first]: one piece of what
    * Gemini is saying, `first` = 1 on a generation's opening fragment. Appended.
    */
-  const onOutputTranscript = (field: unknown[]): void => {
+  function onOutputTranscript(field: unknown[]): void {
     const [fragment, , , first] = field;
     if (typeof fragment !== "string") {
       return;
@@ -840,14 +874,14 @@ if (!window.__glicBridgeInstalled && window.top === window) {
 
     utterances[openAssistant]!.text += fragment;
     relayUtterance(openAssistant);
-  };
+  }
 
   /**
    * Routes one server message. MSG = [seq, serverContent, ...]; inside serverContent, [5] is the
    * output transcription, [2] generation complete and [3] interrupted (barge-in) - both of which
    * end Gemini's utterance. Audio ([0] config, [1] mp3) and acks are ignored.
    */
-  const onServerMessage = (msg: unknown): void => {
+  function onServerMessage(msg: unknown): void {
     if (!Array.isArray(msg) || typeof msg[MsgField.Seq] !== "string") {
       return;
     }
@@ -872,13 +906,13 @@ if (!window.__glicBridgeInstalled && window.top === window) {
     if (content[ContentField.GenerationComplete] != null || content[ContentField.Interrupted] != null) {
       openAssistant = -1;
     }
-  };
+  }
 
   /**
    * One WebChannel chunk: [[arrayId, payload], ...], where a content payload is
    * [[null, MSG], ...] and the rest are ["noop"], acks and status.
    */
-  const onChannelChunk = (chunk: string): void => {
+  function onChannelChunk(chunk: string): void {
     let frames: unknown;
     try {
       frames = JSON.parse(chunk);
@@ -902,16 +936,16 @@ if (!window.__glicBridgeInstalled && window.top === window) {
         }
       }
     }
-  };
+  }
 
   /**
    * Follows a downlink XHR as it streams. The body is "<length>\n<chunk>" repeated, length in
    * UTF-16 units, so each read parses only the chunks completed since the last one. Reading
    * responseText takes nothing from Glic, whose own handler sees the same text.
    */
-  const tapDownlink = (xhr: XMLHttpRequest): void => {
+  function tapDownlink(xhr: XMLHttpRequest): void {
     let offset = 0;
-    const read = (): void => {
+    function read(): void {
       let text: string;
       try {
         text = xhr.responseText;
@@ -938,27 +972,39 @@ if (!window.__glicBridgeInstalled && window.top === window) {
           // A frame we misread costs a caption, never Glic's own processing.
         }
       }
-    };
+    }
     xhr.addEventListener("progress", read);
     xhr.addEventListener("readystatechange", read);
-  };
+  }
 
   // Glic's WebChannel uses XMLHttpRequest (not fetch). Patch the prototype at document-start so
   // every channel XHR it creates is followed; only listeners are added, nothing is replaced.
   try {
-    const xhrOpen = XMLHttpRequest.prototype.open;
+    // Both of open's overloads in one signature, so the patch forwards exactly the arguments Glic
+    // passed, whichever overload it called.
+    type OpenRest = [async?: boolean, username?: string | null, password?: string | null];
+    const xhrOpen: (this: XMLHttpRequest, method: string, url: string | URL, ...rest: OpenRest) => void =
+      XMLHttpRequest.prototype.open;
     const xhrSend = XMLHttpRequest.prototype.send;
     const downlinks = new WeakSet<XMLHttpRequest>();
-    XMLHttpRequest.prototype.open = function (this: XMLHttpRequest, method: string, url: string | URL, ...rest: unknown[]) {
+    XMLHttpRequest.prototype.open = function (
+      this: XMLHttpRequest,
+      method: string,
+      url: string | URL,
+      ...rest: OpenRest
+    ) {
       if (String(method).toUpperCase() === "GET" && String(url).includes(LIVE_CHANNEL_PATH)) {
         downlinks.add(this);
       } else {
         downlinks.delete(this);
       }
 
-      return (xhrOpen as (...args: unknown[]) => void).call(this, method, url, ...rest);
-    } as typeof XMLHttpRequest.prototype.open;
-    XMLHttpRequest.prototype.send = function (this: XMLHttpRequest, ...args: [Document | XMLHttpRequestBodyInit | null | undefined]) {
+      xhrOpen.call(this, method, url, ...rest);
+    };
+    XMLHttpRequest.prototype.send = function (
+      this: XMLHttpRequest,
+      ...args: [Document | XMLHttpRequestBodyInit | null | undefined]
+    ) {
       if (downlinks.has(this)) {
         tapDownlink(this);
       }
@@ -976,7 +1022,7 @@ if (!window.__glicBridgeInstalled && window.top === window) {
   // above), which is why this only runs without the wire.
   // ===========================================================================
 
-  const captionsRoot = (): Element | null => {
+  function captionsRoot(): Element | null {
     const scroller = document.querySelector("captions-scroller");
     if (!scroller) {
       return null;
@@ -987,7 +1033,7 @@ if (!window.__glicBridgeInstalled && window.top === window) {
       scroller.querySelector(".captions-scroller-container") ||
       scroller
     );
-  };
+  }
 
   // Only a bold node that is exactly a speaker label starts an utterance. Gemini bolds words in its
   // own answers too ("**your** schedule"), and those are part of the sentence, not a new speaker.
@@ -997,16 +1043,16 @@ if (!window.__glicBridgeInstalled && window.top === window) {
   };
 
   /** The transcript direction a bold node stands for, or null for bold text. */
-  const directionOf = (node: Node): Direction | null => {
+  function directionOf(node: Node): Direction | null {
     if (!(node instanceof Element) || node.tagName !== "B") {
       return null;
     }
 
     const label = (node.textContent || "").trim().replace(/:$/, "").toLowerCase();
     return SPEAKER_LABELS[label] ?? null;
-  };
+  }
 
-  const readUtterances = (root: Element): Utterance[] => {
+  function readUtterances(root: Element): Utterance[] {
     const found: Utterance[] = [];
     let current: Utterance | null = null;
     for (const node of root.childNodes) {
@@ -1022,14 +1068,14 @@ if (!window.__glicBridgeInstalled && window.top === window) {
       }
     }
     return found
-      .map(u => ({
-        direction: u.direction,
-        text: u.text.replace(/\s+/g, " ").trim()
+      .map(utterance => ({
+        direction: utterance.direction,
+        text: utterance.text.replace(/\s+/g, " ").trim()
       }))
-      .filter(u => u.text);
-  };
+      .filter(utterance => utterance.text);
+  }
 
-  const pumpCaptions = (): void => {
+  function pumpCaptions(): void {
     if (wireSeen) {
       return;
     }
@@ -1053,7 +1099,7 @@ if (!window.__glicBridgeInstalled && window.top === window) {
         })
       );
     });
-  };
+  }
 
   // ===========================================================================
   // Live timeouts. Glic disconnects Live on four client flags (BardChatUi's live_mode module reads
@@ -1074,7 +1120,7 @@ if (!window.__glicBridgeInstalled && window.top === window) {
   let timeoutsPatched = false;
 
   /** Rewrites Glic's Live timeout flags; true once all were found. */
-  const patchLiveTimeouts = (): boolean => {
+  function patchLiveTimeouts(): boolean {
     if (timeoutsPatched) {
       return true;
     }
@@ -1085,20 +1131,24 @@ if (!window.__glicBridgeInstalled && window.top === window) {
     }
 
     let found = 0;
-    for (const flag of Object.values(namespace) as (ClientFlag | null)[]) {
-      const value = flag && typeof flag === "object" && flag.key ? LIVE_TIMEOUT_FLAGS[flag.key] : undefined;
+    for (const flag of Object.values(namespace)) {
+      if (!isClientFlag(flag) || !flag.key) {
+        continue;
+      }
+
+      const value = LIVE_TIMEOUT_FLAGS[flag.key];
       if (value === undefined) {
         continue;
       }
 
       // The flag service returns defaultValue when the server sent no value, else ctor(raw).
-      flag!.defaultValue = value;
-      flag!.ctor = () => value;
+      flag.defaultValue = value;
+      flag.ctor = () => value;
       found++;
     }
     timeoutsPatched = found === Object.keys(LIVE_TIMEOUT_FLAGS).length;
     return timeoutsPatched;
-  };
+  }
 
   // ===========================================================================
   // Live control: start, keep alive (auto-resume), stop.
@@ -1115,7 +1165,7 @@ if (!window.__glicBridgeInstalled && window.top === window) {
   let monitorTimer: ReturnType<typeof setInterval> | null = null;
   let startTimer: ReturnType<typeof setInterval> | undefined;
 
-  const resume = (now: number): void => {
+  function resume(now: number): void {
     if (now - lastResume < RESUME_GAP_MS * Math.min(resumeTries + 1, MAX_RESUME_BACKOFF)) {
       return;
     }
@@ -1123,22 +1173,23 @@ if (!window.__glicBridgeInstalled && window.top === window) {
     resumeTries++;
     lastResume = now;
     clickButton(...RESUME_BUTTONS);
-  };
+  }
 
   /** Matches on visible text too: Glic's Try again is not always labelled. */
-  const tryAgainButton = (): HTMLButtonElement | undefined =>
-    [...document.querySelectorAll("button")].find(b =>
-      `${b.getAttribute("aria-label") ?? ""} ${b.textContent ?? ""}`.includes(Button.TryAgain));
+  function tryAgainButton(): HTMLButtonElement | undefined {
+    return [...document.querySelectorAll("button")].find(button =>
+      `${button.getAttribute("aria-label") ?? ""} ${button.textContent ?? ""}`.includes(Button.TryAgain));
+  }
 
   /** Live is running: forget any pause or breakage. */
-  const markLive = (now: number): void => {
+  function markLive(now: number): void {
     lastLive = now;
     resumeTries = 0;
     brokenReported = false;
     setState(State.Listening);
-  };
+  }
 
-  const monitorTick = (): void => {
+  function monitorTick(): void {
     if (!active) {
       return;
     }
@@ -1175,20 +1226,20 @@ if (!window.__glicBridgeInstalled && window.top === window) {
       brokenReported = true;
       reportError(ErrorMessage.LiveBroke);
     }
-  };
+  }
 
-  const beginMonitor = (): void => {
+  function beginMonitor(): void {
     if (monitorTimer) {
       return;
     }
 
     monitorTimer = setInterval(monitorTick, MONITOR_POLL_MS);
-  };
+  }
 
   // First-run surfaces: consent ("Live will use your microphone") and the volume onboarding card.
   // Pressing Win+C for Gemini Live is the user's decision to start it, so clear them.
-  const advanceToLive = (): void => {
-    const ok = findButton(Button.Ok);
+  function advanceToLive(): void {
+    const ok = findButton(Button.Okay);
     if (ok && findButton(Button.NoThanks) && pageSays(Phrase.MicConsent)) {
       ok.click();
       consentAccepted = true;
@@ -1206,9 +1257,9 @@ if (!window.__glicBridgeInstalled && window.top === window) {
     }
 
     clickButton(Button.GoLive);
-  };
+  }
 
-  const start = (): void => {
+  function start(): void {
     active = true;
     resetTranscript();
     lastState = null;
@@ -1248,14 +1299,14 @@ if (!window.__glicBridgeInstalled && window.top === window) {
       clearInterval(startTimer);
       reportStartFailure(ErrorMessage.LiveDidNotStart);
     }, START_POLL_MS);
-  };
+  }
 
-  const stop = (): void => {
+  function stop(): void {
     active = false;
     clearInterval(startTimer);
     clickButton(Button.TextMode, Button.PauseLive, Button.End);
     setState(State.Idle);
-  };
+  }
 
   // ===========================================================================
   // Google apps via a text turn. Live can't reach Calendar, Keep, Tasks, Gmail or Home - those
@@ -1291,9 +1342,11 @@ if (!window.__glicBridgeInstalled && window.top === window) {
   /** Glic shows these under an answer only once it has finished. */
   const REPLY_DONE = [Button.Copy, Button.GoodResponse, Button.Regenerate];
 
-  const sleep = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
+  function sleep(milliseconds: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, milliseconds));
+  }
 
-  const waitFor = async <T>(predicate: () => T | null, timeoutMs: number): Promise<T | null> => {
+  async function waitFor<T>(predicate: () => T | null, timeoutMs: number): Promise<T | null> {
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
       const value = predicate();
@@ -1304,9 +1357,11 @@ if (!window.__glicBridgeInstalled && window.top === window) {
       await sleep(150);
     }
     return null;
-  };
+  }
 
-  const editor = (): HTMLElement | null => document.querySelector<HTMLElement>("[contenteditable=\"true\"]");
+  function editor(): HTMLElement | null {
+    return document.querySelector<HTMLElement>("[contenteditable=\"true\"]");
+  }
 
   /**
    * The newest model answer. Prefer the whole response container
@@ -1316,7 +1371,7 @@ if (!window.__glicBridgeInstalled && window.top === window) {
    * themselves. Fall back to the inner nodes if that class ever changes, and strip the "Gemini said"
    * accessibility prefix the container carries.
    */
-  const lastReplyText = (): string => {
+  function lastReplyText(): string {
     const containers = document.querySelectorAll<HTMLElement>(".presented-response-container");
     let last = containers[containers.length - 1];
     if (!last) {
@@ -1327,10 +1382,10 @@ if (!window.__glicBridgeInstalled && window.top === window) {
     }
 
     return (last ? last.innerText : "").replace(/\s+/g, " ").replace(/^Gemini said\s*/i, "").trim();
-  };
+  }
 
   /** Switch to text mode and hand C# a focused, empty editor. */
-  const beginAction = async (): Promise<boolean> => {
+  async function beginAction(): Promise<boolean> {
     active = false;
     clearInterval(startTimer);
 
@@ -1349,13 +1404,13 @@ if (!window.__glicBridgeInstalled && window.top === window) {
     document.execCommand("selectAll");
     document.execCommand("delete");
     return true;
-  };
+  }
 
   /**
    * After C# has typed the request: submit it, wait for the answer to stop growing, auto-confirm a
    * card, and return the answer text.
    */
-  const submitAndRead = async (): Promise<string> => {
+  async function submitAndRead(): Promise<string> {
     clickButton(...SUBMIT);
     let text = "";
     let stableSince = 0;
@@ -1389,7 +1444,7 @@ if (!window.__glicBridgeInstalled && window.top === window) {
     }
 
     return text;
-  };
+  }
 
   // ===========================================================================
   // Commands from GlicHost.

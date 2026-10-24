@@ -14,7 +14,7 @@ export interface MicGate {
 }
 
 /** One second of faint white noise, looped. */
-const comfortNoise = (context: AudioContext): AudioBufferSourceNode => {
+function comfortNoise(context: AudioContext): AudioBufferSourceNode {
   const buffer = context.createBuffer(1, context.sampleRate, context.sampleRate);
   const samples = buffer.getChannelData(0);
   for (let i = 0; i < samples.length; i++) {
@@ -25,27 +25,30 @@ const comfortNoise = (context: AudioContext): AudioBufferSourceNode => {
   noise.loop = true;
   noise.start();
   return noise;
-};
+}
 
 /** Without audio to run a gate on, muting falls back to disabling the tracks. */
-const trackGate = (microphone: MediaStream): MicGate => ({
-  stream: microphone,
-  setOpen(open) {
-    for (const track of microphone.getAudioTracks()) {
-      track.enabled = open;
+function trackGate(microphone: MediaStream): MicGate {
+  return {
+    stream: microphone,
+    setOpen(open) {
+      for (const track of microphone.getAudioTracks()) {
+        track.enabled = open;
+      }
     }
-  }
-});
+  };
+}
 
 /**
  * Routes the microphone through a gate, or falls back to {@link trackGate} when audio can't run
  * here. Never throws: a mute that can't be built must not cost Live its microphone.
  */
-export const gateMicrophone = async (microphone: MediaStream): Promise<MicGate> =>
-  (await audioGate(microphone).catch(() => null)) ?? trackGate(microphone);
+export async function gateMicrophone(microphone: MediaStream): Promise<MicGate> {
+  return (await audioGate(microphone).catch(() => null)) ?? trackGate(microphone);
+}
 
 /** The gain gate with comfort noise; null when this page can't run audio. */
-const audioGate = async (microphone: MediaStream): Promise<MicGate | null> => {
+async function audioGate(microphone: MediaStream): Promise<MicGate | null> {
   const context = new AudioContext();
   const running = await Promise.race([
     context.resume().then(() => context.state === "running"),
@@ -80,4 +83,4 @@ const audioGate = async (microphone: MediaStream): Promise<MicGate | null> => {
       gate.gain.setTargetAtTime(open ? 1 : 0, context.currentTime, GATE_RAMP_SECONDS);
     }
   };
-};
+}

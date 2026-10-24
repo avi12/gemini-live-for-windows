@@ -131,12 +131,21 @@ async function pushSession(): Promise<void> {
   messenger.sendMessage(LinkMessage.Cookies, cookies).catch(() => undefined);
 }
 
+function isLinkInfo(value: unknown): value is LinkInfo {
+  return typeof value === "object" &&
+    value !== null &&
+    "port" in value &&
+    typeof value.port === "number" &&
+    "token" in value &&
+    typeof value.token === "string";
+}
+
 /** The link file as the app last wrote it, or undefined before the app has ever run. */
 async function readLinkInfo(): Promise<LinkInfo | undefined> {
   try {
     const response = await fetch(new URL(LINK_FILE, location.origin), { cache: "no-store" });
-    const info = (await response.json()) as Partial<LinkInfo>;
-    return typeof info.port === "number" && typeof info.token === "string"
+    const info: unknown = await response.json();
+    return isLinkInfo(info)
       ? {
         port: info.port,
         token: info.token

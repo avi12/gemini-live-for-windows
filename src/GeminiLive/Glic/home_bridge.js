@@ -4063,7 +4063,7 @@
   ]);
 
   // webview_transport.ts
-  var webViewTransport = () => {
+  function webViewTransport() {
     const channel = window.chrome?.webview;
     return {
       post(envelope) {
@@ -4076,17 +4076,26 @@
         channel?.addEventListener("message", (e) => receive(e.data));
       }
     };
-  };
+  }
 
   // ../messaging/src/index.ts
-  var isRecord = (value) => typeof value === "object" && value !== null;
-  var isRequest = (value) => isRecord(value) && typeof value.id === "number" && typeof value.type === "string" && typeof value.timestamp === "number";
-  var isReply = (value) => isRecord(value) && typeof value.replyTo === "number" && (value.err === void 0 || value.err === null || typeof value.err === "string");
-  var defineMessaging = (transport, config) => {
+  function isRecord(value) {
+    return typeof value === "object" && value !== null;
+  }
+  function isRequest(value) {
+    return isRecord(value) && typeof value.id === "number" && typeof value.type === "string" && typeof value.timestamp === "number";
+  }
+  function isReply(value) {
+    return isRecord(value) && typeof value.replyTo === "number" && (value.err === void 0 || value.err === null || typeof value.err === "string");
+  }
+  function defineMessaging(transport, config) {
     const handlers = /* @__PURE__ */ new Map();
     const pending = /* @__PURE__ */ new Map();
     let nextId = 1;
-    const answer = async (request) => {
+    function isMessageOf(request, type) {
+      return request.type === String(type);
+    }
+    async function answer(request) {
       const handler = handlers.get(request.type);
       if (!handler) {
         transport.post({
@@ -4107,8 +4116,8 @@
           err: error instanceof Error ? error.message : String(error)
         });
       }
-    };
-    const settle = (reply) => {
+    }
+    function settle(reply) {
       const waiting = pending.get(reply.replyTo);
       if (!waiting) {
         return;
@@ -4119,7 +4128,7 @@
         return;
       }
       waiting.resolve(reply.res);
-    };
+    }
     transport.listen((envelope) => {
       if (isRequest(envelope)) {
         void answer(envelope);
@@ -4129,7 +4138,7 @@
         settle(envelope);
       }
     });
-    const sendMessage = (type, data) => {
+    function sendMessage(type, data) {
       const id = nextId++;
       return new Promise((resolve, reject) => {
         pending.set(id, {
@@ -4148,7 +4157,7 @@
           timestamp: Date.now()
         });
       });
-    };
+    }
     return {
       sendMessage,
       onMessage(type, onReceived) {
@@ -4156,12 +4165,17 @@
         if (handlers.has(key)) {
           throw new Error(`"${key}" already has a listener`);
         }
-        handlers.set(key, onReceived);
+        handlers.set(key, (request) => {
+          if (!isMessageOf(request, type)) {
+            throw new Error(`"${request.type}" reached the listener for "${key}"`);
+          }
+          return onReceived(request);
+        });
         return () => handlers.delete(key);
       },
       removeAllListeners: () => handlers.clear()
     };
-  };
+  }
 
   // home_bridge.ts
   var DEVICE = "PC Lights";
@@ -4170,11 +4184,9 @@
   var DISMISS_TEXT = /^(ok|got it|no thanks|not now|dismiss|done)$/i;
   var MESSAGE_TIMEOUT_MS = 1e3;
   if (!window.__homeBridgeInstalled && window.top === window) {
-    window.__homeBridgeInstalled = true;
-    const app = defineMessaging(webViewTransport(), { timeoutMs: MESSAGE_TIMEOUT_MS });
-    const deepQuery = (root, selector) => {
+    let deepQuery = function(root, selector) {
       const out = [];
-      const walk = (node) => {
+      function walk(node) {
         try {
           out.push(...node.querySelectorAll(selector));
         } catch {
@@ -4184,11 +4196,10 @@
             walk(kid.shadowRoot);
           }
         }
-      };
+      }
       walk(root);
       return out;
-    };
-    const dismissCards = () => {
+    }, dismissCards = function() {
       for (const overlay of deepQuery(document, '[role="dialog"],[role="alertdialog"]')) {
         for (const button of overlay.querySelectorAll('button,[role="button"]')) {
           const label = `${button.getAttribute("aria-label") ?? ""} ${button.textContent ?? ""}`;
@@ -4197,10 +4208,9 @@
           }
         }
       }
-    };
-    const deviceCard = (name) => {
+    }, deviceCard = function(name) {
       const label = deepQuery(document, "*").find(
-        (el) => el.children.length === 0 && (el.textContent ?? "").trim() === name
+        (element) => element.children.length === 0 && (element.textContent ?? "").trim() === name
       );
       for (let node = label?.parentElement ?? null; node; node = node.parentElement) {
         const rect = node.getBoundingClientRect();
@@ -4209,10 +4219,17 @@
         }
       }
       return null;
-    };
-    const cardText = (card) => card.innerText.replace(/\s+/g, " ").trim();
-    const stateOf = (text) => /\boff\b/i.test(text) ? false : /\bon\b/i.test(text) ? true : null;
-    const measure = () => {
+    }, cardText = function(card) {
+      return card.innerText.replace(/\s+/g, " ").trim();
+    }, stateOf = function(text) {
+      if (/\boff\b/i.test(text)) {
+        return false;
+      }
+      if (/\bon\b/i.test(text)) {
+        return true;
+      }
+      return null;
+    }, measure = function() {
       dismissCards();
       const card = deviceCard(DEVICE);
       if (!card) {
@@ -4230,6 +4247,9 @@
         y: Math.round(rect.y + rect.height / 2)
       });
     };
+    deepQuery2 = deepQuery, dismissCards2 = dismissCards, deviceCard2 = deviceCard, cardText2 = cardText, stateOf2 = stateOf, measure2 = measure;
+    window.__homeBridgeInstalled = true;
+    const app = defineMessaging(webViewTransport(), { timeoutMs: MESSAGE_TIMEOUT_MS });
     app.onMessage("ready" /* Ready */, () => {
       dismissCards();
       const card = deviceCard(DEVICE);
@@ -4237,4 +4257,10 @@
     });
     app.onMessage("pcLights" /* PcLights */, () => measure());
   }
+  var deepQuery2;
+  var dismissCards2;
+  var deviceCard2;
+  var cardText2;
+  var stateOf2;
+  var measure2;
 })();

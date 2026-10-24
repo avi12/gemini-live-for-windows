@@ -14,7 +14,7 @@ declare global {
 }
 
 /** The transport to the app; one that goes nowhere outside a WebView2 (a page opened directly). */
-export const webViewTransport = (): Transport => {
+export function webViewTransport(): Transport {
   const channel = window.chrome?.webview;
   return {
     post(envelope) {
@@ -28,4 +28,4 @@ export const webViewTransport = (): Transport => {
       channel?.addEventListener("message", e => receive(e.data));
     }
   };
-};
+}
