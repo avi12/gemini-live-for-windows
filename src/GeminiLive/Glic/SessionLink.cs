@@ -24,7 +24,7 @@ public sealed class SessionLink {
 
   private const int _tokenBytes = 32;
   // From the manifest "key", so only our extension can hand us a Google session.
-  private const string _extensionOrigin = "chrome-extension://logpjalpegggobmjjimpacngnnhaakmd";
+  private const string _extensionOrigin = "chrome-extension://bejbkccodipbnbjeagmihnhnfadnjgeh";
   private const string _webSocketGuid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";  // RFC 6455
   private const int _maxHandshakeBytes = 16 * 1024;
   private const int _receiveBufferBytes = 64 * 1024;

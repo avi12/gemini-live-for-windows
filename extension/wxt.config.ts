@@ -10,9 +10,10 @@ export default defineConfig({
     name: "Gemini Live for Windows - Google session",
     description:
       "Keeps the Gemini Live desktop app signed in with this browser's Google session, and fresh as Google rotates it.",
-    // Pins the extension ID to logpjalpegggobmjjimpacngnnhaakmd - the only origin the app's
-    // SessionLink accepts (ExtensionOrigin in src/GeminiLive/Glic/SessionLink.cs).
-    key: "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAjkbRygmjyKhAuZfKfsxrkqlCaBmoOCM8WlYKq+31TxUtv+A+xe9Elz05nziYPjmam3jEYoK+07Ge3jYvvnV7tKc6lL+zJzwfog3HAklm2kOefD0gZTJ7kGEwiYlyjF+xzcwc37hbHObCtpcC+MVv7kZy74Q2bKY9NqwjkBHIBNtsrVXAQl7LbFnjNNsUiKNaPdSUyQ5RzO0KT8RUakjAJG0raAk995Ezopp1Ep1H+g9/6HWGYhY+vzAdp3ZIi6M7NM+/+6wkAHSOh4aF5jjSr+NKai3N7k04x4KMh7nUrLq8VoI9MuNfAXzaoTyUJ3MjCn2OoCppvrccr2eAWf/5LQIDAQAB",
+    // Pins the extension ID to bejbkccodipbnbjeagmihnhnfadnjgeh - the only origin the app's
+    // SessionLink accepts (_extensionOrigin in src/GeminiLive/Glic/SessionLink.cs). The matching
+    // private key, keys/chrome.pem, signs the release .crx and never enters git.
+    key: "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAoYHf3ztGQprPgVj6UIc1aLr+xPvyEqlhvdtvGrDWGbBMu6xqSN0pq0DBAKZstX5nPc/xu0dmYbugMlTE6wqq0LkbtzPkJl9tMaZvu2nKEPAryQKKutQIhNeA7BJfHzN6IgZgDXEM3uAKLzE5QAsAKBDaJ26gI6HsIjBimOG59dsNed8+Ef0/SIfnuOZp/PRtcCrnJ8Sbj7ONWlITX0ywn7WXMl/uizmFxp2CEC1RKyv+2p+PqgwdDxo8q866h5lGOzNC3o2lq0El3N/+XIcSX77Rn3bRhTZ6Uc5E5xf3iYjg0TPGiQAk/QZoFQ84KTTAT19XsgSmUjwiapUAGm8bVQIDAQAB",
     permissions: ["cookies", "alarms"],
     // Both schemes: Chrome derives a cookie's access URL from its Secure flag, so cookies.getAll
     // only returns Google's non-Secure session cookies (SID, HSID, APISID) with an http:// grant.
