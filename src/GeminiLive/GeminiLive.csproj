@@ -43,6 +43,26 @@
     <AdditionalFiles Include="CodeMetricsConfig.txt" />
   </ItemGroup>
 
+  <!-- The native messaging host (src\GeminiLiveHost) builds into this output too, since an
+       unpackaged run registers the GeminiLiveHost.exe next to GeminiLive.exe (Glic\NativeHost.cs).
+       scripts\install.ps1 publishes it into the package layout separately. -->
+  <ItemGroup>
+    <ProjectReference Include="..\GeminiLiveHost\GeminiLiveHost.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+  <Target Name="CopyNativeHost" AfterTargets="Build">
+    <MSBuild Projects="..\GeminiLiveHost\GeminiLiveHost.csproj" Targets="GetTargetPath"
+             Properties="Configuration=$(Configuration)">
+      <Output TaskParameter="TargetOutputs" ItemName="NativeHostAssembly" />
+    </MSBuild>
+    <PropertyGroup>
+      <NativeHostDir>@(NativeHostAssembly->'%(RootDir)%(Directory)')</NativeHostDir>
+    </PropertyGroup>
+    <ItemGroup>
+      <NativeHostFile Include="$(NativeHostDir)GeminiLiveHost.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(NativeHostFile)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+  </Target>
+
   <!-- Rebuild the embedded page bridge from its TypeScript on every build. Skipped on a clean
        C#-only checkout where the bridge's deps aren't installed; scripts\install.ps1 runs the full
        type-checked bridge build. -->

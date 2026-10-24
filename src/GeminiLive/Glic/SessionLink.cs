@@ -14,17 +14,21 @@ namespace GeminiLive.Glic;
 /// <see cref="LinkProtocol"/> through its own <see cref="Messenger{TType}"/>.
 ///
 /// No fixed port, since any port can already be taken: we listen on a free one and publish it with
-/// a fresh token in the extension's folder (<see cref="ExtensionSetup.PublishLink"/>). The
-/// extension sends cookies only after our Hello carries that token, so whatever else ends up on a
-/// stale port never gets the session.
+/// a fresh token, which the extension asks our native messaging host for
+/// (<see cref="NativeHost.Publish"/>). The extension sends cookies only after our Hello carries
+/// that token, so whatever else ends up on a stale port never gets the session.
 /// </summary>
 public sealed class SessionLink {
+  /// <summary>
+  /// From the extension manifest's "key", so only our extension can hand us a Google session (and
+  /// only it may start our native messaging host).
+  /// </summary>
+  public const string ExtensionOrigin = "chrome-extension://bejbkccodipbnbjeagmihnhnfadnjgeh";
+
   public event Action<IReadOnlyList<GoogleCookie>>? CookiesReceived;
   public event Action? Connected;
 
   private const int _tokenBytes = 32;
-  // From the manifest "key", so only our extension can hand us a Google session.
-  private const string _extensionOrigin = "chrome-extension://bejbkccodipbnbjeagmihnhnfadnjgeh";
   private const string _webSocketGuid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";  // RFC 6455
   private const int _maxHandshakeBytes = 16 * 1024;
   private const int _receiveBufferBytes = 64 * 1024;
@@ -55,7 +59,7 @@ public sealed class SessionLink {
     }
     int port = ((IPEndPoint)listener.LocalEndpoint).Port;
     Log.Write($"session link: listening on {port}");
-    ExtensionSetup.PublishLink(port, _token);
+    NativeHost.Publish(new LinkInfo(port, _token));
     _ = Task.Run(() => AcceptLoopAsync(listener));
   }
 
@@ -90,7 +94,7 @@ public sealed class SessionLink {
       return;
     }
 
-    if (!headers.TryGetValue("origin", out string? origin) || origin != _extensionOrigin
+    if (!headers.TryGetValue("origin", out string? origin) || origin != ExtensionOrigin
         || !headers.TryGetValue("sec-websocket-key", out string? key)) {
       await stream.WriteAsync("HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\n\r\n"u8.ToArray());
       Log.Write($"session link: refused origin {origin ?? "(none)"}");

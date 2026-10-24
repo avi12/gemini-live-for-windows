@@ -9,7 +9,6 @@ namespace GeminiLive;
 // The mutex lives as long as the process: releasing it early would let a second instance start.
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1001", Justification = "Held for the process lifetime")]
 public partial class App : Application {
-  private const string _instanceName = @"Local\GeminiLive.SingleInstance";
   private const int _forwardAttempts = 10;
 
   // Never read, only held: the field keeps the mutex from being collected (and released).
@@ -23,7 +22,7 @@ public partial class App : Application {
     Log.Write($"launch trigger={trigger?.ToString() ?? "none"} "
               + $"args=[{string.Join(' ', e.Args)}]");
 
-    _instance = new Mutex(true, _instanceName, out bool first);
+    _instance = new Mutex(true, AppInstance.MutexName, out bool first);
 
     if (!first) {
       ForwardAndExit(trigger);

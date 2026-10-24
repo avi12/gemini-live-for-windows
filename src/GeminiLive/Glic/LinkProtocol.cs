@@ -17,8 +17,9 @@ public enum LinkMessage {
 /// <summary>The link protocol map, as LinkProtocolMap in extension/src/lib/link-protocol.ts.</summary>
 public static class LinkProtocol {
   /// <summary>
-  /// First on every connection: this run's token, proving it is the app that wrote link.json. The
-  /// extension answers nothing else until it matches.
+  /// First on every connection: this run's token, proving it is the app that published the link
+  /// the native host handed out (<see cref="NativeHost"/>). The extension answers nothing else
+  /// until it matches.
   /// </summary>
   public static readonly Protocol<LinkMessage, string, None> Hello = new(LinkMessage.Hello);
   /// <summary>The browser's current Google cookies.</summary>

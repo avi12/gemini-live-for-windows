@@ -21,8 +21,8 @@ $sdk     = Get-ChildItem 'C:\Program Files (x86)\Windows Kits\10\bin\10.*\x64\ma
 $publisher = $manifest.Package.Identity.Publisher   # the one source for the cert subject
 $name      = $manifest.Package.Identity.Name
 
-# Stop a running copy so its files can be replaced.
-Get-Process GeminiLive -ErrorAction SilentlyContinue | Stop-Process -Force
+# Stop a running copy (and a host a browser has open) so its files can be replaced.
+Get-Process GeminiLive, GeminiLiveHost -ErrorAction SilentlyContinue | Stop-Process -Force
 
 # One pnpm workspace: the messaging package, the extension and the bridges install together.
 Write-Host '== install'
@@ -45,6 +45,9 @@ Write-Host '== publish'
 if (Test-Path $layout) { Remove-Item $layout -Recurse -Force }
 dotnet publish (Join-Path $root 'src\GeminiLive\GeminiLive.csproj') -c Release -o $layout --nologo -v q
 if ($LASTEXITCODE) { throw 'dotnet publish failed' }
+# The browsers' native messaging host ships beside the app (its execution alias is in the manifest).
+dotnet publish (Join-Path $root 'src\GeminiLiveHost\GeminiLiveHost.csproj') -c Release -o $layout --nologo -v q
+if ($LASTEXITCODE) { throw 'dotnet publish (native host) failed' }
 Copy-Item (Join-Path $root 'package\*') $layout -Recurse -Force
 
 # Update in place rather than remove + add: removing the package wipes the permissions Windows keeps

@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Microsoft.Win32;
 
 namespace GeminiLive.Glic;
@@ -18,40 +17,6 @@ public static class ExtensionSetup {
                    ".gemini-live", "extension");
 
   private static readonly string _shipped = Path.Combine(AppContext.BaseDirectory, "extension");
-
-  // Where this run's session link listens; the extension reads it before each connect.
-  private const string _linkFile = "link.json";  // = LINK_FILE in extension/src/lib/link.ts
-  private static string? _link;
-
-  /// <summary>
-  /// Tells the extension where <see cref="SessionLink"/> listens and the token its Hello carries.
-  /// Written into the extension's own folder, the one place it can read from without a port.
-  /// </summary>
-  public static void PublishLink(int port, string token) {
-    _link = JsonSerializer.Serialize(new { port, token });
-
-    if (!Directory.Exists(_folder)) {
-      return;  // Begin writes it along with the files
-    }
-
-    try {
-      WriteLink();
-    } catch (Exception e) {
-      Log.Write($"extension link file: {e.Message}");
-    }
-  }
-
-  /// <summary>Replaces the file whole, so the extension never reads half of it.</summary>
-  private static void WriteLink() {
-    if (_link is null) {
-      return;
-    }
-
-    string target = Path.Combine(_folder, _linkFile);
-    string temporary = target + ".tmp";
-    File.WriteAllText(temporary, _link);
-    File.Move(temporary, target, overwrite: true);
-  }
 
   public static void Begin() {
     CopyShippedFiles();
@@ -92,7 +57,6 @@ public static class ExtensionSetup {
       Directory.CreateDirectory(Path.GetDirectoryName(target)!);
       File.Copy(source, target, overwrite: true);
     }
-    WriteLink();
   }
 
   /// <summary>

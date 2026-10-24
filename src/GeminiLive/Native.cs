@@ -68,6 +68,8 @@ internal static unsafe class Native {
   // Excludes our own overlay from screen grabs, so Gemini never sees itself.
   public const uint WDA_EXCLUDEFROMCAPTURE = 0x11;
   public const ushort VT_UINT = 23;
+  // GetCurrentPackageFullName's answer for a process that isn't running from a package.
+  public const int APPMODEL_ERROR_NO_PACKAGE = 15700;
   public static readonly IntPtr HWND_TOPMOST = new(-1);
 
   private static readonly Guid _memoryBufferByteAccessIid =
@@ -104,6 +106,10 @@ internal static unsafe class Native {
 
   [DllImport("user32.dll")]
   public static extern bool SetWindowDisplayAffinity(IntPtr hwnd, uint affinity);
+
+  [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+  public static extern int GetCurrentPackageFullName(ref uint packageFullNameLength,
+                                                     char* packageFullName);
 
   [DllImport("shell32.dll")]
   public static extern int SHGetPropertyStoreForWindow(

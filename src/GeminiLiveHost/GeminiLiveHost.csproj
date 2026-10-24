@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The browsers' native messaging host: the companion extension starts it to learn where the
+       running app's session link listens. Ships in the app's MSIX package (scripts\install.ps1). -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.22621.0</SupportedOSPlatformVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>GeminiLiveHost</AssemblyName>
+    <RootNamespace>GeminiLive.Host</RootNamespace>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>false</SelfContained>
+  </PropertyGroup>
+
+  <!-- Shared with the app, not copied: the messaging layer, the native protocol and where the app
+       publishes its link. -->
+  <ItemGroup>
+    <Compile Include="..\GeminiLive\Messaging.cs" Link="Shared\Messaging.cs" />
+    <Compile Include="..\GeminiLive\WireName.cs" Link="Shared\WireName.cs" />
+    <Compile Include="..\GeminiLive\Log.cs" Link="Shared\Log.cs" />
+    <Compile Include="..\GeminiLive\AppInstance.cs" Link="Shared\AppInstance.cs" />
+    <Compile Include="..\GeminiLive\Glic\NativeProtocol.cs" Link="Shared\NativeProtocol.cs" />
+    <Compile Include="..\GeminiLive\Glic\LinkFile.cs" Link="Shared\LinkFile.cs" />
+  </ItemGroup>
+
+  <!-- The repo's lint rules that Roslyn has no built-in for (see .editorconfig), and CA1502's
+       complexity threshold. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\analyzers\GeminiLive.Analyzers\GeminiLive.Analyzers.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\..\analyzers\GeminiLive.Analyzers.CodeFixes\GeminiLive.Analyzers.CodeFixes.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <AdditionalFiles Include="..\GeminiLive\CodeMetricsConfig.txt" Link="CodeMetricsConfig.txt" />
+  </ItemGroup>
+
+</Project>
