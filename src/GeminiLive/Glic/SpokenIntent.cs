@@ -61,9 +61,12 @@ internal static partial class SpokenIntent {
     return WebRequest().IsMatch(text);
   }
 
-  /// <summary>Gemini saying it can't search, browse or give a link: a refusal plus a web topic.</summary>
-  public static bool RefusesWeb(string text) {
-    return Refusal().IsMatch(text) && WebTopic().IsMatch(text);
+  /// <summary>
+  /// Gemini not handing over a page: saying it can't search, browse or give a link (a refusal
+  /// plus a web topic), or sending the user off to find it on a site themselves.
+  /// </summary>
+  public static bool WithholdsLink(string text) {
+    return (Refusal().IsMatch(text) && WebTopic().IsMatch(text)) || PointsToSite().IsMatch(text);
   }
 
   /// <summary>The app a request names, for the status line while it runs; ambiguous words fall through.</summary>
@@ -90,13 +93,23 @@ internal static partial class SpokenIntent {
   private static partial Regex WebTopic();
 
   // Plainly asking for a search or a link; a passing mention ("I linked it") isn't a request.
+  // Hebrew asks with the verb as often as the noun: "תקשר אותי" (link me), "לקשר".
   [GeneratedRegex(
       @"\b(search (for|the web|online|google)|google (it|for|that)|look (it |that )?up"
       + @"|find (me )?(a |the )?(link|article|page|source)|(send|give|show) me (a |the )?links?"
-      + @"|links? (to|for)|the link|urls? (for|of)|sources? (for|on))\b"
-      + "|קישור|לינק|תחפש|תחפשי|חפש לי|חפשי לי|לחפש|תמצא לי|תמצאי לי",
+      + @"|link me|link (it|that)|links? (to|for)|the link|urls? (for|of)|sources? (for|on))\b"
+      + "|קישור|לינק|תקשר|תקשרי|לקשר|קשר אותי|קשרי אותי|תחפש|תחפשי|חפש לי|חפשי לי|לחפש"
+      + "|תמצא לי|תמצאי לי",
       RegexOptions.IgnoreCase)]
   private static partial Regex WebRequest();
+
+  // Gemini sending the user off to find a page themselves instead of giving it.
+  [GeneratedRegex(
+      @"\b(you (can|could|'ll|will) (find|read|see) (it|them|this) (on|at)"
+      + @"|on (their|the|its) (official )?(site|website|blog)|visit (their|the) (official )?(site|website))\b"
+      + "|באתר הרשמי|באתר שלהם|בכתובת|תוכל למצוא|תוכלי למצוא|יכול למצוא|יכולה למצוא",
+      RegexOptions.IgnoreCase)]
+  private static partial Regex PointsToSite();
 
   [GeneratedRegex(
       // Only apps Gemini's web text turns can reach (its Connected Apps page). Not Home, alarms or

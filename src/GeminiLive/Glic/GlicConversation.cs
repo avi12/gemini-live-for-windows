@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows.Threading;
 
@@ -25,7 +26,9 @@ public sealed partial class GlicConversation : ILiveEngine {
   private static readonly TimeSpan _intentSettle = TimeSpan.FromMilliseconds(1100);
 
   // Added to a web request so the text turn searches and cites, in whatever language it was asked.
-  private const string _webSearchAsk = "(Search the web and link the pages you used.)";
+  private const string _webSearchAsk =
+      "(Search the web, find the original source, and link the exact pages you used.)";
+  private const int _maxContextChars = 300;
 
   private readonly GlicHost _host;
   private readonly HomeHost _home;
@@ -34,6 +37,7 @@ public sealed partial class GlicConversation : ILiveEngine {
 
   private bool _muted;
   private string _lastUserUtterance = "";
+  private string _lastGeminiLine = "";
   private string _handledUtterance = "";
   private int _handledRefusalIndex = -1;
   private bool _runningDetour;
@@ -102,20 +106,27 @@ public sealed partial class GlicConversation : ILiveEngine {
         _intentTimer.Stop();
         _intentTimer.Start();
       }
-    } else if (index != _handledRefusalIndex && _lastUserUtterance.Length > 0) {
+    } else {
+      _lastGeminiLine = clean;
       OnGeminiLine(clean, index);
     }
   }
 
   // Fallback: Gemini got there first and refused something the text path can do. Fix it there.
   private void OnGeminiLine(string line, int index) {
+    bool isOpen = index != _handledRefusalIndex && _lastUserUtterance.Length > 0
+        && _lastUserUtterance != _handledUtterance;
+    if (!isOpen) {
+      return;
+    }
+
     if (SpokenIntent.NeedsApp(line)) {
       _handledRefusalIndex = index;
       _ = RunAppActionAsync(_lastUserUtterance);
       return;
     }
 
-    if (SpokenIntent.RefusesWeb(line)) {
+    if (SpokenIntent.WithholdsLink(line)) {
       _handledRefusalIndex = index;
       _ = RunWebSearchAsync(_lastUserUtterance);
     }
@@ -176,7 +187,31 @@ public sealed partial class GlicConversation : ILiveEngine {
   // chips in the card.
   private Task RunWebSearchAsync(string request) {
     return RunDetourAsync(request, "Searching the web…",
-                          () => AskTextPathAsync($"{request} {_webSearchAsk}"));
+                          async () => await AskTextPathAsync(await WebSearchPromptAsync(request)));
+  }
+
+  /// <summary>
+  /// The request as the text turn needs it. That turn sees neither the screen nor what Live said, so
+  /// "the article I'm looking at" means nothing there: name the window on screen and Live's last
+  /// words, then ask it to search and link its sources.
+  /// </summary>
+  private async Task<string> WebSearchPromptAsync(string request) {
+    var prompt = new StringBuilder(request);
+    ScreenText.View? screen = await _host.View.ReadAsync();
+    if (screen is { Title.Length: > 0 }) {
+      prompt.Append(" (On my screen: \"").Append(Clip(screen.Title)).Append("\".)");
+    }
+
+    if (_lastGeminiLine.Length > 0) {
+      prompt.Append(" (You just told me: \"").Append(Clip(_lastGeminiLine)).Append("\".)");
+    }
+
+    return prompt.Append(' ').Append(_webSearchAsk).ToString();
+  }
+
+  // Keeps a prompt quick to type: the text turn is typed one trusted key event per character.
+  private static string Clip(string text) {
+    return text.Length <= _maxContextChars ? text : text[.._maxContextChars] + "…";
   }
 
   private async Task AskTextPathAsync(string request) {
