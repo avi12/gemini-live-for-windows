@@ -44,7 +44,9 @@ let pendingPush: ReturnType<typeof setTimeout> | undefined;
 
 /** Whether a cookie belongs to the Google session the app mirrors. */
 export function isGoogleCookie(cookie: Browser.cookies.Cookie): boolean {
-  return cookie.domain.endsWith(GOOGLE_COOKIE_DOMAIN);
+  // google.com itself or a subdomain (".google.com", "accounts.google.com"), never "notgoogle.com"
+  const domain = cookie.domain.replace(/^\./, "");
+  return domain === GOOGLE_COOKIE_DOMAIN || domain.endsWith(`.${GOOGLE_COOKIE_DOMAIN}`);
 }
 
 /**
