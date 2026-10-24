@@ -490,7 +490,11 @@ public partial class MainWindow : Window {
   // ---- first-run API key ----
 
   private void AskForKey() {
-    SetStatus("Setup: Gemini needs an API key");
+    // A running session keeps its status: changing the key can still be cancelled.
+    if (_conversation is null) {
+      SetStatus("Setup: Gemini needs an API key");
+    }
+
     KeyPanel.Visibility = Visibility.Visible;
     UpdateCard();
     // Typing needs focus, so drop the no-activate style just for this.
@@ -500,6 +504,11 @@ public partial class MainWindow : Window {
   }
 
   private void OnKeyBoxKeyDown(object sender, KeyEventArgs e) {
+    if (e.Key == Key.Escape) {
+      CancelKey();
+      return;
+    }
+
     if (e.Key != Key.Enter || KeyBox.Password.Trim().Length == 0) {
       return;
     }
@@ -507,6 +516,18 @@ public partial class MainWindow : Window {
     _settings.SetApiKey(KeyBox.Password);
     HideKeyPanel();
     _ = RestartAsync();
+  }
+
+  /// <summary>
+  /// Backs out of the prompt: with no key to fall back on, back to the subscription; otherwise
+  /// the current key stays.
+  /// </summary>
+  private void CancelKey() {
+    HideKeyPanel();
+
+    if (!_settings.HasApiKey) {
+      _ = SwitchEngineAsync(EngineKind.Google);
+    }
   }
 
   private void HideKeyPanel() {

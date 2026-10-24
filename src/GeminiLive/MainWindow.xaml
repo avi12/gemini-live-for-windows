@@ -45,7 +45,7 @@
                         <TextBlock Style="{StaticResource LiveSupportingText}" TextWrapping="Wrap">
                             Paste a Gemini API key (free at
                             <Hyperlink NavigateUri="https://aistudio.google.com/apikey" RequestNavigate="OnLink">aistudio.google.com/apikey</Hyperlink>),
-                            then press Enter.
+                            then press Enter. Esc goes back.
                         </TextBlock>
                         <PasswordBox x:Name="KeyBox" Margin="0,8,0,0" KeyDown="OnKeyBoxKeyDown" />
                     </StackPanel>
