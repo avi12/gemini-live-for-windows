@@ -12,8 +12,8 @@ https://github.com/user-attachments/assets/cb139a57-6897-431f-bec2-910c7e42f9cf
 
 ## Requirements
 
-- Windows 11 (22H2 or newer)
-- Chrome, Edge, Brave or another Chromium browser, signed in to the Google account you use Gemini with
+- A Windows 11 PC that lets you choose what Win+C opens: the **Customize Copilot key on keyboard** setting
+- A Chromium browser (Chrome, Edge, Brave…) that can sideload an extension in Developer mode, signed in to the Google account you use Gemini with
 
 ## Install
 
