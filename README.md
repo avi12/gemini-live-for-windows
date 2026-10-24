@@ -10,6 +10,9 @@ Created by [Avi](https://avi12.com).
 
 https://github.com/user-attachments/assets/cb139a57-6897-431f-bec2-910c7e42f9cf
 
+> [!WARNING]
+> By default, Gemini Live rides your Gemini subscription through Google's own web client, which Google doesn't offer for this use. **Google may suspend or ban an account that uses it.** If you'd rather not risk your account, switch to [your own Gemini API key](#use-your-own-api-key-instead) - the official, public Live API.
+
 ## Requirements
 
 - Windows 11 23H2 or newer, up to date, so it has the **Customize Copilot key on keyboard** setting that lets you choose what Win+C opens
@@ -40,6 +43,55 @@ The `.crx` in the release is the same extension, signed. You can drag it in the 
 
 Stay signed in to Google in that browser. If you sign out there, Gemini Live waits until you sign back in.
 
+The extension is only needed for the Google account engine. With your own API key, skip it.
+
+## Use your own API key instead
+
+Open the pill (Win+C), click the gear, and under **Gemini runs on** choose **Your API key**. Paste the key and press Enter. **Change API key…** in the same menu replaces it. Switch back to **Your Google account** at any time.
+
+The key is stored encrypted for your Windows user (DPAPI). A `GEMINI_API_KEY` environment variable, if set, takes precedence.
+
+Usage is billed to the key's Google Cloud project under the [Gemini API pricing](https://ai.google.dev/gemini-api/docs/pricing); the free tier works, with lower rate limits.
+
+### Create a key in the web UI
+
+The quickest route is [Google AI Studio › API keys](https://aistudio.google.com/apikey) › **Create API key**. AI Studio sets up everything the key needs, including the service account it's bound to.
+
+The Gemini API now rejects unrestricted keys, and new Gemini keys must be bound to a service account ([details](https://ai.google.dev/gemini-api/docs/api-key)). To make one in the Google Cloud console instead:
+
+1. Open the [Google Cloud console](https://console.cloud.google.com/) and create a project (or pick an existing one) from the project picker at the top.
+2. Go to **APIs & Services › Library**, search for **Gemini API** (`generativelanguage.googleapis.com`) and click **Enable**.
+3. Go to **IAM & Admin › Service accounts › Create service account**, name it (e.g. `gemini-live`) and click **Done**.
+4. Go to **APIs & Services › [Credentials](https://console.cloud.google.com/apis/credentials) › Create credentials › API key**.
+5. Under **API restrictions**, choose **Restrict key** and tick **Generative Language API**.
+6. Tick **Authenticate API calls through a service account**, click **Select a service account**, and pick the one from step 3.
+7. Click **Create**, copy the key from the **API key created** dialog, and paste it into Gemini Live.
+
+Use this key only for Gemini. Google's docs warn that a key shared with other APIs breaks Gemini once it's restricted to them.
+
+### Create a key with gcloud
+
+With the [gcloud CLI](https://cloud.google.com/sdk/docs/install) installed, in PowerShell:
+
+```powershell
+gcloud auth login
+gcloud projects create gemini-live-<something-unique>   # or skip and use an existing project
+gcloud config set project gemini-live-<something-unique>
+
+gcloud services enable generativelanguage.googleapis.com apikeys.googleapis.com
+$project = gcloud config get-value project
+gcloud iam service-accounts create gemini-live --display-name="Gemini Live for Windows"
+
+gcloud beta services api-keys create --display-name="Gemini Live for Windows" `
+  --api-target=service=generativelanguage.googleapis.com `
+  --service-account="gemini-live@$project.iam.gserviceaccount.com"
+
+$keyName = gcloud services api-keys list --filter="displayName='Gemini Live for Windows'" --format="value(name)"
+gcloud services api-keys get-key-string $keyName --format="value(keyString)"
+```
+
+The last command prints the key. `--api-target` restricts it to the Gemini API and `--service-account` binds it, like steps 5 and 6 above. Binding needs the `beta` command, and your account needs the **Service Account User** and **Service Account API Key Binding Admin** roles on the project.
+
 ## How it works
 
 - **Google account engine (default).** The real Gemini web client (`gemini.google.com/glic`, the one behind Gemini in Chrome) runs in a hidden WebView2. It owns the mic, echo cancellation, the Live connection and Gemini's voice.
@@ -49,7 +101,7 @@ Stay signed in to Google in that browser. If you sign out there, Gemini Live wai
 - **Your browser's Google session.** The companion extension pushes the session over a loopback WebSocket whenever Google rotates it. The app never rotates the cookies itself, so your browser stays the only owner of the session.
   - The socket has no fixed port. The app listens on a free one each run and hands it out, with a fresh token, through a native messaging host (`GeminiLiveHost.exe`). The browser lets only this extension's ID talk to that host.
   - The extension sends cookies only after the app greets it with that token.
-- **API key engine (fallback, gear menu).** The public Gemini Live API over a WebSocket, with Windows' echo-cancelled audio and about one JPEG screen frame per second.
+- **API key engine (gear › Gemini runs on › Your API key).** The public Gemini Live API over a WebSocket, with Windows' echo-cancelled audio (default microphone) and about one JPEG screen frame per second. No browser, extension or Google account involved.
 
 ## Build from source
 
