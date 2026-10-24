@@ -31,7 +31,6 @@ public partial class MainWindow : Window {
   public IntPtr Handle { get; }
 
   private ILiveEngine? _conversation;
-  private MonitorInfo? _pendingMonitor;
   private MonitorInfo? _dockedOn;
   private bool _leaving;  // the exit animation is running; Hide() follows unless shown again
   private bool _muted;
@@ -81,7 +80,6 @@ public partial class MainWindow : Window {
     ShowOn(monitor);
 
     if (_settings.Engine == EngineKind.ApiKey && !_settings.HasApiKey) {
-      _pendingMonitor = monitor;
       AskForKey();
       return;
     }
@@ -304,6 +302,10 @@ public partial class MainWindow : Window {
   }
 
   private void OnExtensionNeeded(bool needed) {
+    if (needed && _settings.Engine != EngineKind.Google) {
+      return;  // a Google session still winding down after a switch to the API key
+    }
+
     ConnectPanel.Visibility = needed ? Visibility.Visible : Visibility.Collapsed;
 
     if (!needed) {
@@ -371,7 +373,7 @@ public partial class MainWindow : Window {
     ConnectSteps.Visibility = Visibility.Visible;
   }
 
-  // ---- settings menu (gear): microphone, camera share, quit ----
+  // ---- settings menu (gear): microphone, camera share, engine, quit ----
 
   /// <summary>Every menu opens upward, rising out of the pill, which sits on the taskbar.</summary>
   private static ContextMenu MenuAbove(UIElement anchor) {
@@ -416,6 +418,10 @@ public partial class MainWindow : Window {
     }
 
     menu.Items.Add(new Separator());
+    menu.Items.Add(MenuHeader("Gemini runs on"));
+    EnginePicker.Fill(menu, _settings.Engine, kind => _ = SwitchEngineAsync(kind), AskForKey);
+
+    menu.Items.Add(new Separator());
     var quit = new MenuItem { Header = "Quit Gemini Live" };
     quit.Click += (_, _) => {
       _ = EndAsync();
@@ -444,6 +450,39 @@ public partial class MainWindow : Window {
     menu.Items.Add(item);
   }
 
+  /// <summary>Saves the choice, and starts the open pill over on it.</summary>
+  private async Task SwitchEngineAsync(EngineKind kind) {
+    if (_settings.Engine == kind) {
+      return;
+    }
+
+    _settings.Engine = kind;
+    _settings.Save();
+    Log.Write($"engine -> {kind}");
+    HideKeyPanel();
+
+    if (kind != EngineKind.Google) {
+      OnExtensionNeeded(false);
+    }
+
+    if (IsVisible && !_leaving) {
+      await RestartAsync();
+    }
+  }
+
+  /// <summary>Ends whatever runs and starts again on the current settings and display.</summary>
+  private async Task RestartAsync() {
+    MonitorInfo monitor = Shared ?? _dockedOn ?? Monitors.Active();
+    ILiveEngine? engine = _conversation;
+    Detach();
+
+    if (engine is not null) {
+      await engine.DisposeAsync();
+    }
+
+    await StartAsync(monitor);
+  }
+
   private void OnSettings(object sender, RoutedEventArgs e) {
     SettingsButton.ContextMenu.IsOpen = true;
   }
@@ -466,10 +505,14 @@ public partial class MainWindow : Window {
     }
 
     _settings.SetApiKey(KeyBox.Password);
+    HideKeyPanel();
+    _ = RestartAsync();
+  }
+
+  private void HideKeyPanel() {
     KeyBox.Clear();
     KeyPanel.Visibility = Visibility.Collapsed;
     UpdateCard();
     Overlay.SetFocusable(Handle, false);
-    _ = StartAsync(_pendingMonitor ?? Monitors.Active());
   }
 }
