@@ -23,7 +23,7 @@ public static class ScreenGrabber {
   public const string MimeType = "image/jpeg";
 
   private static readonly ImageCodecInfo _jpegCodec =
-      ImageCodecInfo.GetImageEncoders().First(c => c.FormatID == ImageFormat.Jpeg.Guid);
+      ImageCodecInfo.GetImageEncoders().First(codec => codec.FormatID == ImageFormat.Jpeg.Guid);
 
   private static (int MaxEdge, long JpegQuality) Settings(Detail detail) {
     return detail == Detail.Sharp ? (2200, 85) : (1280, 70);
@@ -32,17 +32,17 @@ public static class ScreenGrabber {
   public static Frame Grab(MonitorInfo monitor, Detail detail = Detail.Standard) {
     (int maxEdge, long jpegQuality) = Settings(detail);
     using var full = new Bitmap(monitor.Width, monitor.Height, PixelFormat.Format24bppRgb);
-    using (Graphics g = Graphics.FromImage(full)) {
-      g.CopyFromScreen(monitor.X, monitor.Y, 0, 0, new Size(monitor.Width, monitor.Height),
-                       CopyPixelOperation.SourceCopy);
+    using (Graphics graphics = Graphics.FromImage(full)) {
+      graphics.CopyFromScreen(monitor.X, monitor.Y, 0, 0, new Size(monitor.Width, monitor.Height),
+                              CopyPixelOperation.SourceCopy);
     }
 
     double scale = Math.Min(1.0, (double)maxEdge / Math.Max(monitor.Width, monitor.Height));
     using var small = new Bitmap((int)(monitor.Width * scale), (int)(monitor.Height * scale),
                                  PixelFormat.Format24bppRgb);
-    using (Graphics g = Graphics.FromImage(small)) {
-      g.InterpolationMode = InterpolationMode.HighQualityBilinear;
-      g.DrawImage(full, 0, 0, small.Width, small.Height);
+    using (Graphics graphics = Graphics.FromImage(small)) {
+      graphics.InterpolationMode = InterpolationMode.HighQualityBilinear;
+      graphics.DrawImage(full, 0, 0, small.Width, small.Height);
     }
 
     using var jpeg = new MemoryStream();

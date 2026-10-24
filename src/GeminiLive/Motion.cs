@@ -48,9 +48,9 @@ public static class Motion {
   /// Animates one double property to <paramref name="to"/>. With motion off it sets the value
   /// and completes immediately.
   /// </summary>
-  public static void To(DependencyObject target, DependencyProperty property, double to,
-                        Duration duration, IEasingFunction easing, double? from = null,
-                        TimeSpan delay = default, Action? completed = null) {
+  public static void Animate(DependencyObject target, DependencyProperty property, double to,
+                             Duration duration, IEasingFunction easing, double? from = null,
+                             TimeSpan delay = default, Action? completed = null) {
     var animatable = (IAnimatable)target;
     if (!Enabled) {
       animatable.BeginAnimation(property, null);
@@ -106,10 +106,14 @@ public static class Motion {
       scale.ScaleY = 1;
     }
 
-    To(element, UIElement.OpacityProperty, 1, EnterDuration, EmphasizedDecelerate, from: 0, delay: delay);
-    To(shift, TranslateTransform.YProperty, 0, EnterDuration, EmphasizedDecelerate, from: rise, delay: delay);
-    To(scale, ScaleTransform.ScaleXProperty, 1, EnterDuration, EmphasizedDecelerate, from: scaleFrom, delay: delay);
-    To(scale, ScaleTransform.ScaleYProperty, 1, EnterDuration, EmphasizedDecelerate, from: scaleFrom, delay: delay);
+    Animate(element, UIElement.OpacityProperty, 1, EnterDuration, EmphasizedDecelerate, from: 0,
+            delay: delay);
+    Animate(shift, TranslateTransform.YProperty, 0, EnterDuration, EmphasizedDecelerate, from: rise,
+            delay: delay);
+    Animate(scale, ScaleTransform.ScaleXProperty, 1, EnterDuration, EmphasizedDecelerate,
+            from: scaleFrom, delay: delay);
+    Animate(scale, ScaleTransform.ScaleYProperty, 1, EnterDuration, EmphasizedDecelerate,
+            from: scaleFrom, delay: delay);
   }
 
   /// <summary>
@@ -121,10 +125,10 @@ public static class Motion {
   /// </summary>
   public static void Exit(UIElement element, double drop, double scaleTo, Action completed) {
     (ScaleTransform scale, TranslateTransform shift) = Transforms(element);
-    To(shift, TranslateTransform.YProperty, drop, ExitDuration, EmphasizedAccelerate);
-    To(scale, ScaleTransform.ScaleXProperty, scaleTo, ExitDuration, EmphasizedAccelerate);
-    To(scale, ScaleTransform.ScaleYProperty, scaleTo, ExitDuration, EmphasizedAccelerate);
-    To(element, UIElement.OpacityProperty, 0, ExitDuration, Linear, completed: completed);
+    Animate(shift, TranslateTransform.YProperty, drop, ExitDuration, EmphasizedAccelerate);
+    Animate(scale, ScaleTransform.ScaleXProperty, scaleTo, ExitDuration, EmphasizedAccelerate);
+    Animate(scale, ScaleTransform.ScaleYProperty, scaleTo, ExitDuration, EmphasizedAccelerate);
+    Animate(element, UIElement.OpacityProperty, 0, ExitDuration, Linear, completed: completed);
   }
 
   /// <summary>
@@ -133,11 +137,11 @@ public static class Motion {
   /// <paramref name="apply"/> should apply the latest state rather than a captured one.
   /// </summary>
   public static void Swap(UIElement element, Action apply) {
-    To(element, UIElement.OpacityProperty, 0, Scaled(_standardMs / 2), EmphasizedAccelerate,
-       completed: () => {
-         apply();
-         To(element, UIElement.OpacityProperty, 1, StandardDuration, Standard);
-       });
+    Animate(element, UIElement.OpacityProperty, 0, Scaled(_standardMs / 2), EmphasizedAccelerate,
+            completed: () => {
+              apply();
+              Animate(element, UIElement.OpacityProperty, 1, StandardDuration, Standard);
+            });
   }
 
   /// <summary>A quick press-like squeeze (1 → 0.9 → 1), to acknowledge a toggle.</summary>

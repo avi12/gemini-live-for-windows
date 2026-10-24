@@ -37,8 +37,8 @@ public sealed class HeightTransition : Decorator {
     if (target != _target) {
       double from = _target is null ? target : ShownHeight;
       _target = target;
-      Motion.To(this, ShownHeightProperty, target, Motion.StandardDuration, Motion.Standard,
-                from: from);
+      Motion.Animate(this, ShownHeightProperty, target, Motion.StandardDuration, Motion.Standard,
+                     from: from);
     }
 
     return new Size(Child.DesiredSize.Width, ShownHeight);

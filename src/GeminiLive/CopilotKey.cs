@@ -30,8 +30,8 @@ public static class CopilotKey {
   /// </summary>
   public static KeyTrigger? FromActivation(string[] args) {
     Uri? uri = PackagedActivationUri()
-        ?? args.Select(a => Uri.TryCreate(a, UriKind.Absolute, out Uri? u) ? u : null)
-               .FirstOrDefault(u => u?.Scheme == _scheme);
+        ?? args.Select(arg => Uri.TryCreate(arg, UriKind.Absolute, out Uri? parsed) ? parsed : null)
+               .FirstOrDefault(parsed => parsed?.Scheme == _scheme);
     if (uri is null) {
       return null;
     }
@@ -91,7 +91,7 @@ public static class CopilotKey {
   private static Uri? PackagedActivationUri() {
     try {
       return Windows.ApplicationModel.AppInstance.GetActivatedEventArgs()
-          is Windows.ApplicationModel.Activation.ProtocolActivatedEventArgs p ? p.Uri : null;
+          is Windows.ApplicationModel.Activation.ProtocolActivatedEventArgs protocol ? protocol.Uri : null;
     } catch {
       return null;  // unpackaged dev run: no activation args
     }
@@ -104,7 +104,7 @@ public static class CopilotKey {
     }
 
     var key = new Native.PROPERTYKEY { fmtid = _fastPathFmtId, pid = 2 };
-    var value = new Native.PROPVARIANT { vt = Native.VT_UINT, uintVal = _wmCopilot };
+    var value = new Native.PROPVARIANT { variantType = Native.VT_UINT, uintVal = _wmCopilot };
     store.SetValue(ref key, ref value);
     store.Commit();
     return true;

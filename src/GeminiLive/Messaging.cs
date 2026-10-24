@@ -31,7 +31,8 @@ internal sealed class NoneConverter : JsonConverter<None> {
 
 /// <summary>
 /// Typed request/reply messages over one channel, in @webext-core/messaging's shape:
-/// <see cref="SendMessageAsync{TData, TReturn}"/> and <see cref="OnMessage{TData, TReturn}"/>,
+/// <see cref="SendMessageAsync{TData, TReturn}"/> and
+/// <see cref="OnMessage{TData, TReturn}(Protocol{TType, TData, TReturn}, Func{TData, Task{TReturn}})"/>,
 /// with message types from the enum <typeparamref name="TType"/> (wire value:
 /// <see cref="WireName"/>). The envelopes match messaging/src/index.ts:
 /// <c>{id, type, data, timestamp}</c> for a request, <c>{replyTo, res | err}</c> for its reply.
@@ -80,13 +81,13 @@ public sealed class Messenger<TType> where TType : struct, Enum {
     try {
       _post(JsonSerializer.Serialize(new {
         id,
-        type = WireName.Of(message.Type),
+        type = WireName.For(message.Type),
         data,
         timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
       }, _json));
       return Read<TReturn>(await reply.Task.WaitAsync(wait));
     } catch (TimeoutException) {
-      throw new TimeoutException($"No reply to \"{WireName.Of(message.Type)}\" in {wait}");
+      throw new TimeoutException($"No reply to \"{WireName.For(message.Type)}\" in {wait}");
     } finally {
       _pending.TryRemove(id, out _);
     }
@@ -104,10 +105,10 @@ public sealed class Messenger<TType> where TType : struct, Enum {
   /// </summary>
   public Action OnMessage<TData, TReturn>(Protocol<TType, TData, TReturn> message,
                                           Func<TData, Task<TReturn>> onReceived) {
-    Func<JsonElement, Task<object?>> handler =
-        async data => await onReceived(Read<TData>(data));
-    if (!_handlers.TryAdd(message.Type, handler)) {
-      throw new InvalidOperationException($"\"{WireName.Of(message.Type)}\" already has a listener");
+    async Task<object?> Handle(JsonElement data) => await onReceived(Read<TData>(data));
+
+    if (!_handlers.TryAdd(message.Type, Handle)) {
+      throw new InvalidOperationException($"\"{WireName.For(message.Type)}\" already has a listener");
     }
 
     return () => _handlers.TryRemove(message.Type, out _);

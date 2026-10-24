@@ -26,24 +26,24 @@ public sealed class AudioEngine : IDisposable {
       }
 
       var output = new List<float>(input.Length * to / from + 2);
-      float At(int i) => i < 0 ? _last : input[i];
+      float SampleAt(int i) => i < 0 ? _last : input[i];
 
       if (_step > 1) {
         while (_pos + _step <= input.Length) {
-          int a = Math.Max(0, (int)_pos);
-          int b = (int)(_pos + _step);
+          int start = Math.Max(0, (int)_pos);
+          int end = (int)(_pos + _step);
           float sum = 0;
-          for (int i = a; i < b; i++) {
+          for (int i = start; i < end; i++) {
             sum += input[i];
           }
-          output.Add(b > a ? sum / (b - a) : At(a - 1));
+          output.Add(end > start ? sum / (end - start) : SampleAt(start - 1));
           _pos += _step;
         }
       } else {
         while (_pos < input.Length - 1) {
           int i = (int)Math.Floor(_pos);
           float t = (float)(_pos - i);
-          output.Add(At(i) + (At(i + 1) - At(i)) * t);
+          output.Add(SampleAt(i) + (SampleAt(i + 1) - SampleAt(i)) * t);
           _pos += _step;
         }
       }
@@ -164,8 +164,8 @@ public sealed class AudioEngine : IDisposable {
     float peak = 0;
     for (int i = 0; i < frames; i++) {
       float sum = 0;
-      for (int c = 0; c < _graphChannels; c++) {
-        sum += floats[i * _graphChannels + c];
+      for (int channel = 0; channel < _graphChannels; channel++) {
+        sum += floats[i * _graphChannels + channel];
       }
       mono[i] = sum / _graphChannels;
       peak = Math.Max(peak, Math.Abs(mono[i]));
@@ -203,8 +203,8 @@ public sealed class AudioEngine : IDisposable {
         for (int i = 0; i < needed; i++) {
           float sample = _playback.Count > 0 ? _playback.Dequeue() : 0f;
           peak = Math.Max(peak, Math.Abs(sample));
-          for (int c = 0; c < _graphChannels; c++) {
-            floats[i * _graphChannels + c] = sample;
+          for (int channel = 0; channel < _graphChannels; channel++) {
+            floats[i * _graphChannels + channel] = sample;
           }
         }
       }

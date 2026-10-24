@@ -38,7 +38,7 @@ internal static unsafe class Native {
   [StructLayout(LayoutKind.Explicit, Size = 24)]
   public struct PROPVARIANT {
     [FieldOffset(0)]
-    public ushort vt;
+    public ushort variantType;  // vt in the Win32 struct
     [FieldOffset(8)]
     public uint uintVal;
   }
@@ -70,7 +70,7 @@ internal static unsafe class Native {
   public const ushort VT_UINT = 23;
   public static readonly IntPtr HWND_TOPMOST = new(-1);
 
-  private static readonly Guid IID_IMemoryBufferByteAccess =
+  private static readonly Guid _memoryBufferByteAccessIid =
       new("5b0d3235-4dba-4d44-865e-8f1d0e4fd04d");
 
   [DllImport("user32.dll")]
@@ -93,8 +93,8 @@ internal static unsafe class Native {
   public static extern bool SetForegroundWindow(IntPtr hwnd);
 
   [DllImport("user32.dll")]
-  public static extern bool SetWindowPos(IntPtr hwnd, IntPtr after, int x, int y, int cx, int cy,
-                                         uint flags);
+  public static extern bool SetWindowPos(IntPtr hwnd, IntPtr after, int x, int y, int width,
+                                         int height, uint flags);
 
   [DllImport("user32.dll")]
   public static extern int GetWindowLong(IntPtr hwnd, int index);
@@ -115,7 +115,7 @@ internal static unsafe class Native {
   /// </summary>
   public static IntPtr GetBuffer(object memoryBufferReference) {
     IntPtr inspectable = ((WinRT.IWinRTObject)memoryBufferReference).NativeObject.ThisPtr;
-    Guid iid = IID_IMemoryBufferByteAccess;
+    Guid iid = _memoryBufferByteAccessIid;
     Marshal.ThrowExceptionForHR(Marshal.QueryInterface(inspectable, in iid, out IntPtr access));
     try {
       byte* data;

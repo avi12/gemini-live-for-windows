@@ -135,8 +135,8 @@ public sealed class WebcamSource : IAsyncDisposable {
         _width = width;
         _height = height;
       }
-    } catch (Exception ex) {
-      Log.Write($"camera encode failed: {ex.Message}");
+    } catch (Exception e) {
+      Log.Write($"camera encode failed: {e.Message}");
     } finally {
       if (!ReferenceEquals(bgra, frame)) {
         bgra.Dispose();

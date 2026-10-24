@@ -58,21 +58,21 @@ public static class Theme {
 
   private static void Apply() {
     bool dark = IsDark;
-    ResourceDictionary r = Application.Current.Resources;
+    ResourceDictionary resources = Application.Current.Resources;
     foreach ((string key, string darkArgb, string lightArgb) in _solids) {
-      r[key] = Solid(Parse(dark ? darkArgb : lightArgb));
+      resources[key] = Solid(Parse(dark ? darkArgb : lightArgb));
     }
 
-    Color text = ((SolidColorBrush)r["LiveTextBrush"]).Color;
-    r["LiveHoverLayerBrush"] = Solid(Color.FromArgb(_hoverAlpha, text.R, text.G, text.B));
-    r["LivePressedLayerBrush"] = Solid(Color.FromArgb(_pressedAlpha, text.R, text.G, text.B));
-    r["LiveEdgeBrush"] = dark ? _darkEdge : _lightEdge;
+    Color text = ((SolidColorBrush)resources["LiveTextBrush"]).Color;
+    resources["LiveHoverLayerBrush"] = Solid(Color.FromArgb(_hoverAlpha, text.R, text.G, text.B));
+    resources["LivePressedLayerBrush"] = Solid(Color.FromArgb(_pressedAlpha, text.R, text.G, text.B));
+    resources["LiveEdgeBrush"] = dark ? _darkEdge : _lightEdge;
     // The caption card's soft halo colour (fed to a DropShadowEffect); near-black dark card wears
     // a blue bloom, the light card only a faint cool one. Alpha carries the strength.
-    r["LiveCardGlowColor"] = Parse(dark ? "#B38AB4F8" : "#3A5B8DEF");
-    r["LiveGlowBrush"] = _glow;
+    resources["LiveCardGlowColor"] = Parse(dark ? "#B38AB4F8" : "#3A5B8DEF");
+    resources["LiveGlowBrush"] = _glow;
     // The glow's peak; it multiplies whatever the animations set, and sits quieter on light.
-    r["LiveGlowOpacity"] = dark ? 1.0 : 0.6;
+    resources["LiveGlowOpacity"] = dark ? 1.0 : 0.6;
   }
 
   private static Color Parse(string argb) {

@@ -60,8 +60,8 @@ public sealed class GlowAnimator {
     Wake();
 
     if (!Motion.Enabled) {
-      Motion.To(_glow, UIElement.OpacityProperty, _steadyOpacity, Motion.StandardDuration,
-                Motion.Standard);
+      Motion.Animate(_glow, UIElement.OpacityProperty, _steadyOpacity, Motion.StandardDuration,
+                     Motion.Standard);
       return;
     }
 
@@ -87,15 +87,16 @@ public sealed class GlowAnimator {
 
     double gain = isUser ? _userGain : _geminiGain;
     double target = _levelFloor + Math.Min(1, level * 3) * gain;
-    Motion.To(_glow, UIElement.OpacityProperty, target, Motion.FollowDuration, Motion.Standard);
+    Motion.Animate(_glow, UIElement.OpacityProperty, target, Motion.FollowDuration,
+                   Motion.Standard);
   }
 
   /// <summary>The session ended: dim, and stop drifting.</summary>
   public void Rest() {
     SetGeminiSpeaking(false);
     _drift?.Controller!.Pause();
-    Motion.To(_glow, UIElement.OpacityProperty, _restOpacity, Motion.StandardDuration,
-              Motion.Standard);
+    Motion.Animate(_glow, UIElement.OpacityProperty, _restOpacity, Motion.StandardDuration,
+                   Motion.Standard);
   }
 
   private void Wake() {

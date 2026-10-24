@@ -17,11 +17,12 @@ public sealed class CubicBezierEase : EasingFunctionBase {
   private readonly double _x2;
   private readonly double _y2;
 
-  public CubicBezierEase(double x1, double y1, double x2, double y2) {
-    _x1 = x1;
-    _y1 = y1;
-    _x2 = x2;
-    _y2 = y2;
+  /// <summary>The curve through control points (firstX, firstY) and (secondX, secondY).</summary>
+  public CubicBezierEase(double firstX, double firstY, double secondX, double secondY) {
+    _x1 = firstX;
+    _y1 = firstY;
+    _x2 = secondX;
+    _y2 = secondY;
     // EaseInCore is the curve exactly as written; the default (EaseOut) would mirror it.
     EasingMode = EasingMode.EaseIn;
   }
@@ -43,14 +44,14 @@ public sealed class CubicBezierEase : EasingFunctionBase {
   }
 
   /// <summary>One coordinate of the curve, with end points fixed at 0 and 1.</summary>
-  private static double Bezier(double t, double p1, double p2) {
-    double u = 1 - t;
-    return 3 * u * u * t * p1 + 3 * u * t * t * p2 + t * t * t;
+  private static double Bezier(double t, double first, double second) {
+    double rest = 1 - t;
+    return 3 * rest * rest * t * first + 3 * rest * t * t * second + t * t * t;
   }
 
-  private static double Slope(double t, double p1, double p2) {
-    double u = 1 - t;
-    return 3 * u * u * p1 + 6 * u * t * (p2 - p1) + 3 * t * t * (1 - p2);
+  private static double Slope(double t, double first, double second) {
+    double rest = 1 - t;
+    return 3 * rest * rest * first + 6 * rest * t * (second - first) + 3 * t * t * (1 - second);
   }
 
   /// <summary>The curve parameter whose x is <paramref name="x"/>.</summary>

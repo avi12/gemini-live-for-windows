@@ -136,9 +136,9 @@ public static partial class ScreenText {
       var text = (TextPattern)pattern;
       TextPatternRange[] visible = text.GetVisibleRanges();
       IEnumerable<string> parts = visible.Length > 0
-          ? visible.Select(r => r.GetText(_maxChars))
+          ? visible.Select(range => range.GetText(_maxChars))
           : [text.DocumentRange.GetText(_maxChars)];
-      foreach (string line in parts.SelectMany(p => p.Split('\n'))) {
+      foreach (string line in parts.SelectMany(part => part.Split('\n'))) {
         add(BlockKind.Paragraph, line);
       }
       return false;
@@ -199,7 +199,7 @@ public static partial class ScreenText {
   private static string Hash(string title, List<Block> blocks) {
     var text = new StringBuilder(title);
     foreach (Block block in blocks) {
-      text.Append('\n').Append(WireName.Of(block.Kind)).Append(':').Append(block.Text);
+      text.Append('\n').Append(WireName.For(block.Kind)).Append(':').Append(block.Text);
     }
     byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(text.ToString()));
     return Convert.ToHexString(hash)[.._versionHexLength];

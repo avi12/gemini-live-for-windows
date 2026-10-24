@@ -21,26 +21,26 @@ public static class GoogleCookies {
 
   /// <summary>The Google login/session cookies among everything the browser sent.</summary>
   public static List<GoogleCookie> AuthCookies(IEnumerable<GoogleCookie> cookies) {
-    return cookies.Where(c => IsAuthCookie(c.Name)).ToList();
+    return cookies.Where(cookie => IsAuthCookie(cookie.Name)).ToList();
   }
 
   /// <summary>True when the jar has a Google login at all.</summary>
   public static bool HasSession(IReadOnlyList<GoogleCookie> cookies) {
-    return cookies.Any(c => c.Name is "SID" or "__Secure-1PSID");
+    return cookies.Any(cookie => cookie.Name is "SID" or "__Secure-1PSID");
   }
 
   public static void Inject(CoreWebView2CookieManager jar, IReadOnlyList<GoogleCookie> cookies) {
-    foreach (GoogleCookie c in cookies) {
-      CoreWebView2Cookie cookie = jar.CreateCookie(c.Name, c.Value, c.Domain, c.Path);
-      cookie.IsSecure = c.Secure;
-      cookie.IsHttpOnly = c.HttpOnly;
-      cookie.SameSite = c.SameSite switch {
+    foreach (GoogleCookie saved in cookies) {
+      CoreWebView2Cookie cookie = jar.CreateCookie(saved.Name, saved.Value, saved.Domain, saved.Path);
+      cookie.IsSecure = saved.Secure;
+      cookie.IsHttpOnly = saved.HttpOnly;
+      cookie.SameSite = saved.SameSite switch {
         "strict" => CoreWebView2CookieSameSiteKind.Strict,
         "lax" => CoreWebView2CookieSameSiteKind.Lax,
         _ => CoreWebView2CookieSameSiteKind.None,
       };
 
-      if (c.ExpirationDate is { } seconds) {
+      if (saved.ExpirationDate is { } seconds) {
         cookie.Expires =
             DateTimeOffset.FromUnixTimeMilliseconds((long)(seconds * 1000)).UtcDateTime;
       }
@@ -48,7 +48,7 @@ public static class GoogleCookies {
       try {
         jar.AddOrUpdateCookie(cookie);
       } catch (Exception e) {
-        Log.Write($"cookie {c.Name}@{c.Domain} rejected: {e.Message}");
+        Log.Write($"cookie {saved.Name}@{saved.Domain} rejected: {e.Message}");
       }
     }
   }
@@ -76,9 +76,9 @@ public static class GoogleCookies {
   /// <summary>Stable fingerprint, to skip re-injecting an unchanged session.</summary>
   public static string Fingerprint(IReadOnlyList<GoogleCookie> cookies) {
     IEnumerable<string> lines = cookies
-        .OrderBy(c => c.Domain)
-        .ThenBy(c => c.Name)
-        .Select(c => $"{c.Domain}|{c.Name}|{c.Value}");
+        .OrderBy(cookie => cookie.Domain)
+        .ThenBy(cookie => cookie.Name)
+        .Select(cookie => $"{cookie.Domain}|{cookie.Name}|{cookie.Value}");
     return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join('\n', lines))));
   }
 

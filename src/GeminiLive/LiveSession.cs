@@ -133,7 +133,7 @@ public sealed class LiveSession : IAsyncDisposable {
   private void Enqueue(RealtimeInput kind, string mimeType, byte[] data) {
     // Built by hand: this runs 25 times a second for audio alone.
     _outbox.Writer.TryWrite(
-        "{\"realtimeInput\":{\"" + WireName.Of(kind) + "\":{\"mimeType\":\"" + mimeType + "\",\"data\":\""
+        "{\"realtimeInput\":{\"" + WireName.For(kind) + "\":{\"mimeType\":\"" + mimeType + "\",\"data\":\""
         + Convert.ToBase64String(data) + "\"}}}");
   }
 
@@ -167,15 +167,15 @@ public sealed class LiveSession : IAsyncDisposable {
     var buffer = new byte[_receiveBufferBytes];
     using var message = new MemoryStream();
     while (true) {
-      WebSocketReceiveResult r = await _socket!.ReceiveAsync(buffer, _cts.Token);
-      if (r.MessageType == WebSocketMessageType.Close) {
+      WebSocketReceiveResult received = await _socket!.ReceiveAsync(buffer, _cts.Token);
+      if (received.MessageType == WebSocketMessageType.Close) {
         return null;
       }
 
-      message.Write(buffer, 0, r.Count);
+      message.Write(buffer, 0, received.Count);
 
       // The server sends JSON in binary frames; both frame types carry UTF-8 JSON.
-      if (r.EndOfMessage) {
+      if (received.EndOfMessage) {
         return JsonNode.Parse(message.ToArray());
       }
     }

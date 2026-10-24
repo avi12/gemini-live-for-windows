@@ -204,9 +204,9 @@ public abstract class GoogleWebViewHost<TMessage> : Window where TMessage : stru
       } else {
         Core?.Reload();  // a render or utility process died but the engine is intact
       }
-    } catch (Exception ex) {
-      Log.Write($"{_logTag}: recovery failed: {ex.Message}");
-      OnRecoveryFailed(RecoveryFailure.RebuildFailed, ex);
+    } catch (Exception exception) {
+      Log.Write($"{_logTag}: recovery failed: {exception.Message}");
+      OnRecoveryFailed(RecoveryFailure.RebuildFailed, exception);
     }
   }
 

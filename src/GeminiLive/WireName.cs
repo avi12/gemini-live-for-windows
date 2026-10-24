@@ -6,7 +6,7 @@ namespace GeminiLive;
 /// of truth.
 /// </summary>
 internal static class WireName {
-  public static string Of<T>(T value) where T : struct, Enum {
+  public static string For<T>(T value) where T : struct, Enum {
     string name = value.ToString();
     return char.ToLowerInvariant(name[0]) + name[1..];
   }
@@ -14,7 +14,7 @@ internal static class WireName {
   /// <summary>The value spelled <paramref name="wire"/> on the wire; null for anything else.</summary>
   public static T? Parse<T>(string? wire) where T : struct, Enum {
     foreach (T value in Enum.GetValues<T>()) {
-      if (Of(value) == wire) {
+      if (For(value) == wire) {
         return value;
       }
     }

@@ -203,7 +203,7 @@ public sealed class SessionLink {
     foreach (Messenger<LinkMessage> client in Clients()) {
       _ = client.SendMessageAsync(message).ContinueWith(
           t => Log.Write(
-              $"session link {WireName.Of(message.Type)}: {t.Exception?.InnerException?.Message}"),
+              $"session link {WireName.For(message.Type)}: {t.Exception?.InnerException?.Message}"),
           TaskContinuationOptions.OnlyOnFaulted);
     }
   }
@@ -218,14 +218,14 @@ public sealed class SessionLink {
     var buffer = new byte[_receiveBufferBytes];
     using var message = new MemoryStream();
     while (true) {
-      WebSocketReceiveResult r = await socket.ReceiveAsync(buffer, CancellationToken.None);
-      if (r.MessageType == WebSocketMessageType.Close) {
+      WebSocketReceiveResult received = await socket.ReceiveAsync(buffer, CancellationToken.None);
+      if (received.MessageType == WebSocketMessageType.Close) {
         return null;
       }
 
-      message.Write(buffer, 0, r.Count);
+      message.Write(buffer, 0, received.Count);
 
-      if (r.EndOfMessage) {
+      if (received.EndOfMessage) {
         return Encoding.UTF8.GetString(message.ToArray());
       }
     }
@@ -249,10 +249,10 @@ public sealed class SessionLink {
     string[] lines = Encoding.ASCII.GetString(bytes.ToArray())
         .Split("\r\n", StringSplitOptions.RemoveEmptyEntries);
     return lines.Skip(1)
-        .Select(l => l.Split(':', 2))
-        .Where(p => p.Length == 2)
-        .GroupBy(p => p[0].Trim().ToLowerInvariant())
-        .ToDictionary(g => g.Key, g => g.First()[1].Trim());
+        .Select(line => line.Split(':', 2))
+        .Where(header => header.Length == 2)
+        .GroupBy(header => header[0].Trim().ToLowerInvariant())
+        .ToDictionary(group => group.Key, group => group.First()[1].Trim());
   }
 
   private static bool EndsWithBlankLine(List<byte> bytes) {

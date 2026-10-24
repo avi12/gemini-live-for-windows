@@ -12,6 +12,9 @@ public partial class App : Application {
   private const string _instanceName = @"Local\GeminiLive.SingleInstance";
   private const int _forwardAttempts = 10;
 
+  // Never read, only held: the field keeps the mutex from being collected (and released).
+  [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality", "IDE0052",
+                                                   Justification = "Held for the process lifetime")]
   private Mutex? _instance;
 
   protected override void OnStartup(StartupEventArgs e) {
@@ -28,9 +31,9 @@ public partial class App : Application {
     }
 
     Theme.Follow();
-    DispatcherUnhandledException += (_, ex) => {
-      Log.Write($"unhandled: {ex.Exception}");
-      ex.Handled = true;
+    DispatcherUnhandledException += (_, args) => {
+      Log.Write($"unhandled: {args.Exception}");
+      args.Handled = true;
     };
 
     // Load Gemini now, so pressing Win+C later doesn't wait for a page load.

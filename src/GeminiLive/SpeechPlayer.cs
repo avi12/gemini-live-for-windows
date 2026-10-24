@@ -96,16 +96,16 @@ public sealed class SpeechPlayer : IDisposable {
   /// </summary>
   private static VoiceInformation? PickVoice() {
     var voices = SpeechSynthesizer.AllVoices;
-    bool EnUs(VoiceInformation v) =>
-        v.Language.StartsWith("en-US", StringComparison.OrdinalIgnoreCase);
-    bool Female(VoiceInformation v) => v.Gender == VoiceGender.Female;
-    bool Natural(VoiceInformation v) =>
-        v.DisplayName.Contains("Natural", StringComparison.OrdinalIgnoreCase)
-        || v.DisplayName.Contains("Online", StringComparison.OrdinalIgnoreCase);
+    bool EnUs(VoiceInformation voice) =>
+        voice.Language.StartsWith("en-US", StringComparison.OrdinalIgnoreCase);
+    bool Female(VoiceInformation voice) => voice.Gender == VoiceGender.Female;
+    bool Natural(VoiceInformation voice) =>
+        voice.DisplayName.Contains("Natural", StringComparison.OrdinalIgnoreCase)
+        || voice.DisplayName.Contains("Online", StringComparison.OrdinalIgnoreCase);
 
-    return voices.FirstOrDefault(v => EnUs(v) && Female(v) && Natural(v))
-        ?? voices.FirstOrDefault(v => EnUs(v) && Natural(v))
-        ?? voices.FirstOrDefault(v => EnUs(v) && Female(v))
+    return voices.FirstOrDefault(voice => EnUs(voice) && Female(voice) && Natural(voice))
+        ?? voices.FirstOrDefault(voice => EnUs(voice) && Natural(voice))
+        ?? voices.FirstOrDefault(voice => EnUs(voice) && Female(voice))
         ?? voices.FirstOrDefault(EnUs)
         ?? SpeechSynthesizer.DefaultVoice;
   }

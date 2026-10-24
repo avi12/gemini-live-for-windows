@@ -61,7 +61,7 @@ public sealed class GlicHost : GoogleWebViewHost<GlicMessage> {
   /// <summary>The failures the page reports by code (ErrorMessage in glic_bridge.js).</summary>
   private enum PageError { Other, SignedOut, Unavailable, LiveBroke }
 
-  private static readonly IReadOnlyDictionary<string, PageError> PageErrors =
+  private static readonly IReadOnlyDictionary<string, PageError> _pageErrors =
       new Dictionary<string, PageError> {
         ["signed-out"] = PageError.SignedOut,
         ["unavailable"] = PageError.Unavailable,
@@ -247,8 +247,8 @@ public sealed class GlicHost : GoogleWebViewHost<GlicMessage> {
       throw new InvalidOperationException("Gemini's text box didn't open for the action");
     }
 
-    foreach (char ch in prompt) {
-      string key = ch.ToString();
+    foreach (char character in prompt) {
+      string key = character.ToString();
       var down = new JsonObject {
         ["type"] = "keyDown",
         ["text"] = key,
@@ -317,9 +317,7 @@ public sealed class GlicHost : GoogleWebViewHost<GlicMessage> {
     // Holding a session that failed means it went stale: Google's pages keep it fresh only while
     // they run, so have the browser refresh it. Usually that's all a "sign in" needs.
     bool stale = _session.Count > 0;
-    Notice?.Invoke(connected ? (stale ? SessionNotice.Refreshing : SessionNotice.SignIn)
-                   : installed ? SessionNotice.WaitingForBrowser
-                   : SessionNotice.Setup);
+    Notice?.Invoke(SessionNoticeFor(connected, installed, stale));
     ExtensionNeeded?.Invoke(!installed);
 
     if (stale) {
@@ -333,6 +331,14 @@ public sealed class GlicHost : GoogleWebViewHost<GlicMessage> {
     } else {
       _link.RequestCookies();
     }
+  }
+
+  private static string SessionNoticeFor(bool connected, bool installed, bool stale) {
+    if (connected) {
+      return stale ? SessionNotice.Refreshing : SessionNotice.SignIn;
+    }
+
+    return installed ? SessionNotice.WaitingForBrowser : SessionNotice.Setup;
   }
 
   // ---- messages to and from the page ----
@@ -349,7 +355,7 @@ public sealed class GlicHost : GoogleWebViewHost<GlicMessage> {
     try {
       await Messenger.SendMessageAsync(command, data);
     } catch (Exception e) {
-      Log.Write($"glic: {WireName.Of(command.Type)} failed: {e.Message}");
+      Log.Write($"glic: {WireName.For(command.Type)} failed: {e.Message}");
     }
   }
 
@@ -383,7 +389,7 @@ public sealed class GlicHost : GoogleWebViewHost<GlicMessage> {
     Log.Write($"glic error: {message}");
 
     // Signed out or a stale session: get the browser's current one.
-    if (PageErrors.GetValueOrDefault(message) is PageError.SignedOut or PageError.Unavailable) {
+    if (_pageErrors.GetValueOrDefault(message) is PageError.SignedOut or PageError.Unavailable) {
       _unavailable = true;
       WaitForSession();
       return;
@@ -393,7 +399,7 @@ public sealed class GlicHost : GoogleWebViewHost<GlicMessage> {
       return;
     }
 
-    if (PageErrors.GetValueOrDefault(message) is PageError.LiveBroke) {
+    if (_pageErrors.GetValueOrDefault(message) is PageError.LiveBroke) {
       if (TryRestart()) {
         return;
       }

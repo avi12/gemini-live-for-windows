@@ -212,7 +212,7 @@ public sealed partial class GlicConversation : ILiveEngine {
 
   // The app a request names, for the status line while it runs; ambiguous words fall through.
   private static string AppName(string request) {
-    foreach ((Regex pattern, string name) in AppNames) {
+    foreach ((Regex pattern, string name) in _appNames) {
       if (pattern.IsMatch(request)) {
         return name;
       }
@@ -220,7 +220,7 @@ public sealed partial class GlicConversation : ILiveEngine {
     return "your Google apps";
   }
 
-  private static readonly (Regex Pattern, string Name)[] AppNames = [
+  private static readonly (Regex Pattern, string Name)[] _appNames = [
     (new(@"\b(gmail|e-?mail|inbox|mail)\b", RegexOptions.IgnoreCase), "Gmail"),
     (new(@"\b(keep|note|notes)\b", RegexOptions.IgnoreCase), "Keep"),
     (new(@"\b(task|tasks|to-?dos?)\b", RegexOptions.IgnoreCase), "Tasks"),
