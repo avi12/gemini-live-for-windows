@@ -47,7 +47,7 @@ The extension is only needed for the Google account engine. With your own API ke
 
 ## Use your own API key instead
 
-Open the pill (Win+C), click the gear, and under **Gemini runs on** choose **Your API key**. Paste the key and press Enter. **Change API key…** in the same menu replaces it. Switch back to **Your Google account** at any time.
+Open the pill (Win+C), click the gear, and under **Gemini runs on** choose **Your API key**. Paste the key and press Enter. **Change API key…** in the same menu replaces it. Switch back to **Your Gemini subscription** at any time.
 
 The key is stored encrypted for your Windows user (DPAPI). A `GEMINI_API_KEY` environment variable, if set, takes precedence.
 

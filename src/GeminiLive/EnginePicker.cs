@@ -8,7 +8,7 @@ namespace GeminiLive;
 /// </summary>
 public static class EnginePicker {
   private static readonly IReadOnlyList<(EngineKind Kind, string Name, string Detail)> _choices = [
-    (EngineKind.Google, "Your Google account",
+    (EngineKind.Google, "Your Gemini subscription",
      "Your Gemini subscription, through Google's own web client and the browser extension. " +
      "Unofficial: Google may suspend an account that uses it."),
     (EngineKind.ApiKey, "Your API key",
