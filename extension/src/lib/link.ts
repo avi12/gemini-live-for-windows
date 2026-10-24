@@ -1,13 +1,16 @@
 import { type BrowserCookie, LinkMessage, type LinkProtocolMap } from "@/lib/link-protocol";
+import { type LinkInfo, NATIVE_HOST, NativeMessage, type NativeProtocolMap } from "@/lib/native-protocol";
 import { ReconnectController } from "@/lib/reconnect";
 import { refreshGoogleSession } from "@/lib/refresh";
 import { defineMessaging, type Messenger, type Transport } from "@gemini-live/messaging";
 
 // The loopback WebSocket the desktop app hosts. It accepts only this extension's pinned ID. Its
-// port is free-picked per run, so the app writes it, with a token, into this extension's own folder
-// (ExtensionSetup.PublishLink in src/GeminiLive/Glic/ExtensionSetup.cs).
-const LINK_FILE = "link.json";
+// port is free-picked per run, so the extension asks the app's native messaging host for it, with
+// a token, on every attempt: that works wherever the browser installed the extension from.
 const LINK_PATH = "/google-session";
+
+// The browser starts the host process per ask; give it time to boot before calling the link gone.
+const NATIVE_TIMEOUT_MS = 10000;
 
 // The app may not be running yet; retry quietly until it is.
 const RECONNECT_MS = 5000;
@@ -25,16 +28,10 @@ const ROTATION_DEBOUNCE_MS = 1500;
 // Everything on google.com and its subdomains; the app picks the auth cookies it needs.
 const GOOGLE_COOKIE_DOMAIN = "google.com";
 
-/** Where this run of the app listens (the link file). */
-interface LinkInfo {
-  port: number;
-  token: string;
-}
-
 /**
- * One attempt at the link: reading the link file, then the socket and its messenger (from the
- * moment the socket opens). `trusted` once the app's Hello carried the file's token; nothing is
- * sent or answered before that.
+ * One attempt at the link: asking the native host for it, then the socket and its messenger (from
+ * the moment the socket opens). `trusted` once the app's Hello carried the host's token; nothing
+ * is sent or answered before that.
  */
 interface Link {
   socket?: WebSocket;
@@ -131,28 +128,57 @@ async function pushSession(): Promise<void> {
   messenger.sendMessage(LinkMessage.Cookies, cookies).catch(() => undefined);
 }
 
-function isLinkInfo(value: unknown): value is LinkInfo {
-  return typeof value === "object" &&
-    value !== null &&
-    "port" in value &&
-    typeof value.port === "number" &&
-    "token" in value &&
-    typeof value.token === "string";
+/** A native host port as a messaging transport: the browser frames JSON both ways. */
+function portTransport(port: Browser.runtime.Port): Transport {
+  return {
+    post(envelope) {
+      // A port the host already closed throws; its sender's timeout (or the disconnect) reports it.
+      try {
+        port.postMessage(envelope);
+      } catch {
+        // Gone already.
+      }
+    },
+    listen(receive) {
+      port.onMessage.addListener((message: unknown) => {
+        if (typeof message !== "object" || message === null) {
+          return;
+        }
+
+        receive(message);
+      });
+    }
+  };
 }
 
-/** The link file as the app last wrote it, or undefined before the app has ever run. */
+/**
+ * The running app's link, asked of its native messaging host; undefined when the host isn't
+ * installed or the app isn't running, so the controller retries later.
+ */
 async function readLinkInfo(): Promise<LinkInfo | undefined> {
+  let port: Browser.runtime.Port;
   try {
-    const response = await fetch(new URL(LINK_FILE, location.origin), { cache: "no-store" });
-    const info: unknown = await response.json();
-    return isLinkInfo(info)
-      ? {
-        port: info.port,
-        token: info.token
-      }
-      : undefined;
+    port = browser.runtime.connectNative(NATIVE_HOST);
   } catch {
     return undefined;
+  }
+
+  const disconnected = new Promise<undefined>(resolve => {
+    port.onDisconnect.addListener(() => {
+      // Reading lastError marks it handled: a missing or crashed host just means "no link yet".
+      void browser.runtime.lastError;
+      resolve(undefined);
+    });
+  });
+  const messenger = defineMessaging<NativeProtocolMap>(portTransport(port), { timeoutMs: NATIVE_TIMEOUT_MS });
+  try {
+    const info = await Promise.race([messenger.sendMessage(NativeMessage.Link), disconnected]);
+    return info ?? undefined;
+  } catch {
+    return undefined;
+  } finally {
+    messenger.removeAllListeners();
+    port.disconnect();
   }
 }
 

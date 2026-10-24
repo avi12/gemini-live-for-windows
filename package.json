@@ -29,7 +29,7 @@
     "pre-commit": "pnpm lint-staged"
   },
   "lint-staged": {
-    "{bridge,extension/src,messaging/src,eslint-rules}/**/*.{ts,js,mjs}": [
+    "{bridge,extension/src,extension/scripts,messaging/src,eslint-rules}/**/*.{ts,js,mjs}": [
       "oxlint --ignore-path .oxlintignore --fix -c .oxlintrc.fix.json",
       "eslint --fix --no-warn-ignored",
       "oxlint --ignore-path .oxlintignore"

@@ -25,8 +25,8 @@ export interface BrowserCookie {
 
 export interface LinkProtocolMap {
   /**
-   * First on every connection: this run's token, proving it is the app that wrote link.json.
-   * Nothing else is answered until it matches.
+   * First on every connection: this run's token, proving it is the app whose native host gave out
+   * the link. Nothing else is answered until it matches.
    */
   [LinkMessage.Hello](token: string): void;
   /** The browser's current Google cookies. */

@@ -4,6 +4,7 @@
     "bridge/glic_bridge.ts",
     "bridge/home_bridge.ts",
     "bridge/build.mjs",
+    "extension/scripts/pack-crx.mjs",
     "extension/src/entrypoints/**",
     "extension/wxt.config.ts",
     "messaging/src/index.ts"
