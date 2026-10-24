@@ -26,6 +26,24 @@ $name      = $manifest.Package.Identity.Name
 
 $release = $Mode -eq 'Release'
 
+# Runs a native tool and stops the script if it fails; $what names it in the error.
+function Invoke-Native([string] $what, [scriptblock] $command) {
+    & $command
+    if ($LASTEXITCODE) { throw "$what failed" }
+}
+
+# One pnpm workspace package's script, by folder under the repo root.
+function Invoke-Pnpm([string] $package, [string] $task) {
+    Invoke-Native "$package $task" { pnpm --dir (Join-Path $root $package) $task }
+}
+
+# A .NET project, published into the package layout.
+function Publish-Project([string] $project) {
+    Invoke-Native "dotnet publish ($project)" {
+        dotnet publish (Join-Path $root "src\$project\$project.csproj") -c Release -o $layout --nologo -v q
+    }
+}
+
 # Stop a running copy (and a host a browser has open) so its files can be replaced. A release only
 # builds files, so the installed app keeps running.
 if (-not $release) {
@@ -34,29 +52,23 @@ if (-not $release) {
 
 # One pnpm workspace: the messaging package, the extension and the bridges install together.
 Write-Host '== install'
-pnpm --dir $root install --silent
-if ($LASTEXITCODE) { throw 'pnpm install failed' }
+Invoke-Native 'pnpm install' { pnpm --dir $root install --silent }
 
 Write-Host '== messaging'
-pnpm --dir (Join-Path $root 'messaging') typecheck
-if ($LASTEXITCODE) { throw 'messaging typecheck failed' }
+Invoke-Pnpm 'messaging' 'typecheck'
 
 Write-Host '== extension'
 # A release also zips the extension and signs its .crx.
-pnpm --dir (Join-Path $root 'extension') $(if ($release) { 'release' } else { 'build' })
-if ($LASTEXITCODE) { throw 'extension build failed' }
+Invoke-Pnpm 'extension' $(if ($release) { 'release' } else { 'build' })
 
 Write-Host '== bridge'
-pnpm --dir (Join-Path $root 'bridge') build
-if ($LASTEXITCODE) { throw 'bridge build failed' }
+Invoke-Pnpm 'bridge' 'build'
 
 Write-Host '== publish'
 if (Test-Path $layout) { Remove-Item $layout -Recurse -Force }
-dotnet publish (Join-Path $root 'src\GeminiLive\GeminiLive.csproj') -c Release -o $layout --nologo -v q
-if ($LASTEXITCODE) { throw 'dotnet publish failed' }
+Publish-Project 'GeminiLive'
 # The browsers' native messaging host ships beside the app (its execution alias is in the manifest).
-dotnet publish (Join-Path $root 'src\GeminiLiveHost\GeminiLiveHost.csproj') -c Release -o $layout --nologo -v q
-if ($LASTEXITCODE) { throw 'dotnet publish (native host) failed' }
+Publish-Project 'GeminiLiveHost'
 Copy-Item (Join-Path $root 'package\*') $layout -Recurse -Force
 
 # Update in place rather than remove + add: removing the package wipes the permissions Windows keeps
@@ -108,10 +120,8 @@ else {
     }
 
     Write-Host '== pack + sign'
-    & "$sdk\makeappx.exe" pack /o /d $layout /p $msix /nv | Out-Null
-    if ($LASTEXITCODE) { throw 'makeappx failed' }
-    & "$sdk\signtool.exe" sign /fd SHA256 /sha1 $cert.Thumbprint /s My $msix | Out-Null
-    if ($LASTEXITCODE) { throw 'signtool failed' }
+    Invoke-Native 'makeappx' { & "$sdk\makeappx.exe" pack /o /d $layout /p $msix /nv | Out-Null }
+    Invoke-Native 'signtool' { & "$sdk\signtool.exe" sign /fd SHA256 /sha1 $cert.Thumbprint /s My $msix | Out-Null }
 
     if ($release) {
         Write-Host '== release files'
