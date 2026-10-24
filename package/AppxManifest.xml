@@ -9,7 +9,7 @@
   IgnorableNamespaces="uap uap3 rescap desktop desktop6">
 
   <!-- Publisher must equal the signing certificate's subject (scripts\install.ps1 creates it). -->
-  <Identity Name="Avi.GeminiLiveForWindows" Publisher="CN=GeminiLiveForWindows" Version="1.0.0.0" ProcessorArchitecture="x64" />
+  <Identity Name="Avi.GeminiLiveForWindows" Publisher="CN=GeminiLiveForWindows" Version="0.0.1.0" ProcessorArchitecture="x64" />
 
   <Properties>
     <DisplayName>Gemini Live</DisplayName>

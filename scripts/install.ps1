@@ -7,8 +7,11 @@
   Signed   (default) pack + sign with a local self-signed cert. Windows only enables signed
            Copilot key providers. Trusting the cert needs one UAC prompt, first time only.
   Register dev-mode loose registration, no signing. Fastest inner loop for code changes.
+  Release  pack + sign at exactly the manifest's version, without installing, and gather what a
+           GitHub release ships in build\release: the .msix, the signing .cer, Install-GeminiLive.ps1,
+           and the extension's .zip and signed .crx (keys\chrome.pem).
 #>
-param([ValidateSet('Signed', 'Register')] [string] $Mode = 'Signed')
+param([ValidateSet('Signed', 'Register', 'Release')] [string] $Mode = 'Signed')
 $ErrorActionPreference = 'Stop'
 
 $root    = Split-Path $PSScriptRoot -Parent
@@ -21,8 +24,13 @@ $sdk     = Get-ChildItem 'C:\Program Files (x86)\Windows Kits\10\bin\10.*\x64\ma
 $publisher = $manifest.Package.Identity.Publisher   # the one source for the cert subject
 $name      = $manifest.Package.Identity.Name
 
-# Stop a running copy (and a host a browser has open) so its files can be replaced.
-Get-Process GeminiLive, GeminiLiveHost -ErrorAction SilentlyContinue | Stop-Process -Force
+$release = $Mode -eq 'Release'
+
+# Stop a running copy (and a host a browser has open) so its files can be replaced. A release only
+# builds files, so the installed app keeps running.
+if (-not $release) {
+    Get-Process GeminiLive, GeminiLiveHost -ErrorAction SilentlyContinue | Stop-Process -Force
+}
 
 # One pnpm workspace: the messaging package, the extension and the bridges install together.
 Write-Host '== install'
@@ -34,7 +42,8 @@ pnpm --dir (Join-Path $root 'messaging') typecheck
 if ($LASTEXITCODE) { throw 'messaging typecheck failed' }
 
 Write-Host '== extension'
-pnpm --dir (Join-Path $root 'extension') build
+# A release also zips the extension and signs its .crx.
+pnpm --dir (Join-Path $root 'extension') $(if ($release) { 'release' } else { 'build' })
 if ($LASTEXITCODE) { throw 'extension build failed' }
 
 Write-Host '== bridge'
@@ -52,16 +61,19 @@ Copy-Item (Join-Path $root 'package\*') $layout -Recurse -Force
 
 # Update in place rather than remove + add: removing the package wipes the permissions Windows keeps
 # for it, so every install re-asked for the microphone. An in-place update needs a higher version,
-# so the packaged copy gets major.minor from the manifest plus a build stamp (days since 2026, then
-# 2-second ticks of the day - both stay under the 65535 a version part allows).
+# so a local install gets major.minor from the manifest plus a build stamp (days since 2026, then
+# 2-second ticks of the day - both stay under the 65535 a version part allows). A release keeps the
+# manifest's version as it is.
 $base   = [version] $manifest.Package.Identity.Version
 $now    = Get-Date
 $layoutManifestPath = Join-Path $layout 'AppxManifest.xml'
-[xml] $layoutManifest = Get-Content $layoutManifestPath
-$layoutManifest.Package.Identity.Version =
-    '{0}.{1}.{2}.{3}' -f $base.Major, $base.Minor, ($now - [datetime] '2026-01-01').Days,
-                         [int] ($now.TimeOfDay.TotalSeconds / 2)
-$layoutManifest.Save($layoutManifestPath)
+if (-not $release) {
+    [xml] $layoutManifest = Get-Content $layoutManifestPath
+    $layoutManifest.Package.Identity.Version =
+        '{0}.{1}.{2}.{3}' -f $base.Major, $base.Minor, ($now - [datetime] '2026-01-01').Days,
+                             [int] ($now.TimeOfDay.TotalSeconds / 2)
+    $layoutManifest.Save($layoutManifestPath)
+}
 
 # Installs $package as an update; only if Windows refuses (e.g. switching between Signed and
 # Register) does it fall back to removing the old one first.
@@ -100,6 +112,20 @@ else {
     if ($LASTEXITCODE) { throw 'makeappx failed' }
     & "$sdk\signtool.exe" sign /fd SHA256 /sha1 $cert.Thumbprint /s My $msix | Out-Null
     if ($LASTEXITCODE) { throw 'signtool failed' }
+
+    if ($release) {
+        Write-Host '== release files'
+        $out = Join-Path $build 'release'
+        if (Test-Path $out) { Remove-Item $out -Recurse -Force }
+        New-Item -ItemType Directory $out | Out-Null
+        $version = '{0}.{1}.{2}' -f $base.Major, $base.Minor, $base.Build
+        Copy-Item $msix (Join-Path $out "GeminiLive-$version.msix")
+        Export-Certificate -Cert $cert -FilePath (Join-Path $out 'GeminiLive.cer') | Out-Null
+        Copy-Item (Join-Path $PSScriptRoot 'Install-GeminiLive.ps1') $out
+        Copy-Item (Join-Path $root 'extension\.output\*.zip'), (Join-Path $root 'extension\.output\*.crx') $out
+        Get-ChildItem $out | ForEach-Object { Write-Host "   $($_.Name)" }
+        return
+    }
 
     Write-Host '== install'
     Install-InPlace { Add-AppxPackage $msix -ForceApplicationShutdown }
