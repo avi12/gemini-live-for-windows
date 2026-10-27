@@ -53,14 +53,15 @@ The app is one process. The pill is the only window the user sees. Everything el
 | Entry and single instance | `App.xaml.cs`, `AppInstance.cs`, `CopilotKey.cs` | The first process owns a named mutex. Later launches forward their trigger to it and exit. |
 | Pill | `MainWindow.xaml(.cs)`, `Overlay.cs`, `HeightTransition.cs` | Shows state, captions and links, docked above the taskbar, and handles the engine menu. |
 | Engine interface | `ILiveEngine.cs` | The one contract both engines satisfy: status, transcript, links, mute and start/stop. |
-| Google engine | `Glic/GlicConversation.cs`, `Glic/GlicHost.cs`, `Glic/GoogleWebViewHost.cs` | Runs Gemini's web client in a hidden WebView2 and reads its state through the bridge. |
-| Detours | `Glic/SpokenIntent.cs` | Routes requests Live can't serve: lights to Home, app or web requests to Gemini's text path. |
-| Home | `Glic/HomeHost.cs`, `Glic/HomeProtocol.cs` | Drives the PC lights through the Google Home web app. |
+| Google engine | `Glic/Gemini/GlicConversation.cs`, `Glic/Gemini/GlicHost.cs`, `Glic/Gemini/GoogleWebViewHost.cs` | Runs Gemini's web client in a hidden WebView2 and reads its state through the bridge. |
+| Detours | `Glic/Gemini/SpokenIntent.cs` | Routes requests Live can't serve: lights to Home, app or web requests to Gemini's text path. |
+| Home | `Glic/Home/HomeHost.cs`, `Glic/Home/HomeProtocol.cs` | Drives the PC lights through the Google Home web app. |
 | API key engine | `Conversation.cs`, `LiveSession.cs`, `LiveApi.cs`, `AudioEngine.cs`, `ScreenSource.cs` | Streams mic audio and screen frames to the public Live API over a WebSocket. |
-| Session link | `Glic/SessionLink.cs`, `Glic/NativeHost.cs`, `Glic/LinkFile.cs` | Accepts the browser's Google session over a loopback WebSocket, one token per run. |
+| Session link | `Glic/Link/SessionLink.cs`, `Glic/Link/NativeHost.cs`, `Glic/Link/LinkFile.cs` | Accepts the browser's Google session over a loopback WebSocket, one token per run. |
 | Native host | `src/GeminiLiveHost` | The small native messaging program the extension calls to learn the app's link. |
-| Bridges | `bridge/*.ts`, built to `src/GeminiLive/Glic/*.js` | Injected at document-start into the hidden pages. They install the host object, watch Live and answer the app. |
+| Bridges | `bridge/**/*.ts`, built to `src/GeminiLive/Glic/Bridges/*.js` | Injected at document-start into the hidden pages. They install the host object, watch Live and answer the app. |
 | Extension | `extension/` (WXT) | Pushes the Google session to the app whenever Google rotates it. |
+| Updates | `Updates/ReleaseFeed.cs`, `Updates/UpdateChecker.cs`, `Updates/UpdateInstaller.cs` | Polls the repository's `docs/updates.json` at start and every six hours, downloads a newer `.msix` and checks its SHA-256, then offers "Restart to update" in the gear menu. |
 | Messaging | `messaging/`, `Messaging.cs` | Typed envelopes shared by the bridges, the extension and the app. |
 | Settings and secrets | `Settings.cs`, `UserSecret.cs` | Engine choice in settings. The API key is stored with DPAPI for the Windows user. |
 | Lint analyzers | `analyzers/`, `eslint-rules/`, `.oxlintrc.json` | Enforce the code style on both the C# and TypeScript sides. |
@@ -162,7 +163,7 @@ Mic chunks and screen frames are two producers writing to the same socket, so li
 
 ```mermaid
 flowchart LR
-  TS["bridge/*.ts"] -->|"build.mjs (esbuild)"| JS["src/GeminiLive/Glic/*.js"]
+  TS["bridge/**/*.ts"] -->|"build.mjs (esbuild)"| JS["src/GeminiLive/Glic/Bridges/*.js"]
   JS --> App["GeminiLive.exe (embedded resources)"]
   Ext["extension/ (WXT)"] --> CRX[".crx and .zip"]
   App --> MSIX["MSIX package"]
@@ -175,10 +176,20 @@ flowchart LR
 ## Code layout
 
 ```
-src/GeminiLive/        WPF app: pill, engines, audio, screen, settings
-src/GeminiLive/Glic/   Google engine, session link, Home, bridge bundles
+src/GeminiLive/                  WPF app (one namespace; folders group it by concern)
+  App/                           startup, single instance, settings, log, secrets
+  Keys/                          Win+C (Copilot key), Win+Alt+C and other global hotkeys
+  Pill/                          the pill and caption card, its pickers and animators
+  Overlays/                      floating-window chrome, share frame, focus chip
+  CircleToSearch/                freeze-and-circle overlay, its geometry, Lens search
+  Design/                        colour tokens, motion, icon glyphs (Fonts/ holds the fonts)
+  Screen/                        displays, screen and webcam capture, screen text
+  Engines/                       the engine contract; ApiKey/ is the Live API engine
+  Interop/                       P/Invoke, typed JS messaging, wire names
+  Updates/                       finds a newer GitHub release and hands its package to App Installer
+  Glic/                          Gemini/ (Google engine), Home/, Link/ (session link), Bridges/ (bundles)
 src/GeminiLiveHost/    native messaging host
-bridge/                TypeScript injected into the hidden pages
+bridge/                TypeScript injected into the hidden pages: glic/, home/, shared/
 extension/             companion browser extension (WXT)
 messaging/             typed message envelopes shared across channels
 analyzers/             Roslyn analyzers for the C# style rules

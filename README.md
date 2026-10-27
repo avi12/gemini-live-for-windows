@@ -45,6 +45,12 @@ Stay signed in to Google in that browser. If you sign out there, Gemini Live wai
 
 The extension is only needed for the Google account engine. With your own API key, skip it.
 
+### Updates
+
+The app reads a small manifest this repository hosts (`docs/updates.json`: the version, the package's URL and its SHA-256) at start and every six hours. When it names a newer release, the app downloads the package in the background and checks it against the hash, then the gear menu offers **Restart to update**. That opens the package in Windows' App Installer, where you choose Update. **Check for updates** in the same menu looks right away, and **Check for updates automatically** turns the looking, and every connection it makes, off. The release must be signed with the same certificate as your install.
+
+To publish one: `.\scripts\install.ps1 -Mode Release`, attach `build\release\GeminiLive-<version>.msix` to the GitHub release `v<version>`, then `.\scripts\Write-UpdateManifest.ps1 -Package build\release\GeminiLive-<version>.msix` and push `docs/updates.json`. Until that push, installed copies see no update.
+
 ## Use your own API key instead
 
 Open the pill (Win+C), click the gear, and under **Gemini runs on** choose **Your API key**. Paste the key and press Enter. **Change API key…** in the same menu replaces it. Switch back to **Your Gemini subscription** at any time.
@@ -120,7 +126,7 @@ Windows only lists signed providers in the Copilot key setting, so use the defau
 | --- | --- |
 | `src/GeminiLive` | the WPF app |
 | `src/GeminiLiveHost` | the native messaging host the extension asks for the app's link |
-| `bridge/` | the TypeScript injected into the hidden Gemini and Google Home pages |
+| `bridge/` | the TypeScript injected into the hidden Gemini and Google Home pages (`glic/`, `home/`, `shared/`) |
 | `extension/` | the companion browser extension (WXT) |
 | `messaging/` | typed messaging, in [@webext-core/messaging](https://webext-core.aklinker1.io/messaging/)'s protocol-map style, shared by the bridges, the extension and (as `Messaging.cs`) the app |
 | `analyzers/` | the C# side of the lint rules |
@@ -138,6 +144,12 @@ TypeScript follows the youtube-time-manager setup: oxlint for logic, ESLint for 
 
 - Log: `%LOCALAPPDATA%\GeminiLive\log.txt`.
 - Create `%LOCALAPPDATA%\GeminiLive\debug.flag` to turn on DevTools and CDP for the hidden pages, each on a free port the log names (`glic: devtools on localhost:<port>`), and to keep the overlays visible in screenshots.
+
+## Circle to Search
+
+Press **Win+Alt+C** to freeze the screen, circle something, and then ask Gemini about it, search it with Google Lens, or select its text and copy it. While Live runs, the circled area becomes what Gemini sees, until you press Esc to go back to the whole monitor.
+
+Inspired by [AKS-Labs/CircleToSearch](https://github.com/AKS-Labs/CircleToSearch), an Android app. Only its idea and look were carried over; it is GPL-3, and none of its code is used here.
 
 ## License
 
