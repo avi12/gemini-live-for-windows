@@ -11,34 +11,63 @@
          default WPF/Win32 chrome: anything we show has a style here. -->
     <Application.Resources>
         <!-- Type ramp. -->
-        <FontFamily x:Key="LiveFont">Google Sans, Segoe UI Variable Text, Segoe UI</FontFamily>
-        <FontFamily x:Key="IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
-        <sys:Double x:Key="BodySize">15</sys:Double>
-        <sys:Double x:Key="LabelSize">13</sys:Double>
+        <FontFamily x:Key="LiveFont">pack://application:,,,/Fonts/#Google Sans, Segoe UI Variable Text, Segoe UI</FontFamily>
+        <!-- Material Symbols Rounded, cut down to Glyphs.cs's icons by scripts\subset-icons.py. -->
+        <FontFamily x:Key="IconFont">pack://application:,,,/Fonts/#Material Symbols Rounded</FontFamily>
+        <!-- Material 3's body-large 16, label-large 14 and body-small 12 (Google Sans is the
+             family; labels are Medium, never SemiBold, which Google Sans renders as Bold). -->
+        <sys:Double x:Key="BodySize">16</sys:Double>
+        <sys:Double x:Key="LabelSize">14</sys:Double>
         <sys:Double x:Key="CaptionSize">12</sys:Double>
 
-        <!-- Shape. The pill and controls are stadiums: their radius is half their height. -->
+        <!-- Shape. The pill and controls are stadiums: their radius is half their height. The rest
+             is Material 3's corner scale: large 16 (menus), medium 12 (a highlighted menu row,
+             thumbnails), small 8 (chips), extra-small 4 (tooltips, text fields, resting rows). -->
         <CornerRadius x:Key="PillRadius">34</CornerRadius>
         <CornerRadius x:Key="ControlRadius">23</CornerRadius>
         <CornerRadius x:Key="CardRadius">28</CornerRadius>
-        <CornerRadius x:Key="ChipRadius">16</CornerRadius>
-        <CornerRadius x:Key="MenuRadius">12</CornerRadius>
-        <CornerRadius x:Key="SmallRadius">8</CornerRadius>
+        <CornerRadius x:Key="MenuRadius">16</CornerRadius>
+        <CornerRadius x:Key="MediumRadius">12</CornerRadius>
+        <CornerRadius x:Key="ChipRadius">8</CornerRadius>
+        <CornerRadius x:Key="ExtraSmallRadius">4</CornerRadius>
+
+        <!-- Material's state layers: the on-colour at 8% on hover, 10% pressed. Theme.cs builds the
+             hover/pressed layer brushes from these too, so every control dims by the same amount. -->
+        <sys:Double x:Key="HoverLayerOpacity">0.08</sys:Double>
+        <sys:Double x:Key="PressedLayerOpacity">0.10</sys:Double>
 
         <!-- Spacing. -->
         <Thickness x:Key="CardPadding">22,18</Thickness>
         <Thickness x:Key="ShareButtonPadding">18,0</Thickness>
-        <Thickness x:Key="ChipPadding">12,0</Thickness>
-        <Thickness x:Key="FieldPadding">12,8</Thickness>
+        <!-- Material's assist chip with a leading icon: 8 before the icon, 16 after the label. -->
+        <Thickness x:Key="ChipPadding">8,0,16,0</Thickness>
+        <Thickness x:Key="FieldPadding">16,0</Thickness>
         <Thickness x:Key="MenuPadding">8</Thickness>
-        <Thickness x:Key="MenuItemPadding">12,8</Thickness>
+        <Thickness x:Key="MenuItemPadding">16,0</Thickness>
         <Thickness x:Key="TooltipPadding">8,4</Thickness>
 
         <!-- Text styles. -->
-        <Style x:Key="LiveBodyText" TargetType="TextBlock">
+        <!-- A transcript line: body-large text the user can select and copy (a TextBlock can't be).
+             Read only, with no border, caret or scrollbars, so it reads as plain text; the 24px line
+             height is set on its paragraph (CaptionPresenter). -->
+        <Style x:Key="LiveTranscriptLine" TargetType="RichTextBox">
+            <Setter Property="OverridesDefaultStyle" Value="True" />
+            <Setter Property="IsReadOnly" Value="True" />
             <Setter Property="FontSize" Value="{StaticResource BodySize}" />
-            <Setter Property="LineHeight" Value="24" />
-            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Foreground" Value="{DynamicResource LiveTextBrush}" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="SelectionBrush" Value="{DynamicResource LivePrimaryBrush}" />
+            <Setter Property="IsInactiveSelectionHighlightEnabled" Value="True" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Cursor" Value="IBeam" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RichTextBox">
+                        <ScrollViewer x:Name="PART_ContentHost" Background="{TemplateBinding Background}"
+                                      VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Disabled" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <Style x:Key="LiveLabelText" TargetType="TextBlock">
@@ -83,12 +112,13 @@
             <Setter Property="Effect" Value="{DynamicResource LiveCaptionGlow}" />
         </Style>
 
-        <!-- Buttons: never take focus (the pill must not steal it), always look clickable. -->
+        <!-- Buttons: never take focus (the pill must not steal it). They keep the arrow pointer, as
+             Googlebook's do; the hand is for links. -->
         <Style x:Key="LiveButtonBase" TargetType="Button">
             <Setter Property="Foreground" Value="{DynamicResource LiveTextBrush}" />
             <Setter Property="Background" Value="{DynamicResource LiveControlBrush}" />
-            <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Focusable" Value="False" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         </Style>
 
         <!-- Round 46px control on the pill (mic, settings, end). Tag="muted" turns it into mute-red. -->
@@ -145,13 +175,19 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="Bg" Background="{TemplateBinding Background}" CornerRadius="{StaticResource ControlRadius}"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter VerticalAlignment="Center" />
-                        </Border>
+                        <!-- Material's state layer: the on-colour at the state-layer opacities. -->
+                        <Grid>
+                            <Border Background="{TemplateBinding Background}" CornerRadius="{StaticResource ControlRadius}" />
+                            <Border x:Name="State" Background="{TemplateBinding Foreground}" CornerRadius="{StaticResource ControlRadius}"
+                                    Opacity="0" />
+                            <ContentPresenter Margin="{TemplateBinding Padding}" VerticalAlignment="Center" />
+                        </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bg" Property="Opacity" Value="0.88" />
+                                <Setter TargetName="State" Property="Opacity" Value="{StaticResource HoverLayerOpacity}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="State" Property="Opacity" Value="{StaticResource PressedLayerOpacity}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -159,26 +195,34 @@
             </Setter>
         </Style>
 
+        <!-- Material 3 Expressive's small button: 40 tall, label-large Medium. -->
         <Style x:Key="LiveAccentButton" TargetType="Button" BasedOn="{StaticResource LiveShareButton}">
-            <Setter Property="Height" Value="36" />
+            <Setter Property="Height" Value="40" />
+            <Setter Property="Padding" Value="16,0" />
             <Setter Property="FontSize" Value="{StaticResource LabelSize}" />
-            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontWeight" Value="Medium" />
         </Style>
 
-        <!-- A link Gemini mentioned, as a clickable chip under the transcript. -->
+        <!-- A link Gemini mentioned, as Material's assist chip under the transcript: outlined, no
+             fill, a state layer on hover. -->
         <Style x:Key="LiveLinkChip" TargetType="Button" BasedOn="{StaticResource LiveButtonBase}">
             <Setter Property="FontSize" Value="{StaticResource LabelSize}" />
+            <Setter Property="FontWeight" Value="Medium" />
             <Setter Property="Margin" Value="0,0,8,8" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="Bg" Background="{TemplateBinding Background}" CornerRadius="{StaticResource ChipRadius}"
+                        <Border x:Name="Bg" Background="Transparent" CornerRadius="{StaticResource ChipRadius}"
+                                BorderBrush="{DynamicResource LiveOutlineVariantBrush}" BorderThickness="1"
                                 Height="32" Padding="{StaticResource ChipPadding}">
                             <ContentPresenter VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource LiveControlHoverBrush}" />
+                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource LiveHoverLayerBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource LivePressedLayerBrush}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -193,22 +237,26 @@
             <Setter Property="OverridesDefaultStyle" Value="True" />
             <Setter Property="HasDropShadow" Value="False" />
             <Setter Property="FontFamily" Value="{StaticResource LiveFont}" />
+            <!-- Desktop density: label-large items under label-small headers, as Googlebook's own
+                 menus, not the 16px rows of a phone. -->
             <Setter Property="FontSize" Value="{StaticResource LabelSize}" />
             <Setter Property="Foreground" Value="{DynamicResource LiveTextBrush}" />
             <Setter Property="MinWidth" Value="220" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ContextMenu">
-                        <!-- The margin leaves the popup room for the elevation shadow. -->
+                        <!-- The margin leaves the popup room for the elevation shadow. Material's menu
+                             has no outline (that 1px edge is the Windows flyout's tell), only a soft
+                             level-2 shadow. -->
                         <Grid Margin="12">
                             <Border CornerRadius="{StaticResource MenuRadius}" Background="{DynamicResource LiveMenuSurfaceBrush}">
                                 <Border.Effect>
-                                    <DropShadowEffect BlurRadius="16" ShadowDepth="4" Direction="270" Opacity="0.3" />
+                                    <DropShadowEffect BlurRadius="8" ShadowDepth="2" Direction="270" Opacity="0.2" />
                                 </Border.Effect>
                             </Border>
                             <Border CornerRadius="{StaticResource MenuRadius}" Padding="{StaticResource MenuPadding}"
-                                    Background="{DynamicResource LiveMenuSurfaceBrush}"
-                                    BorderBrush="{DynamicResource LiveOutlineVariantBrush}" BorderThickness="1">
+                                    Background="{DynamicResource LiveMenuSurfaceBrush}">
                                 <ItemsPresenter />
                             </Border>
                         </Grid>
@@ -217,18 +265,20 @@
             </Setter>
         </Style>
 
-        <!-- A menu row: a state layer on hover/press, and a trailing check for the chosen one
-             instead of Win32's checkbox gutter. -->
+        <!-- A Material 3 Expressive menu row at desktop density, 36 tall: a state layer on
+             hover/press, and for the chosen one a filled container (the corners rounding from 4 to
+             12) with a trailing check, instead of Win32's checkbox gutter. -->
         <Style TargetType="MenuItem">
             <Setter Property="OverridesDefaultStyle" Value="True" />
             <Setter Property="Foreground" Value="{DynamicResource LiveTextBrush}" />
             <Setter Property="Padding" Value="{StaticResource MenuItemPadding}" />
-            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="MinHeight" Value="36" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="MenuItem">
-                        <Border x:Name="Bg" Background="Transparent" CornerRadius="{StaticResource SmallRadius}"
-                                Padding="{TemplateBinding Padding}">
+                        <Border x:Name="Bg" Background="Transparent" CornerRadius="{StaticResource ExtraSmallRadius}"
+                                Padding="{TemplateBinding Padding}" MinHeight="{TemplateBinding MinHeight}">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
@@ -236,23 +286,26 @@
                                 </Grid.ColumnDefinitions>
                                 <ContentPresenter ContentSource="Header" RecognizesAccessKey="True" VerticalAlignment="Center" />
                                 <TextBlock x:Name="Check" Grid.Column="1" Style="{StaticResource LiveIcon}" Text="{x:Static local:Glyphs.Check}"
-                                           FontSize="14" Margin="12,0,0,0" Foreground="{DynamicResource LivePrimaryBrush}"
+                                           FontSize="20" Margin="12,0,0,0" Foreground="{TemplateBinding Foreground}"
                                            Visibility="Collapsed" />
                             </Grid>
                         </Border>
                         <ControlTemplate.Triggers>
-                            <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="Check" Property="Visibility" Value="Visible" />
-                            </Trigger>
                             <Trigger Property="IsHighlighted" Value="True">
                                 <Setter TargetName="Bg" Property="Background" Value="{DynamicResource LiveHoverLayerBrush}" />
+                                <Setter TargetName="Bg" Property="CornerRadius" Value="{StaticResource MediumRadius}" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Check" Property="Visibility" Value="Visible" />
+                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource LiveSelectedContainerBrush}" />
+                                <Setter TargetName="Bg" Property="CornerRadius" Value="{StaticResource MediumRadius}" />
+                                <Setter Property="Foreground" Value="{DynamicResource LiveOnSelectedContainerBrush}" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="Bg" Property="Background" Value="{DynamicResource LivePressedLayerBrush}" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Foreground" Value="{DynamicResource LiveSecondaryTextBrush}" />
-                                <Setter Property="Cursor" Value="Arrow" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -264,8 +317,9 @@
         <Style x:Key="LiveMenuHeader" TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
             <Setter Property="IsEnabled" Value="False" />
             <Setter Property="FontSize" Value="{StaticResource CaptionSize}" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Padding" Value="12,6,12,4" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="Padding" Value="16,8,16,4" />
+            <Setter Property="MinHeight" Value="0" />
         </Style>
 
         <!-- Menus look separators up by this key, not by type. -->
@@ -274,7 +328,7 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Separator">
-                        <Border Height="1" Margin="4,6" Background="{DynamicResource LiveOutlineVariantBrush}" />
+                        <Border Height="1" Margin="8,4" Background="{DynamicResource LiveOutlineVariantBrush}" />
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -289,9 +343,10 @@
             <Setter Property="MaxWidth" Value="320" />
             <Setter Property="Template">
                 <Setter.Value>
+                    <!-- Material's plain tooltip: inverse surface, extra-small corners, 24 tall. -->
                     <ControlTemplate TargetType="ToolTip">
-                        <Border Background="{DynamicResource LiveInverseSurfaceBrush}" CornerRadius="{StaticResource SmallRadius}"
-                                Padding="{StaticResource TooltipPadding}">
+                        <Border Background="{DynamicResource LiveInverseSurfaceBrush}" CornerRadius="{StaticResource ExtraSmallRadius}"
+                                Padding="{StaticResource TooltipPadding}" MinHeight="24">
                             <!-- Long tips (a failure's reason) wrap instead of running off-screen. -->
                             <ContentPresenter>
                                 <ContentPresenter.Resources>
@@ -306,27 +361,33 @@
             </Setter>
         </Style>
 
-        <!-- A filled text field; the outline turns primary while typing. -->
+        <!-- Material's outlined text field: 56 tall, extra-small corners, a 1px outline that turns
+             into a 2px primary one while typing (the padding gives back the extra pixel, so the
+             text doesn't shift). -->
         <Style TargetType="PasswordBox">
             <Setter Property="OverridesDefaultStyle" Value="True" />
-            <Setter Property="FontSize" Value="{StaticResource LabelSize}" />
+            <Setter Property="FontSize" Value="{StaticResource BodySize}" />
             <Setter Property="Foreground" Value="{DynamicResource LiveTextBrush}" />
-            <Setter Property="Background" Value="{DynamicResource LiveControlBrush}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource LiveOutlineVariantBrush}" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="{DynamicResource LiveOutlineBrush}" />
             <Setter Property="CaretBrush" Value="{DynamicResource LiveTextBrush}" />
             <Setter Property="SelectionBrush" Value="{DynamicResource LivePrimaryBrush}" />
             <Setter Property="Padding" Value="{StaticResource FieldPadding}" />
+            <Setter Property="MinHeight" Value="56" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="PasswordBox">
                         <Border x:Name="Field" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="1" CornerRadius="{StaticResource SmallRadius}" Padding="{TemplateBinding Padding}">
-                            <ScrollViewer x:Name="PART_ContentHost" VerticalScrollBarVisibility="Hidden"
-                                          HorizontalScrollBarVisibility="Hidden" />
+                                BorderThickness="1" CornerRadius="{StaticResource ExtraSmallRadius}">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center"
+                                          VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Hidden" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsKeyboardFocusWithin" Value="True">
                                 <Setter TargetName="Field" Property="BorderBrush" Value="{DynamicResource LivePrimaryBrush}" />
+                                <Setter TargetName="Field" Property="BorderThickness" Value="2" />
+                                <Setter TargetName="PART_ContentHost" Property="Margin" Value="15,0" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>

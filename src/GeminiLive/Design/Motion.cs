@@ -17,6 +17,8 @@ public static class Motion {
   private const double _followMs = 90;
   private const double _bounceMs = 100;
   private const double _bounceScale = 0.9;
+  private const double _travelMs = 350;
+  private const double _springOvershoot = 0.15;
 
   /// <summary>Gap between items that arrive together (link chips).</summary>
   public static readonly TimeSpan Stagger = TimeSpan.FromMilliseconds(60);
@@ -34,6 +36,13 @@ public static class Motion {
 
   /// <summary>Even progress, for a fade that must stay visible for its whole run.</summary>
   public static readonly IEasingFunction Linear = Frozen(new CubicBezierEase(0, 0, 1, 1));
+
+  /// <summary>
+  /// Material 3 Expressive's spatial spring: overshoots a little and settles, for something that
+  /// travels to a new spot.
+  /// </summary>
+  public static readonly IEasingFunction Spring =
+      Frozen(new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = _springOvershoot });
 
   /// <summary>Windows' "Animation effects" setting; the single reduced-motion switch.</summary>
   public static bool Enabled => SystemParameters.ClientAreaAnimation;
@@ -72,6 +81,13 @@ public static class Motion {
     }
 
     animatable.BeginAnimation(property, animation);
+  }
+
+  private const double _menuRise = 8;
+
+  /// <summary>Makes a menu rise into place every time it opens.</summary>
+  public static void EnterOnOpen(System.Windows.Controls.ContextMenu menu) {
+    menu.Opened += (_, _) => Enter(menu, rise: _menuRise);
   }
 
   /// <summary>
@@ -160,6 +176,18 @@ public static class Motion {
     }
   }
 
+  /// <summary>
+  /// An element just placed <paramref name="jump"/> away from where it was springs over from its
+  /// old spot to the new one. Starting from wherever it is drawn now keeps a travel that interrupts
+  /// another one continuous.
+  /// </summary>
+  public static void Travel(UIElement element, Vector jump) {
+    (_, TranslateTransform shift) = Transforms(element);
+    Duration duration = Scaled(_travelMs);
+    Animate(shift, TranslateTransform.XProperty, 0, duration, Spring, from: shift.X - jump.X);
+    Animate(shift, TranslateTransform.YProperty, 0, duration, Spring, from: shift.Y - jump.Y);
+  }
+
   private static Duration Scaled(double milliseconds) {
     return new Duration(TimeSpan.FromMilliseconds(Enabled ? milliseconds : 0));
   }
@@ -186,7 +214,7 @@ public static class Motion {
     return (scale, shift);
   }
 
-  private static CubicBezierEase Frozen(CubicBezierEase ease) {
+  private static TEase Frozen<TEase>(TEase ease) where TEase : Freezable {
     ease.Freeze();
     return ease;
   }

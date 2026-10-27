@@ -56,7 +56,7 @@ public static class DisplayPicker {
       Background = live,
       BorderThickness = new Thickness(selected ? _selectedOutline : 0),
     };
-    thumbnail.SetResourceReference(Border.CornerRadiusProperty, "SmallRadius");
+    thumbnail.SetResourceReference(Border.CornerRadiusProperty, "MediumRadius");
     thumbnail.SetResourceReference(Border.BorderBrushProperty, "LivePrimaryBrush");
     panel.Children.Add(thumbnail);
 

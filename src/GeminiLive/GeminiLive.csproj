@@ -33,6 +33,21 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Google Sans (OFL 1.1, Fonts\OFL.txt), from github.com/google/fonts ofl/googlesans v14.000.
+         Embedded so App.xaml's LiveFont resolves even where Google Sans isn't installed. The
+         variable font's named instances (Regular 400 / Medium 500 / Bold 700) render as real
+         weights in .NET WPF; SemiBold resolves to Bold. -->
+    <Resource Include="Fonts\GoogleSans-Variable.ttf" />
+    <None Include="Fonts\OFL.txt" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Material Symbols Rounded (Apache-2.0, Fonts\MaterialSymbols-LICENSE.txt), from
+         github.com/google/material-design-icons variablefont/ at 10ecc14, renamed without the
+         [FILL,GRAD,opsz,wght] brackets. App.xaml's IconFont; WPF renders its default instance
+         (outlined, weight 400). Glyphs.cs holds the code points. -->
+    <Resource Include="Fonts\MaterialSymbolsRounded.ttf" />
+    <None Include="Fonts\MaterialSymbols-LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4258.31" />
   </ItemGroup>
 

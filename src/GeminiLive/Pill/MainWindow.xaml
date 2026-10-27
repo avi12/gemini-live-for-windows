@@ -20,7 +20,8 @@
             <local:HeightTransition>
                 <StackPanel>
                     <!-- One TextBlock per line (CaptionPresenter), so each new line can fade in. -->
-                    <ScrollViewer x:Name="TranscriptScroll" MaxHeight="200" VerticalScrollBarVisibility="Hidden">
+                    <ScrollViewer x:Name="TranscriptScroll" MaxHeight="200" VerticalScrollBarVisibility="Hidden"
+                                  PreviewMouseLeftButtonDown="OnTranscriptPress">
                         <StackPanel x:Name="Transcript" />
                     </ScrollViewer>
 
@@ -83,16 +84,16 @@
                          the glowing frame around the shared screen. -->
                     <Button x:Name="ShareButton" Grid.Column="0" Style="{StaticResource LiveShareButton}" Click="OnShare">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Style="{StaticResource LiveIcon}" Text="{x:Static local:Glyphs.Display}" FontSize="17" />
+                            <TextBlock Style="{StaticResource LiveIcon}" Text="{x:Static local:Glyphs.Display}" FontSize="20" />
                             <TextBlock x:Name="ShareChevron" Style="{StaticResource LiveIcon}" Text="{x:Static local:Glyphs.ChevronDown}"
-                                       FontSize="10" Margin="8,1,0,0" />
+                                       FontSize="20" Margin="4,0,0,0" />
                         </StackPanel>
                     </Button>
 
                     <!-- Mic: mute/unmute. -->
                     <Button x:Name="MicButton" Grid.Column="1" Style="{StaticResource LiveRoundButton}" Margin="8,0,0,0"
                             Click="OnMute">
-                        <TextBlock x:Name="MicGlyph" Style="{StaticResource LiveIcon}" FontSize="16"
+                        <TextBlock x:Name="MicGlyph" Style="{StaticResource LiveIcon}" FontSize="24"
                                    RenderTransformOrigin="0.5,0.5" />
                     </Button>
 
@@ -101,12 +102,12 @@
 
                     <Button x:Name="SettingsButton" Grid.Column="3" Style="{StaticResource LiveRoundButton}"
                             Click="OnSettings" ToolTip="Settings">
-                        <TextBlock Style="{StaticResource LiveIcon}" Text="{x:Static local:Glyphs.Gear}" FontSize="15" />
+                        <TextBlock Style="{StaticResource LiveIcon}" Text="{x:Static local:Glyphs.Gear}" FontSize="24" />
                     </Button>
 
                     <Button Grid.Column="4" Style="{StaticResource LiveRoundButton}" Margin="8,0,0,0"
                             Click="OnEnd" ToolTip="End (Win+C)">
-                        <TextBlock Style="{StaticResource LiveIcon}" Text="{x:Static local:Glyphs.Close}" FontSize="15" />
+                        <TextBlock Style="{StaticResource LiveIcon}" Text="{x:Static local:Glyphs.Close}" FontSize="24" />
                     </Button>
                 </Grid>
             </Border>

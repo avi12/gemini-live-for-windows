@@ -46,8 +46,11 @@ public static partial class LinkExtractor {
     }
   }
 
-  /// <summary>"host/path" for a URL that parses, the URL itself otherwise.</summary>
-  private static string ShortTitle(string url) {
+  /// <summary>
+  /// "host/path" for a URL that parses, the URL itself otherwise: a link's readable address, for a
+  /// bare link's title and every link chip's tooltip.
+  /// </summary>
+  public static string ShortTitle(string url) {
     if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? uri)) {
       return url;
     }

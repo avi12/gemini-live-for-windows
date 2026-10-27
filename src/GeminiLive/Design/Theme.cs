@@ -11,9 +11,6 @@ namespace GeminiLive;
 /// spacing and type don't depend on the theme and live in App.xaml.
 /// </summary>
 public static class Theme {
-  // Material's state layers: the text colour at 8% (hover) and 12% (pressed) over the surface.
-  private const byte _hoverAlpha = 0x14;
-  private const byte _pressedAlpha = 0x1F;
   private const string _personalizeKey =
       @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
 
@@ -24,6 +21,11 @@ public static class Theme {
     ("LiveTextBrush", "#FFE3E3E3", "#FF1F1F1F"),
     ("LiveSecondaryTextBrush", "#FFA8ABAF", "#FF444746"),
     ("LiveOutlineVariantBrush", "#FF444746", "#FFC4C7C5"),
+    // A text field's outline: Material's outline role; outline-variant is too faint to read as one.
+    ("LiveOutlineBrush", "#FF8E918F", "#FF747775"),
+    // A menu's chosen row: Material's secondary container and the text on it.
+    ("LiveSelectedContainerBrush", "#FF004A77", "#FFC2E7FF"),
+    ("LiveOnSelectedContainerBrush", "#FFC2E7FF", "#FF001D35"),
     ("LiveControlBrush", "#FF333537", "#FFDDE3EA"),
     ("LiveControlHoverBrush", "#FF44474A", "#FFD3DAE2"),
     ("LivePrimaryBrush", "#FFA8C7FA", "#FF0B57D0"),
@@ -63,9 +65,10 @@ public static class Theme {
       resources[key] = Solid(Parse(dark ? darkArgb : lightArgb));
     }
 
+    // Material's state layers: the text colour over the surface, at App.xaml's state-layer opacities.
     Color text = ((SolidColorBrush)resources["LiveTextBrush"]).Color;
-    resources["LiveHoverLayerBrush"] = Solid(Color.FromArgb(_hoverAlpha, text.R, text.G, text.B));
-    resources["LivePressedLayerBrush"] = Solid(Color.FromArgb(_pressedAlpha, text.R, text.G, text.B));
+    resources["LiveHoverLayerBrush"] = Layer(text, (double)resources["HoverLayerOpacity"]);
+    resources["LivePressedLayerBrush"] = Layer(text, (double)resources["PressedLayerOpacity"]);
     resources["LiveEdgeBrush"] = dark ? _darkEdge : _lightEdge;
     // The caption card's soft halo colour (fed to a DropShadowEffect); near-black dark card wears
     // a blue bloom, the light card only a faint cool one. Alpha carries the strength.
@@ -77,6 +80,12 @@ public static class Theme {
 
   private static Color Parse(string argb) {
     return (Color)ColorConverter.ConvertFromString(argb);
+  }
+
+  /// <summary><paramref name="color"/> at <paramref name="opacity"/>, as a state layer brush.</summary>
+  private static SolidColorBrush Layer(Color color, double opacity) {
+    byte alpha = (byte)Math.Round(opacity * byte.MaxValue);
+    return Solid(Color.FromArgb(alpha, color.R, color.G, color.B));
   }
 
   private static SolidColorBrush Solid(Color color) {

@@ -7,7 +7,8 @@ namespace GeminiLive;
 /// <summary>
 /// What the caption card says: the last few lines of "You: / Gemini:" transcript, and a chip for
 /// every link Gemini mentioned. The window decides when the card shows; this owns what is in it.
-/// Each line is its own TextBlock so a new one can fade in while the current one keeps updating.
+/// Each line is its own selectable text element so a new one can fade in while the current one
+/// keeps updating.
 /// </summary>
 public sealed class CaptionPresenter {
   /// <summary>Raised after every change, so the window can show or hide the card.</summary>
@@ -15,7 +16,9 @@ public sealed class CaptionPresenter {
 
   private const int _maxLines = 6;
   private const double _chipTitleMaxWidth = 340;
+  private const double _chipIconSize = 18;  // Material's chip icon size
   private const double _lineRise = 8;
+  private const double _lineHeight = 24;  // Material's body-large line height
   private const double _chipScaleFrom = 0.9;
 
   private readonly Panel _transcript;
@@ -71,12 +74,22 @@ public sealed class CaptionPresenter {
     Refresh();
   }
 
+  /// <summary>
+  /// A new line, selectable so the user can copy what was said: a read-only rich text box, since
+  /// a TextBlock can't be selected. The speaker's name stays bold within it.
+  /// </summary>
   private void AppendLine(string text, bool isUser) {
     var words = new Run(text);
-    var line = new TextBlock();
-    line.SetResourceReference(FrameworkElement.StyleProperty, "LiveBodyText");
-    line.Inlines.Add(new Run(isUser ? "You: " : "Gemini: ") { FontWeight = FontWeights.SemiBold });
-    line.Inlines.Add(words);
+    var paragraph = new Paragraph { Margin = new Thickness(0), LineHeight = _lineHeight };
+    paragraph.Inlines.Add(new Run(isUser ? "You: " : "Gemini: ") { FontWeight = FontWeights.Medium });
+    paragraph.Inlines.Add(words);
+    var document = new FlowDocument(paragraph) { PagePadding = new Thickness(0) };
+    // A FlowDocument doesn't inherit its box's font: left alone it falls back to Times New Roman.
+    document.SetResourceReference(TextElement.FontFamilyProperty, "LiveFont");
+    document.SetResourceReference(TextElement.FontSizeProperty, "BodySize");
+    document.SetResourceReference(TextElement.ForegroundProperty, "LiveTextBrush");
+    var line = new RichTextBox { Document = document };
+    line.SetResourceReference(FrameworkElement.StyleProperty, "LiveTranscriptLine");
     _lines.Add((words, isUser));
     _transcript.Children.Add(line);
     Motion.Enter(line, rise: _lineRise);
@@ -113,9 +126,12 @@ public sealed class CaptionPresenter {
   private static Button ChipFor(FoundLink link) {
     var icon = new TextBlock {
       Text = link.IsSearch ? Glyphs.Search : Glyphs.Link,
+      FontSize = _chipIconSize,
       Margin = new Thickness(0, 0, 8, 0),
     };
     icon.SetResourceReference(FrameworkElement.StyleProperty, "LiveIcon");
+    // An assist chip's leading icon is primary, its label the plain text colour.
+    icon.SetResourceReference(TextBlock.ForegroundProperty, "LivePrimaryBrush");
     var title = new TextBlock {
       Text = link.Title,
       MaxWidth = _chipTitleMaxWidth,
@@ -123,12 +139,33 @@ public sealed class CaptionPresenter {
       VerticalAlignment = VerticalAlignment.Center,
     };
     var chip = new Button {
-      ToolTip = link.Url,
+      // A short tip, as Material's plain tooltips are; the raw URL wraps into an unreadable block.
+      ToolTip = LinkExtractor.ShortTitle(link.Url),
       RenderTransformOrigin = new Point(0.5, 0.5),  // pops from its centre
       Content = new StackPanel { Orientation = Orientation.Horizontal, Children = { icon, title } },
     };
     chip.SetResourceReference(FrameworkElement.StyleProperty, "LiveLinkChip");
     chip.Click += (_, _) => Shell.Open(link.Url);
+    chip.ContextMenu = LinkMenu(link.Url);
     return chip;
+  }
+
+  /// <summary>What a right click on a link chip offers, as in a browser.</summary>
+  private static ContextMenu LinkMenu(string url) {
+    var open = new MenuItem { Header = "Open link" };
+    open.Click += (_, _) => Shell.Open(url);
+    var copy = new MenuItem { Header = "Copy link address" };
+    copy.Click += (_, _) => CopyToClipboard(url);
+    var menu = new ContextMenu { Items = { open, copy } };
+    Motion.EnterOnOpen(menu);
+    return menu;
+  }
+
+  private static void CopyToClipboard(string text) {
+    try {
+      Clipboard.SetText(text);
+    } catch (System.Runtime.InteropServices.COMException) {
+      // Another app holds the clipboard; the chip still opens the link.
+    }
   }
 }
