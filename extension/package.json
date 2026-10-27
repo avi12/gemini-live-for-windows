@@ -1,6 +1,6 @@
 {
   "name": "gemini-live-session",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "type": "module",
   "description": "Companion extension that hands the browser's Google session to the Gemini Live desktop app",
   "license": "Apache-2.0",
