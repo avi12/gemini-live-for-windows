@@ -1,5 +1,5 @@
 // Every message between the glic page's bridge and the app (GlicHost), as a protocol map keyed by
-// an enum. The app's side is src/GeminiLive/Glic/GlicProtocol.cs.
+// an enum. The app's side is src/GeminiLive/Glic/Gemini/GlicProtocol.cs.
 import type { Block } from "./page_content";
 
 export enum GlicMessage {

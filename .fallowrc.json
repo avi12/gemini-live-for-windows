@@ -1,15 +1,15 @@
 {
   "$schema": "https://raw.githubusercontent.com/getfallow/fallow/main/schema/fallowrc.json",
   "entry": [
-    "bridge/glic_bridge.ts",
-    "bridge/home_bridge.ts",
+    "bridge/glic/glic_bridge.ts",
+    "bridge/home/home_bridge.ts",
     "bridge/build.mjs",
     "extension/scripts/pack-crx.mjs",
     "extension/src/entrypoints/**",
     "extension/wxt.config.ts",
     "messaging/src/index.ts"
   ],
-  "ignorePatterns": [".claude/worktrees/**", "src/GeminiLive/Glic/*.js"],
+  "ignorePatterns": [".claude/worktrees/**", "src/GeminiLive/Glic/Bridges/*.js"],
   "health": {
     "maxCognitive": 30,
     "maxCrap": 10000

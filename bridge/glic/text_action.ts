@@ -1,3 +1,4 @@
+import { collapseWhitespace } from "../shared/text";
 // Google apps and web searches via a text turn. Live can't reach Calendar, Keep, Tasks or Gmail -
 // those tools are server-gated to the text path - and it can only say a link, never show one. So a
 // detour pauses Live, runs the request as a text turn in the SAME conversation (where the account's
@@ -6,7 +7,6 @@
 // input never enables Submit.
 import { Button, clickButton, findButton } from "./glic_page";
 import type { AnswerLink, TextAnswer } from "./glic_protocol";
-import { collapseWhitespace } from "./text";
 
 const ACTION_READY_MS = 6000;
 const EDITOR_POLL_MS = 150;

@@ -1,9 +1,9 @@
+import { collapseWhitespace } from "../shared/text";
 // Captions -> transcript, the fallback when the wire tap sees nothing (a changed channel). Glic
 // renders "<b>You:</b> ... <b>Gemini:</b> ..." and revises the live utterance in place, so the
 // bridge relays each utterance's current full text keyed by index. Its labels are not trustworthy
 // (see live_wire.ts), which is why this only runs without the wire.
 import { Direction } from "./glic_protocol";
-import { collapseWhitespace } from "./text";
 import type { Utterance } from "./transcript";
 
 // Only a bold node that is exactly a speaker label starts an utterance. Gemini bolds words in its

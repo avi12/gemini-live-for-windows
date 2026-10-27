@@ -16,6 +16,7 @@
 // in a fixed order, before Glic's own scripts run: page visibility, the microphone, the host and
 // its bootstrap, then the Live wire tap.
 
+import { webViewTransport } from "../shared/webview_transport";
 import { readCaptions } from "./captions";
 import { installDesktopMic } from "./desktop_mic";
 import { createGlicHost, installBootstrap } from "./glic_host";
@@ -35,7 +36,6 @@ import { patchLiveTimeouts } from "./live_timeouts";
 import { tapLiveTranscript } from "./live_wire";
 import { openTextEditor, submitAndRead } from "./text_action";
 import { transcriptRelay } from "./transcript";
-import { webViewTransport } from "./webview_transport";
 import { defineMessaging } from "@gemini-live/messaging";
 
 const REQUEST_TIMEOUT_MS = 3000;

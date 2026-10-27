@@ -16,12 +16,12 @@
   <!-- Shared with the app, not copied: the messaging layer, the native protocol and where the app
        publishes its link. -->
   <ItemGroup>
-    <Compile Include="..\GeminiLive\Messaging.cs" Link="Shared\Messaging.cs" />
-    <Compile Include="..\GeminiLive\WireName.cs" Link="Shared\WireName.cs" />
-    <Compile Include="..\GeminiLive\Log.cs" Link="Shared\Log.cs" />
-    <Compile Include="..\GeminiLive\AppInstance.cs" Link="Shared\AppInstance.cs" />
-    <Compile Include="..\GeminiLive\Glic\NativeProtocol.cs" Link="Shared\NativeProtocol.cs" />
-    <Compile Include="..\GeminiLive\Glic\LinkFile.cs" Link="Shared\LinkFile.cs" />
+    <Compile Include="..\GeminiLive\Interop\Messaging.cs" Link="Shared\Messaging.cs" />
+    <Compile Include="..\GeminiLive\Interop\WireName.cs" Link="Shared\WireName.cs" />
+    <Compile Include="..\GeminiLive\App\Log.cs" Link="Shared\Log.cs" />
+    <Compile Include="..\GeminiLive\App\AppInstance.cs" Link="Shared\AppInstance.cs" />
+    <Compile Include="..\GeminiLive\Glic\Link\NativeProtocol.cs" Link="Shared\NativeProtocol.cs" />
+    <Compile Include="..\GeminiLive\Glic\Link\LinkFile.cs" Link="Shared\LinkFile.cs" />
   </ItemGroup>
 
   <!-- The repo's lint rules that Roslyn has no built-in for (see .editorconfig), and CA1502's

@@ -1,6 +1,6 @@
 // Every message between this extension and the app's native messaging host (GeminiLiveHost), which
 // is how the extension finds the app wherever the browser installed it from. The app's side is
-// src/GeminiLive/Glic/NativeProtocol.cs.
+// src/GeminiLive/Glic/Link/NativeProtocol.cs.
 
 /** The name the browser knows the host by (NativeProtocol.HostName in C#). */
 export const NATIVE_HOST = "com.avi12.gemini_live";

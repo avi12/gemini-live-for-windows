@@ -1,6 +1,6 @@
 // Glic's page as the bridge reads and presses it: every label and phrase we match on, and the
 // helpers that find them.
-import { labelAndText } from "./text";
+import { labelAndText } from "../shared/text";
 
 /** Fragments of Glic's button aria-labels. */
 export enum Button {

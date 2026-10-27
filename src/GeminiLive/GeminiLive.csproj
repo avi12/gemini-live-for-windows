@@ -21,8 +21,12 @@
   <ItemGroup>
     <!-- glic_bridge.js and home_bridge.js are GENERATED from bridge\*.ts (TypeScript, Zod for Home);
          BundleBridges below keeps them current, and scripts\install.ps1 does the authoritative build. -->
-    <EmbeddedResource Include="Glic\glic_bridge.js" LogicalName="GeminiLive.Glic.glic_bridge.js" />
-    <EmbeddedResource Include="Glic\home_bridge.js" LogicalName="GeminiLive.Glic.home_bridge.js" />
+    <!-- The WPF SDK only finds App.xaml at the project root; ours lives in App\ with the rest of
+         the startup code. -->
+    <Page Remove="App\App.xaml" />
+    <ApplicationDefinition Include="App\App.xaml" />
+    <EmbeddedResource Include="Glic\Bridges\glic_bridge.js" LogicalName="GeminiLive.Glic.glic_bridge.js" />
+    <EmbeddedResource Include="Glic\Bridges\home_bridge.js" LogicalName="GeminiLive.Glic.home_bridge.js" />
     <!-- The companion extension's WXT build ships with the app; ExtensionSetup copies it out for
          the browser. scripts\install.ps1 builds it first with pnpm. -->
     <Content Include="..\..\extension\.output\chrome-mv3\**\*" Link="extension\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
@@ -43,7 +47,7 @@
   </ItemGroup>
 
   <!-- The native messaging host (src\GeminiLiveHost) builds into this output too, since an
-       unpackaged run registers the GeminiLiveHost.exe next to GeminiLive.exe (Glic\NativeHost.cs).
+       unpackaged run registers the GeminiLiveHost.exe next to GeminiLive.exe (Glic\Link\NativeHost.cs).
        scripts\install.ps1 publishes it into the package layout separately. -->
   <ItemGroup>
     <ProjectReference Include="..\GeminiLiveHost\GeminiLiveHost.csproj" ReferenceOutputAssembly="false" />

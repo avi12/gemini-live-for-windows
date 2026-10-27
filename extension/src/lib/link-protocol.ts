@@ -1,5 +1,5 @@
 // Every message between this extension and the desktop app's SessionLink, as a protocol map keyed
-// by an enum. The app's side is src/GeminiLive/Glic/LinkProtocol.cs.
+// by an enum. The app's side is src/GeminiLive/Glic/Link/LinkProtocol.cs.
 
 export enum LinkMessage {
   // app → extension

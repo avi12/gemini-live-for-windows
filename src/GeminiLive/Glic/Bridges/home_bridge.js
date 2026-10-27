@@ -1,7 +1,7 @@
-// GENERATED from bridge/home_bridge.ts - edit the TypeScript, then `pnpm --dir bridge build`.
+// GENERATED from bridge/home/home_bridge.ts - edit the TypeScript, then `pnpm --dir bridge build`.
 "use strict";
 (() => {
-  // text.ts
+  // shared/text.ts
   function collapseWhitespace(text) {
     return text.replace(/\s+/g, " ").trim();
   }
@@ -9,7 +9,7 @@
     return `${element.getAttribute("aria-label") ?? ""} ${element.textContent ?? ""}`;
   }
 
-  // webview_transport.ts
+  // shared/webview_transport.ts
   function webViewTransport() {
     const channel = window.chrome?.webview;
     return {
@@ -124,7 +124,7 @@
     };
   }
 
-  // home_bridge.ts
+  // home/home_bridge.ts
   var DEVICE = "PC Lights";
   var CARD_MIN_W = 300;
   var CARD_MIN_H = 60;

@@ -244,7 +244,7 @@ const browserGlobals = {
 // Build scripts and configs run under Node; the page bridges, the extension and the messaging
 // they share run in a browser and must not see `process` - oxlint enforces that through the
 // matching override.
-const browserFiles = ["bridge/*.ts", "extension/src/**/*.ts", "messaging/src/**/*.ts"];
+const browserFiles = ["bridge/**/*.ts", "extension/src/**/*.ts", "messaging/src/**/*.ts"];
 
 export default [
   globalIgnores([
@@ -256,7 +256,7 @@ export default [
     "build/",
     ".fallow/",
     ".claude/worktrees/",
-    "src/GeminiLive/Glic/*.js"
+    "src/GeminiLive/Glic/Bridges/*.js"
   ]),
   {
     files: ["**/*.{ts,js,mjs}"],

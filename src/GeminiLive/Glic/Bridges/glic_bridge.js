@@ -1,7 +1,23 @@
-// GENERATED from bridge/glic_bridge.ts - edit the TypeScript, then `pnpm --dir bridge build`.
+// GENERATED from bridge/glic/glic_bridge.ts - edit the TypeScript, then `pnpm --dir bridge build`.
 "use strict";
 (() => {
-  // text.ts
+  // shared/webview_transport.ts
+  function webViewTransport() {
+    const channel = window.chrome?.webview;
+    return {
+      post(envelope) {
+        try {
+          channel?.postMessage(envelope);
+        } catch {
+        }
+      },
+      listen(receive) {
+        channel?.addEventListener("message", (e) => receive(e.data));
+      }
+    };
+  }
+
+  // shared/text.ts
   function collapseWhitespace(text) {
     return text.replace(/\s+/g, " ").trim();
   }
@@ -9,7 +25,7 @@
     return `${element.getAttribute("aria-label") ?? ""} ${element.textContent ?? ""}`;
   }
 
-  // captions.ts
+  // glic/captions.ts
   var SPEAKER_LABELS = {
     you: "user" /* User */,
     gemini: "assistant" /* Assistant */
@@ -53,7 +69,7 @@
     })).filter((utterance) => utterance.text);
   }
 
-  // mic_gate.ts
+  // glic/mic_gate.ts
   var COMFORT_NOISE_LEVEL = 1e-3;
   var GATE_RAMP_SECONDS = 0.01;
   var RESUME_TIMEOUT_MS = 1e3;
@@ -115,7 +131,7 @@
     };
   }
 
-  // desktop_mic.ts
+  // glic/desktop_mic.ts
   var MicAlias = /* @__PURE__ */ ((MicAlias2) => {
     MicAlias2["Default"] = "default";
     MicAlias2["Communications"] = "communications";
@@ -223,7 +239,7 @@
     };
   }
 
-  // page_content.ts
+  // glic/page_content.ts
   var APC_VERSION_1_0 = 1;
   var VARINT_CONTINUE = 128;
   var VARINT_LOW_BITS = 127;
@@ -294,7 +310,7 @@
     });
   }
 
-  // glic_host.ts
+  // glic/glic_host.ts
   var TAB_ID = "desktop";
   var PANEL_STATE = {
     kind: 2 /* Attached */,
@@ -547,7 +563,7 @@
     return tryBootstrap;
   }
 
-  // glic_page.ts
+  // glic/glic_page.ts
   var RESUME_BUTTONS = ["Start live mode" /* StartLive */, "Go Live" /* GoLive */];
   var SIGN_IN_PATTERN = /\bSign in\b/;
   var SIGN_IN_HOST = "accounts.google.com";
@@ -596,7 +612,7 @@
     }
   }
 
-  // live_timeouts.ts
+  // glic/live_timeouts.ts
   var DAY_S = 24 * 60 * 60;
   var DAY_MS = DAY_S * 1e3;
   var LIVE_TIMEOUT_FLAGS = {
@@ -638,7 +654,7 @@
     return timeoutsPatched;
   }
 
-  // live_wire.ts
+  // glic/live_wire.ts
   var LIVE_CHANNEL_PATH = "/v1/processSession";
   function firstString(value) {
     if (typeof value === "string") {
@@ -820,7 +836,7 @@
     };
   }
 
-  // text_action.ts
+  // glic/text_action.ts
   var ACTION_READY_MS = 6e3;
   var EDITOR_POLL_MS = 150;
   var ACTION_REPLY_MS = 3e4;
@@ -929,7 +945,7 @@
     };
   }
 
-  // transcript.ts
+  // glic/transcript.ts
   function transcriptRelay(send) {
     let relayed = [];
     return {
@@ -947,22 +963,6 @@
       },
       reset() {
         relayed = [];
-      }
-    };
-  }
-
-  // webview_transport.ts
-  function webViewTransport() {
-    const channel = window.chrome?.webview;
-    return {
-      post(envelope) {
-        try {
-          channel?.postMessage(envelope);
-        } catch {
-        }
-      },
-      listen(receive) {
-        channel?.addEventListener("message", (e) => receive(e.data));
       }
     };
   }
@@ -1066,7 +1066,7 @@
     };
   }
 
-  // glic_bridge.ts
+  // glic/glic_bridge.ts
   var REQUEST_TIMEOUT_MS = 3e3;
   var UNAVAILABLE_POLL_MS = 500;
   var START_POLL_MS = 300;

@@ -6,4 +6,4 @@
 build/**
 .fallow/**
 .claude/worktrees/**
-src/GeminiLive/Glic/*.js
+src/GeminiLive/Glic/Bridges/*.js

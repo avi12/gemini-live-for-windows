@@ -6,13 +6,23 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const outDir = resolve(here, "../src/GeminiLive/Glic");
+const outDir = resolve(here, "../src/GeminiLive/Glic/Bridges");
 
-const bridges = ["glic_bridge", "home_bridge"];
+// Each bridge's entry file lives in the folder named for the page it runs in.
+const bridges = [
+  {
+    folder: "glic",
+    name: "glic_bridge"
+  },
+  {
+    folder: "home",
+    name: "home_bridge"
+  }
+];
 
-for (const name of bridges) {
+for (const { folder, name } of bridges) {
   await build({
-    entryPoints: [resolve(here, `${name}.ts`)],
+    entryPoints: [resolve(here, folder, `${name}.ts`)],
     outfile: resolve(outDir, `${name}.js`),
     bundle: true,
     format: "iife",
@@ -20,7 +30,7 @@ for (const name of bridges) {
     platform: "browser",
     legalComments: "none",
     banner: {
-      js: `// GENERATED from bridge/${name}.ts - edit the TypeScript, then \`pnpm --dir bridge build\`.`
+      js: `// GENERATED from bridge/${folder}/${name}.ts - edit the TypeScript, then \`pnpm --dir bridge build\`.`
     }
   });
   console.log(`bundled ${name}.js`);

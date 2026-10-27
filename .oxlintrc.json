@@ -131,7 +131,7 @@
   "overrides": [
     {
       "files": [
-        "bridge/*.ts",
+        "bridge/**/*.ts",
         "extension/src/**",
         "messaging/src/**"
       ],

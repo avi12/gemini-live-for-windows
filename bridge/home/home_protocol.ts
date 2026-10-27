@@ -1,5 +1,5 @@
 // Every message from the app (HomeHost) to the Home page's bridge, as a protocol map keyed by an
-// enum. The app's side is src/GeminiLive/Glic/HomeProtocol.cs.
+// enum. The app's side is src/GeminiLive/Glic/Home/HomeProtocol.cs.
 
 export enum HomeMessage {
   Ready = "ready",
