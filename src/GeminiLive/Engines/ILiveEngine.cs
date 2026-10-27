@@ -37,7 +37,15 @@ public interface ILiveEngine : IAsyncDisposable {
   /// </summary>
   Task StartAsync();
 
+  /// <summary>Shares another display, all of it (any <see cref="Region"/> is dropped).</summary>
   void Share(MonitorInfo monitor);
+
+  /// <summary>
+  /// The part of the shared display Gemini sees, in the display's physical pixels - what the user
+  /// circled with Circle to Search - or null for the whole display. Gemini keeps seeing that part
+  /// live until it is set back to null.
+  /// </summary>
+  System.Drawing.Rectangle? Region { get; set; }
 }
 
 /// <summary>The status lines more than one place shows or reports.</summary>

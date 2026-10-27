@@ -12,6 +12,12 @@ public sealed class SharedView {
   /// <summary>Which display the frames come from.</summary>
   public MonitorInfo Monitor { get; set; } = Monitors.All()[0];
 
+  /// <summary>
+  /// The circled part of <see cref="Monitor"/> Gemini sees instead of all of it; null for the
+  /// whole display. See <see cref="ILiveEngine.Region"/>.
+  /// </summary>
+  public System.Drawing.Rectangle? Region { get; set; }
+
   /// <summary>True while the webcam is the frame source instead of the screen.</summary>
   public bool UseCamera => _camera is not null;
 
@@ -62,8 +68,9 @@ public sealed class SharedView {
       frame = camera.Grab();
     } else {
       MonitorInfo monitor = Monitor;
+      System.Drawing.Rectangle? region = Region;
       frame = await Task.Run(() => Log.Attempt("grab", () => ScreenGrabber.Grab(
-          monitor, ScreenGrabber.Detail.Sharp)));
+          monitor, ScreenGrabber.Detail.Sharp, region)));
     }
 
     frame ??= _lastFrame;
@@ -74,10 +81,11 @@ public sealed class SharedView {
 
   /// <summary>
   /// An exact text copy of the window on the shared display, read off the UI thread, which the page
-  /// hands Gemini as the tab's page content next to each picture. None while the camera is shared.
+  /// hands Gemini as the tab's page content next to each picture. None while the camera is shared,
+  /// or while Gemini sees only a circled region: the whole window's text would pull it off that.
   /// </summary>
   public async Task<ScreenText.View?> ReadAsync() {
-    if (UseCamera) {
+    if (UseCamera || Region is not null) {
       return null;
     }
 

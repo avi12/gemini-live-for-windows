@@ -17,6 +17,13 @@ internal static unsafe class Native {
     public int Bottom;
   }
 
+  [StructLayout(LayoutKind.Sequential)]
+  public struct POINT {
+    // x and y in the Win32 struct; only the layout matters to the marshaller.
+    public int PosX;
+    public int PosY;
+  }
+
   [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
   public struct MONITORINFOEX {
     public int cbSize;
@@ -56,6 +63,12 @@ internal static unsafe class Native {
   }
 
   public const int WM_APP = 0x8000;
+  public const int WM_HOTKEY = 0x0312;
+  public const uint MOD_ALT = 0x1;
+  public const uint MOD_CONTROL = 0x2;
+  public const uint MOD_WIN = 0x8;
+  // Holding the keys down fires once, not on every auto-repeat.
+  public const uint MOD_NOREPEAT = 0x4000;
   public const uint MONITORINFOF_PRIMARY = 1;
   public const uint MONITOR_DEFAULTTONEAREST = 2;
   public const uint SWP_NOSIZE = 0x1;
@@ -86,6 +99,15 @@ internal static unsafe class Native {
   public static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint flags);
 
   [DllImport("user32.dll")]
+  public static extern IntPtr MonitorFromPoint(POINT point, uint flags);
+
+  [DllImport("user32.dll")]
+  public static extern bool GetCursorPos(out POINT point);
+
+  [DllImport("user32.dll")]
+  public static extern bool GetWindowRect(IntPtr hwnd, out RECT rect);
+
+  [DllImport("user32.dll")]
   public static extern IntPtr GetForegroundWindow();
 
   [DllImport("user32.dll")]
@@ -93,6 +115,15 @@ internal static unsafe class Native {
 
   [DllImport("user32.dll")]
   public static extern bool SetForegroundWindow(IntPtr hwnd);
+
+  [DllImport("user32.dll")]
+  public static extern bool BringWindowToTop(IntPtr hwnd);
+
+  [DllImport("user32.dll")]
+  public static extern bool AttachThreadInput(uint attachThreadId, uint attachToThreadId, bool attach);
+
+  [DllImport("kernel32.dll")]
+  public static extern uint GetCurrentThreadId();
 
   [DllImport("user32.dll")]
   public static extern bool SetWindowPos(IntPtr hwnd, IntPtr after, int x, int y, int width,
@@ -106,6 +137,12 @@ internal static unsafe class Native {
 
   [DllImport("user32.dll")]
   public static extern bool SetWindowDisplayAffinity(IntPtr hwnd, uint affinity);
+
+  [DllImport("user32.dll")]
+  public static extern bool RegisterHotKey(IntPtr hwnd, int id, uint modifiers, uint key);
+
+  [DllImport("user32.dll")]
+  public static extern bool UnregisterHotKey(IntPtr hwnd, int id);
 
   [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
   public static extern int GetCurrentPackageFullName(ref uint packageFullNameLength,

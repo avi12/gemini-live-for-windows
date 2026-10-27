@@ -46,10 +46,25 @@ public static class Monitors {
   /// The display holding the window the user was working in when the key was pressed.
   /// </summary>
   public static MonitorInfo Active() {
+    return Find(Native.MonitorFromWindow(Native.GetForegroundWindow(), Native.MONITOR_DEFAULTTONEAREST));
+  }
+
+  /// <summary>
+  /// The display under the mouse pointer: where a gesture made with the mouse (Circle to Search)
+  /// belongs, whichever window happens to have focus.
+  /// </summary>
+  public static MonitorInfo UnderCursor() {
+    if (!Native.GetCursorPos(out Native.POINT cursor)) {
+      return Active();
+    }
+
+    return Find(Native.MonitorFromPoint(cursor, Native.MONITOR_DEFAULTTONEAREST));
+  }
+
+  /// <summary>The display Windows calls <paramref name="handle"/>; the primary one if it's gone.</summary>
+  private static MonitorInfo Find(IntPtr handle) {
     IReadOnlyList<MonitorInfo> all = All();
-    IntPtr handle =
-        Native.MonitorFromWindow(Native.GetForegroundWindow(), Native.MONITOR_DEFAULTTONEAREST);
-    return all.FirstOrDefault(m => m.Handle == handle) ?? all.First(m => m.IsPrimary);
+    return all.FirstOrDefault(display => display.Handle == handle) ?? all.First(display => display.IsPrimary);
   }
 
   /// <summary>

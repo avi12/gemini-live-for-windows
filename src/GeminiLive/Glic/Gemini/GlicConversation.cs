@@ -25,10 +25,23 @@ public sealed partial class GlicConversation : ILiveEngine {
   // Gemini's spoken refusal most of the time.
   private static readonly TimeSpan _intentSettle = TimeSpan.FromMilliseconds(1100);
 
+  // A text detour replaces the Live session, which cuts Gemini off mid-word. So it waits for
+  // Gemini to start answering (a moment after the request), then for its captions to stop growing
+  // - the voice is a beat behind the text - and never longer than the cap, in case it never stops.
+  private static readonly TimeSpan _answerStartGrace = TimeSpan.FromSeconds(3);
+  private static readonly TimeSpan _speechSettle = TimeSpan.FromMilliseconds(1800);
+  private static readonly TimeSpan _maxSpeechWait = TimeSpan.FromSeconds(20);
+  private static readonly TimeSpan _speechPoll = TimeSpan.FromMilliseconds(150);
+
   // Added to a web request so the text turn searches and cites, in whatever language it was asked.
+  // It also says what NOT to do: a text turn starts a fresh chat, and without it asks the user for
+  // details they have already given - the screen context above is what "this" refers to.
   private const string _webSearchAsk =
-      "(Search the web, find the original source, and link the exact pages you used.)";
+      "(This is a new chat, so use only the context above. Don't ask me for details: search the web,"
+      + " find the original source, and link the exact pages you used.)";
   private const int _maxContextChars = 300;
+  private const int _screenHeadings = 3;
+  private const int _screenTextChars = 600;
 
   private readonly GlicHost _host;
   private readonly HomeHost _home;
@@ -37,6 +50,7 @@ public sealed partial class GlicConversation : ILiveEngine {
   private bool _muted;
   private string _lastUserUtterance = "";
   private string _lastGeminiLine = "";
+  private DateTime _lastGeminiCaptionAt = DateTime.MinValue;  // when Gemini's words last grew
   private string _handledUtterance = "";
   private int _handledRefusalIndex = -1;
   private bool _runningDetour;
@@ -73,6 +87,12 @@ public sealed partial class GlicConversation : ILiveEngine {
 
   public void Share(MonitorInfo monitor) {
     _host.View.Monitor = monitor;
+    _host.View.Region = null;
+  }
+
+  public System.Drawing.Rectangle? Region {
+    get => _host.View.Region;
+    set => _host.View.Region = value;
   }
 
   public ValueTask DisposeAsync() {
@@ -105,6 +125,7 @@ public sealed partial class GlicConversation : ILiveEngine {
       }
     } else {
       _lastGeminiLine = clean;
+      _lastGeminiCaptionAt = DateTime.UtcNow;
       OnGeminiLine(clean, index);
     }
   }
@@ -175,16 +196,45 @@ public sealed partial class GlicConversation : ILiveEngine {
   // reach Calendar, Keep, Tasks or Gmail, re-run the user's request on the text path, show the
   // answer in the card, and resume Live - which keeps the answer in context.
   private Task RunAppActionAsync(string request) {
-    return RunDetourAsync(request, $"Checking {SpokenIntent.AppName(request)}…",
-                          () => AskTextPathAsync(request));
+    return RunTextDetourAsync(request, $"Checking {SpokenIntent.AppName(request)}…",
+                              () => Task.FromResult(request));
   }
 
   // Live answers web questions by voice, so it can name a page but never hand it over, and tends to
   // say it can't give links. The text path searches with Google and keeps the links, which become
   // chips in the card.
   private Task RunWebSearchAsync(string request) {
-    return RunDetourAsync(request, "Searching the web…",
-                          async () => await AskTextPathAsync(await WebSearchPromptAsync(request)));
+    return RunTextDetourAsync(request, "Searching the web…", () => WebSearchPromptAsync(request));
+  }
+
+  /// <summary>
+  /// A detour through the text path: lets Gemini finish what it is saying first, since the text
+  /// turn replaces the Live session, then asks the prompt it builds - after the wait, so it can
+  /// quote Gemini's whole last line.
+  /// </summary>
+  private Task RunTextDetourAsync(string request, string status, Func<Task<string>> buildPrompt) {
+    return RunDetourAsync(request, status, async () => {
+      await WaitForGeminiToFinishAsync();
+      await AskTextPathAsync(await buildPrompt());
+    });
+  }
+
+  /// <summary>
+  /// Returns once Gemini has stopped talking for now: it gets a short grace to start answering,
+  /// then until its captions have been still for a moment, up to a cap. There is no "speaking"
+  /// signal from the page, so a still caption is the best sign it has finished.
+  /// </summary>
+  private async Task WaitForGeminiToFinishAsync() {
+    DateTime asked = DateTime.UtcNow;
+
+    while (DateTime.UtcNow - asked < _answerStartGrace && _lastGeminiCaptionAt < asked) {
+      await Task.Delay(_speechPoll);
+    }
+
+    while (DateTime.UtcNow - asked < _maxSpeechWait
+           && DateTime.UtcNow - _lastGeminiCaptionAt < _speechSettle) {
+      await Task.Delay(_speechPoll);
+    }
   }
 
   /// <summary>
@@ -194,21 +244,48 @@ public sealed partial class GlicConversation : ILiveEngine {
   /// </summary>
   private async Task<string> WebSearchPromptAsync(string request) {
     var prompt = new StringBuilder(request);
-    ScreenText.View? screen = await _host.View.ReadAsync();
-    if (screen is { Title.Length: > 0 }) {
-      prompt.Append(" (On my screen: \"").Append(Clip(screen.Title)).Append("\".)");
+    if (await _host.View.ReadAsync() is { } screen) {
+      prompt.Append(" (On my screen: ").Append(DescribeScreen(screen)).Append(')');
     }
 
     if (_lastGeminiLine.Length > 0) {
       prompt.Append(" (You just told me: \"").Append(Clip(_lastGeminiLine)).Append("\".)");
     }
 
-    return prompt.Append(' ').Append(_webSearchAsk).ToString();
+    string asked = prompt.Append(' ').Append(_webSearchAsk).ToString();
+    Log.Write($"text turn asks: {asked}");
+    return asked;
+  }
+
+  /// <summary>
+  /// What a fresh text turn needs to know what "this article" is: the window's title, then its
+  /// headlines and the start of its text, since a title alone is often just the site's name.
+  /// </summary>
+  private static string DescribeScreen(ScreenText.View screen) {
+    var parts = new List<string>();
+    if (screen.Title.Length > 0) {
+      parts.Add($"a window titled \"{Clip(screen.Title)}\"");
+    }
+
+    IEnumerable<string> headings = screen.Blocks
+        .Where(block => block.Kind == ScreenText.BlockKind.Heading)
+        .Select(block => block.Text)
+        .Take(_screenHeadings);
+    foreach (string heading in headings) {
+      parts.Add($"heading \"{Clip(heading)}\"");
+    }
+
+    string text = string.Join(' ', screen.Blocks.Select(block => block.Text));
+    if (text.Length > 0) {
+      parts.Add($"text beginning \"{Clip(text, _screenTextChars)}\"");
+    }
+
+    return string.Join("; ", parts);
   }
 
   // Keeps a prompt quick to type: the text turn is typed one trusted key event per character.
-  private static string Clip(string text) {
-    return text.Length <= _maxContextChars ? text : text[.._maxContextChars] + "…";
+  private static string Clip(string text, int limit = _maxContextChars) {
+    return text.Length <= limit ? text : text[..limit] + "…";
   }
 
   private async Task AskTextPathAsync(string request) {

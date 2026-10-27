@@ -56,7 +56,12 @@ public sealed class Conversation : ILiveEngine {
   }
 
   public void Share(MonitorInfo monitor) {
-    _screen.Monitor = monitor;
+    _screen.Monitor = monitor;  // drops any region along with the old display
+  }
+
+  public System.Drawing.Rectangle? Region {
+    get => _screen.Region;
+    set => _screen.Region = value;
   }
 
   public async ValueTask DisposeAsync() {
