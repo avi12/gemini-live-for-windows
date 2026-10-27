@@ -21,6 +21,7 @@ public partial class MainWindow : Window {
   private const double _cardRise = 12;
 
   private readonly Settings _settings = Settings.Load();
+  private readonly UpdateChecker _updates;
   private readonly ShareBorder _border = new();
   private readonly FocusChip _focusChip = new();
   private System.Drawing.Rectangle? _dragStartRegion;  // the watched region when its chip was grabbed
@@ -59,6 +60,8 @@ public partial class MainWindow : Window {
     glic.SetMicrophone(_settings.MicrophoneId);
     SizeChanged += (_, e) => Dock(e.NewSize);
     SystemEvents.DisplaySettingsChanged += (_, _) => Dispatcher.BeginInvoke(OnDisplaysChanged);
+    _updates = new UpdateChecker(_settings);
+    _ = _updates.WatchAsync();
     SettingsButton.ContextMenu = BuildSettingsMenu();
     SetMuted(false);
     UpdateShareButton();
@@ -558,6 +561,7 @@ public partial class MainWindow : Window {
     EnginePicker.Fill(menu, _settings.Engine, kind => _ = SwitchEngineAsync(kind), AskForKey);
 
     menu.Items.Add(new Separator());
+    UpdateMenu.Add(menu, _updates, _settings, _captions.AddNote);
     var quit = new MenuItem { Header = "Quit Gemini Live" };
     quit.Click += (_, _) => {
       _ = EndAsync();

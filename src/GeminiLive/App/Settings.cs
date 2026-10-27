@@ -23,6 +23,8 @@ public sealed class Settings {
   /// The Gemini page's id for the picked microphone; null follows Windows' default.
   /// </summary>
   public string? MicrophoneId { get; set; }
+  /// <summary>Whether the app looks for a newer release on its own; off, it never connects to GitHub.</summary>
+  public bool CheckForUpdates { get; set; } = true;
 
   /// <summary>GEMINI_API_KEY wins, so a key can be rotated without touching the app.</summary>
   [JsonIgnore]
