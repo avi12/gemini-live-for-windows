@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Media;
 
 namespace GeminiLive;
 
@@ -8,9 +9,17 @@ namespace GeminiLive;
 /// Positions are in physical pixels, which is what monitor bounds are in.
 /// </summary>
 public static class Overlay {
-  public static IntPtr Prepare(Window window, bool clickThrough) {
+  /// <summary>
+  /// Keeps the window out of the taskbar, Alt+Tab and screen captures. It never takes focus unless
+  /// <paramref name="focusable"/>, for a surface that needs the keyboard from the start.
+  /// </summary>
+  public static IntPtr Prepare(Window window, bool clickThrough, bool focusable = false) {
     IntPtr hwnd = new WindowInteropHelper(window).EnsureHandle();
-    int style = Native.WS_EX_NOACTIVATE | Native.WS_EX_TOOLWINDOW;
+    int style = Native.WS_EX_TOOLWINDOW;
+    if (!focusable) {
+      style |= Native.WS_EX_NOACTIVATE;
+    }
+
     if (clickThrough) {
       style |= Native.WS_EX_TRANSPARENT;
     }
@@ -24,12 +33,47 @@ public static class Overlay {
     return hwnd;
   }
 
+  /// <summary>
+  /// <see cref="Prepare"/> for a window built in code that floats over other apps: chromeless,
+  /// see-through outside what it draws, topmost, and shown without taking focus. The one home for
+  /// that setup, which must come before the handle exists (transparency can't change after).
+  /// </summary>
+  public static IntPtr PrepareFloating(Window window, bool clickThrough) {
+    window.WindowStyle = WindowStyle.None;
+    window.AllowsTransparency = true;
+    window.Background = Brushes.Transparent;
+    window.ShowInTaskbar = false;
+    window.ShowActivated = false;
+    window.Topmost = true;
+    return Prepare(window, clickThrough);
+  }
+
   /// <summary>Lets the window take focus (and come forward) only while it must, to type.</summary>
   public static void SetFocusable(IntPtr hwnd, bool focusable) {
     SetExStyle(hwnd, Native.WS_EX_NOACTIVATE, on: !focusable);
 
     if (focusable) {
       Native.SetForegroundWindow(hwnd);
+    }
+  }
+
+  /// <summary>
+  /// Makes the window the foreground one even where Windows' foreground lock would refuse. A
+  /// hotkey's window shows only after the user lets go of the keys, and those releases went to the
+  /// app in front, so it - not us - owns the last input and a plain SetForegroundWindow is ignored.
+  /// Sharing that app's input state for the call lets the switch through.
+  /// </summary>
+  public static void BringToFront(IntPtr hwnd) {
+    uint ours = Native.GetCurrentThreadId();
+    uint theirs = Native.GetWindowThreadProcessId(Native.GetForegroundWindow(), out _);
+    bool attached = theirs != 0 && theirs != ours && Native.AttachThreadInput(ours, theirs, attach: true);
+    try {
+      Native.BringWindowToTop(hwnd);
+      Native.SetForegroundWindow(hwnd);
+    } finally {
+      if (attached) {
+        Native.AttachThreadInput(ours, theirs, attach: false);
+      }
     }
   }
 

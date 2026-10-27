@@ -19,10 +19,12 @@ public partial class MainWindow : Window {
   private const double _pillSink = 40;  // a longer drop on the way out, so the close reads clearly
   private const double _pillScaleFrom = 0.96;
   private const double _cardRise = 12;
-  private const double _menuRise = 8;
 
   private readonly Settings _settings = Settings.Load();
   private readonly ShareBorder _border = new();
+  private readonly FocusChip _focusChip = new();
+  private System.Drawing.Rectangle? _dragStartRegion;  // the watched region when its chip was grabbed
+  private readonly Hotkey _escape;
   private readonly Glic.GlicHost _glic;
   private readonly Glic.HomeHost _home;
   private readonly CaptionPresenter _captions;
@@ -32,8 +34,11 @@ public partial class MainWindow : Window {
 
   private ILiveEngine? _conversation;
   private MonitorInfo? _dockedOn;
+  // Where Dock last put the pill (physical px), so its debug line logs only when that changes.
+  private (int Right, int Bottom, int Width, int Height)? _dockTarget;
   private bool _leaving;  // the exit animation is running; Hide() follows unless shown again
   private bool _muted;
+  private bool _circling;  // the Circle to Search overlay is up
   private string _status = "";
 
   private MonitorInfo? Shared => _conversation?.Monitor;
@@ -43,6 +48,10 @@ public partial class MainWindow : Window {
     _home = home;
     InitializeComponent();
     Handle = Overlay.Prepare(this, clickThrough: false);
+    _escape = CircleKey.Escape(Handle, Unfocus);
+    _focusChip.Dismissed += Unfocus;
+    _focusChip.DragStarted += OnFocusDragStarted;
+    _focusChip.Dragged += OnFocusDragged;
     _glow = new GlowAnimator(Glow);
     _captions = new CaptionPresenter(Transcript, TranscriptScroll, LinkTray);
     _captions.Changed += UpdateCard;
@@ -70,6 +79,118 @@ public partial class MainWindow : Window {
       case KeyTrigger.HoldStart:
         SetMuted(false);
         break;
+    }
+  }
+
+  // ---- Circle to Search (CircleKey) ----
+
+  public void OnCircle() {
+    if (_circling) {
+      return;  // a second press while the overlay is up
+    }
+
+    _ = CircleAsync();
+  }
+
+  /// <summary>
+  /// Freezes the display under the pointer for the user to circle something, then sends the crop on: to
+  /// Lens, or to Gemini as what it sees, starting a conversation if none is running.
+  /// </summary>
+  private async Task CircleAsync() {
+    _circling = true;
+    UpdateEscape();
+    try {
+      MonitorInfo monitor = Monitors.UnderCursor();
+      bool live = _conversation is not null;
+      Log.Write($"circle on {monitor.Description}{(live ? " (Live running)" : "")}");
+      // While Live runs, the loop itself is the request: no buttons, it focuses on release.
+      CircleSelection? selection = await CircleOverlay.SelectAsync(monitor, askOnRelease: live);
+      if (selection is null) {
+        return;
+      }
+
+      if (selection.Action == CircleAction.Lens) {
+        await LensSearch.SearchAsync(selection.Crop);
+        return;
+      }
+
+      if (_conversation is null) {
+        await StartAsync(monitor);
+      }
+
+      FocusOn(monitor, selection.Region);
+    } finally {
+      _circling = false;
+      UpdateEscape();
+    }
+  }
+
+  /// <summary>
+  /// Has Gemini watch only <paramref name="region"/> of <paramref name="monitor"/>, live, framed
+  /// on screen with a chip saying so, until ✕ or Esc (<see cref="Unfocus"/>).
+  /// </summary>
+  private void FocusOn(MonitorInfo monitor, System.Drawing.Rectangle region) {
+    if (_conversation is not { } engine) {
+      return;  // it didn't start (no API key yet, or it failed)
+    }
+
+    if (!monitor.IsSameDisplay(engine.Monitor)) {
+      engine.Share(monitor);
+    }
+
+    engine.Region = region;
+    _border.Cover(monitor, region);
+    _focusChip.Attach(monitor, region);
+    UpdateShareButton();
+    Log.Write($"focused on {region.Width}×{region.Height} of {monitor.Description}");
+  }
+
+  /// <summary>Remembers the region as the user grabs its chip, so the drag moves it from there.</summary>
+  private void OnFocusDragStarted() {
+    _dragStartRegion = _conversation?.Region;
+  }
+
+  /// <summary>
+  /// Moves the watched region with the chip, by how far the pointer has travelled, never off the
+  /// display. Gemini follows live, as the engine reads the region on every frame.
+  /// </summary>
+  private void OnFocusDragged(Vector travelled) {
+    if (_conversation is not { } engine || _dragStartRegion is not { } start) {
+      return;
+    }
+
+    MonitorInfo monitor = engine.Monitor;
+    var origin = new Rect(start.X, start.Y, start.Width, start.Height);
+    Rect moved = CircleGeometry.Moved(origin, grip: default, pointer: origin.TopLeft + travelled,
+                                      new Size(monitor.Width, monitor.Height));
+    var region = new System.Drawing.Rectangle((int)moved.X, (int)moved.Y, start.Width, start.Height);
+    engine.Region = region;
+    _border.Cover(monitor, region);
+    _focusChip.Attach(monitor, region);
+  }
+
+  /// <summary>Hands Gemini back the whole shared display.</summary>
+  private void Unfocus() {
+    if (_conversation is { Region: not null } engine) {
+      engine.Region = null;
+      _border.Cover(engine.Monitor);
+      Log.Write("focus: whole display again");
+    }
+
+    _focusChip.Hide();
+    UpdateEscape();
+    UpdateShareButton();
+  }
+
+  /// <summary>
+  /// Holds Esc only while Gemini sees a circled region - and not while the circle overlay is up,
+  /// which needs Esc for its own cancel.
+  /// </summary>
+  private void UpdateEscape() {
+    if (_conversation?.Region is not null && !_circling) {
+      _escape.Register();
+    } else {
+      _escape.Unregister();
     }
   }
 
@@ -167,6 +288,7 @@ public partial class MainWindow : Window {
   private void Detach() {
     _conversation = null;
     _border.Hide();
+    Unfocus();
     _glow.Rest();
   }
 
@@ -225,9 +347,23 @@ public partial class MainWindow : Window {
     }
 
     DpiScale dpi = VisualTreeHelper.GetDpi(this);
-    Overlay.PlaceBottomRight(Handle, monitor.WorkRight - _dockGap, monitor.WorkBottom - _dockGap,
-                             (int)Math.Round(size.Width * dpi.DpiScaleX),
-                             (int)Math.Round(size.Height * dpi.DpiScaleY));
+    int width = (int)Math.Round(size.Width * dpi.DpiScaleX);
+    int height = (int)Math.Round(size.Height * dpi.DpiScaleY);
+    int right = monitor.WorkRight - _dockGap;
+    int bottom = monitor.WorkBottom - _dockGap;
+    Overlay.PlaceBottomRight(Handle, right, bottom, width, height);
+
+    (int Right, int Bottom, int Width, int Height) target = (right, bottom, width, height);
+    if (target == _dockTarget) {
+      return;  // SizeChanged re-docks to the same spot on every layout pass; log only a move
+    }
+
+    _dockTarget = target;
+
+    if (Native.GetWindowRect(Handle, out Native.RECT placed)) {
+      Log.Write($"dock: {monitor.Description} work bottom {monitor.WorkBottom}, {width}×{height} "
+                + $"@{dpi.PixelsPerDip:0.##} → window {placed.Left},{placed.Top}–{placed.Right},{placed.Bottom}");
+    }
   }
 
   // ---- sharing: which display Gemini sees ----
@@ -259,7 +395,7 @@ public partial class MainWindow : Window {
 
     _conversation.Share(monitor);
     _border.Cover(monitor);
-    UpdateShareButton();
+    Unfocus();  // sharing a display shares all of it
     Log.Write($"sharing {monitor.Description}");
   }
 
@@ -378,7 +514,7 @@ public partial class MainWindow : Window {
   /// <summary>Every menu opens upward, rising out of the pill, which sits on the taskbar.</summary>
   private static ContextMenu MenuAbove(UIElement anchor) {
     var menu = new ContextMenu { PlacementTarget = anchor, Placement = PlacementMode.Top };
-    menu.Opened += (_, _) => Motion.Enter(menu, rise: _menuRise);
+    Motion.EnterOnOpen(menu);
     return menu;
   }
 
@@ -485,6 +621,26 @@ public partial class MainWindow : Window {
 
   private void OnSettings(object sender, RoutedEventArgs e) {
     SettingsButton.ContextMenu.IsOpen = true;
+  }
+
+  // ---- transcript selection ----
+
+  /// <summary>
+  /// Selecting transcript text needs the window to hold focus, or Ctrl+C goes to the app
+  /// underneath; so a press on the transcript drops the no-activate style until the user clicks
+  /// elsewhere (<see cref="OnDeactivated"/>).
+  /// </summary>
+  private void OnTranscriptPress(object sender, MouseButtonEventArgs e) {
+    Overlay.SetFocusable(Handle, true);
+  }
+
+  /// <summary>Back to never stealing focus, unless the API key prompt is still waiting for typing.</summary>
+  protected override void OnDeactivated(EventArgs e) {
+    base.OnDeactivated(e);
+
+    if (KeyPanel.Visibility != Visibility.Visible) {
+      Overlay.SetFocusable(Handle, false);
+    }
   }
 
   // ---- first-run API key ----

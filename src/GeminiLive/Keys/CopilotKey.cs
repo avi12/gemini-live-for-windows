@@ -1,5 +1,8 @@
 using System.IO.Pipes;
 using System.Windows.Interop;
+using Windows.ApplicationModel.Activation;
+// Windows' activation API, not this app's own single-instance AppInstance.
+using WindowsAppInstance = Windows.ApplicationModel.AppInstance;
 
 namespace GeminiLive;
 
@@ -87,11 +90,23 @@ public static class CopilotKey {
     });
   }
 
+  /// <summary>
+  /// True when Windows started us at sign-in (the startup task in package\AppxManifest.xml): the app
+  /// only comes up to hold the Circle to Search key, so no conversation starts.
+  /// </summary>
+  public static bool StartedAtSignIn() {
+    return PackagedActivation()?.Kind == ActivationKind.StartupTask;
+  }
+
   /// <summary>The activation URI Windows gave a packaged launch, if any.</summary>
   private static Uri? PackagedActivationUri() {
+    return PackagedActivation() is ProtocolActivatedEventArgs protocol ? protocol.Uri : null;
+  }
+
+  /// <summary>How Windows started this packaged process; null for an unpackaged dev run.</summary>
+  private static IActivatedEventArgs? PackagedActivation() {
     try {
-      return Windows.ApplicationModel.AppInstance.GetActivatedEventArgs()
-          is Windows.ApplicationModel.Activation.ProtocolActivatedEventArgs protocol ? protocol.Uri : null;
+      return WindowsAppInstance.GetActivatedEventArgs();
     } catch {
       return null;  // unpackaged dev run: no activation args
     }

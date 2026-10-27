@@ -47,7 +47,11 @@ public partial class App : Application {
     var pill = new MainWindow(glic, home);
     CopilotKey.RegisterFastPath(pill.Handle, pill.OnTrigger);
     CopilotKey.ListenForForwardedTriggers(t => Dispatcher.Invoke(() => pill.OnTrigger(t)));
-    pill.OnTrigger(trigger ?? KeyTrigger.Tap);
+    CircleKey.Circle(pill.Handle, pill.OnCircle);
+
+    if (!CopilotKey.StartedAtSignIn()) {
+      pill.OnTrigger(trigger ?? KeyTrigger.Tap);
+    }
   }
 
   /// <summary>Lets a host boot in the background; a failure is only logged.</summary>

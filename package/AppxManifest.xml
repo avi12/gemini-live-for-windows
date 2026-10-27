@@ -16,7 +16,7 @@
     <PublisherDisplayName>Avi</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
     <!-- HKCU writes reach the real registry, so the browsers see the native messaging host the app
-         registers there (Glic\NativeHost.cs). Needs the unvirtualizedResources capability. -->
+         registers there (Glic\Link\NativeHost.cs). Needs the unvirtualizedResources capability. -->
     <desktop6:RegistryWriteVirtualization>disabled</desktop6:RegistryWriteVirtualization>
   </Properties>
 
@@ -56,6 +56,12 @@
             </uap3:Properties>
           </uap3:AppExtension>
         </uap3:Extension>
+
+        <!-- Starts the app quietly at sign-in, so the Circle to Search key (CircleKey.cs), a plain
+             hotkey only a running process can hold, works before Win+C was ever pressed. -->
+        <desktop:Extension Category="windows.startupTask" Executable="GeminiLive.exe" EntryPoint="Windows.FullTrustApplication">
+          <desktop:StartupTask TaskId="GeminiLiveAtSignIn" Enabled="true" DisplayName="Gemini Live" />
+        </desktop:Extension>
       </Extensions>
     </Application>
 

@@ -10,4 +10,4 @@ node_modules/
 .fallow/
 
 # Extension signing key: back it up; losing it changes the extension ID
-keys/
+/keys/
