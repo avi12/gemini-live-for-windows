@@ -1,0 +1,194 @@
+@font-face {
+  font-family: "Google Sans";
+  src: url("../../../src/GeminiLive/Fonts/GoogleSans-Variable.ttf");
+}
+
+@font-face {
+  font-family: "Material Symbols Rounded";
+  src: url("../../../src/GeminiLive/Fonts/MaterialSymbolsRounded.ttf");
+}
+
+:root {
+  --live-surface: rgb(240 244 249 / 0.96);
+  --live-menu-surface: #f8fafd;
+  --live-text: #1f1f1f;
+  --live-secondary-text: #444746;
+  --live-outline-variant: #c4c7c5;
+  --live-outline: #747775;
+  --live-selected-container: #c2e7ff;
+  --live-on-selected-container: #001d35;
+  --live-control: #dde3ea;
+  --live-control-hover: #d3dae2;
+  --live-primary: #0b57d0;
+  --live-share: #d3e3fd;
+  --live-share-hover: #c2d3ef;
+  --live-share-pressed: #becfeb;
+  --live-on-share: #041e49;
+  --live-muted: #f9dedc;
+  --live-on-muted: #410e0b;
+  --live-inverse-surface: #303030;
+  --live-inverse-text: #f2f2f2;
+  --live-hover-layer: rgb(31 31 31 / 0.08);
+  --live-pressed-layer: rgb(31 31 31 / 0.1);
+  --live-edge: rgb(0 0 0 / 0.1);
+  --live-card-glow: rgb(91 141 239 / 0.23);}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --live-surface: rgb(17 19 24 / 0.95);
+    --live-menu-surface: #282a2c;
+    --live-text: #e3e3e3;
+    --live-secondary-text: #a8abaf;
+    --live-outline-variant: #444746;
+    --live-outline: #8e918f;
+    --live-selected-container: #004a77;
+    --live-on-selected-container: #c2e7ff;
+    --live-control: #333537;
+    --live-control-hover: #44474a;
+    --live-primary: #a8c7fa;
+    --live-share: #a8c7fa;
+    --live-share-hover: #9bbbef;
+    --live-share-pressed: #98b8ec;
+    --live-on-share: #062e6f;
+    --live-muted: #f2b8b5;
+    --live-on-muted: #601410;
+    --live-inverse-surface: #e3e3e3;
+    --live-inverse-text: #303030;
+    --live-hover-layer: rgb(227 227 227 / 0.08);
+    --live-pressed-layer: rgb(227 227 227 / 0.1);
+    --live-edge: rgb(138 180 248 / 0.33);
+    --live-card-glow: rgb(138 180 248 / 0.7);  }
+}
+
+text-block,
+button,
+password-box,
+menu-flyout-item,
+toggle-menu-flyout-item,
+radio-menu-flyout-item {
+  font-family: "Google Sans", "Segoe UI Variable Text", "Segoe UI";
+}
+
+text-block {
+  color: var(--live-text);
+}
+
+.live-icon {
+  font-family: "Material Symbols Rounded";
+}
+
+.live-glyph-round {
+  color: var(--live-text);
+}
+
+.live-glyph-share {
+  color: var(--live-on-share);
+}
+
+.live-glyph-muted {
+  color: var(--live-on-muted);
+}
+
+.live-label {
+  font-size: 14px;
+}
+
+.live-supporting-text {
+  font-size: 14px;
+  color: var(--live-secondary-text);
+}
+
+.live-secondary-text {
+  color: var(--live-secondary-text);
+}
+
+.live-body {
+  font-size: 16px;
+}
+
+.live-caption-text {
+  font-size: 12px;
+  text-wrap: wrap;
+}
+
+.live-card {
+  padding: 18px 22px;
+  border-color: var(--live-edge);
+  border-width: 1px;
+  border-radius: 28px;
+  background-color: var(--live-surface);
+}
+
+.live-pill {
+  border-color: var(--live-edge);
+  border-width: 1px;
+  border-radius: 34px;
+  background-color: var(--live-surface);
+}
+
+.live-glow-peak {
+  opacity: 0.6;
+}
+
+.live-chip {
+  padding: 0 16px 0 8px;
+  border-color: var(--live-outline-variant);
+  border-width: 1px;
+  border-radius: 8px;
+  background-color: transparent;
+  --button-background: transparent;
+  --button-background-pointer-over: var(--live-hover-layer);
+  --button-background-pressed: var(--live-pressed-layer);
+  --button-border-brush: var(--live-outline-variant);
+  --button-border-brush-pointer-over: var(--live-outline-variant);
+  --button-border-brush-pressed: var(--live-outline-variant);
+  --button-foreground: var(--live-text);
+  --button-foreground-pointer-over: var(--live-text);
+  --button-foreground-pressed: var(--live-text);
+}
+
+.live-spaced {
+  margin-left: 8px;
+}
+
+.live-round-button {
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border-width: 0;
+  border-radius: 23px;
+  --button-background: var(--live-control);
+  --button-background-pointer-over: var(--live-control-hover);
+  --button-background-pressed: var(--live-control-hover);
+}
+
+.live-share-button {
+  height: 46px;
+  padding: 0 18px;
+  border-width: 0;
+  border-radius: 23px;
+  --button-background: var(--live-share);
+  --button-background-pointer-over: var(--live-share-hover);
+  --button-background-pressed: var(--live-share-pressed);
+}
+
+.live-accent-button {
+  height: 40px;
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 500;
+  border-width: 0;
+  border-radius: 23px;
+  --button-background: var(--live-share);
+  --button-background-pointer-over: var(--live-share-hover);
+  --button-background-pressed: var(--live-share-pressed);
+  --button-foreground: var(--live-on-share);
+  --button-foreground-pointer-over: var(--live-on-share);
+  --button-foreground-pressed: var(--live-on-share);
+}
+
+@media (prefers-color-scheme: dark) {
+  .live-glow-peak {
+    opacity: 1;
+  }
+}

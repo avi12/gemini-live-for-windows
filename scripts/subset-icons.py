@@ -3,7 +3,8 @@
 The full variable font is about 15 MB; the app draws a handful of icons, always at the default
 style (WPF can't set a variable font's axes). So this pins the axes to that default
 (outlined, weight 400, grade 0, optical size 24) and keeps only the code points named in
-src/GeminiLive/Design/Glyphs.cs, the one list of icons. Re-run it after adding a glyph there:
+src/GeminiLive/Design/Glyphs.cs (the WPF overlays' icons) and pill/src/ui/glyphs.ts (the pill's).
+Re-run it after adding a glyph to either:
 
     python scripts/subset-icons.py <path to MaterialSymbolsRounded[FILL,GRAD,opsz,wght].ttf>
 
@@ -19,16 +20,23 @@ from fontTools.ttLib import TTFont
 from fontTools.varLib import instancer
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-GLYPHS = ROOT / "src" / "GeminiLive" / "Design" / "Glyphs.cs"
+GLYPH_SOURCES = [
+    ROOT / "src" / "GeminiLive" / "Design" / "Glyphs.cs",
+    ROOT / "pill" / "src" / "ui" / "glyphs.ts",
+]
 OUT = ROOT / "src" / "GeminiLive" / "Fonts" / "MaterialSymbolsRounded.ttf"
 DEFAULT_STYLE = {"FILL": 0, "GRAD": 0, "opsz": 24, "wght": 400}
 
 
 def code_points() -> list[int]:
-    # Each constant is one Private Use Area character in a string literal.
-    found = re.findall('"([-])"', GLYPHS.read_text(encoding="utf-8"))
+    # Each icon is one Private Use Area character in a string literal.
+    found = [
+        glyph
+        for source in GLYPH_SOURCES
+        for glyph in re.findall('"([-])"', source.read_text(encoding="utf-8"))
+    ]
     if not found:
-        sys.exit(f"no icon glyphs found in {GLYPHS}")
+        sys.exit(f"no icon glyphs found in {GLYPH_SOURCES}")
     return sorted({ord(glyph) for glyph in found})
 
 
