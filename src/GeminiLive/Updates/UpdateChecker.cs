@@ -35,6 +35,9 @@ public sealed class UpdateChecker {
   /// <summary>The newer release, once it is downloaded and checked.</summary>
   public AppRelease? Ready { get; private set; }
 
+  /// <summary>Raised when <see cref="Ready"/> changes.</summary>
+  public event Action? ReadyChanged;
+
   private string? _readyPath;
 
   /// <summary>Looks now, then again every few hours for as long as the app runs.</summary>
@@ -78,6 +81,7 @@ public sealed class UpdateChecker {
   private async Task<UpdateCheck> PrepareAsync(AppRelease latest) {
     _readyPath = await UpdateInstaller.DownloadAsync(latest);
     Ready = _readyPath is null ? null : latest;
+    ReadyChanged?.Invoke();
     return Ready is null ? UpdateCheck.Failed : UpdateCheck.Ready;
   }
 

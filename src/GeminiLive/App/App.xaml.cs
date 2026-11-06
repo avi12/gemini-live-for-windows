@@ -44,10 +44,12 @@ public partial class App : Application {
     WarmUp(glic.WarmUpAsync(), "warm-up");
     var home = new Glic.HomeHost(link);
     WarmUp(home.WarmUpAsync(), "home warm-up");
-    var pill = new MainWindow(glic, home);
-    CopilotKey.RegisterFastPath(pill.Handle, pill.OnTrigger);
+    var window = new HostWindow();
+    var pill = new PillController(window, glic, home);
+    Exit += (_, _) => pill.Dispose();
+    CopilotKey.RegisterFastPath(window.Handle, pill.OnTrigger);
     CopilotKey.ListenForForwardedTriggers(t => Dispatcher.Invoke(() => pill.OnTrigger(t)));
-    CircleKey.Circle(pill.Handle, pill.OnCircle);
+    CircleKey.Circle(window.Handle, pill.OnCircle);
 
     if (!CopilotKey.StartedAtSignIn()) {
       pill.OnTrigger(trigger ?? KeyTrigger.Tap);

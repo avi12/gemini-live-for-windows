@@ -32,6 +32,18 @@
     <Content Include="..\..\extension\.output\chrome-mv3\**\*" Link="extension\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <!-- The pill (pill\, a Svelte window on winui-svelte) runs as a sidecar of this app on a Node that
+       ships with it, so the app never needs Node installed: <app>\pill\ holds pnpm's build of pill
+       (pill\dist) and node.exe, which scripts\Get-Node.ps1 caches in build\node\<version>. Node's
+       own license travels beside it. Publish and the MSIX take the same files. -->
+  <ItemGroup>
+    <Content Include="..\..\pill\dist\**\*" Link="pill\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\build\node\$(BundledNodeVersion)\node.exe" Link="pill\node.exe" CopyToOutputDirectory="PreserveNewest"
+             Condition="Exists('..\..\build\node\$(BundledNodeVersion)\node.exe')" />
+    <Content Include="..\..\build\node\$(BundledNodeVersion)\LICENSE" Link="pill\node-LICENSE.txt" CopyToOutputDirectory="PreserveNewest"
+             Condition="Exists('..\..\build\node\$(BundledNodeVersion)\LICENSE')" />
+  </ItemGroup>
+
   <ItemGroup>
     <!-- Google Sans (OFL 1.1, Fonts\OFL.txt), from github.com/google/fonts ofl/googlesans v14.000.
          Embedded so App.xaml's LiveFont resolves even where Google Sans isn't installed. The
@@ -42,7 +54,7 @@
     <!-- Material Symbols Rounded (Apache-2.0, Fonts\MaterialSymbols-LICENSE.txt), from
          github.com/google/material-design-icons variablefont/ at 10ecc14, renamed without the
          [FILL,GRAD,opsz,wght] brackets. App.xaml's IconFont; WPF renders its default instance
-         (outlined, weight 400). Glyphs.cs holds the code points. -->
+         (outlined, weight 400). Glyphs.cs and the pill's glyphs.ts hold the code points. -->
     <Resource Include="Fonts\MaterialSymbolsRounded.ttf" />
     <None Include="Fonts\MaterialSymbols-LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

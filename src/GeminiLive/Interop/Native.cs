@@ -117,6 +117,22 @@ internal static unsafe class Native {
   public static extern bool SetForegroundWindow(IntPtr hwnd);
 
   [DllImport("user32.dll")]
+  public static extern bool IsWindow(IntPtr hwnd);
+
+  public delegate void WinEventProc(IntPtr hook, uint eventType, IntPtr hwnd, int idObject, int idChild,
+                                    uint eventThread, uint eventTime);
+
+  [DllImport("user32.dll")]
+  public static extern IntPtr SetWinEventHook(uint eventMin, uint eventMax, IntPtr module, WinEventProc callback,
+                                              uint processId, uint threadId, uint flags);
+
+  [DllImport("user32.dll")]
+  public static extern bool UnhookWinEvent(IntPtr hook);
+
+  [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+  public static extern int GetClassName(IntPtr hwnd, char[] className, int capacity);
+
+  [DllImport("user32.dll")]
   public static extern bool BringWindowToTop(IntPtr hwnd);
 
   [DllImport("user32.dll")]

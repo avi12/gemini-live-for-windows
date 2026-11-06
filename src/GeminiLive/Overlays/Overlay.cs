@@ -48,15 +48,6 @@ public static class Overlay {
     return Prepare(window, clickThrough);
   }
 
-  /// <summary>Lets the window take focus (and come forward) only while it must, to type.</summary>
-  public static void SetFocusable(IntPtr hwnd, bool focusable) {
-    SetExStyle(hwnd, Native.WS_EX_NOACTIVATE, on: !focusable);
-
-    if (focusable) {
-      Native.SetForegroundWindow(hwnd);
-    }
-  }
-
   /// <summary>
   /// Makes the window the foreground one even where Windows' foreground lock would refuse. A
   /// hotkey's window shows only after the user lets go of the keys, and those releases went to the
@@ -84,14 +75,6 @@ public static class Overlay {
     }
 
     Native.SetWindowPos(hwnd, Native.HWND_TOPMOST, x, y, width ?? 0, height ?? 0, flags);
-  }
-
-  /// <summary>
-  /// Places a window of the given (physical) size with its bottom-right corner here. The caller
-  /// passes the size it is about to have: mid-resize the HWND rect still holds the old one.
-  /// </summary>
-  public static void PlaceBottomRight(IntPtr hwnd, int right, int bottom, int width, int height) {
-    Place(hwnd, right - width, bottom - height);
   }
 
   private static void SetExStyle(IntPtr hwnd, int bits, bool on) {

@@ -54,4 +54,6 @@ public static class LiveStatus {
   public const string Listening = "Listening";
   public const string Reconnecting = "Reconnecting…";
   public const string Resuming = "Resuming…";
+  public const string Stopped = "Gemini Live stopped";
+  public const string NeedsApiKey = "Setup: Gemini needs an API key";
 }
