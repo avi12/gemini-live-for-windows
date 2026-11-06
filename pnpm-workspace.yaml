@@ -2,7 +2,10 @@ packages:
   - bridge
   - extension
   - messaging
+  - pill
 allowBuilds:
   esbuild: true
   simple-git-hooks: true
   spawn-sync: false
+minimumReleaseAgeExclude:
+  - winui-svelte@0.0.4

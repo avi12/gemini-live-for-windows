@@ -7,9 +7,15 @@
     "extension/scripts/pack-crx.mjs",
     "extension/src/entrypoints/**",
     "extension/wxt.config.ts",
-    "messaging/src/index.ts"
+    "messaging/src/index.ts",
+    "pill/src/main.ts",
+    "pill/src/window.ts",
+    "pill/build.ts",
+    "pill/vite.config.ts",
+    "pill/svelte.config.js"
   ],
-  "ignorePatterns": [".claude/worktrees/**", "src/GeminiLive/Glic/Bridges/*.js"],
+  "ignorePatterns": [".claude/worktrees/**", "src/GeminiLive/Glic/Bridges/*.js", "pill/dist/**"],
+  "ignoreDependencies": ["postcss-html"],
   "health": {
     "maxCognitive": 30,
     "maxCrap": 10000

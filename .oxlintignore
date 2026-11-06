@@ -7,3 +7,4 @@ build/**
 .fallow/**
 .claude/worktrees/**
 src/GeminiLive/Glic/Bridges/*.js
+pill/dist/**

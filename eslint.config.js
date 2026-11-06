@@ -1,12 +1,24 @@
+import {
+  pillRules,
+  pillSvelteTypeAwareRules,
+  pillSyntax,
+  pillTypeAwareRules,
+  treeShakingSyntax
+} from "./eslint-config/pill-style.js";
 import expandNestedObjectExpression from "./eslint-rules/expand-nested-object-expression.js";
 import expandNestedTypeLiteral from "./eslint-rules/expand-nested-type-literal.js";
+import expandSvelteBlock from "./eslint-rules/expand-svelte-block.js";
 import multilineArgParenNewline from "./eslint-rules/multiline-arg-paren-newline.js";
+import noEmDash from "./eslint-rules/no-em-dash.js";
+import noPaddedTag from "./eslint-rules/no-padded-tag.js";
 import stylistic from "@stylistic/eslint-plugin";
 import importNewlines from "eslint-plugin-import-newlines";
 import perfectionist from "eslint-plugin-perfectionist";
+import svelteEslint from "eslint-plugin-svelte";
 import unusedImports from "eslint-plugin-unused-imports";
 import { globalIgnores } from "eslint/config";
 import globals from "globals";
+import svelteParser from "svelte-eslint-parser";
 import tsEslint from "typescript-eslint";
 
 // The youtube-time-manager lint setup. Logic and correctness rules live in oxlint (.oxlintrc.json)
@@ -230,10 +242,30 @@ const sharedPlugins = {
     rules: {
       "expand-nested-object-expression": expandNestedObjectExpression,
       "expand-nested-type-literal": expandNestedTypeLiteral,
-      "multiline-arg-paren-newline": multilineArgParenNewline
+      "expand-svelte-block": expandSvelteBlock,
+      "multiline-arg-paren-newline": multilineArgParenNewline,
+      "no-em-dash": noEmDash,
+      "no-padded-tag": noPaddedTag
     }
   }
 };
+
+// The pill (pill/**) is held to the stricter pill-style rules, some of which read type
+// information from pill/tsconfig.json
+const pillTypeAwareParserOptions = {
+  projectService: {
+    allowDefaultProject: ["pill/*.js"]
+  },
+  tsconfigRootDir: import.meta.dirname
+};
+const [, ...baseSyntax] = tsStyleRules["no-restricted-syntax"];
+const pillSvelteTernary = {
+  // A `{cond ? a : b}` that outputs text reads as markup in an {#if}/{:else} block. Attribute
+  // and directive value ternaries are fine.
+  selector: "SvelteMustacheTag:not([parent.type='SvelteAttribute']):not([parent.type='SvelteStyleDirective']) > ConditionalExpression",
+  message: "Do not use a ternary in a template tag - use an {#if}/{:else} block instead."
+};
+const pillBaseSyntax = ["error", ...baseSyntax, ...pillSyntax, pillSvelteTernary];
 
 const browserGlobals = {
   ...globals.browser,
@@ -247,8 +279,11 @@ const browserGlobals = {
 const browserFiles = ["bridge/**/*.ts", "extension/src/**/*.ts", "messaging/src/**/*.ts"];
 
 export default [
+  ...svelteEslint.configs["flat/recommended"],
   globalIgnores([
     "**/node_modules/",
+    "pill/dist/",
+    "**/.svelte-check/",
     "**/.output/",
     "**/.wxt/",
     "**/bin/",
@@ -271,6 +306,62 @@ export default [
     files: browserFiles,
     languageOptions: {
       globals: browserGlobals
+    }
+  },
+  {
+    files: ["pill/**/*.ts", "pill/**/*.js"],
+    languageOptions: {
+      parserOptions: pillTypeAwareParserOptions
+    },
+    rules: {
+      ...pillRules,
+      ...pillTypeAwareRules,
+      "no-restricted-syntax": pillBaseSyntax
+    }
+  },
+  {
+    files: ["pill/**/*.svelte"],
+    languageOptions: {
+      parser: svelteParser,
+      parserOptions: {
+        parser: tsEslint.parser,
+        extraFileExtensions: [".svelte"],
+        ...pillTypeAwareParserOptions
+      },
+      globals: globals.node
+    },
+    plugins: sharedPlugins,
+    rules: {
+      ...tsStyleRules,
+      ...pillRules,
+      ...pillSvelteTypeAwareRules,
+      "no-restricted-syntax": pillBaseSyntax,
+      "prefer-const": ["error", { destructuring: "all" }],
+      "svelte/no-at-html-tags": "off",
+      "svelte/indent": ["error", { indent: 2 }],
+      "svelte/sort-attributes": "error",
+      "svelte/shorthand-directive": "error",
+      "svelte/first-attribute-linebreak": ["error"],
+      "svelte/shorthand-attribute": ["error", { prefer: "always" }],
+      "local/expand-svelte-block": "error",
+      "local/no-padded-tag": "error"
+    }
+  },
+  {
+    // Importing a pill module does no work; the two sidecar entries, the build script and the tool
+    // configs run on import by design
+    files: ["pill/src/**/*.{ts,svelte}"],
+    ignores: ["pill/src/main.ts", "pill/src/window.ts"],
+    rules: {
+      "no-restricted-syntax": ["error", ...pillBaseSyntax.slice(1), ...treeShakingSyntax]
+    }
+  },
+  {
+    // A tool's config file is its default export, and its keys are the tool's own option names
+    files: ["pill/*.config.{js,ts}"],
+    rules: {
+      "no-restricted-exports": "off",
+      "@typescript-eslint/naming-convention": "off"
     }
   }
 ];

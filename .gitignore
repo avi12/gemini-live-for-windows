@@ -2,6 +2,8 @@ bin/
 obj/
 build/
 node_modules/
+pill/dist/
+.svelte-check/
 *.user
 .vs/
 
@@ -11,3 +13,4 @@ node_modules/
 
 # Extension signing key: back it up; losing it changes the extension ID
 /keys/
+__pycache__/
