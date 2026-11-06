@@ -18,18 +18,20 @@ https://github.com/user-attachments/assets/46c1a0e1-f0db-4c0c-8835-ba38f46a29fb
 - Windows 11 23H2 or newer, up to date, so it has the **Customize Copilot key on keyboard** setting that lets you choose what Win+C opens
 - A Chromium browser (Chrome, Edge, Brave…) that can sideload an extension in Developer mode, signed in to the Google account you use Gemini with
 
+Nothing else to install by hand: the package carries its own Node for the pill (about 90 MB of the download) and the install script adds the Windows App SDK 2.2 runtime if your PC lacks it.
+
 ## Install
 
 Download the files from the [latest release](https://github.com/avi12/gemini-live-for-windows/releases/latest).
 
 ### The app
 
-1. Put `GeminiLive-<version>.msix`, `GeminiLive.cer` and `Install-GeminiLive.ps1` in one folder.
+1. Put `GeminiLive-<version>.msix`, `GeminiLive.cer`, `Install-GeminiLive.ps1` and `Install-WindowsAppRuntime.ps1` in one folder.
 2. In that folder, run:
    ```powershell
    powershell -ExecutionPolicy Bypass -File .\Install-GeminiLive.ps1
    ```
-   The release is signed with a self-signed certificate, so the first install asks once (UAC) to trust it. Later versions install over it and keep your microphone permission.
+   The release is signed with a self-signed certificate, so the first install asks once (UAC) to trust it. If the Windows App SDK 2.2 runtime is missing, the script first installs it from Microsoft's installer, which it runs only when the signature is Microsoft's. Later versions install over it and keep your microphone permission.
 3. **Set it as Win+C.** The script opens Settings › Personalization › Text input. Under **Customize Copilot key on keyboard**, choose **Gemini Live**. That setting covers both the Copilot key and Win+C.
 
 ### The browser extension
@@ -111,10 +113,11 @@ The last command prints the key. `--api-target` restricts it to the Gemini API a
 
 ## Build from source
 
-Needs the .NET 10 SDK, the Windows 10 SDK (for `makeappx` and `signtool`), Node 24 and pnpm.
+Needs the .NET 10 SDK, the Windows 10 SDK (for `makeappx` and `signtool`), Node 24 and pnpm. Node is only for building; the installed app runs the pill on the `node.exe` it ships. The install script downloads that Node (the version in `Directory.Build.props`, checked against nodejs.org's SHA-256) into `build\node`, and installs the Windows App SDK 2.2 runtime if it is missing.
 
 ```powershell
 pnpm install
+pnpm --filter @gemini-live/pill build  # type-check and build the pill into pill\dist
 .\scripts\install.ps1                  # build, sign with a local certificate, install
 .\scripts\install.ps1 -Mode Register   # unsigned dev-mode install for fast iteration
 .\scripts\install.ps1 -Mode Release    # the release files, in build\release
@@ -126,6 +129,7 @@ Windows only lists signed providers in the Copilot key setting, so use the defau
 | --- | --- |
 | `src/GeminiLive` | the WPF app |
 | `src/GeminiLiveHost` | the native messaging host the extension asks for the app's link |
+| `pill/` | the pill's UI: Svelte on [winui-svelte](https://github.com/avi12/winui-svelte), run by the app as a Node sidecar |
 | `bridge/` | the TypeScript injected into the hidden Gemini and Google Home pages (`glic/`, `home/`, `shared/`) |
 | `extension/` | the companion browser extension (WXT) |
 | `messaging/` | typed messaging, in [@webext-core/messaging](https://webext-core.aklinker1.io/messaging/)'s protocol-map style, shared by the bridges, the extension and (as `Messaging.cs`) the app |
@@ -136,6 +140,7 @@ Windows only lists signed providers in the Copilot key setting, so use the defau
 
 ```powershell
 pnpm dev:lint   # fallow, oxlint + ESLint, and dotnet format
+pnpm --filter @gemini-live/pill svelte:check   # type-check the pill's Svelte and TypeScript
 ```
 
 TypeScript follows the youtube-time-manager setup: oxlint for logic, ESLint for layout, fallow for dead code and complexity. The C# side mirrors the same rules through `.editorconfig` and the analyzers in `analyzers/`. A pre-commit hook runs them on staged files.
