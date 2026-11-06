@@ -28,6 +28,22 @@ if (-not $trusted) {
         "-NoProfile -Command Import-Certificate -FilePath '$cer' -CertStoreLocation Cert:\LocalMachine\TrustedPeople"
 }
 
+# Windows doesn't fetch a sideloaded package's dependencies. The package's own manifest names the
+# Windows App SDK runtime it needs (the pill's WinUI), so read it from there and install it first.
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$archive = [IO.Compression.ZipFile]::OpenRead($msix.FullName)
+try {
+    $reader = New-Object IO.StreamReader ($archive.GetEntry('AppxManifest.xml').Open())
+    [xml] $manifest = $reader.ReadToEnd()
+    $reader.Dispose()
+}
+finally { $archive.Dispose() }
+foreach ($dependency in @($manifest.Package.Dependencies.PackageDependency)) {
+    if ($dependency.Name -like 'Microsoft.WindowsAppRuntime.*') {
+        & (Join-Path $PSScriptRoot 'Install-WindowsAppRuntime.ps1') -Name $dependency.Name -MinVersion $dependency.MinVersion
+    }
+}
+
 Write-Host "Installing $($msix.Name)..."
 Add-AppxPackage $msix.FullName -ForceApplicationShutdown
 Write-Host 'Installed. Choose Gemini Live under "Customize Copilot key on keyboard" to start it with Win+C.'

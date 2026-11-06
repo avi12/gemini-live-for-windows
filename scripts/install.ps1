@@ -8,8 +8,12 @@
            Copilot key providers. Trusting the cert needs one UAC prompt, first time only.
   Register dev-mode loose registration, no signing. Fastest inner loop for code changes.
   Release  pack + sign at exactly the manifest's version, without installing, and gather what a
-           GitHub release ships in build\release: the .msix, the signing .cer, Install-GeminiLive.ps1,
-           and the extension's .zip and signed .crx (keys\chrome.pem).
+           GitHub release ships in build\release: the .msix, the signing .cer, Install-GeminiLive.ps1
+           with Install-WindowsAppRuntime.ps1, and the extension's .zip and signed .crx
+           (keys\chrome.pem).
+
+  Every mode builds the pill and bundles node.exe (scripts\Get-Node.ps1) into the package; Signed
+  and Register also install the Windows App SDK runtime the manifest depends on.
 #>
 param([ValidateSet('Signed', 'Register', 'Release')] [string] $Mode = 'Signed')
 $ErrorActionPreference = 'Stop'
@@ -72,9 +76,28 @@ Invoke-Pnpm 'extension' $(if ($release) { 'release' } else { 'build' })
 Write-Host '== bridge'
 Invoke-Pnpm 'bridge' 'build'
 
+Write-Host '== pill'
+Invoke-Pnpm 'pill' 'build'
+
+# The app ships its own node.exe (pill\node.exe), so it never relies on the machine having Node.
+Write-Host '== node'
+& (Join-Path $PSScriptRoot 'Get-Node.ps1') | ForEach-Object { Write-Host "   $_" }
+
+# The pill's WinUI needs the Windows App SDK runtime, which the package declares as a dependency.
+# Windows doesn't fetch a sideloaded package's dependencies, so a local install gets it first.
+$runtime = $manifest.Package.Dependencies.PackageDependency | Where-Object Name -like 'Microsoft.WindowsAppRuntime.*'
+if (-not $release) {
+  Write-Host '== runtime'
+  & (Join-Path $PSScriptRoot 'Install-WindowsAppRuntime.ps1') -Name $runtime.Name -MinVersion $runtime.MinVersion
+}
+
 Write-Host '== publish'
 if (Test-Path $layout) { Remove-Item $layout -Recurse -Force }
 Publish-Project 'GeminiLive'
+# GeminiLive.csproj copies pill\dist and node.exe into the publish output as <app>\pill\.
+foreach ($file in 'pill\main.js', 'pill\window.js', 'pill\node.exe', 'pill\GoogleSans-Variable.ttf', 'pill\MaterialSymbolsRounded.ttf') {
+  if (-not (Test-Path (Join-Path $layout $file))) { throw "The package layout has no $file; the pill or node.exe didn't reach the publish" }
+}
 # The browsers' native messaging host ships beside the app (its execution alias is in the manifest).
 Publish-Project 'GeminiLiveHost'
 Copy-Item (Join-Path $root 'package\*') $layout -Recurse -Force
@@ -139,7 +162,7 @@ else {
         $version = '{0}.{1}.{2}' -f $base.Major, $base.Minor, $base.Build
         Copy-Item $msix (Join-Path $out "GeminiLive-$version.msix")
         Export-Certificate -Cert $cert -FilePath (Join-Path $out 'GeminiLive.cer') | Out-Null
-        Copy-Item (Join-Path $PSScriptRoot 'Install-GeminiLive.ps1') $out
+        Copy-Item (Join-Path $PSScriptRoot 'Install-GeminiLive.ps1'), (Join-Path $PSScriptRoot 'Install-WindowsAppRuntime.ps1') $out
         Copy-Item (Join-Path $root 'extension\.output\*.zip'), (Join-Path $root 'extension\.output\*.crx') $out
         Get-ChildItem $out | ForEach-Object { Write-Host "   $($_.Name)" }
         return

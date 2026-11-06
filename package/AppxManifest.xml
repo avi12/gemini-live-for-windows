@@ -22,6 +22,11 @@
 
   <Dependencies>
     <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.22631.0" MaxVersionTested="10.0.26300.0" />
+    <!-- The pill's WinUI runs on the Windows App SDK 2.x framework package; a newer 2.x satisfies
+         MinVersion. A sideload doesn't fetch it, so scripts\Install-WindowsAppRuntime.ps1 installs
+         it from the values written here. -->
+    <PackageDependency Name="Microsoft.WindowsAppRuntime.2" MinVersion="2.2.0.0"
+      Publisher="CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US" />
   </Dependencies>
 
   <Resources>

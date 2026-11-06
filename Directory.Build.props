@@ -10,5 +10,9 @@
     <!-- Windows 11 23H2: the first release with "Customize Copilot key on keyboard", which is how
          Win+C opens the app. package\AppxManifest.xml's MinVersion must match (install.ps1 checks). -->
     <SupportedOSPlatformVersion>10.0.22631.0</SupportedOSPlatformVersion>
+    <!-- The Node the pill runs on, shipped as pill\node.exe so the app never needs Node installed.
+         scripts\Get-Node.ps1 fetches it into build\node\<version>, and GeminiLive.csproj copies it
+         from there. Node 24 is the minimum winui-svelte supports. -->
+    <BundledNodeVersion>24.22.2</BundledNodeVersion>
   </PropertyGroup>
 </Project>
