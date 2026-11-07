@@ -1,7 +1,7 @@
 <script lang="ts">
   import MenuHeader from "./MenuHeader.svelte";
   import { sendAction, view } from "@/lib/view.svelte.ts";
-  import { EngineKind, PillActionKind } from "@/protocol/view.ts";
+  import { EngineKind, PillActionKind } from "@gemini-live/protocol/view";
   import { MenuFlyoutItem, RadioMenuFlyoutItem } from "winui-svelte/components";
 
   const ENGINE_GROUP = "engine";

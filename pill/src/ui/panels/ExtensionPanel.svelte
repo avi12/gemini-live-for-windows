@@ -1,6 +1,6 @@
 <script lang="ts">
   import { sendAction, view } from "@/lib/view.svelte.ts";
-  import { PillActionKind } from "@/protocol/view.ts";
+  import { PillActionKind } from "@gemini-live/protocol/view";
   import { Button, StackPanel, TextBlock } from "winui-svelte/components";
 </script>
 

@@ -31,7 +31,8 @@
   --live-hover-layer: rgb(31 31 31 / 0.08);
   --live-pressed-layer: rgb(31 31 31 / 0.1);
   --live-edge: rgb(0 0 0 / 0.1);
-  --live-card-glow: rgb(91 141 239 / 0.23);}
+  --live-card-glow: rgb(91 141 239 / 0.23);
+}
 
 @media (prefers-color-scheme: dark) {
   :root {
@@ -57,7 +58,8 @@
     --live-hover-layer: rgb(227 227 227 / 0.08);
     --live-pressed-layer: rgb(227 227 227 / 0.1);
     --live-edge: rgb(138 180 248 / 0.33);
-    --live-card-glow: rgb(138 180 248 / 0.7);  }
+    --live-card-glow: rgb(138 180 248 / 0.7);
+  }
 }
 
 text-block,
@@ -191,4 +193,67 @@ text-block {
   .live-glow-peak {
     opacity: 1;
   }
+}
+
+.circle-bar {
+  border-color: var(--live-edge);
+  border-width: 1px;
+  border-radius: 34px;
+  background-color: var(--live-menu-surface);
+}
+
+.circle-action {
+  --button-background: var(--live-control);
+  --button-background-pointer-over: var(--live-control-hover);
+  --button-background-pressed: var(--live-control-hover);
+  --button-foreground: var(--live-text);
+  --button-foreground-pointer-over: var(--live-text);
+  --button-foreground-pressed: var(--live-text);
+}
+
+.circle-action-primary {
+  --button-background: var(--live-share);
+  --button-background-pointer-over: var(--live-share-hover);
+  --button-background-pressed: var(--live-share-pressed);
+  --button-foreground: var(--live-on-share);
+  --button-foreground-pointer-over: var(--live-on-share);
+  --button-foreground-pressed: var(--live-on-share);
+}
+
+.circle-hint {
+  background-color: var(--live-inverse-surface);
+}
+
+.circle-hint-text {
+  color: var(--live-inverse-text);
+}
+
+.circle-words,
+.circle-picked,
+.circle-sparkle {
+  fill: var(--live-primary);
+}
+
+.circle-band {
+  border-color: var(--live-primary);
+}
+
+.share-frame {
+  border-color: var(--live-primary);
+}
+
+.focus-chip {
+  border-color: var(--live-edge);
+  background-color: var(--live-surface);
+}
+
+.focus-chip-label,
+.focus-chip-icon {
+  color: var(--live-text);
+}
+
+.focus-chip-close {
+  --button-background: var(--live-control);
+  --button-background-pointer-over: var(--live-control-hover);
+  --button-background-pressed: var(--live-control-hover);
 }

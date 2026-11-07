@@ -1,8 +1,8 @@
 <script lang="ts">
   import { view } from "@/lib/view.svelte.ts";
-  import { GlowMode } from "@/protocol/view.ts";
   import { emphasizedDecelerate } from "@/ui/easing.ts";
   import { Motion } from "@/ui/motion.ts";
+  import { GlowMode } from "@gemini-live/protocol/view";
   import type { Snippet } from "svelte";
   import { linear } from "svelte/easing";
   import { Tween } from "svelte/motion";

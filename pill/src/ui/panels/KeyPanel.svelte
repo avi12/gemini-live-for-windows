@@ -1,6 +1,6 @@
 <script lang="ts">
   import { sendAction } from "@/lib/view.svelte.ts";
-  import { PillActionKind } from "@/protocol/view.ts";
+  import { PillActionKind } from "@gemini-live/protocol/view";
   import { elementRef, focusElement } from "winui-svelte";
   import { projectAs } from "winui-svelte/bindings/lifetime";
   import { KeyRoutedEventArgs } from "winui-svelte/bindings/microsoft/ui/xaml/input/KeyRoutedEventArgs";

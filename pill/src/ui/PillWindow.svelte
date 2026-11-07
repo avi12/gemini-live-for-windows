@@ -1,12 +1,13 @@
 <script lang="ts">
   import "./theme.css";
+  import { setPillWindow } from "@/lib/pill-window.ts";
   import { sendAction, view } from "@/lib/view.svelte.ts";
-  import { PillActionKind } from "@/protocol/view.ts";
   import CaptionCard from "@/ui/CaptionCard.svelte";
   import Glow from "@/ui/Glow.svelte";
   import { pillEnter, pillExit } from "@/ui/motion.ts";
   import Pill from "@/ui/Pill.svelte";
   import { PillPart, placeOf } from "@/ui/places.svelte.ts";
+  import { PillActionKind } from "@gemini-live/protocol/view";
   import { elementSize } from "winui-svelte";
   import { Window } from "winui-svelte/components";
   import type { WindowHandle } from "winui-svelte/components";
@@ -90,6 +91,7 @@
   width={PILL_WIDTH}
   bind:handle={() => windowRef.handle, handle => {
     windowRef.handle = handle;
+    setPillWindow(handle);
   }}
 >
   <stack-panel class="root" {@attach content.attach}>

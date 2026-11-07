@@ -1,9 +1,9 @@
 <script lang="ts">
   import "./theme.css";
   import { sendAction, view } from "@/lib/view.svelte.ts";
-  import { PillActionKind } from "@/protocol/view.ts";
   import { Glyph } from "@/ui/glyphs.ts";
   import { Motion } from "@/ui/motion.ts";
+  import { PillActionKind } from "@gemini-live/protocol/view";
   import { scale } from "svelte/transition";
   import {
     Button,

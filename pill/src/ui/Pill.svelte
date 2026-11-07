@@ -1,6 +1,5 @@
 <script lang="ts">
   import { sendAction, view } from "@/lib/view.svelte.ts";
-  import { PillActionKind } from "@/protocol/view.ts";
   import { GlyphButtonKind } from "@/ui/glyph-button.ts";
   import GlyphButton from "@/ui/GlyphButton.svelte";
   import { Glyph } from "@/ui/glyphs.ts";
@@ -8,6 +7,7 @@
   import GearMenu from "@/ui/menu/GearMenu.svelte";
   import { Motion } from "@/ui/motion.ts";
   import { PillPart, trackPart } from "@/ui/places.svelte.ts";
+  import { PillActionKind } from "@gemini-live/protocol/view";
   import { fade } from "svelte/transition";
   import { TextBlock } from "winui-svelte/components";
 

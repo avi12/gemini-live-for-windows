@@ -4,7 +4,7 @@
   import MicrophoneItems from "./MicrophoneItems.svelte";
   import UpdateItems from "./UpdateItems.svelte";
   import { sendAction, view } from "@/lib/view.svelte.ts";
-  import { EngineKind, PillActionKind } from "@/protocol/view.ts";
+  import { EngineKind, PillActionKind } from "@gemini-live/protocol/view";
   import { MenuFlyout, MenuFlyoutItem, MenuFlyoutSeparator } from "winui-svelte/components";
 
   const isCameraShown = $derived(view.engine === EngineKind.google);
