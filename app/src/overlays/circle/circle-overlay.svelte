@@ -437,12 +437,10 @@
   }
 
   .circle-edge {
-    border-color: #4285f4;
     border-width: 3px;
   }
 
   .circle-edge-glow {
-    border-color: #4285f4;
     border-width: 14px;
     opacity: 0.7;
     filter: blur(28px);
@@ -458,7 +456,6 @@
   }
 
   .circle-stroke-glow {
-    stroke: #4285f4;
     stroke-linecap: round;
     stroke-linejoin: round;
     stroke-width: 20px;

@@ -3,6 +3,7 @@ import { KeyTrigger } from "@/core/instance/key-trigger.ts";
 import { refreshInstalledExtension } from "@/core/link/extension-setup.ts";
 import { packagedHostPath } from "@/core/link/native-host-registration.ts";
 import { log } from "@/core/log/log.ts";
+import { keepRunningOnUnhandledErrors } from "@/core/log/unhandled-errors.ts";
 import { loadSettings } from "@/core/settings/settings.ts";
 import { readInstalledVersion } from "@/core/updates/version/installed-version.ts";
 import { ActivationKind, describeActivation, userArguments } from "@/entry/activation/activation.ts";
@@ -80,6 +81,7 @@ function firstTriggerOf(activation: Activation) {
 // and leaves), the main thread builds the pill controller over the devices, and the UI worker is
 // started with the other ends of its links
 export async function startApp({ files }: { files: ShippedFiles }) {
+  keepRunningOnUnhandledErrors();
   ensureDpiAware();
   const relay = createTriggerRelay();
   const claim = await claimInstance({

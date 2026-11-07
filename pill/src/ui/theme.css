@@ -32,6 +32,7 @@
   --live-pressed-layer: rgb(31 31 31 / 0.1);
   --live-edge: rgb(0 0 0 / 0.1);
   --live-card-glow: rgb(91 141 239 / 0.23);
+  --live-brand-blue: #4285f4;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -236,6 +237,15 @@ text-block {
 
 .circle-band {
   border-color: var(--live-primary);
+}
+
+.circle-edge,
+.circle-edge-glow {
+  border-color: var(--live-brand-blue);
+}
+
+.circle-stroke-glow {
+  stroke: var(--live-brand-blue);
 }
 
 .share-frame {

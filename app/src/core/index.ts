@@ -4,6 +4,7 @@ export { KeyTrigger, parseKeyTrigger } from "./instance/key-trigger.ts";
 export { connectExtension, refreshInstalledExtension } from "./link/extension-setup.ts";
 export { packagedHostPath, publishNativeHost } from "./link/native-host-registration.ts";
 export { isDebugging, log } from "./log/log.ts";
+export { keepRunningOnUnhandledErrors } from "./log/unhandled-errors.ts";
 export { DataProtectionError, userSecret } from "./secret/user-secret.ts";
 export type { UserSecret } from "./secret/user-secret.ts";
 export { apiKey, hasApiKey, loadSettings, saveSettings, setApiKey } from "./settings/settings.ts";
