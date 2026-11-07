@@ -10,4 +10,4 @@ allowBuilds:
   simple-git-hooks: true
   spawn-sync: false
 minimumReleaseAgeExclude:
-  - winui-svelte@0.0.6-dev
+  - winui-svelte@0.0.6

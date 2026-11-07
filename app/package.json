@@ -18,7 +18,7 @@
     "@gemini-live/protocol": "workspace:*",
     "@microsoft/dynwinrt": "0.1.0-preview.23",
     "svelte": "5.57.3",
-    "winui-svelte": "file:../build/vendor/winui-svelte-0.0.6-dev.tgz",
+    "winui-svelte": "^0.0.6",
     "ws": "^8.18.0",
     "zod": "^4.6.7"
   },
