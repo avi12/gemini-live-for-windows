@@ -14,3 +14,5 @@ pill/dist/
 # Extension signing key: back it up; losing it changes the extension ID
 /keys/
 __pycache__/
+
+app/dist/

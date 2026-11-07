@@ -254,10 +254,13 @@ const sharedPlugins = {
 // information from pill/tsconfig.json
 const pillTypeAwareParserOptions = {
   projectService: {
-    allowDefaultProject: ["pill/*.js"]
+    allowDefaultProject: ["pill/*.js", "app/*.js", "protocol/*.js"]
   },
   tsconfigRootDir: import.meta.dirname
 };
+const strictRoots = ["pill", "app", "protocol"];
+const strictTs = strictRoots.flatMap(root => [`${root}/**/*.ts`, `${root}/**/*.js`]);
+const strictSvelte = strictRoots.map(root => `${root}/**/*.svelte`);
 const [, ...baseSyntax] = tsStyleRules["no-restricted-syntax"];
 const pillSvelteTernary = {
   // A `{cond ? a : b}` that outputs text reads as markup in an {#if}/{:else} block. Attribute
@@ -283,6 +286,7 @@ export default [
   globalIgnores([
     "**/node_modules/",
     "pill/dist/",
+    "app/dist/",
     "**/.svelte-check/",
     "**/.output/",
     "**/.wxt/",
@@ -309,7 +313,7 @@ export default [
     }
   },
   {
-    files: ["pill/**/*.ts", "pill/**/*.js"],
+    files: strictTs,
     languageOptions: {
       parserOptions: pillTypeAwareParserOptions
     },
@@ -320,7 +324,7 @@ export default [
     }
   },
   {
-    files: ["pill/**/*.svelte"],
+    files: strictSvelte,
     languageOptions: {
       parser: svelteParser,
       parserOptions: {
@@ -350,18 +354,33 @@ export default [
   {
     // Importing a pill module does no work; the two sidecar entries, the build script and the tool
     // configs run on import by design
-    files: ["pill/src/**/*.{ts,svelte}"],
-    ignores: ["pill/src/main.ts", "pill/src/window.ts"],
+    files: strictRoots.map(root => `${root}/src/**/*.{ts,svelte}`),
+    ignores: [
+      "pill/src/main.ts",
+      "pill/src/window.ts",
+      "app/src/main.ts",
+      "app/src/window.ts",
+      "app/src/host.ts",
+      "app/src/media/audio/audio-worker.ts",
+      "**/*.test.ts"
+    ],
     rules: {
       "no-restricted-syntax": ["error", ...pillBaseSyntax.slice(1), ...treeShakingSyntax]
     }
   },
   {
     // A tool's config file is its default export, and its keys are the tool's own option names
-    files: ["pill/*.config.{js,ts}"],
+    files: strictRoots.map(root => `${root}/*.config.{js,ts}`),
     rules: {
       "no-restricted-exports": "off",
       "@typescript-eslint/naming-convention": "off"
+    }
+  },
+  {
+    // The build scripts share one helper from the repo's scripts folder
+    files: ["pill/build.ts", "app/build.ts"],
+    rules: {
+      "no-restricted-imports": "off"
     }
   }
 ];

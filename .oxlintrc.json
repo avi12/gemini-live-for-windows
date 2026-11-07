@@ -131,6 +131,27 @@
   "overrides": [
     {
       "files": [
+        "app/**/*.ts",
+        "app/**/*.svelte",
+        "protocol/**/*.ts"
+      ],
+      "env": {
+        "browser": false,
+        "node": true
+      },
+      "globals": {
+        "browser": "off",
+        "chrome": "off"
+      }
+    },
+    {
+      "files": ["app/**/*.test.ts"],
+      "rules": {
+        "typescript/no-floating-promises": "off"
+      }
+    },
+    {
+      "files": [
         "bridge/**/*.ts",
         "extension/src/**",
         "messaging/src/**"

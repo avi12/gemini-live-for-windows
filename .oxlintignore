@@ -8,3 +8,4 @@ build/**
 .claude/worktrees/**
 src/GeminiLive/Glic/Bridges/*.js
 pill/dist/**
+app/dist/**

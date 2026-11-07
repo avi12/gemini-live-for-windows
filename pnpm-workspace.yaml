@@ -3,6 +3,8 @@ packages:
   - extension
   - messaging
   - pill
+  - protocol
+  - app
 allowBuilds:
   esbuild: true
   simple-git-hooks: true

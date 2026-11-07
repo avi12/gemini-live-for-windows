@@ -9,11 +9,12 @@
   "scripts": {
     "prepare": "simple-git-hooks",
     "lint": "oxlint --type-aware --ignore-path .oxlintignore --fix -c .oxlintrc.fix.json && eslint --fix && oxlint --type-aware --ignore-path .oxlintignore",
-    "stylelint": "stylelint \"pill/**/*.svelte\" --config pill/.stylelintrc.json --fix",
-    "svelte:check": "pnpm --filter @gemini-live/pill svelte:check",
+    "stylelint": "stylelint \"{pill,app}/**/*.svelte\" --config pill/.stylelintrc.json --fix",
+    "svelte:check": "pnpm --filter @gemini-live/pill svelte:check && pnpm --filter @gemini-live/app svelte:check",
     "lint:cs": "dotnet format src/GeminiLive/GeminiLive.csproj --verify-no-changes --severity warn",
     "fallow": "fallow audit --base HEAD",
-    "dev:lint": "pnpm fallow && pnpm lint && pnpm stylelint && pnpm svelte:check && pnpm lint:cs"
+    "dev:lint": "pnpm fallow && pnpm lint && pnpm stylelint && pnpm svelte:check && pnpm test && pnpm lint:cs",
+    "test": "pnpm --filter @gemini-live/app test"
   },
   "devDependencies": {
     "@stylistic/eslint-plugin": "^5.10.0",
@@ -37,14 +38,6 @@
     "pre-commit": "pnpm lint-staged"
   },
   "lint-staged": {
-    "{bridge,extension/src,extension/scripts,messaging/src,eslint-rules,eslint-config,pill}/**/*.{ts,js,mjs,svelte}": [
-      "oxlint --ignore-path .oxlintignore --fix -c .oxlintrc.fix.json",
-      "eslint --fix --no-warn-ignored",
-      "oxlint --ignore-path .oxlintignore"
-    ],
-    "pill/**/*.svelte": [
-      "stylelint --config pill/.stylelintrc.json --fix"
-    ],
     "eslint.config.js": [
       "oxlint --ignore-path .oxlintignore --fix -c .oxlintrc.fix.json",
       "eslint --fix --no-warn-ignored",
@@ -52,6 +45,14 @@
     ],
     "src/GeminiLive/**/*.cs": [
       "dotnet format src/GeminiLive/GeminiLive.csproj --verify-no-changes --severity warn --include"
+    ],
+    "{bridge,extension/src,extension/scripts,messaging/src,eslint-rules,eslint-config,pill,app,protocol}/**/*.{ts,js,mjs,svelte}": [
+      "oxlint --ignore-path .oxlintignore --fix -c .oxlintrc.fix.json",
+      "eslint --fix --no-warn-ignored",
+      "oxlint --ignore-path .oxlintignore"
+    ],
+    "{pill,app}/**/*.svelte": [
+      "stylelint --config pill/.stylelintrc.json --fix"
     ]
   },
   "packageManager": "pnpm@11.13.1"
