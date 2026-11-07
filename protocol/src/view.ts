@@ -16,6 +16,8 @@ export const EngineKind = {
   apiKey: "ApiKey"
 } as const;
 
+export type EngineKind = (typeof EngineKind)[keyof typeof EngineKind];
+
 const lineSchema = z.object({
   id: z.string(),
   text: z.string(),
@@ -148,3 +150,20 @@ export type PillAction = z.infer<typeof pillActionSchema>;
 
 // The name of the view in `hostState({ name })` and in the snapshot frame
 export const VIEW_NAME = "view";
+
+export const WindowMessage = {
+  bringToFront: "bringToFront",
+  moveBy: "moveBy"
+} as const;
+
+export const moveByDataSchema = z.object({
+  deltaX: z.number().int(),
+  deltaY: z.number().int()
+});
+
+export type MoveByData = z.infer<typeof moveByDataSchema>;
+
+export interface WindowProtocol {
+  [WindowMessage.bringToFront](): void;
+  [WindowMessage.moveBy](data: MoveByData): void;
+}

@@ -1,0 +1,17 @@
+{
+  "name": "@gemini-live/protocol",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The wire protocols shared across processes: the pill view and the extension link.",
+  "license": "Apache-2.0",
+  "author": "Avi (https://avi12.com)",
+  "sideEffects": false,
+  "exports": {
+    "./view": "./src/view.ts",
+    "./link": "./src/link.ts"
+  },
+  "dependencies": {
+    "zod": "^4.6.7"
+  }
+}
