@@ -118,10 +118,14 @@ Needs the .NET 10 SDK, the Windows 10 SDK (for `makeappx` and `signtool`), Node 
 ```powershell
 pnpm install
 pnpm --filter @gemini-live/pill build  # type-check and build the pill into pill\dist
+pnpm --filter @gemini-live/app build   # type-check and build the TypeScript app into app\dist
 .\scripts\install.ps1                  # build, sign with a local certificate, install
 .\scripts\install.ps1 -Mode Register   # unsigned dev-mode install for fast iteration
 .\scripts\install.ps1 -Mode Release    # the release files, in build\release
+.\scripts\install.ps1 -Mode Stage -Entry Sea  # lay out the TypeScript app's package, install nothing
 ```
+
+The default install is the WPF app with the pill as a sidecar. `-Entry Sea` builds the TypeScript app in `app/` instead: the same pill, engines and overlays in one Node process (the bundled `node.exe`, turned into `GeminiLive.exe`), with a main thread for the logic and a UI worker for the windows. See [the architecture note](ARCHITECTURE.md#the-typescript-app-app).
 
 Windows only lists signed providers in the Copilot key setting, so use the default mode to try Win+C. The release mode signs the extension's `.crx` with `keys\chrome.pem`, which git ignores; the extension's ID comes from that key.
 
@@ -130,6 +134,8 @@ Windows only lists signed providers in the Copilot key setting, so use the defau
 | `src/GeminiLive` | the WPF app |
 | `src/GeminiLiveHost` | the native messaging host the extension asks for the app's link |
 | `pill/` | the pill's UI: Svelte on [winui-svelte](https://github.com/avi12/winui-svelte), run by the app as a Node sidecar |
+| `app/` | the whole app in TypeScript on winui-svelte (the `-Entry Sea` install): `src/main.ts` and `src/window.ts` are its two threads, `src/wiring/` builds it |
+| `protocol/` | the wire shared by the pill, the app and the extension: the pill's view and actions, and the extension link |
 | `bridge/` | the TypeScript injected into the hidden Gemini and Google Home pages (`glic/`, `home/`, `shared/`) |
 | `extension/` | the companion browser extension (WXT) |
 | `messaging/` | typed messaging, in [@webext-core/messaging](https://webext-core.aklinker1.io/messaging/)'s protocol-map style, shared by the bridges, the extension and (as `Messaging.cs`) the app |
@@ -139,8 +145,9 @@ Windows only lists signed providers in the Copilot key setting, so use the defau
 ### Lint
 
 ```powershell
-pnpm dev:lint   # fallow, oxlint + ESLint, and dotnet format
-pnpm --filter @gemini-live/pill svelte:check   # type-check the pill's Svelte and TypeScript
+pnpm dev:lint   # fallow, oxlint + ESLint, stylelint, svelte-check, the tests, and dotnet format
+pnpm svelte:check                              # type-check the pill's and the app's Svelte and TypeScript
+pnpm test                                      # the TypeScript app's tests (Node's test runner)
 ```
 
 TypeScript follows the youtube-time-manager setup: oxlint for logic, ESLint for layout, fallow for dead code and complexity. The C# side mirrors the same rules through `.editorconfig` and the analyzers in `analyzers/`. A pre-commit hook runs them on staged files.

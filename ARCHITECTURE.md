@@ -53,7 +53,7 @@ The app is one process, plus the pill's sidecar. The pill is the only window the
 | Component | Where | Role |
 | --- | --- | --- |
 | Entry and single instance | `App.xaml.cs`, `AppInstance.cs`, `CopilotKey.cs` | The first process owns a named mutex. Later launches forward their trigger to it and exit. |
-| Pill (UI) | `pill/` (Svelte on winui-svelte): `src/main.ts`, `src/window.ts`, `src/protocol/view.ts` | The window the user sees: state, captions, links, the gear menu and the setup panels. It owns no session logic; it draws the `view` it is sent and reports what the user did. Runs as a Node sidecar, with its own `node.exe`. |
+| Pill (UI) | `pill/` (Svelte on winui-svelte): `src/main.ts`, `src/window.ts`, `src/mount.ts`; the wire in `protocol/src/view.ts` | The window the user sees: state, captions, links, the gear menu and the setup panels. It owns no session logic; it draws the `view` it is sent and reports what the user did. Runs as a Node sidecar, with its own `node.exe`. |
 | Pill (host) | `Pill/PillHost.cs`, `Pill/PillController.cs`, `Pill/PillProtocol.cs` | `PillHost` starts and supervises the sidecar and speaks the line protocol. `PillController` owns the pill's state, builds the `view` from the engine and settings, and answers the actions. `PillProtocol` holds the message names and shapes. |
 | Engine interface | `ILiveEngine.cs` | The one contract both engines satisfy: status, transcript, links, mute and start/stop. |
 | Google engine | `Glic/Gemini/GlicConversation.cs`, `Glic/Gemini/GlicHost.cs`, `Glic/Gemini/GoogleWebViewHost.cs` | Runs Gemini's web client in a hidden WebView2 and reads its state through the bridge. |
@@ -115,7 +115,7 @@ sequenceDiagram
   H->>C: handle the action
 ```
 
-The C# side owns one state object, `view`: status, captions, links, displays, engine, update entry and the glow level. The sidecar never decides anything; it renders `view` and sends back actions such as mute, end, share, set engine or submit key. The first line the host sends is a `snapshot` of the whole view, every later one a `patch` of the fields that changed. The wire is one JSON object per line over the sidecar's stdin and stdout, and both ends check each message against the same names and shapes (`pill/src/protocol/view.ts` and `Pill/PillProtocol.cs`).
+The C# side owns one state object, `view`: status, captions, links, displays, engine, update entry and the glow level. The sidecar never decides anything; it renders `view` and sends back actions such as mute, end, share, set engine or submit key. The first line the host sends is a `snapshot` of the whole view, every later one a `patch` of the fields that changed. The wire is one JSON object per line over the sidecar's stdin and stdout, and both ends check each message against the same names and shapes (`protocol/src/view.ts` and `Pill/PillProtocol.cs`).
 `main.ts` is the relay: plain Node reading and writing the lines, forwarding them to the window. `window.ts` runs in a worker that owns the WinUI thread, since WinUI's message loop never gives its thread back.
 
 ### Google engine: one turn
@@ -170,6 +170,57 @@ flowchart LR
 ```
 
 Mic chunks and screen frames are two producers writing to the same socket, so listening, looking and talking happen at once.
+
+## The TypeScript app (`app/`)
+
+`app/` is the whole app in TypeScript on [winui-svelte](https://github.com/avi12/winui-svelte), staged beside the C# one. Both ship the same pill, engines and overlays; only the process around them differs. The C# entry stays the default install. `scripts/install.ps1 -Entry Sea` builds the TypeScript one: `app/` bundles into `main.js`, `window.js`, `host.js` and `audio-worker.js`, and `scripts/Build-SeaExe.ps1` turns the bundled `node.exe` into `GeminiLive.exe` (a single-executable application) with `package/AppxManifest.sea.xml` as its manifest.
+
+```mermaid
+flowchart LR
+  subgraph Main["Main thread (main.js)"]
+    Pipe["Single-instance pipe"] --> Relay["Trigger relay"]
+    Relay --> Ctl["Pill controller"]
+    Ctl --> Api["API key engine"]
+    Ctl --> Media["Media: displays, capture, OCR"]
+    Ctl --> Circle["Circle session and screen focus"]
+    Ctl --> Upd["Update checker"]
+  end
+  subgraph Ui["UI worker (window.js)"]
+    Pill["Pill window (Svelte)"]
+    Ovl["Share border, chip, circle overlay, hotkeys"]
+    Fast["Copilot key fast path"]
+    Goog["Google services: glic and Home pages, session link"]
+  end
+  Audio["Audio worker (audio-worker.js)"]
+  Ctl <-->|"pill: view and actions"| Pill
+  Circle <-->|"overlays"| Ovl
+  Ctl <-->|"google: engine"| Goog
+  Fast -->|"entry: key presses"| Relay
+  Api --> Audio
+```
+
+*Four `MessageChannel`s join the two threads, one per concern, and each carries a typed protocol. The main thread owns the state and the decisions; the UI worker owns everything that needs the window thread.*
+
+- **Why two threads.** WinUI's message loop never gives its thread back, and a `WebView2` control, a window and a global hotkey all belong to the thread that made them. So the pill window, the overlays, the Copilot key's hidden window and the two Google pages live on the UI worker. The pill controller, settings, media and the API key engine stay on the main thread, which is never blocked by painting.
+- **The Google engine crosses the link.** The glic page is a `WebView2`, so it runs on the UI worker. `google/remote/` is the link: `google-server.ts` runs the real engine there, and `google-client.ts` hands the controller a `LiveEngine` that looks like any other and forwards every call and event. Each message names its engine, since a stale one can still be winding down when the next starts.
+- **One engine contract.** `contracts/live-engine.ts` is what the pill controller sees of either engine, including `onExtensionNeeded` (a session is wanted but the extension never connected) and `useCamera`. The controller subscribes to the running engine, so nothing about the extension or the camera is global.
+- **Shared wire types.** `protocol/` holds what both `pill/` and `app/` read: the pill's `view` and `PillAction` schemas, the window messages, and the extension link. The window's own abilities (`bringToFront`, `moveBy`) travel on the pill's link and are answered on the UI worker (`pill/window-abilities.ts`).
+- **Composition is in `wiring/`.** `main.ts`, `window.ts` and `host.ts` are three lines each. `wiring/start-app.ts` claims the instance, starts the Windows App SDK and builds the controller; `wiring/start-ui.ts` mounts the pill and starts the rest of the UI worker's parts, each failing alone.
+
+| Folder (`app/src/`) | Role |
+| --- | --- |
+| `wiring/` | Builds the controller and the UI worker's parts over the real devices and links. |
+| `contracts/` | The engine and monitor types every part agrees on. |
+| `pill/` | The pill controller: state, captions, the view, the actions; the main thread's end of the pill link. |
+| `google/` | The Google engine: glic and Home hosts, the session link, detours, and `remote/`. |
+| `live/` | The API key engine over the public Live API. |
+| `media/` | Displays, screen capture, OCR, camera, and the audio graph on its own worker thread. |
+| `overlays/` | The share border, focus chip, circle overlay and hotkeys, and the controller's end of their link. |
+| `core/` | Settings, secrets, the log, updates, the single-instance pipe, the native host and extension setup. |
+| `entry/` | How the process starts and hears the Copilot key: activation, DPI, the fast path. |
+| `win32/`, `lib/` | Win32 binding helpers, and the small shared utilities. |
+
+**Not proven without a packaged run on a real screen:** that the Copilot key's fast path is posted to the hidden window (checklist in `entry/index.ts`, spike in `scripts/Register-FastPathSpike.ps1`), that a `WebView2` parked off-screen on the UI worker keeps Chromium at full speed, that the SEA executable keeps its package identity and its per-monitor DPI, and that the overlays and hotkeys behave on the UI worker's message pump. The unit tests cover each part and each link.
 
 ## Key decisions
 
@@ -230,7 +281,9 @@ src/GeminiLive/                  WPF app (one namespace; folders group it by con
   Updates/                       finds a newer GitHub release and hands its package to App Installer
   Glic/                          Gemini/ (Google engine), Home/, Link/ (session link), Bridges/ (bundles)
 src/GeminiLiveHost/    native messaging host
-pill/                  the pill's UI: Svelte on winui-svelte, run as a Node sidecar (src/main.ts, src/window.ts, src/protocol/)
+pill/                  the pill's UI: Svelte on winui-svelte, run as a Node sidecar (src/main.ts, src/window.ts, src/mount.ts)
+protocol/              the wire shared by the pill, the app and the extension: the pill view and actions, the extension link
+app/                   the whole app in TypeScript on winui-svelte (src/main.ts, src/window.ts, src/host.ts; src/wiring/ builds it)
 bridge/                TypeScript injected into the hidden pages: glic/, home/, shared/
 extension/             companion browser extension (WXT)
 messaging/             typed message envelopes shared across channels
