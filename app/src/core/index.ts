@@ -1,0 +1,15 @@
+export { claimInstance, isInstanceRunning } from "./instance/instance.ts";
+export type { InstanceClaim } from "./instance/instance.ts";
+export { KeyTrigger, parseKeyTrigger } from "./instance/key-trigger.ts";
+export { connectExtension, refreshInstalledExtension } from "./link/extension-setup.ts";
+export { packagedHostPath, publishNativeHost } from "./link/native-host-registration.ts";
+export { isDebugging, log } from "./log/log.ts";
+export { DataProtectionError, userSecret } from "./secret/user-secret.ts";
+export type { UserSecret } from "./secret/user-secret.ts";
+export { apiKey, hasApiKey, loadSettings, saveSettings, setApiKey } from "./settings/settings.ts";
+export type { Settings } from "./settings/settings-file.ts";
+export { openExternal, openFile } from "./shell/open-external.ts";
+export { runNativeHost } from "./native-host/host-main.ts";
+export type { AppRelease } from "./updates/app-release.ts";
+export { createUpdateChecker, UpdateCheck } from "./updates/update-checker.ts";
+export type { UpdateChecker } from "./updates/update-checker.ts";
