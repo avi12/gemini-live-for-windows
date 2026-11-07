@@ -3,7 +3,7 @@ import { serveGoogle } from "./google-server.ts";
 import type { GoogleHostServices } from "./google-server.ts";
 import { EngineKind, LiveEventKind } from "@/contracts/live-engine.ts";
 import type { LiveEvent } from "@/contracts/live-engine.ts";
-import { linkedTransports } from "@/lib/linked-transports.ts";
+import { linkedTransports } from "@/lib/transport/linked-transports.ts";
 import { createFakeEngine, PRIMARY, SECONDARY, settle } from "@/pill/test-fakes.ts";
 import type { FakeEngine } from "@/pill/test-fakes.ts";
 import assert from "node:assert/strict";

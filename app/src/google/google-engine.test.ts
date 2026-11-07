@@ -1,4 +1,4 @@
-import { type GlicHostEvent, GlicHostEventKind } from "./glic-events.ts";
+import { type GlicHostEvent, GlicHostEventKind } from "./glic/glic-events.ts";
 import { createGoogleEngine } from "./google-engine.ts";
 import type { MediaPort } from "./ports.ts";
 import { createSharedView } from "./shared-view.ts";

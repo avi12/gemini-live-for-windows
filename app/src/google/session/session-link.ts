@@ -1,7 +1,7 @@
-import { createEmitter } from "./emitter.ts";
 import { createLinkClients } from "./link-clients.ts";
 import { createLinkServer } from "./link-server.ts";
-import type { LinkPublisher, Logger } from "./ports.ts";
+import { createEmitter } from "@/google/emitter.ts";
+import type { LinkPublisher, Logger } from "@/google/ports.ts";
 import { type BrowserCookie, LinkMessage } from "@gemini-live/protocol/link";
 import { randomBytes } from "node:crypto";
 

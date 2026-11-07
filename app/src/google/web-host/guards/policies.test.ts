@@ -1,5 +1,5 @@
 import { decideGlicPermission, isGoogleNavigation } from "./policies.ts";
-import { PermissionDecision, PermissionKind } from "./web-view-port.ts";
+import { PermissionDecision, PermissionKind } from "@/google/web-host/web-view-port.ts";
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 

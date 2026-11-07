@@ -1,13 +1,13 @@
-import type { createEmitter } from "./emitter.ts";
-import type { GlicCommands } from "./glic-commands.ts";
-import { type GlicHostEvent, GlicHostEventKind } from "./glic-events.ts";
 import { createGlicRecovery } from "./glic-recovery.ts";
-import type { GlicSession } from "./glic-session.ts";
-import type { GlicState } from "./glic-state.ts";
-import type { GlicWebHost } from "./glic-web-host.ts";
-import type { Logger } from "./ports.ts";
-import { Direction, GlicMessage, glicStateSchema, transcriptLineSchema } from "./protocols/glic.ts";
-import type { SharedView } from "./shared-view.ts";
+import type { createEmitter } from "@/google/emitter.ts";
+import type { GlicCommands } from "@/google/glic/glic-commands.ts";
+import { type GlicHostEvent, GlicHostEventKind } from "@/google/glic/glic-events.ts";
+import type { GlicState } from "@/google/glic/glic-state.ts";
+import type { GlicWebHost } from "@/google/glic/glic-web-host.ts";
+import type { GlicSession } from "@/google/glic/session/glic-session.ts";
+import type { Logger } from "@/google/ports.ts";
+import { Direction, GlicMessage, glicStateSchema, transcriptLineSchema } from "@/google/protocols/glic.ts";
+import type { SharedView } from "@/google/shared-view.ts";
 import { z } from "zod";
 
 function onBooted({ state, commands, log }: {

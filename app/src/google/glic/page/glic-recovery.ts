@@ -1,11 +1,11 @@
-import type { createEmitter } from "./emitter.ts";
-import { type GlicHostEvent, GlicHostEventKind } from "./glic-events.ts";
-import type { GlicSession } from "./glic-session.ts";
-import type { GlicState } from "./glic-state.ts";
-import { GLIC_URL, type GlicWebHost } from "./glic-web-host.ts";
-import type { Logger } from "./ports.ts";
-import { PageError } from "./protocols/glic.ts";
 import { LiveStatus } from "@/contracts/live-engine.ts";
+import type { createEmitter } from "@/google/emitter.ts";
+import { type GlicHostEvent, GlicHostEventKind } from "@/google/glic/glic-events.ts";
+import type { GlicState } from "@/google/glic/glic-state.ts";
+import { GLIC_URL, type GlicWebHost } from "@/google/glic/glic-web-host.ts";
+import type { GlicSession } from "@/google/glic/session/glic-session.ts";
+import type { Logger } from "@/google/ports.ts";
+import { PageError } from "@/google/protocols/glic.ts";
 
 // A broken Live is reloaded into a new conversation, but a page that keeps breaking is given up on
 const MAX_RESTARTS = 3;

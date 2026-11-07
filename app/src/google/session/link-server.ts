@@ -1,4 +1,4 @@
-import type { LinkPublisher, Logger } from "./ports.ts";
+import type { LinkPublisher, Logger } from "@/google/ports.ts";
 import { EXTENSION_ORIGIN } from "@gemini-live/protocol/link";
 import type { WebSocket } from "ws";
 import { WebSocketServer } from "ws";

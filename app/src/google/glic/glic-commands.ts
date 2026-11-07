@@ -1,7 +1,7 @@
 import { type GlicWebHost, SEND_TIMEOUT_MS } from "./glic-web-host.ts";
-import type { Logger } from "./ports.ts";
-import { GlicMessage } from "./protocols/glic.ts";
-import { withinMs } from "./web-host/timeout.ts";
+import type { Logger } from "@/google/ports.ts";
+import { GlicMessage } from "@/google/protocols/glic.ts";
+import { withinMs } from "@/google/web-host/timeout.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 
 // Sends a command to the page without waiting for it. A page that is loading or gone misses it,

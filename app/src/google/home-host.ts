@@ -1,9 +1,9 @@
-import type { SessionStore } from "./cookies.ts";
 import type { Logger } from "./ports.ts";
 import { HomeMessage, type HomeProtocolMap, pcLightsSchema } from "./protocols/home.ts";
-import type { SessionSource } from "./session-link.ts";
+import type { SessionStore } from "./session/cookies.ts";
+import type { SessionSource } from "./session/session-link.ts";
 import { clickAt } from "./web-host/cdp.ts";
-import { isGoogleNavigation } from "./web-host/policies.ts";
+import { isGoogleNavigation } from "./web-host/guards/policies.ts";
 import { delay } from "./web-host/timeout.ts";
 import { createWebHost } from "./web-host/web-host.ts";
 import type { WebViewFactory } from "./web-host/web-view-port.ts";

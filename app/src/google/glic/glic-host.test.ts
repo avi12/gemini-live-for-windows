@@ -1,14 +1,14 @@
-import type { SessionStore } from "./cookies.ts";
 import { type GlicHostEvent, GlicHostEventKind } from "./glic-events.ts";
 import { createGlicHost } from "./glic-host.ts";
-import { pageErrorOf } from "./glic-recovery.ts";
-import { sessionNoticeFor } from "./glic-session-wait.ts";
-import type { MediaPort } from "./ports.ts";
-import { Direction, GlicMessage, GlicState, PageError } from "./protocols/glic.ts";
-import type { SessionSource } from "./session-link.ts";
-import { createSharedView } from "./shared-view.ts";
-import { createFakeWebViewFactory, type FakeWebView } from "./web-host/fake-web-view.ts";
+import { pageErrorOf } from "./page/glic-recovery.ts";
+import { sessionNoticeFor } from "./session/glic-session-wait.ts";
 import { LiveStatus } from "@/contracts/live-engine.ts";
+import type { MediaPort } from "@/google/ports.ts";
+import { Direction, GlicMessage, GlicState, PageError } from "@/google/protocols/glic.ts";
+import type { SessionStore } from "@/google/session/cookies.ts";
+import type { SessionSource } from "@/google/session/session-link.ts";
+import { createSharedView } from "@/google/shared-view.ts";
+import { createFakeWebViewFactory, type FakeWebView } from "@/google/web-host/fake-web-view.ts";
 import type { BrowserCookie } from "@gemini-live/protocol/link";
 import assert from "node:assert/strict";
 import {

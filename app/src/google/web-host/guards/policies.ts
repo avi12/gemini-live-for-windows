@@ -1,4 +1,4 @@
-import { PermissionDecision, PermissionKind } from "./web-view-port.ts";
+import { PermissionDecision, PermissionKind } from "@/google/web-host/web-view-port.ts";
 
 const ALLOWED_HOST_SUFFIXES = ["google.com", "youtube.com"];
 const BLANK_PAGE = "about:blank";

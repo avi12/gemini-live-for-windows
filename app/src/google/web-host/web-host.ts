@@ -1,4 +1,4 @@
-import { CrashVerdict, createCrashGuard } from "./crash-guard.ts";
+import { CrashVerdict, createCrashGuard } from "./guards/crash-guard.ts";
 import { createSwitchableTransport } from "./transports.ts";
 import type { PermissionDecision, PermissionKind, WebViewCore, WebViewFactory } from "./web-view-port.ts";
 import { ProcessFailureKind } from "./web-view-port.ts";

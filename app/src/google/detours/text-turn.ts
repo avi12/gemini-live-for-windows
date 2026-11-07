@@ -1,9 +1,9 @@
 import type { createDetourRunner } from "./detour-runner.ts";
-import type { GlicHost } from "./glic-host.ts";
-import type { LiveEventSink } from "./live-event-sink.ts";
-import type { Logger } from "./ports.ts";
-import { delay } from "./web-host/timeout.ts";
 import { LiveEventKind, LiveStatus } from "@/contracts/live-engine.ts";
+import type { GlicHost } from "@/google/glic/glic-host.ts";
+import type { LiveEventSink } from "@/google/live-event-sink.ts";
+import type { Logger } from "@/google/ports.ts";
+import { delay } from "@/google/web-host/timeout.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 
 // A text detour replaces the Live session, which cuts Gemini off mid-word. So it waits for Gemini

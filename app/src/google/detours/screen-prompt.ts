@@ -1,4 +1,4 @@
-import { BlockKind, type ScreenView } from "./protocols/glic.ts";
+import { BlockKind, type ScreenView } from "@/google/protocols/glic.ts";
 
 // Added to a web request so the text turn searches and cites, in whatever language it was asked.
 // It also says what NOT to do: a text turn starts a fresh chat, and without it asks the user for

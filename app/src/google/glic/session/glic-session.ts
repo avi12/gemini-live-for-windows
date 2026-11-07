@@ -1,11 +1,11 @@
-import { fingerprint, type SessionStore } from "./cookies.ts";
-import type { createEmitter } from "./emitter.ts";
-import { type GlicHostEvent, GlicHostEventKind } from "./glic-events.ts";
 import { createSessionWaiter } from "./glic-session-wait.ts";
-import type { GlicState } from "./glic-state.ts";
-import { GLIC_URL, type GlicWebHost } from "./glic-web-host.ts";
-import type { Logger } from "./ports.ts";
-import type { SessionSource } from "./session-link.ts";
+import type { createEmitter } from "@/google/emitter.ts";
+import { type GlicHostEvent, GlicHostEventKind } from "@/google/glic/glic-events.ts";
+import type { GlicState } from "@/google/glic/glic-state.ts";
+import { GLIC_URL, type GlicWebHost } from "@/google/glic/glic-web-host.ts";
+import type { Logger } from "@/google/ports.ts";
+import { fingerprint, type SessionStore } from "@/google/session/cookies.ts";
+import type { SessionSource } from "@/google/session/session-link.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 import type { BrowserCookie } from "@gemini-live/protocol/link";
 

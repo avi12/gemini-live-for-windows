@@ -5,8 +5,8 @@ import {
   type WebViewCore,
   type WebViewOptions
 } from "./web-view-port.ts";
-import { SameSite, sameSiteOf } from "@/google/cookies.ts";
 import type { Logger } from "@/google/ports.ts";
+import { SameSite, sameSiteOf } from "@/google/session/cookies.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 import type { BrowserCookie } from "@gemini-live/protocol/link";
 import { readFile } from "node:fs/promises";

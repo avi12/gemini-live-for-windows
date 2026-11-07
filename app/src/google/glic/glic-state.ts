@@ -1,4 +1,4 @@
-import { createDeferred } from "./emitter.ts";
+import { createDeferred } from "@/google/emitter.ts";
 import type { BrowserCookie } from "@gemini-live/protocol/link";
 
 // What the glic host's parts share: the saved session, whether a session is wanted, and the

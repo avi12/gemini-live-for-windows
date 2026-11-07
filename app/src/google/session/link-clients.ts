@@ -1,6 +1,6 @@
 import { authCookies } from "./cookies.ts";
-import type { Logger } from "./ports.ts";
-import { createFrameTransport } from "./web-host/transports.ts";
+import type { Logger } from "@/google/ports.ts";
+import { createFrameTransport } from "@/google/web-host/transports.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 import { defineMessaging, type Messenger } from "@gemini-live/messaging";
 import {

@@ -1,17 +1,17 @@
-import type { SessionStore } from "./cookies.ts";
-import { createEmitter } from "./emitter.ts";
 import { createGlicCommands } from "./glic-commands.ts";
 import type { GlicHostEvent } from "./glic-events.ts";
 import { createGlicLifecycle } from "./glic-lifecycle.ts";
-import { registerGlicPageMessages } from "./glic-page-messages.ts";
-import { createGlicPageRequests } from "./glic-page-requests.ts";
-import { createGlicSession } from "./glic-session.ts";
 import { createGlicState } from "./glic-state.ts";
 import { createGlicWebHost } from "./glic-web-host.ts";
-import type { Logger } from "./ports.ts";
-import type { SessionSource } from "./session-link.ts";
-import type { SharedView } from "./shared-view.ts";
-import type { WebViewFactory } from "./web-host/web-view-port.ts";
+import { registerGlicPageMessages } from "./page/glic-page-messages.ts";
+import { createGlicPageRequests } from "./page/glic-page-requests.ts";
+import { createGlicSession } from "./session/glic-session.ts";
+import { createEmitter } from "@/google/emitter.ts";
+import type { Logger } from "@/google/ports.ts";
+import type { SessionStore } from "@/google/session/cookies.ts";
+import type { SessionSource } from "@/google/session/session-link.ts";
+import type { SharedView } from "@/google/shared-view.ts";
+import type { WebViewFactory } from "@/google/web-host/web-view-port.ts";
 
 // Hosts the real Gemini web client (gemini.google.com/glic, what powers Gemini in Chrome) in a
 // WebView2 that lives off-screen for the whole app lifetime, so starting Live needs no page load.

@@ -8,7 +8,7 @@ import {
   isAuthCookie,
   sameSiteOf
 } from "./cookies.ts";
-import type { SecretSealer } from "./ports.ts";
+import type { SecretSealer } from "@/google/ports.ts";
 import type { BrowserCookie } from "@gemini-live/protocol/link";
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm } from "node:fs/promises";

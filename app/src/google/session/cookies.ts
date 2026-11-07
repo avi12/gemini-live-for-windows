@@ -1,4 +1,4 @@
-import type { Logger, SecretSealer } from "./ports.ts";
+import type { Logger, SecretSealer } from "@/google/ports.ts";
 import { type BrowserCookie, browserCookiesSchema } from "@gemini-live/protocol/link";
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";

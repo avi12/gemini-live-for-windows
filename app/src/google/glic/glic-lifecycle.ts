@@ -1,10 +1,10 @@
-import { fingerprint, hasSession, type SessionStore } from "./cookies.ts";
-import { createDeferred } from "./emitter.ts";
 import type { GlicCommands } from "./glic-commands.ts";
-import type { GlicSession } from "./glic-session.ts";
 import type { GlicState } from "./glic-state.ts";
 import type { GlicWebHost } from "./glic-web-host.ts";
-import type { Logger } from "./ports.ts";
+import type { GlicSession } from "./session/glic-session.ts";
+import { createDeferred } from "@/google/emitter.ts";
+import type { Logger } from "@/google/ports.ts";
+import { fingerprint, hasSession, type SessionStore } from "@/google/session/cookies.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 
 // Warming the page up, starting and stopping Live on it

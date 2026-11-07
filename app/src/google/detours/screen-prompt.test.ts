@@ -1,5 +1,5 @@
-import { BlockKind } from "./protocols/glic.ts";
 import { clip, describeScreen, unescapeMarkdown, webSearchPrompt } from "./screen-prompt.ts";
+import { BlockKind } from "@/google/protocols/glic.ts";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 

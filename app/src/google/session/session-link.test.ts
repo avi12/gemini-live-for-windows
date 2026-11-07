@@ -1,5 +1,5 @@
 import { createSessionLink } from "./session-link.ts";
-import { createFrameTransport } from "./web-host/transports.ts";
+import { createFrameTransport } from "@/google/web-host/transports.ts";
 import { defineMessaging } from "@gemini-live/messaging";
 import {
   type BrowserCookie,

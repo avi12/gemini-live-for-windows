@@ -1,8 +1,8 @@
-import { type GlicWebHost, SEND_TIMEOUT_MS, SUBMIT_TIMEOUT_MS } from "./glic-web-host.ts";
-import type { Logger } from "./ports.ts";
-import { GlicMessage, microphonesSchema, textAnswerSchema } from "./protocols/glic.ts";
-import { typeText } from "./web-host/cdp.ts";
-import { withinMs } from "./web-host/timeout.ts";
+import { type GlicWebHost, SEND_TIMEOUT_MS, SUBMIT_TIMEOUT_MS } from "@/google/glic/glic-web-host.ts";
+import type { Logger } from "@/google/ports.ts";
+import { GlicMessage, microphonesSchema, textAnswerSchema } from "@/google/protocols/glic.ts";
+import { typeText } from "@/google/web-host/cdp.ts";
+import { withinMs } from "@/google/web-host/timeout.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 
 const BEGIN_ACTION_TIMEOUT_MS = 10_000;

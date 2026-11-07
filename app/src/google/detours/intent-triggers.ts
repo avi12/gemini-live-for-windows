@@ -1,7 +1,7 @@
 import type { Detours, SpeechRecord } from "./detours.ts";
-import type { LiveEventSink } from "./live-event-sink.ts";
 import { unescapeMarkdown } from "./screen-prompt.ts";
 import { classifyRefusal, classifyUtterance, IntentKind, type SpokenIntent } from "./spoken-intent.ts";
+import type { LiveEventSink } from "@/google/live-event-sink.ts";
 
 // Long enough that the user's utterance has settled before the app acts on it, short enough to
 // beat Gemini's spoken refusal most of the time

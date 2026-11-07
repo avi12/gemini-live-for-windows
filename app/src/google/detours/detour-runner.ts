@@ -1,4 +1,4 @@
-import type { LiveEventSink } from "./live-event-sink.ts";
+import type { LiveEventSink } from "@/google/live-event-sink.ts";
 
 // Runs one detour at a time. The request is marked handled up front, so neither trigger re-fires
 // for it.

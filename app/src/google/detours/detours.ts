@@ -1,13 +1,13 @@
 import { createDetourRunner } from "./detour-runner.ts";
-import type { GlicHost } from "./glic-host.ts";
-import type { HomeHost } from "./home-host.ts";
 import { runLightsDetour } from "./lights-detour.ts";
-import type { LiveEventSink } from "./live-event-sink.ts";
-import type { Logger } from "./ports.ts";
 import { webSearchPrompt } from "./screen-prompt.ts";
-import type { SharedView } from "./shared-view.ts";
 import { appName } from "./spoken-intent.ts";
 import { runTextDetour } from "./text-turn.ts";
+import type { GlicHost } from "@/google/glic/glic-host.ts";
+import type { HomeHost } from "@/google/home-host.ts";
+import type { LiveEventSink } from "@/google/live-event-sink.ts";
+import type { Logger } from "@/google/ports.ts";
+import type { SharedView } from "@/google/shared-view.ts";
 
 export interface SpeechRecord {
   lastUserUtterance: string;

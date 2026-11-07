@@ -1,11 +1,11 @@
-import { createSessionStore } from "./cookies.ts";
-import type { SessionStore } from "./cookies.ts";
-import { createGlicHost } from "./glic-host.ts";
+import { createGlicHost } from "./glic/glic-host.ts";
 import { createGoogleEngine } from "./google-engine.ts";
 import { createHomeHost } from "./home-host.ts";
 import type { LinkPublisher, Logger, MediaPort, SecretSealer } from "./ports.ts";
-import { createSessionLink } from "./session-link.ts";
-import type { SessionSource } from "./session-link.ts";
+import { createSessionStore } from "./session/cookies.ts";
+import type { SessionStore } from "./session/cookies.ts";
+import { createSessionLink } from "./session/session-link.ts";
+import type { SessionSource } from "./session/session-link.ts";
 import { createSharedView } from "./shared-view.ts";
 import type { SharedView } from "./shared-view.ts";
 import { BridgeName, readBridgeScript } from "./web-host/bridge-script.ts";

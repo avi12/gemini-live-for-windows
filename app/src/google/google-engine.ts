@@ -1,10 +1,10 @@
-import { createDetours, createSpeechRecord } from "./detours.ts";
+import { createDetours, createSpeechRecord } from "./detours/detours.ts";
+import { createIntentTriggers } from "./detours/intent-triggers.ts";
 import { createEmitter } from "./emitter.ts";
-import { type GlicHostEvent, GlicHostEventKind } from "./glic-events.ts";
-import type { GlicHost } from "./glic-host.ts";
+import { type GlicHostEvent, GlicHostEventKind } from "./glic/glic-events.ts";
+import type { GlicHost } from "./glic/glic-host.ts";
 import { createLiveEngine } from "./google-live-engine.ts";
 import type { HomeHost } from "./home-host.ts";
-import { createIntentTriggers } from "./intent-triggers.ts";
 import { createLiveEventSink, type LiveEventSink } from "./live-event-sink.ts";
 import type { Logger } from "./ports.ts";
 import type { SharedView } from "./shared-view.ts";
