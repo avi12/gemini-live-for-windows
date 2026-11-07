@@ -1,5 +1,5 @@
 import { createAudioDuplex } from "./audio/audio-duplex.ts";
-import { createAudioWorkerLink } from "./audio/audio-worker-link.ts";
+import { createAudioWorkerLink } from "./audio/worker/audio-worker-link.ts";
 import { openCamera } from "./camera/camera.ts";
 import { systemClock } from "./clock.ts";
 import { createDisplayNative } from "./display/display-native.ts";
@@ -8,7 +8,7 @@ import { createMediaPort } from "./media-port.ts";
 import { readLines } from "./ocr/ocr.ts";
 import { readForegroundWindow } from "./screen-text/foreground-window.ts";
 import { createOcrScreenTextReader } from "./screen-text/screen-text.ts";
-import { createCircleScreen } from "./screen/circle-screen.ts";
+import { createCircleScreen } from "./screen/circle/circle-screen.ts";
 import { createScreenCapture } from "./screen/screen-capture.ts";
 import { createScreenSource } from "./screen/screen-source.ts";
 import type { Monitor } from "@/contracts/monitor.ts";

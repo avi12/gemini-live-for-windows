@@ -1,7 +1,7 @@
 import { createAudioDuplex } from "./audio-duplex.ts";
-import { createAudioWorkerLink } from "./audio-worker-link.ts";
-import { bytesToFloats } from "./pcm.ts";
-import { concatenate, pcm16BytesOf, risingZeroCrossings, sine } from "./test-signals.ts";
+import { bytesToFloats } from "./signal/pcm.ts";
+import { concatenate, pcm16BytesOf, risingZeroCrossings, sine } from "./signal/test-signals.ts";
+import { createAudioWorkerLink } from "./worker/audio-worker-link.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";

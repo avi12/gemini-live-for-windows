@@ -1,8 +1,8 @@
-import { ScreenDetail } from "./capture-geometry.ts";
 import { cropJpeg } from "./crop-jpeg.ts";
-import { createScreenCapture } from "./screen-capture.ts";
 import { createDisplayNative } from "@/media/display/display-native.ts";
 import { createMonitors } from "@/media/display/monitors.ts";
+import { ScreenDetail } from "@/media/screen/capture-geometry.ts";
+import { createScreenCapture } from "@/media/screen/screen-capture.ts";
 import { roInitialize } from "@microsoft/dynwinrt";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";

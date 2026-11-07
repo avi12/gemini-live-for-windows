@@ -1,6 +1,6 @@
-import type { AudioWorkerLink } from "./audio-duplex.ts";
-import { AudioEventKind } from "./audio-protocol.ts";
 import { errorMessage } from "@/lib/error-message.ts";
+import type { AudioWorkerLink } from "@/media/audio/audio-duplex.ts";
+import { AudioEventKind } from "@/media/audio/audio-protocol.ts";
 import { Worker } from "node:worker_threads";
 
 // A worker thread of its own for audio: its timers are plain libuv timers, not tied to the window's

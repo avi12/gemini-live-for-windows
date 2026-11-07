@@ -1,7 +1,7 @@
-import { createDuplexGraph, createLoopbackGraph } from "./audio-graph.ts";
 import { serveAudio } from "./audio-worker-host.ts";
 import type { AudioPort, OpenGraphRequest } from "./audio-worker-host.ts";
-import { requestFineTimers } from "./timer-resolution.ts";
+import { createDuplexGraph, createLoopbackGraph } from "@/media/audio/session/audio-graph.ts";
+import { requestFineTimers } from "@/media/audio/timer-resolution.ts";
 import { systemClock } from "@/media/clock.ts";
 import { roInitialize } from "@microsoft/dynwinrt";
 

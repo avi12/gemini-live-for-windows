@@ -1,9 +1,9 @@
-import { AudioCommandKind, AudioEventKind } from "./audio-protocol.ts";
-import type { AudioEvent } from "./audio-protocol.ts";
-import type { SessionGraph } from "./audio-session.ts";
 import { serveAudio } from "./audio-worker-host.ts";
 import type { OpenGraphRequest } from "./audio-worker-host.ts";
-import { pcm16BytesOf } from "./test-signals.ts";
+import { AudioCommandKind, AudioEventKind } from "@/media/audio/audio-protocol.ts";
+import type { AudioEvent } from "@/media/audio/audio-protocol.ts";
+import type { SessionGraph } from "@/media/audio/session/audio-session.ts";
+import { pcm16BytesOf } from "@/media/audio/signal/test-signals.ts";
 import type { Clock } from "@/media/clock.ts";
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";

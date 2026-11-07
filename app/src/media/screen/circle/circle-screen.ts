@@ -1,8 +1,8 @@
-import { ScreenDetail } from "./capture-geometry.ts";
 import { cropJpeg } from "./crop-jpeg.ts";
-import type { ScreenCapture } from "./screen-capture.ts";
 import type { Monitor, Region } from "@/contracts/monitor.ts";
 import { errorMessage } from "@/lib/error-message.ts";
+import { ScreenDetail } from "@/media/screen/capture-geometry.ts";
+import type { ScreenCapture } from "@/media/screen/screen-capture.ts";
 import type { CircleScreen, FrozenScreen, OcrLine } from "@/overlays/ports.ts";
 
 export interface CircleScreenDeps {

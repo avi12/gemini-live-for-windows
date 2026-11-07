@@ -1,6 +1,6 @@
 import { createMicPump } from "./mic-pump.ts";
-import { bytesToFloats } from "./pcm.ts";
-import { concatenate, risingZeroCrossings, sine } from "./test-signals.ts";
+import { bytesToFloats } from "@/media/audio/signal/pcm.ts";
+import { concatenate, risingZeroCrossings, sine } from "@/media/audio/signal/test-signals.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 

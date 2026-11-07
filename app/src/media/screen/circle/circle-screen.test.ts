@@ -1,6 +1,6 @@
-import { ScreenDetail } from "./capture-geometry.ts";
 import { createCircleScreen } from "./circle-screen.ts";
 import type { Monitor } from "@/contracts/monitor.ts";
+import { ScreenDetail } from "@/media/screen/capture-geometry.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 

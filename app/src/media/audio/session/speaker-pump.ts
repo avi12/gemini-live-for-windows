@@ -1,8 +1,8 @@
-import { MILLISECONDS_PER_SECOND } from "./audio-format.ts";
-import { bytesToFloats, peakOf, spreadToChannels } from "./pcm.ts";
-import { createResampler } from "./resampler.ts";
 import { createSpeakerQueue } from "./speaker-queue.ts";
 import { SPEAKER_RATE } from "@/live/api/constants.ts";
+import { MILLISECONDS_PER_SECOND } from "@/media/audio/audio-format.ts";
+import { bytesToFloats, peakOf, spreadToChannels } from "@/media/audio/signal/pcm.ts";
+import { createResampler } from "@/media/audio/signal/resampler.ts";
 
 const MAX_QUANTA_PER_TICK = 100;
 

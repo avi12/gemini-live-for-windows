@@ -1,6 +1,6 @@
 import { createAudioSession, POLL_MILLISECONDS } from "./audio-session.ts";
 import type { SessionGraph } from "./audio-session.ts";
-import { pcm16BytesOf } from "./test-signals.ts";
+import { pcm16BytesOf } from "@/media/audio/signal/test-signals.ts";
 import type { Clock } from "@/media/clock.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";

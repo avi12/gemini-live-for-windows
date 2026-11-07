@@ -1,7 +1,7 @@
-import { clipToSurface, DETAIL_SETTINGS, fitToEdge } from "./capture-geometry.ts";
-import type { ScreenDetail } from "./capture-geometry.ts";
-import { encodeBitmap } from "./jpeg-encoder.ts";
 import type { Region } from "@/contracts/monitor.ts";
+import { clipToSurface, DETAIL_SETTINGS, fitToEdge } from "@/media/screen/capture-geometry.ts";
+import type { ScreenDetail } from "@/media/screen/capture-geometry.ts";
+import { encodeBitmap } from "@/media/screen/jpeg-encoder.ts";
 import { openImage } from "@/media/winrt/decoded-image.ts";
 import { releaseNative } from "@/media/winrt/release.ts";
 

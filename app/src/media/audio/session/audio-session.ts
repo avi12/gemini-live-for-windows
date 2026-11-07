@@ -1,9 +1,9 @@
-import { createLevelThrottle } from "./level-throttle.ts";
 import { createMicPump } from "./mic-pump.ts";
 import type { MicFrameSource } from "./mic-pump.ts";
 import { createSpeakerPump } from "./speaker-pump.ts";
 import type { SpeakerSink } from "./speaker-pump.ts";
 import { errorMessage } from "@/lib/error-message.ts";
+import { createLevelThrottle } from "@/media/audio/signal/level-throttle.ts";
 import type { Clock } from "@/media/clock.ts";
 
 export const POLL_MILLISECONDS = 10;

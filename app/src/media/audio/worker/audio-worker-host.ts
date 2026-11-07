@@ -1,8 +1,8 @@
-import { AudioCommandKind, audioCommandSchema, AudioEventKind } from "./audio-protocol.ts";
-import type { AudioCommand, AudioEvent } from "./audio-protocol.ts";
-import { createAudioSession } from "./audio-session.ts";
-import type { AudioSession, SessionGraph } from "./audio-session.ts";
 import { errorMessage } from "@/lib/error-message.ts";
+import { AudioCommandKind, audioCommandSchema, AudioEventKind } from "@/media/audio/audio-protocol.ts";
+import type { AudioCommand, AudioEvent } from "@/media/audio/audio-protocol.ts";
+import { createAudioSession } from "@/media/audio/session/audio-session.ts";
+import type { AudioSession, SessionGraph } from "@/media/audio/session/audio-session.ts";
 import type { Clock } from "@/media/clock.ts";
 
 // The two ends of the worker's port, so the host runs against a MessageChannel in tests
