@@ -5,11 +5,11 @@ import { connectGoogle } from "@/google/remote/google-client.ts";
 import { delay } from "@/google/web-host/timeout.ts";
 import { createMedia } from "@/media/media.ts";
 import { createPillController } from "@/pill/controller.ts";
-import { openPillLink } from "@/pill/host-link.ts";
+import { openPillLink } from "@/pill/host/host-link.ts";
+import { createSettingsPort } from "@/pill/host/settings-port.ts";
 import type { PillDeps } from "@/pill/ports.ts";
-import { createSettingsPort } from "@/pill/settings-port.ts";
-import type { Channels } from "@/wiring/channels.ts";
-import { createOverlayControl } from "@/wiring/overlay-control.ts";
+import type { Channels } from "@/wiring/main-thread/channels.ts";
+import { createOverlayControl } from "@/wiring/main-thread/overlay-control.ts";
 import {
   createDisplaysPort,
   createEnginesPort,
@@ -17,8 +17,8 @@ import {
   createMicrophonesPort,
   createPreviousAppPort,
   createUpdatesPort
-} from "@/wiring/pill-ports.ts";
-import type { ShippedFiles } from "@/wiring/shipped-files.ts";
+} from "@/wiring/main-thread/pill-ports.ts";
+import type { ShippedFiles } from "@/wiring/main-thread/shipped-files.ts";
 
 // The pill controller over the real devices, engines and windows. The UI worker's ends of the
 // links it uses are in `channels`; the pill's window answers on the first of them.

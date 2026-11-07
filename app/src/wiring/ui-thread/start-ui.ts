@@ -1,12 +1,12 @@
 import { log } from "@/core/log/log.ts";
 import { errorMessage } from "@/lib/error-message.ts";
-import { createForegroundApi } from "@/overlays/win32-api.ts";
-import { serveWindowAbilities } from "@/pill/window-abilities.ts";
-import type { PillWindowSurface } from "@/pill/window-abilities.ts";
-import { startKeyTriggers } from "@/wiring/ui-entry.ts";
-import { startGoogle } from "@/wiring/ui-google.ts";
-import { startOverlayWindows } from "@/wiring/ui-overlays.ts";
-import type { UiWorkerData } from "@/wiring/ui-worker-data.ts";
+import { createForegroundApi } from "@/overlays/window/win32-api.ts";
+import { serveWindowAbilities } from "@/pill/host/window-abilities.ts";
+import type { PillWindowSurface } from "@/pill/host/window-abilities.ts";
+import { startKeyTriggers } from "@/wiring/ui-thread/ui-entry.ts";
+import { startGoogle } from "@/wiring/ui-thread/ui-google.ts";
+import { startOverlayWindows } from "@/wiring/ui-thread/ui-overlays.ts";
+import type { UiWorkerData } from "@/wiring/ui-thread/ui-worker-data.ts";
 import type { MountedPill } from "@gemini-live/pill/mount";
 
 function writeLog(message: string) {

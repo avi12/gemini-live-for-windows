@@ -8,8 +8,8 @@ import type { connectGoogle } from "@/google/remote/google-client.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 import { createApiKeyEngine } from "@/live/api-key-engine.ts";
 import type { Media } from "@/media/media.ts";
-import { createPreviousApp } from "@/overlays/previous-app.ts";
-import { createForegroundApi } from "@/overlays/win32-api.ts";
+import { createPreviousApp } from "@/overlays/focus/previous-app.ts";
+import { createForegroundApi } from "@/overlays/window/win32-api.ts";
 import type {
   DisplaysPort,
   EnginesPort,

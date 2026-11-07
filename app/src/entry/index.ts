@@ -51,11 +51,11 @@
  * 10. Win2D classes ("Class not registered" in the installed log) need `inProcessServer` entries in the
  *     manifest; the SEA manifest does not add them.
  */
-export { ActivationKind, describeActivation, KEY_SCHEME, STARTUP_TASK_ACTIVATION_KIND, triggerFromArgument, userArguments } from "./activation.ts";
-export type { Activation } from "./activation.ts";
+export { ActivationKind, describeActivation, KEY_SCHEME, STARTUP_TASK_ACTIVATION_KIND, triggerFromArgument, userArguments } from "./activation/activation.ts";
+export type { Activation } from "./activation/activation.ts";
 export { DpiAwareness, ensureDpiAware } from "./dpi.ts";
-export { startFastPath, triggerFromWParam, WM_COPILOT } from "./fast-path.ts";
-export { isFastPathSpikeRequested, SPIKE_FLAG_FILE, spikeLogPath, startFastPathSpike } from "./fast-path-spike.ts";
-export { createKeyTriggerSender, EntryMessage, KeySource, serveKeyTriggers } from "./protocol.ts";
-export type { EntryProtocolMap, KeyTriggerPayload } from "./protocol.ts";
-export { HOST_ARGUMENT_PREFIX } from "./sea-stub.ts";
+export { startFastPath, triggerFromWParam, WM_COPILOT } from "./fast-path/fast-path.ts";
+export { isFastPathSpikeRequested, SPIKE_FLAG_FILE, spikeLogPath, startFastPathSpike } from "./fast-path/fast-path-spike.ts";
+export { createKeyTriggerSender, EntryMessage, KeySource, serveKeyTriggers } from "./activation/protocol.ts";
+export type { EntryProtocolMap, KeyTriggerPayload } from "./activation/protocol.ts";
+export { HOST_ARGUMENT_PREFIX } from "./sea/sea-stub.ts";

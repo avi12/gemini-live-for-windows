@@ -1,6 +1,6 @@
-import { isFastPathSpikeRequested, startFastPathSpike } from "@/entry/fast-path-spike.ts";
-import { startFastPath } from "@/entry/fast-path.ts";
-import { createKeyTriggerSender, KeySource } from "@/entry/protocol.ts";
+import { createKeyTriggerSender, KeySource } from "@/entry/activation/protocol.ts";
+import { isFastPathSpikeRequested, startFastPathSpike } from "@/entry/fast-path/fast-path-spike.ts";
+import { startFastPath } from "@/entry/fast-path/fast-path.ts";
 import type { MessagePort } from "node:worker_threads";
 import { createMessagePortTransport } from "winui-svelte/state/host";
 

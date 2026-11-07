@@ -1,5 +1,5 @@
 import { KeyTrigger } from "@/core/instance/key-trigger.ts";
-import { createTriggerRelay } from "@/wiring/trigger-relay.ts";
+import { createTriggerRelay } from "@/wiring/main-thread/trigger-relay.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
