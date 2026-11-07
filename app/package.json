@@ -1,0 +1,39 @@
+{
+  "name": "@gemini-live/app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Gemini Live for Windows: the whole app in TypeScript on winui-svelte.",
+  "license": "Apache-2.0",
+  "author": "Avi (https://avi12.com)",
+  "sideEffects": false,
+  "scripts": {
+    "svelte:check": "svelte-check --tsconfig ./tsconfig.json",
+    "test": "node --import ./test-alias.ts --test \"src/**/*.test.ts\"",
+    "build": "pnpm svelte:check && node build.ts"
+  },
+  "dependencies": {
+    "@gemini-live/messaging": "workspace:*",
+    "@gemini-live/pill": "workspace:*",
+    "@gemini-live/protocol": "workspace:*",
+    "@microsoft/dynwinrt": "0.1.0-preview.23",
+    "svelte": "5.57.3",
+    "winui-svelte": "file:../build/vendor/winui-svelte-0.0.4.tgz",
+    "ws": "^8.18.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.0",
+    "@types/ws": "^8.18.1",
+    "postcss-html": "^1.8.1",
+    "stylelint": "^17.16.0",
+    "stylelint-config-ccb": "^3.32.0",
+    "svelte-check": "^4.7.8",
+    "typescript": "^5.9.0",
+    "vite": "8.3.4"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "packageManager": "pnpm@11.13.1"
+}
