@@ -4,7 +4,7 @@
   import { sendAction, view } from "@/lib/view.svelte.ts";
   import CaptionCard from "@/ui/CaptionCard.svelte";
   import Glow from "@/ui/Glow.svelte";
-  import { pillEnter, pillExit } from "@/ui/motion.ts";
+  import { pillEnter, pillExit } from "@/ui/motion/motion.ts";
   import Pill from "@/ui/Pill.svelte";
   import { PillPart, placeOf } from "@/ui/places.svelte.ts";
   import { PillActionKind } from "@gemini-live/protocol/view";

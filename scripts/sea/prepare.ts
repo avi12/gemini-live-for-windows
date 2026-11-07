@@ -1,5 +1,5 @@
-import { PeSubsystem, readSubsystem, setSubsystem } from "../../app/src/entry/pe-subsystem.ts";
-import { seaStubSource } from "../../app/src/entry/sea-stub.ts";
+import { PeSubsystem, readSubsystem, setSubsystem } from "../../app/src/entry/sea/pe-subsystem.ts";
+import { seaStubSource } from "../../app/src/entry/sea/sea-stub.ts";
 import fs from "node:fs";
 
 // The two build steps that are code rather than shell, kept in TypeScript beside their unit tests

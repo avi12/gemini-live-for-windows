@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { isAnimatable } from "@/ui/animatable.ts";
-  import { GlyphButtonKind } from "@/ui/glyph-button.ts";
-  import type { Glyph } from "@/ui/glyphs.ts";
-  import { Motion } from "@/ui/motion.ts";
+  import { GlyphButtonKind } from "@/ui/glyph/glyph-button.ts";
+  import type { Glyph } from "@/ui/glyph/glyphs.ts";
+  import { isAnimatable } from "@/ui/motion/animatable.ts";
+  import { Motion } from "@/ui/motion/motion.ts";
   import { FontIcon } from "winui-svelte/components";
 
   interface Props {

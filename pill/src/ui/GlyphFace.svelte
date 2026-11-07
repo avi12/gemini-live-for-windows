@@ -1,8 +1,8 @@
 <script lang="ts">
   import "./theme.css";
-  import type { GlyphButtonKind } from "@/ui/glyph-button.ts";
-  import GlyphIcon from "@/ui/GlyphIcon.svelte";
-  import { Glyph } from "@/ui/glyphs.ts";
+  import type { GlyphButtonKind } from "@/ui/glyph/glyph-button.ts";
+  import GlyphIcon from "@/ui/glyph/GlyphIcon.svelte";
+  import { Glyph } from "@/ui/glyph/glyphs.ts";
 
   interface Props {
     glyph: Glyph;

@@ -3,7 +3,7 @@
 The full variable font is about 15 MB; the app draws a handful of icons, always at the default
 style (WPF can't set a variable font's axes). So this pins the axes to that default
 (outlined, weight 400, grade 0, optical size 24) and keeps only the code points named in
-src/GeminiLive/Design/Glyphs.cs (the WPF overlays' icons) and pill/src/ui/glyphs.ts (the pill's).
+src/GeminiLive/Design/Glyphs.cs (the WPF overlays' icons) and pill/src/ui/glyph/glyphs.ts (the pill's).
 Re-run it after adding a glyph to either:
 
     python scripts/subset-icons.py <path to MaterialSymbolsRounded[FILL,GRAD,opsz,wght].ttf>

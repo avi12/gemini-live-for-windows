@@ -23,7 +23,7 @@ public sealed partial class PillController : IDisposable {
   private MonitorInfo? _pillMonitor;
   private IReadOnlyList<MonitorInfo> _displays = [];
   private IReadOnlyList<PillNamed> _microphones = [];
-  // The pill's exit animation runs 260 ms in the window (pill/src/ui/motion.ts), then it hides
+  // The pill's exit animation runs 260 ms in the window (pill/src/ui/motion/motion.ts), then it hides
   private static readonly TimeSpan _exitSettle = TimeSpan.FromMilliseconds(400);
 
   private readonly PreviousApp _previousApp;

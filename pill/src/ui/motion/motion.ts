@@ -1,4 +1,4 @@
-import { emphasizedAccelerate, emphasizedDecelerate } from "@/ui/easing.ts";
+import { emphasizedAccelerate, emphasizedDecelerate } from "@/ui/motion/easing.ts";
 import { cubicOut } from "svelte/easing";
 
 // Googlebook's pill motion (the WPF pill's Motion.cs, which matched it): it rises out of the

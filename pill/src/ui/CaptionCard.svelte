@@ -2,7 +2,7 @@
   import "./theme.css";
   import { view } from "@/lib/view.svelte.ts";
   import LinkChips from "@/ui/LinkChips.svelte";
-  import { cardLift, Motion } from "@/ui/motion.ts";
+  import { cardLift, Motion } from "@/ui/motion/motion.ts";
   import ExtensionPanel from "@/ui/panels/ExtensionPanel.svelte";
   import KeyPanel from "@/ui/panels/KeyPanel.svelte";
   import Transcript from "@/ui/Transcript.svelte";

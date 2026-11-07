@@ -1,11 +1,11 @@
 <script lang="ts">
   import { sendAction, view } from "@/lib/view.svelte.ts";
-  import { GlyphButtonKind } from "@/ui/glyph-button.ts";
-  import GlyphButton from "@/ui/GlyphButton.svelte";
-  import { Glyph } from "@/ui/glyphs.ts";
+  import { GlyphButtonKind } from "@/ui/glyph/glyph-button.ts";
+  import GlyphButton from "@/ui/glyph/GlyphButton.svelte";
+  import { Glyph } from "@/ui/glyph/glyphs.ts";
   import DisplayMenu from "@/ui/menu/DisplayMenu.svelte";
   import GearMenu from "@/ui/menu/GearMenu.svelte";
-  import { Motion } from "@/ui/motion.ts";
+  import { Motion } from "@/ui/motion/motion.ts";
   import { PillPart, trackPart } from "@/ui/places.svelte.ts";
   import { PillActionKind } from "@gemini-live/protocol/view";
   import { fade } from "svelte/transition";

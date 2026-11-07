@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { GlyphButtonKind } from "@/ui/glyph-button.ts";
+  import { GlyphButtonKind } from "@/ui/glyph/glyph-button.ts";
+  import type { Glyph } from "@/ui/glyph/glyphs.ts";
   import GlyphFace from "@/ui/GlyphFace.svelte";
-  import type { Glyph } from "@/ui/glyphs.ts";
   import { trackPart } from "@/ui/places.svelte.ts";
   import type { PillPart } from "@/ui/places.svelte.ts";
   import type { Snippet } from "svelte";

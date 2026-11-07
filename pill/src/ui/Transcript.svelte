@@ -1,6 +1,6 @@
 <script lang="ts">
   import { sendAction, view } from "@/lib/view.svelte.ts";
-  import { lineLift } from "@/ui/motion.ts";
+  import { lineLift } from "@/ui/motion/motion.ts";
   import { PillActionKind } from "@gemini-live/protocol/view";
   import { control } from "winui-svelte";
   import { Run, ScrollViewer, StackPanel, TextBlock } from "winui-svelte/components";

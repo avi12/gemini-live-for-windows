@@ -1,4 +1,4 @@
-import { PeSubsystem, readSubsystem } from "../../app/src/entry/pe-subsystem.ts";
+import { PeSubsystem, readSubsystem } from "../../app/src/entry/sea/pe-subsystem.ts";
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
