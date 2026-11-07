@@ -10,8 +10,8 @@ import {
   wordsBetween,
   wordsIn,
   wordsOnLine
-} from "@/overlays/circle/geometry.ts";
-import type { CornerGrip, TextWord } from "@/overlays/circle/geometry.ts";
+} from "@/overlays/circle/gesture/geometry.ts";
+import type { CornerGrip, TextWord } from "@/overlays/circle/gesture/geometry.ts";
 import { CircleAction } from "@/overlays/protocol.ts";
 import { distanceBetween, rectContains, rectFromPoints, subtractPoints } from "@/overlays/shapes.ts";
 import type { Point, Rect, Size, Vector } from "@/overlays/shapes.ts";

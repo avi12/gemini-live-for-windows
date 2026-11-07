@@ -4,7 +4,7 @@ import {
   NOTICE_MILLISECONDS
 } from "@/overlays/circle/controller.ts";
 import type { CircleView, CircleWorld } from "@/overlays/circle/controller.ts";
-import { CircleHint, GestureEventKind } from "@/overlays/circle/gesture.ts";
+import { CircleHint, GestureEventKind } from "@/overlays/circle/gesture/gesture.ts";
 import type { OcrLine } from "@/overlays/ports.ts";
 import { CircleAction } from "@/overlays/protocol.ts";
 import type { CircleOutcome } from "@/overlays/protocol.ts";

@@ -1,4 +1,4 @@
-import { emphasizedDecelerate, linearEase, OverlayMotion, standardEase } from "@/overlays/motion.ts";
+import { emphasizedDecelerate, linearEase, OverlayMotion, standardEase } from "@/overlays/motion/motion.ts";
 
 // Svelte transitions for the overlays, on the emphasized curves (Motion.Enter in the C#). Never the
 // transform shorthand: translate and scale are their own properties. With reduced motion the

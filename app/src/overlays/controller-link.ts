@@ -1,8 +1,8 @@
 import { errorMessage } from "@/lib/error-message.ts";
+import type { FocusWindows } from "@/overlays/focus/screen-focus.ts";
 import type { OverlayLog } from "@/overlays/ports.ts";
 import { chipDraggedSchema, circleOutcomeSchema, OverlayMessage, readCircleTextSchema } from "@/overlays/protocol.ts";
 import type { OcrLines, OpenCircle, OverlayProtocol, ReadCircleText } from "@/overlays/protocol.ts";
-import type { FocusWindows } from "@/overlays/screen-focus.ts";
 import type { Point } from "@/overlays/shapes.ts";
 import { defineMessaging } from "winui-svelte/messaging";
 import type { Transport } from "winui-svelte/state/host";

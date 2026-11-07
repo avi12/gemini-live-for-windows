@@ -1,4 +1,4 @@
-import type { TextWord } from "@/overlays/circle/geometry.ts";
+import type { TextWord } from "@/overlays/circle/gesture/geometry.ts";
 import {
   CircleAction,
   CircleCursor,
@@ -10,8 +10,8 @@ import {
   initialGesture,
   LINE_CLICK_COUNT,
   reduceGesture
-} from "@/overlays/circle/gesture.ts";
-import type { GestureEffect, GestureEvent, GestureState } from "@/overlays/circle/gesture.ts";
+} from "@/overlays/circle/gesture/gesture.ts";
+import type { GestureEffect, GestureEvent, GestureState } from "@/overlays/circle/gesture/gesture.ts";
 import type { Point } from "@/overlays/shapes.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";

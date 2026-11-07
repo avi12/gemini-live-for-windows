@@ -1,10 +1,10 @@
 import type { Monitor } from "@/contracts/monitor.ts";
-import { linkedTransports } from "@/lib/linked-transports.ts";
+import { linkedTransports } from "@/lib/transport/linked-transports.ts";
 import { connectOverlayWindows } from "@/overlays/controller-link.ts";
 import { CircleAction } from "@/overlays/protocol.ts";
 import type { CircleOutcome, OpenCircle } from "@/overlays/protocol.ts";
-import { serveOverlayWindows } from "@/overlays/window-link.ts";
-import type { OverlayWindowEvents, OverlayWindowHost } from "@/overlays/window-link.ts";
+import { serveOverlayWindows } from "@/overlays/window/window-link.ts";
+import type { OverlayWindowEvents, OverlayWindowHost } from "@/overlays/window/window-link.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 

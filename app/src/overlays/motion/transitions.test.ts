@@ -1,5 +1,5 @@
-import { OverlayMotion } from "@/overlays/motion.ts";
-import { riseIn, settleIn, sheenIn, TransformOrigin } from "@/overlays/transitions.ts";
+import { OverlayMotion } from "@/overlays/motion/motion.ts";
+import { riseIn, settleIn, sheenIn, TransformOrigin } from "@/overlays/motion/transitions.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 

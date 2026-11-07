@@ -1,5 +1,5 @@
 import { errorMessage } from "@/lib/error-message.ts";
-import { lensUploadPage } from "@/overlays/circle/lens-page.ts";
+import { lensUploadPage } from "@/overlays/circle/lens/lens-page.ts";
 import type { CropFrame, FileOpener, OverlayLog } from "@/overlays/ports.ts";
 import { randomUUID } from "node:crypto";
 import {

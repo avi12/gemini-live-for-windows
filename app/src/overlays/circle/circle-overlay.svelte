@@ -1,27 +1,27 @@
 <script lang="ts">
   import CircleAction from "@/overlays/circle/circle-action.svelte";
   import CircleBar from "@/overlays/circle/circle-bar.svelte";
-  import { createClickCounter } from "@/overlays/circle/click-counter.ts";
   import type { CircleView } from "@/overlays/circle/controller.ts";
+  import { createClickCounter } from "@/overlays/circle/gesture/click-counter.ts";
   import {
     brackets,
     cornerRadius,
     roundedRectsPath,
     scrimPath,
     WORD_RADIUS
-  } from "@/overlays/circle/geometry.ts";
-  import { CircleCursor, GestureEventKind, GesturePhase, hoverCursor } from "@/overlays/circle/gesture.ts";
-  import type { GestureEvent } from "@/overlays/circle/gesture.ts";
+  } from "@/overlays/circle/gesture/geometry.ts";
+  import { CircleCursor, GestureEventKind, GesturePhase, hoverCursor } from "@/overlays/circle/gesture/gesture.ts";
+  import type { GestureEvent } from "@/overlays/circle/gesture/gesture.ts";
   import { OverlayGlyph } from "@/overlays/glyphs.ts";
-  import { CircleAction as CircleActionName } from "@/overlays/protocol.ts";
-  import type { Rect, Size } from "@/overlays/shapes.ts";
   import {
     fadeOut,
     riseIn,
     settleIn,
     sheenIn,
     TransformOrigin
-  } from "@/overlays/transitions.ts";
+  } from "@/overlays/motion/transitions.ts";
+  import { CircleAction as CircleActionName } from "@/overlays/protocol.ts";
+  import type { Rect, Size } from "@/overlays/shapes.ts";
   import "@gemini-live/pill/theme.css";
   import { elementSize } from "winui-svelte";
   import {

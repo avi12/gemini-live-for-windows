@@ -3,13 +3,13 @@
 
 export { createCircleSession } from "@/overlays/circle/session.ts";
 export type { CircleSelection } from "@/overlays/circle/session.ts";
-export { createLensSearch } from "@/overlays/circle/lens-search.ts";
+export { createLensSearch } from "@/overlays/circle/lens/lens-search.ts";
 export { connectOverlayWindows } from "@/overlays/controller-link.ts";
 export type { OverlayControllerEvents } from "@/overlays/controller-link.ts";
-export { createPreviousApp } from "@/overlays/previous-app.ts";
-export type { StartPolling } from "@/overlays/previous-app.ts";
-export { createScreenFocus } from "@/overlays/screen-focus.ts";
-export type { FocusEngine, FocusWindows } from "@/overlays/screen-focus.ts";
+export { createPreviousApp } from "@/overlays/focus/previous-app.ts";
+export type { StartPolling } from "@/overlays/focus/previous-app.ts";
+export { createScreenFocus } from "@/overlays/focus/screen-focus.ts";
+export type { FocusEngine, FocusWindows } from "@/overlays/focus/screen-focus.ts";
 export type {
   CircleScreen,
   Clipboard,

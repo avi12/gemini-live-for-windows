@@ -1,9 +1,14 @@
 import { regionSchema } from "@/contracts/monitor.ts";
 import type { Region } from "@/contracts/monitor.ts";
 import { errorMessage } from "@/lib/error-message.ts";
-import { pixelRegion, textWords } from "@/overlays/circle/geometry.ts";
-import { GestureEffectKind, GestureEventKind, initialGesture, reduceGesture } from "@/overlays/circle/gesture.ts";
-import type { GestureEffect, GestureEvent, GestureState } from "@/overlays/circle/gesture.ts";
+import { pixelRegion, textWords } from "@/overlays/circle/gesture/geometry.ts";
+import {
+  GestureEffectKind,
+  GestureEventKind,
+  initialGesture,
+  reduceGesture
+} from "@/overlays/circle/gesture/gesture.ts";
+import type { GestureEffect, GestureEvent, GestureState } from "@/overlays/circle/gesture/gesture.ts";
 import type { OcrLine, OverlayLog } from "@/overlays/ports.ts";
 import type { CircleAction, CircleOutcome } from "@/overlays/protocol.ts";
 import type { Rect, Size } from "@/overlays/shapes.ts";

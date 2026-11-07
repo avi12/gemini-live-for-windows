@@ -5,9 +5,9 @@ import {
   chipOrigin,
   REGION_FRAME_GAP,
   regionAfterDrag
-} from "@/overlays/focus-layout.ts";
-import { createScreenFocus } from "@/overlays/screen-focus.ts";
-import type { FocusWindows } from "@/overlays/screen-focus.ts";
+} from "@/overlays/focus/focus-layout.ts";
+import { createScreenFocus } from "@/overlays/focus/screen-focus.ts";
+import type { FocusWindows } from "@/overlays/focus/screen-focus.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 

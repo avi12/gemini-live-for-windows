@@ -4,7 +4,7 @@ import {
   linearEase,
   springEase,
   standardEase
-} from "@/overlays/motion.ts";
+} from "@/overlays/motion/motion.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 

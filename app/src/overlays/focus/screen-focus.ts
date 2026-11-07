@@ -1,7 +1,7 @@
 import type { LiveEngine } from "@/contracts/live-engine.ts";
 import { isSameDisplay, monitorName } from "@/contracts/monitor.ts";
 import type { Monitor, Region } from "@/contracts/monitor.ts";
-import { regionAfterDrag } from "@/overlays/focus-layout.ts";
+import { regionAfterDrag } from "@/overlays/focus/focus-layout.ts";
 import type { OverlayLog } from "@/overlays/ports.ts";
 import type { AttachChip, CoverBorder, HoldFocusEscape } from "@/overlays/protocol.ts";
 import type { Point } from "@/overlays/shapes.ts";

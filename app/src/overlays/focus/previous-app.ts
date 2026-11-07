@@ -1,4 +1,4 @@
-import { bringToFront } from "@/overlays/foreground.ts";
+import { bringToFront } from "@/overlays/focus/foreground.ts";
 import type { ForegroundApi, OverlayLog } from "@/overlays/ports.ts";
 
 // Gives the keyboard back to the app the user was in when the pill opened. The pill never takes

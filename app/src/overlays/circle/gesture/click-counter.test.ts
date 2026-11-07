@@ -1,4 +1,8 @@
-import { createClickCounter, MULTI_CLICK_DISTANCE, MULTI_CLICK_MILLISECONDS } from "@/overlays/circle/click-counter.ts";
+import {
+  createClickCounter,
+  MULTI_CLICK_DISTANCE,
+  MULTI_CLICK_MILLISECONDS
+} from "@/overlays/circle/gesture/click-counter.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 

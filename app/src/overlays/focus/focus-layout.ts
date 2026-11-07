@@ -1,5 +1,5 @@
 import type { Monitor, Region } from "@/contracts/monitor.ts";
-import { moved } from "@/overlays/circle/geometry.ts";
+import { moved } from "@/overlays/circle/gesture/geometry.ts";
 import { inflateRect } from "@/overlays/shapes.ts";
 import type { Point } from "@/overlays/shapes.ts";
 

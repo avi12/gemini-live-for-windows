@@ -4,13 +4,13 @@ import {
   LENS_IMAGE_MIME_TYPE,
   LENS_UPLOAD_URL,
   lensUploadPage
-} from "@/overlays/circle/lens-page.ts";
+} from "@/overlays/circle/lens/lens-page.ts";
 import {
   createLensSearch,
   LENS_PAGE_FOLDER,
   LENS_PAGE_LIFETIME_MS,
   lensPageDirectory
-} from "@/overlays/circle/lens-search.ts";
+} from "@/overlays/circle/lens/lens-search.ts";
 import assert from "node:assert/strict";
 import {
   mkdir,

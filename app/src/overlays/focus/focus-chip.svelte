@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Monitor, Region } from "@/contracts/monitor.ts";
-  import { chipOrigin } from "@/overlays/focus-layout.ts";
+  import { chipOrigin } from "@/overlays/focus/focus-layout.ts";
   import { OverlayGlyph } from "@/overlays/glyphs.ts";
   import type { Point } from "@/overlays/shapes.ts";
   import "@gemini-live/pill/theme.css";

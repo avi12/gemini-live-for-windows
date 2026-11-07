@@ -18,8 +18,8 @@ import {
   wordsBetween,
   wordsIn,
   wordsOnLine
-} from "@/overlays/circle/geometry.ts";
-import type { TextWord } from "@/overlays/circle/geometry.ts";
+} from "@/overlays/circle/gesture/geometry.ts";
+import type { TextWord } from "@/overlays/circle/gesture/geometry.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 

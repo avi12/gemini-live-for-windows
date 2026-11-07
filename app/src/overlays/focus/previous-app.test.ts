@@ -1,6 +1,6 @@
-import { bringToFront } from "@/overlays/foreground.ts";
+import { bringToFront } from "@/overlays/focus/foreground.ts";
+import { createPreviousApp, FOREGROUND_POLL_MILLISECONDS, SETTLE_MILLISECONDS } from "@/overlays/focus/previous-app.ts";
 import type { ForegroundApi } from "@/overlays/ports.ts";
-import { createPreviousApp, FOREGROUND_POLL_MILLISECONDS, SETTLE_MILLISECONDS } from "@/overlays/previous-app.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 

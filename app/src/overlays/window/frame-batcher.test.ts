@@ -1,4 +1,4 @@
-import { createFrameBatcher } from "@/overlays/frame-batcher.ts";
+import { createFrameBatcher } from "@/overlays/window/frame-batcher.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 

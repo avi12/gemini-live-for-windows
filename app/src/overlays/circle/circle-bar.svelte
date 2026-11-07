@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { barPlacement, BarSide } from "@/overlays/circle/geometry.ts";
+  import { barPlacement, BarSide } from "@/overlays/circle/gesture/geometry.ts";
+  import { riseIn } from "@/overlays/motion/transitions.ts";
   import type { Rect, Size } from "@/overlays/shapes.ts";
-  import { riseIn } from "@/overlays/transitions.ts";
   import "@gemini-live/pill/theme.css";
   import type { Snippet } from "svelte";
   import { elementSize } from "winui-svelte";

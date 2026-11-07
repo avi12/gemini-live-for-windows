@@ -1,3 +1,4 @@
+import { CircleAction } from "@/overlays/protocol.ts";
 import {
   CircleKeyCombination,
   createCopyKey,
@@ -5,9 +6,8 @@ import {
   createHeldKey,
   createOverlayKeys,
   holdCircleKey
-} from "@/overlays/hotkeys.ts";
-import type { CircleKeyCombination as Combination, RegisterHotkey } from "@/overlays/hotkeys.ts";
-import { CircleAction } from "@/overlays/protocol.ts";
+} from "@/overlays/window/hotkeys.ts";
+import type { CircleKeyCombination as Combination, RegisterHotkey } from "@/overlays/window/hotkeys.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
