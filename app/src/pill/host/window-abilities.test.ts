@@ -1,8 +1,8 @@
-import { linkedTransports } from "@/lib/linked-transports.ts";
+import { linkedTransports } from "@/lib/transport/linked-transports.ts";
 import type { ForegroundApi } from "@/overlays/ports.ts";
-import type { PillProtocol } from "@/pill/host-link.ts";
-import { serveWindowAbilities, WINDOW_NOT_UP } from "@/pill/window-abilities.ts";
-import type { PillWindowSurface } from "@/pill/window-abilities.ts";
+import type { PillProtocol } from "@/pill/host/host-link.ts";
+import { serveWindowAbilities, WINDOW_NOT_UP } from "@/pill/host/window-abilities.ts";
+import type { PillWindowSurface } from "@/pill/host/window-abilities.ts";
 import { WindowMessage } from "@gemini-live/protocol/view";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";

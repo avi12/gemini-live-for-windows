@@ -1,11 +1,11 @@
 import { EngineKind } from "@/contracts/live-engine.ts";
 import type { PillContext } from "@/pill/context.ts";
 import { runInBackground } from "@/pill/context.ts";
-import { shareDisplay } from "@/pill/displays.ts";
-import { refreshMicrophones, setMicrophone } from "@/pill/microphones.ts";
+import { shareDisplay } from "@/pill/menus/displays.ts";
+import { refreshMicrophones, setMicrophone } from "@/pill/menus/microphones.ts";
+import { askForKey, connectExtension, hideKeyPanel, setFocusable } from "@/pill/menus/setup-panels.ts";
+import { checkForUpdates, installUpdate, setAutoUpdate } from "@/pill/menus/update-menu.ts";
 import { endConversation, restartConversation, setMuted, switchEngine } from "@/pill/session.ts";
-import { askForKey, connectExtension, hideKeyPanel, setFocusable } from "@/pill/setup-panels.ts";
-import { checkForUpdates, installUpdate, setAutoUpdate } from "@/pill/update-menu.ts";
 import { PillActionKind } from "@gemini-live/protocol/view";
 import type { PillAction } from "@gemini-live/protocol/view";
 

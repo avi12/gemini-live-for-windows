@@ -1,5 +1,5 @@
-import type { AppRelease } from "./app-release.ts";
-import { parseVersion } from "./version.ts";
+import type { AppRelease } from "@/core/updates/app-release.ts";
+import { parseVersion } from "@/core/updates/version/version.ts";
 import { z } from "zod";
 
 export const DEFAULT_FEED_URL =

@@ -1,4 +1,4 @@
-import { uiWorkerDataSchema } from "@/wiring/ui-worker-data.ts";
+import { uiWorkerDataSchema } from "@/wiring/ui-thread/ui-worker-data.ts";
 import { workerData } from "node:worker_threads";
 import { runOnUiThread } from "winui-svelte/thread";
 
@@ -9,6 +9,6 @@ await runOnUiThread(async () => {
     throw new Error(`the main thread passed the UI worker bad data: ${parsedData.error.message}`);
   }
 
-  const { startUi } = await import("@/wiring/start-ui.ts");
+  const { startUi } = await import("@/wiring/ui-thread/start-ui.ts");
   await startUi(parsedData.data);
 });

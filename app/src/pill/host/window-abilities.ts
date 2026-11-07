@@ -1,6 +1,6 @@
-import { bringToFront } from "@/overlays/foreground.ts";
+import { bringToFront } from "@/overlays/focus/foreground.ts";
 import type { ForegroundApi } from "@/overlays/ports.ts";
-import type { PillProtocol } from "@/pill/host-link.ts";
+import type { PillProtocol } from "@/pill/host/host-link.ts";
 import { moveByDataSchema, WindowMessage } from "@gemini-live/protocol/view";
 import type { Messaging } from "winui-svelte/messaging";
 

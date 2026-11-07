@@ -1,12 +1,12 @@
 import type { AppRelease } from "./app-release.ts";
-import { latestRelease } from "./release-feed.ts";
-import { downloadRelease, installRelease } from "./update-installer.ts";
+import { latestRelease } from "./release/release-feed.ts";
+import { downloadRelease, installRelease } from "./release/update-installer.ts";
 import { UpdateMessage } from "./update-protocol.ts";
 import type { UpdateProtocolMap } from "./update-protocol.ts";
-import { compareVersions } from "./version.ts";
+import { compareVersions } from "./version/version.ts";
 import { log } from "@/core/log/log.ts";
 import { errorMessage } from "@/lib/error-message.ts";
-import { createLoopback } from "@/lib/loopback-transport.ts";
+import { createLoopback } from "@/lib/transport/loopback-transport.ts";
 import { defineMessaging } from "@gemini-live/messaging";
 
 export const UpdateCheck = {

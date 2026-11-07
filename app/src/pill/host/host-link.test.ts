@@ -1,6 +1,6 @@
 import { KeyTrigger } from "@/core/instance/key-trigger.ts";
-import { linkedTransports } from "@/lib/linked-transports.ts";
-import { openPillLink } from "@/pill/host-link.ts";
+import { linkedTransports } from "@/lib/transport/linked-transports.ts";
+import { openPillLink } from "@/pill/host/host-link.ts";
 import { createFakePill, settle } from "@/pill/test-fakes.ts";
 import { PillActionKind, VIEW_NAME, WindowMessage } from "@gemini-live/protocol/view";
 import type { PillView, WindowProtocol } from "@gemini-live/protocol/view";

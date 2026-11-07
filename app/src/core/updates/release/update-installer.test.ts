@@ -1,5 +1,5 @@
-import type { AppRelease } from "./app-release.ts";
 import { downloadRelease } from "./update-installer.ts";
+import type { AppRelease } from "@/core/updates/app-release.ts";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";

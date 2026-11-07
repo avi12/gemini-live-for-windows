@@ -1,4 +1,4 @@
-import { BREATHING_GLOW, followGlow, REST_GLOW } from "@/pill/glow-state.ts";
+import { BREATHING_GLOW, followGlow, REST_GLOW } from "@/pill/glow/glow-state.ts";
 import { GlowMode } from "@gemini-live/protocol/view";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";

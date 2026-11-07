@@ -2,7 +2,7 @@ import type { LiveEngine } from "@/contracts/live-engine.ts";
 import type { Monitor } from "@/contracts/monitor.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 import type { CaptionLog } from "@/pill/captions/caption-log.ts";
-import { REST_GLOW } from "@/pill/glow-state.ts";
+import { REST_GLOW } from "@/pill/glow/glow-state.ts";
 import type { PillDeps, ScreenFocusPort } from "@/pill/ports.ts";
 import type { PillGlow, PillNamed } from "@/pill/types.ts";
 

@@ -4,12 +4,12 @@ import type { Monitor } from "@/contracts/monitor.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 import type { PillContext } from "@/pill/context.ts";
 import { isCurrent, runInBackground } from "@/pill/context.ts";
-import { showOn } from "@/pill/displays.ts";
-import { BREATHING_GLOW, followGlow, REST_GLOW } from "@/pill/glow-state.ts";
-import { refreshMicrophones } from "@/pill/microphones.ts";
-import { askForKey, hideKeyPanel, onExtensionNeeded } from "@/pill/setup-panels.ts";
+import { BREATHING_GLOW, followGlow, REST_GLOW } from "@/pill/glow/glow-state.ts";
+import { showOn } from "@/pill/menus/displays.ts";
+import { refreshMicrophones } from "@/pill/menus/microphones.ts";
+import { askForKey, hideKeyPanel, onExtensionNeeded } from "@/pill/menus/setup-panels.ts";
 
-// The pill's exit animation runs 260 ms in the window (pill/src/ui/motion.ts), then it hides
+// The pill's exit animation runs 260 ms in the window (pill/src/ui/motion/motion.ts), then it hides
 const EXIT_SETTLE_MS = 400;
 const API_KEY_ERROR = /API key/i;
 

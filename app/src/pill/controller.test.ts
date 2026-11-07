@@ -1,8 +1,8 @@
 import { EngineKind, LiveEventKind, LiveStatus } from "@/contracts/live-engine.ts";
 import { KeyTrigger } from "@/core/instance/key-trigger.ts";
 import { UpdateCheck } from "@/core/updates/update-checker.ts";
+import { INSTALLER_NOTE, NO_UPDATE, UNPACKAGED } from "@/pill/menus/update-menu.ts";
 import { createFakePill, PRIMARY, SECONDARY, settle } from "@/pill/test-fakes.ts";
-import { INSTALLER_NOTE, NO_UPDATE, UNPACKAGED } from "@/pill/update-menu.ts";
 import { GlowMode, PillActionKind, pillViewSchema } from "@gemini-live/protocol/view";
 import type { PillView } from "@gemini-live/protocol/view";
 import assert from "node:assert/strict";

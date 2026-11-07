@@ -1,7 +1,7 @@
 import { ActivationMessage, keyTriggerSchema } from "./activation-protocol.ts";
 import type { ActivationProtocolMap } from "./activation-protocol.ts";
 import { KeyTrigger } from "./key-trigger.ts";
-import { socketTransport } from "@/lib/socket-transport.ts";
+import { socketTransport } from "@/lib/transport/socket-transport.ts";
 import { defineMessaging } from "@gemini-live/messaging";
 import net from "node:net";
 

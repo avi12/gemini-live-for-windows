@@ -4,7 +4,7 @@ import { applyAction } from "@/pill/actions.ts";
 import { createCaptionLog } from "@/pill/captions/caption-log.ts";
 import { createPillState } from "@/pill/context.ts";
 import type { PillContext } from "@/pill/context.ts";
-import { onDisplaysChanged } from "@/pill/displays.ts";
+import { onDisplaysChanged } from "@/pill/menus/displays.ts";
 import type { PillDeps } from "@/pill/ports.ts";
 import { endConversation, setMuted, startConversation } from "@/pill/session.ts";
 import { buildView } from "@/pill/view-builder.ts";

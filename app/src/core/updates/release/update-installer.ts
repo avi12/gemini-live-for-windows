@@ -1,8 +1,8 @@
-import type { AppRelease } from "./app-release.ts";
 import { USER_AGENT } from "./release-feed.ts";
 import type { Fetch } from "./release-feed.ts";
 import { log } from "@/core/log/log.ts";
 import { openFile } from "@/core/shell/open-external.ts";
+import type { AppRelease } from "@/core/updates/app-release.ts";
 import { sha256OfFile } from "@/lib/sha256.ts";
 import { createWriteStream } from "node:fs";
 import fs from "node:fs/promises";

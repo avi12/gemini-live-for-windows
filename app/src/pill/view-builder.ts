@@ -1,8 +1,8 @@
 import { EngineKind } from "@/contracts/live-engine.ts";
 import { monitorName } from "@/contracts/monitor.ts";
 import type { PillContext } from "@/pill/context.ts";
-import { describeMonitor } from "@/pill/displays.ts";
-import { describeUpdate } from "@/pill/update-menu.ts";
+import { describeMonitor } from "@/pill/menus/displays.ts";
+import { describeUpdate } from "@/pill/menus/update-menu.ts";
 
 // The whole pill as one snapshot for the Svelte window; nothing in it is stored twice
 export function buildView(context: PillContext) {

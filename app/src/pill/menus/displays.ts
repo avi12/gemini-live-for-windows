@@ -2,7 +2,7 @@ import type { Monitor } from "@/contracts/monitor.ts";
 import { monitorName } from "@/contracts/monitor.ts";
 import type { PillContext } from "@/pill/context.ts";
 import { runInBackground } from "@/pill/context.ts";
-import { refreshMicrophones } from "@/pill/microphones.ts";
+import { refreshMicrophones } from "@/pill/menus/microphones.ts";
 
 export function describeMonitor(monitor: Monitor) {
   const primary = monitor.isPrimary ? " (primary)" : "";
