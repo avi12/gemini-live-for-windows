@@ -4,8 +4,8 @@ import {
   pillActionSchema,
   pillViewSchema,
   VIEW_NAME
-} from "@/protocol/view.ts";
-import type { PillAction, PillView } from "@/protocol/view.ts";
+} from "@gemini-live/protocol/view";
+import type { PillAction, PillView } from "@gemini-live/protocol/view";
 import { hostState } from "winui-svelte/state";
 import type { HostChannel, HostState } from "winui-svelte/state";
 

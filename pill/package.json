@@ -12,6 +12,7 @@
     "build": "pnpm svelte:check && node build.ts"
   },
   "dependencies": {
+    "@gemini-live/protocol": "workspace:*",
     "svelte": "5.57.3",
     "winui-svelte": "file:../build/vendor/winui-svelte-0.0.4.tgz",
     "zod": "^4.6.7"
@@ -28,5 +29,12 @@
   "engines": {
     "node": ">=24"
   },
-  "packageManager": "pnpm@11.13.1"
+  "packageManager": "pnpm@11.13.1",
+  "exports": {
+    "./theme.css": "./src/ui/theme.css",
+    "./mount": {
+      "types": "./mount.d.ts",
+      "default": "./src/mount.ts"
+    }
+  }
 }
