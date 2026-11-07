@@ -1,6 +1,6 @@
 // Asks the app's native messaging host where this run of the app listens.
-import { type LinkInfo, NATIVE_HOST, NativeMessage, type NativeProtocolMap } from "@/lib/native-protocol";
 import { defineMessaging, type Transport } from "@gemini-live/messaging";
+import { type LinkInfo, NATIVE_HOST_NAME, NativeMessage, type NativeProtocolMap } from "@gemini-live/protocol/link";
 
 // The browser starts the host process per ask; give it time to boot before calling the link gone.
 const NATIVE_TIMEOUT_MS = 10000;
@@ -29,7 +29,7 @@ function portTransport(port: Browser.runtime.Port): Transport {
 export async function readLinkInfo(): Promise<LinkInfo | undefined> {
   let port: Browser.runtime.Port;
   try {
-    port = browser.runtime.connectNative(NATIVE_HOST);
+    port = browser.runtime.connectNative(NATIVE_HOST_NAME);
   } catch {
     return undefined;
   }
@@ -43,7 +43,7 @@ export async function readLinkInfo(): Promise<LinkInfo | undefined> {
   });
   const messenger = defineMessaging<NativeProtocolMap>(portTransport(port), { timeoutMs: NATIVE_TIMEOUT_MS });
   try {
-    const info = await Promise.race([messenger.sendMessage(NativeMessage.Link), disconnected]);
+    const info = await Promise.race([messenger.sendMessage(NativeMessage.link), disconnected]);
     return info ?? undefined;
   } catch {
     return undefined;

@@ -77,7 +77,7 @@ interface Reply {
   err?: string | null;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+function isRecord(value: unknown): value is Partial<Request> & Partial<Reply> {
   return typeof value === "object" && value !== null;
 }
 
