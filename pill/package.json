@@ -14,7 +14,7 @@
   "dependencies": {
     "@gemini-live/protocol": "workspace:*",
     "svelte": "5.57.3",
-    "winui-svelte": "file:../build/vendor/winui-svelte-0.0.4.tgz",
+    "winui-svelte": "file:../build/vendor/winui-svelte-0.0.6-dev.tgz",
     "zod": "^4.6.7"
   },
   "devDependencies": {
