@@ -12,10 +12,27 @@
            with Install-WindowsAppRuntime.ps1, and the extension's .zip and signed .crx
            (keys\chrome.pem).
 
+  Stage    build the layout in build\layout and stop: nothing is packed, signed, installed or stopped.
+
   Every mode builds the pill and bundles node.exe (scripts\Get-Node.ps1) into the package; Signed
   and Register also install the Windows App SDK runtime the manifest depends on.
+
+.PARAMETER Entry
+  CSharp   (default) the shipped C# app with its Svelte pill.
+  Sea      the TypeScript app: pnpm --filter @gemini-live/app build, then scripts\Build-SeaExe.ps1 turns
+           node.exe into GeminiLive.exe, and package\AppxManifest.sea.xml replaces the manifest. Staged
+           for the day the lead flips the entry; the default install is unchanged.
+
+.PARAMETER HostExe
+  With -Entry Sea: how the browsers' native messaging host ships. Copy (default) makes
+  GeminiLiveHost.exe a second copy of the exe, the layout makeappx certainly accepts. Shared points the
+  NativeHost application at GeminiLive.exe (two applications on one executable, untested).
 #>
-param([ValidateSet('Signed', 'Register', 'Release')] [string] $Mode = 'Signed')
+param(
+  [ValidateSet('Signed', 'Register', 'Release', 'Stage')] [string] $Mode = 'Signed',
+  [ValidateSet('CSharp', 'Sea')] [string] $Entry = 'CSharp',
+  [ValidateSet('Copy', 'Shared')] [string] $HostExe = 'Copy'
+)
 $ErrorActionPreference = 'Stop'
 
 $root    = Split-Path $PSScriptRoot -Parent
@@ -24,7 +41,9 @@ $layout  = Join-Path $build 'layout'
 $msix    = Join-Path $build 'GeminiLive.msix'
 $sdk     = Get-ChildItem 'C:\Program Files (x86)\Windows Kits\10\bin\10.*\x64\makeappx.exe' |
            Sort-Object FullName -Descending | Select-Object -First 1 | ForEach-Object DirectoryName
-[xml] $manifest = Get-Content (Join-Path $root 'package\AppxManifest.xml')
+$isSea = $Entry -eq 'Sea'
+$manifestFile = if ($isSea) { 'AppxManifest.sea.xml' } else { 'AppxManifest.xml' }
+[xml] $manifest = Get-Content (Join-Path $root "package\$manifestFile")
 $publisher = $manifest.Package.Identity.Publisher   # the one source for the cert subject
 $name      = $manifest.Package.Identity.Name
 
@@ -37,6 +56,8 @@ if ($manifestMin -ne $minWindows) {
 }
 
 $release = $Mode -eq 'Release'
+$isStage = $Mode -eq 'Stage'
+$buildsOnly = $release -or $isStage
 
 # Runs a native tool and stops the script if it fails; $what names it in the error.
 function Invoke-Native([string] $what, [scriptblock] $command) {
@@ -58,7 +79,7 @@ function Publish-Project([string] $project) {
 
 # Stop a running copy (and a host a browser has open) so its files can be replaced. A release only
 # builds files, so the installed app keeps running.
-if (-not $release) {
+if (-not $buildsOnly) {
     Get-Process GeminiLive, GeminiLiveHost -ErrorAction SilentlyContinue | Stop-Process -Force
 }
 
@@ -76,8 +97,10 @@ Invoke-Pnpm 'extension' $(if ($release) { 'release' } else { 'build' })
 Write-Host '== bridge'
 Invoke-Pnpm 'bridge' 'build'
 
-Write-Host '== pill'
-Invoke-Pnpm 'pill' 'build'
+if (-not $isSea) {
+  Write-Host '== pill'
+  Invoke-Pnpm 'pill' 'build'
+}
 
 # The app ships its own node.exe (pill\node.exe), so it never relies on the machine having Node.
 Write-Host '== node'
@@ -86,21 +109,49 @@ Write-Host '== node'
 # The pill's WinUI needs the Windows App SDK runtime, which the package declares as a dependency.
 # Windows doesn't fetch a sideloaded package's dependencies, so a local install gets it first.
 $runtime = $manifest.Package.Dependencies.PackageDependency | Where-Object Name -like 'Microsoft.WindowsAppRuntime.*'
-if (-not $release) {
+if (-not $buildsOnly) {
   Write-Host '== runtime'
   & (Join-Path $PSScriptRoot 'Install-WindowsAppRuntime.ps1') -Name $runtime.Name -MinVersion $runtime.MinVersion
 }
 
 Write-Host '== publish'
 if (Test-Path $layout) { Remove-Item $layout -Recurse -Force }
-Publish-Project 'GeminiLive'
-# GeminiLive.csproj copies pill\dist and node.exe into the publish output as <app>\pill\.
-foreach ($file in 'pill\main.js', 'pill\window.js', 'pill\node.exe', 'pill\GoogleSans-Variable.ttf', 'pill\MaterialSymbolsRounded.ttf') {
-  if (-not (Test-Path (Join-Path $layout $file))) { throw "The package layout has no $file; the pill or node.exe didn't reach the publish" }
+if ($isSea) {
+  Invoke-Native 'app build' { pnpm --dir $root --filter '@gemini-live/app' build }
+  New-Item -ItemType Directory $layout | Out-Null
+  Copy-Item (Join-Path $root 'app\dist\*') $layout -Recurse -Force
+  # What the app reads at run time, beside the entry: the page bridges (built above) and the extension
+  New-Item -ItemType Directory (Join-Path $layout 'bridges') | Out-Null
+  Copy-Item (Join-Path $root 'src\GeminiLive\Glic\Bridges\*.js') (Join-Path $layout 'bridges')
+  Copy-Item (Join-Path $root 'extension\.output\chrome-mv3') (Join-Path $layout 'extension') -Recurse -Force
+  $seaExe = & (Join-Path $PSScriptRoot 'Build-SeaExe.ps1') -OutDirectory $layout | Select-Object -Last 1
+  foreach ($file in 'main.js', 'window.js', 'host.js', 'audio-worker.js', 'bridges\glic_bridge.js', 'bridges\home_bridge.js', 'extension\manifest.json') {
+    if (-not (Test-Path (Join-Path $layout $file))) { throw "The package layout has no $file; the app build didn't reach the layout" }
+  }
+  # The host application's alias target. Shared keeps the manifest's one executable; Copy gives the
+  # host its own file.
+  if ($HostExe -eq 'Copy') { Copy-Item $seaExe (Join-Path $layout 'GeminiLiveHost.exe') }
 }
-# The browsers' native messaging host ships beside the app (its execution alias is in the manifest).
-Publish-Project 'GeminiLiveHost'
-Copy-Item (Join-Path $root 'package\*') $layout -Recurse -Force
+else {
+  Publish-Project 'GeminiLive'
+  # GeminiLive.csproj copies pill\dist and node.exe into the publish output as <app>\pill\.
+  foreach ($file in 'pill\main.js', 'pill\window.js', 'pill\node.exe', 'pill\GoogleSans-Variable.ttf', 'pill\MaterialSymbolsRounded.ttf') {
+    if (-not (Test-Path (Join-Path $layout $file))) { throw "The package layout has no $file; the pill or node.exe didn't reach the publish" }
+  }
+  # The browsers' native messaging host ships beside the app (its execution alias is in the manifest).
+  Publish-Project 'GeminiLiveHost'
+}
+# Both manifests live in package\; only the chosen one is the layout's AppxManifest.xml.
+Copy-Item (Join-Path $root 'package\*') $layout -Recurse -Force -Exclude 'AppxManifest*.xml'
+Copy-Item (Join-Path $root "package\$manifestFile") (Join-Path $layout 'AppxManifest.xml') -Force
+if ($isSea -and $HostExe -eq 'Shared') {
+  [xml] $shared = Get-Content (Join-Path $layout 'AppxManifest.xml')
+  $hostApplication = $shared.Package.Applications.Application | Where-Object Id -eq 'NativeHost'
+  $hostApplication.Executable = 'GeminiLive.exe'
+  $hostApplication.SelectNodes("//*[local-name()='Extension'][@Category='windows.appExecutionAlias']") |
+    ForEach-Object { $_.SetAttribute('Executable', 'GeminiLive.exe') }
+  $shared.Save((Join-Path $layout 'AppxManifest.xml'))
+}
 
 # Update in place rather than remove + add: removing the package wipes the permissions Windows keeps
 # for it, so every install re-asked for the microphone. An in-place update needs a higher version,
@@ -127,6 +178,11 @@ function Install-InPlace([scriptblock] $install) {
         Get-AppxPackage $name | Remove-AppxPackage
         & $install
     }
+}
+
+if ($isStage) {
+    Write-Host "Staged $layout ($Entry entry)"
+    return
 }
 
 if ($Mode -eq 'Register') {
