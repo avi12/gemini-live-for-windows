@@ -11,7 +11,7 @@ import {
 import type { SecretSealer } from "@/google/ports.ts";
 import type { BrowserCookie } from "@gemini-live/protocol/link";
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, test } from "node:test";
@@ -93,12 +93,36 @@ describe("session format", () => {
     assert.equal(first?.expirationDate, null);
   });
 
-  test("a malformed file is an empty session", () => {
-    assert.deepEqual(decodeSession(new TextEncoder().encode("{\"not\":\"a list\"}")), []);
+  test("a malformed file is refused, saying why", () => {
+    assert.throws(() => decodeSession(new TextEncoder().encode("{\"not\":\"a list\"}")), /unexpected shape/u);
   });
 });
 
 describe("session store", () => {
+  test("logs why a saved session of the wrong shape was dropped", async () => {
+    const folder = await mkdtemp(path.join(tmpdir(), "google-session-"));
+    try {
+      const filePath = path.join(folder, "google-session.bin");
+      await writeFile(filePath, await reversingSealer.seal(new TextEncoder().encode("{\"not\":\"a list\"}")));
+      const messages: string[] = [];
+      const store = createSessionStore({
+        filePath,
+        sealer: reversingSealer,
+        log: {
+          write: message => messages.push(message)
+        }
+      });
+      assert.deepEqual(await store.load(), []);
+      assert.equal(messages.length, 1);
+      assert.match(messages[0] ?? "", /saved Google session unreadable: .*unexpected shape/u);
+    } finally {
+      await rm(folder, {
+        recursive: true,
+        force: true
+      });
+    }
+  });
+
   test("seals on save and unseals on load", async () => {
     const folder = await mkdtemp(path.join(tmpdir(), "google-session-"));
     try {

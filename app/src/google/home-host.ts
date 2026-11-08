@@ -103,6 +103,8 @@ function createHomePage({ webHost, now, log }: {
 
 type HomePage = ReturnType<typeof createHomePage>;
 
+const FALLBACK_LIGHTS_NAME = "PC lights";
+
 // Sets the PC lights on or off, returning a short line to speak. Reads the tile's state first, so
 // an already-correct light is a no-op instead of a toggle the wrong way.
 async function switchLights({ isOn, webHost, page, log }: {
@@ -120,16 +122,17 @@ async function switchLights({ isOn, webHost, page, log }: {
     return "I couldn't find the PC lights.";
   }
 
-  log.write(`home: ${state.name} text='${state.text}' on=${state.on}`);
+  const name = state.name ?? FALLBACK_LIGHTS_NAME;
+  log.write(`home: ${name} text='${state.text}' on=${state.on}`);
 
   const isUnknown = state.on === null;
   if (isUnknown) {
-    return `I couldn't tell whether the ${state.name} are on.`;
+    return `I couldn't tell whether the ${name} are on.`;
   }
 
   const isAlreadySet = state.on === isOn;
   if (isAlreadySet) {
-    return `The ${state.name} are already ${onOff(isOn)}.`;
+    return `The ${name} are already ${onOff(isOn)}.`;
   }
 
   const core = webHost.core;
@@ -149,9 +152,9 @@ async function switchLights({ isOn, webHost, page, log }: {
     return "I couldn't confirm the lights changed.";
   }
 
-  log.write(`home: ${state.name} after text='${after.text}' on=${after.on}`);
+  log.write(`home: ${name} after text='${after.text}' on=${after.on}`);
   const isSwitched = after.on === isOn;
-  return isSwitched ? `Turned the ${state.name} ${onOff(isOn)}.` : "I couldn't switch the lights.";
+  return isSwitched ? `Turned the ${name} ${onOff(isOn)}.` : "I couldn't switch the lights.";
 }
 
 // Controls the account's Google Home devices by driving the real Home web app in a hidden WebView2,

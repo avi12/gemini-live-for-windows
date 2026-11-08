@@ -13,7 +13,8 @@ export const pcLightsSchema = z.discriminatedUnion("found", [
   z.object({ found: z.literal(false) }),
   z.object({
     found: z.literal(true),
-    name: z.string(),
+    // null when the tile shows no name; the lights are then called PC lights
+    name: z.string().nullable(),
     // null when the tile shows no state word yet
     on: z.boolean().nullable(),
     text: z.string(),

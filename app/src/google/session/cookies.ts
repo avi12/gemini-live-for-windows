@@ -53,9 +53,14 @@ export function encodeSession(cookies: readonly BrowserCookie[]) {
   return new TextEncoder().encode(JSON.stringify(cookies));
 }
 
+// Throws when the bytes are not a cookie list, so the caller can say why the session was dropped
 export function decodeSession(plain: Uint8Array) {
   const parsed = browserCookiesSchema.safeParse(JSON.parse(new TextDecoder().decode(plain)));
-  return parsed.success ? parsed.data : [];
+  if (!parsed.success) {
+    throw new Error(`the cookie list has an unexpected shape: ${parsed.error.message}`);
+  }
+
+  return parsed.data;
 }
 
 // The sealed copy of the browser's session, so a restart is signed in before the extension
