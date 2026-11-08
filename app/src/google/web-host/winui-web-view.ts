@@ -221,10 +221,11 @@ function closeWindow({ window, spec, log }: {
   }
 }
 
-function openParkedWindow({ bindings, control, spec }: {
+function openParkedWindow({ bindings, control, spec, log }: {
   bindings: Bindings;
   control: InstanceType<Bindings["webViewClass"]>;
   spec: WindowSpec;
+  log: Logger;
 }) {
   const host = bindings.createWindow({
     control,
@@ -242,6 +243,12 @@ function openParkedWindow({ bindings, control, spec }: {
     y: PARKED_AT,
     width: spec.width,
     height: spec.height
+  });
+  // Task Manager or the window list can ask the parked window to close; it stays, as GoogleWebViewHost.cs
+  // cancels Closing. Closing it from code (a crashed control's replacement) does not raise this.
+  host.window.appWindow.onClosing((_sender, event) => {
+    event.cancel = true;
+    log.write(`${spec.logTag}: the parked window was asked to close; kept`);
   });
   return host;
 }
@@ -273,7 +280,8 @@ export function createWinUiWebViewFactory({ spec, log }: {
     const host = openParkedWindow({
       bindings,
       control,
-      spec
+      spec,
+      log
     });
     previous = host;
 
