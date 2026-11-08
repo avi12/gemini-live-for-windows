@@ -12,13 +12,21 @@ import { readPackagedKind } from "@/entry/activation/packaged-activation.ts";
 import { serveKeyTriggers } from "@/entry/activation/protocol.ts";
 import { ensureDpiAware } from "@/entry/dpi.ts";
 import { errorMessage } from "@/lib/error-message.ts";
+import { launchDetached } from "@/lib/launch.ts";
 import { buildController } from "@/wiring/main-thread/build-controller.ts";
 import { openChannels } from "@/wiring/main-thread/channels.ts";
 import type { ShippedFiles } from "@/wiring/main-thread/shipped-files.ts";
 import { createTriggerRelay } from "@/wiring/main-thread/trigger-relay.ts";
+import {
+  RAPID_RESTARTS_VARIABLE,
+  rapidRestartsOf,
+  restartCommand,
+  superviseUiWorker
+} from "@/wiring/main-thread/worker-supervisor.ts";
 import type { UiWorkerData } from "@/wiring/ui-thread/ui-worker-data.ts";
 import { roInitialize } from "@microsoft/dynwinrt";
 import path from "node:path";
+import { isSea } from "node:sea";
 import { Worker } from "node:worker_threads";
 import { initWindowsAppSdk } from "winui-svelte/bootstrap";
 
@@ -47,19 +55,49 @@ function startWindowsAppSdk({ isPackaged }: { isPackaged: boolean }) {
   }
 }
 
-function startUiWorker({ files, data }: {
+// The UI worker owns every window, so when it ends the app has lost its pill: like PillHost.cs
+// restarting a dead pill, start the app again (it comes back up without a conversation), unless
+// the window keeps dying right after it starts
+function startAgain(rapidRestarts: number) {
+  launchDetached({
+    ...restartCommand({
+      isSingleExecutable: isSea(),
+      execPath: process.execPath,
+      execArgv: process.execArgv,
+      script: process.argv[1]
+    }),
+    env: {
+      ...process.env,
+      [RAPID_RESTARTS_VARIABLE]: String(rapidRestarts)
+    }
+  });
+}
+
+function startUiWorker({ files, data, onEnded }: {
   files: ShippedFiles;
   data: UiWorkerData;
+  onEnded: (event: {
+    exitCode: number;
+    ranMilliseconds: number;
+  }) => Promise<void>;
 }) {
+  const startedAt = Date.now();
   const worker = new Worker(files.uiWorker, {
     workerData: data,
     transferList: Object.values(data.ports)
   });
   worker.on("error", error => {
     writeLog(`ui worker: ${errorMessage(error)}`);
-    process.exitCode = 1;
   });
-  worker.on("exit", code => process.exit(process.exitCode ?? code));
+  worker.on("exit", exitCode => {
+    onEnded({
+      exitCode,
+      ranMilliseconds: Date.now() - startedAt
+    }).catch((error: unknown) => {
+      writeLog(`restarting the window: ${errorMessage(error)}`);
+      process.exit(exitCode);
+    });
+  });
 }
 
 // Packaged, a browser can't start an exe inside the package folder, so the host goes through the
@@ -108,7 +146,10 @@ export async function startApp({ files }: { files: ShippedFiles }) {
     installedVersion,
     files,
     channels,
-    quit: () => process.exit(0),
+    quit() {
+      controller.dispose();
+      process.exit(0);
+    },
     log: writeLog
   });
   serveKeyTriggers({
@@ -134,6 +175,21 @@ export async function startApp({ files }: { files: ShippedFiles }) {
       nativeHostPath: nativeHostPathOf({ isPackaged }),
       audioWorkerUrl: files.audioWorkerUrl.href,
       isDebugging: log.isDebugging
+    },
+    async onEnded({ exitCode, ranMilliseconds }) {
+      controller.dispose();
+      const isRestarting = await superviseUiWorker({
+        exitCode,
+        ranMilliseconds,
+        rapidRestarts: rapidRestartsOf(process.env),
+        release: () => claim.close(),
+        relaunch: startAgain,
+        delay: milliseconds => new Promise(resolve => {
+          setTimeout(resolve, milliseconds);
+        }),
+        log: writeLog
+      });
+      process.exit(isRestarting ? 0 : exitCode || 1);
     }
   });
 }

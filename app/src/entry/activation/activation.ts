@@ -2,6 +2,7 @@ import { KeyTrigger } from "@/core/instance/key-trigger.ts";
 import { z } from "zod";
 
 export const KEY_SCHEME = "geminilive-key";
+export const RECOVERED_ARGUMENT = "--recovered";
 const STATE_PARAMETER = "state";
 
 // ExtendedActivationKind.StartupTask of the Windows App SDK (Microsoft.Windows.AppLifecycle).
@@ -10,13 +11,16 @@ export const STARTUP_TASK_ACTIVATION_KIND = 1020;
 export const ActivationKind = {
   launch: "launch",
   key: "key",
-  startup: "startup"
+  startup: "startup",
+  // The app started itself again after its window died: it only comes back up, like a sign-in start
+  recovered: "recovered"
 } as const;
 export type ActivationKind = typeof ActivationKind[keyof typeof ActivationKind];
 
 export type Activation =
   | { kind: typeof ActivationKind.launch }
   | { kind: typeof ActivationKind.startup }
+  | { kind: typeof ActivationKind.recovered }
   | {
     kind: typeof ActivationKind.key;
     trigger: KeyTrigger;
@@ -68,6 +72,11 @@ export function describeActivation({ args, packagedKind }: {
       };
     }
   }
+  const isRecovered = args.includes(RECOVERED_ARGUMENT);
+  if (isRecovered) {
+    return { kind: ActivationKind.recovered };
+  }
+
   const isStartup = packagedKind === STARTUP_TASK_ACTIVATION_KIND;
   return isStartup ? { kind: ActivationKind.startup } : { kind: ActivationKind.launch };
 }

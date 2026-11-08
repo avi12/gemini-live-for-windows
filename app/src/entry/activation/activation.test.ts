@@ -1,6 +1,7 @@
 import {
   ActivationKind,
   describeActivation,
+  RECOVERED_ARGUMENT,
   STARTUP_TASK_ACTIVATION_KIND,
   triggerFromArgument,
   userArguments
@@ -70,6 +71,10 @@ describe("describeActivation", () => {
         packagedKind: 0
       }), { kind: ActivationKind.launch }
     );
+  });
+
+  it("is a recovery when the app started itself again", () => {
+    assert.deepEqual(describeActivation({ args: [RECOVERED_ARGUMENT] }), { kind: ActivationKind.recovered });
   });
 
   it("prefers the key press over the startup kind", () => {

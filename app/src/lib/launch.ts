@@ -3,14 +3,16 @@ import { spawn } from "node:child_process";
 export type Launch = (command: {
   file: string;
   args: readonly string[];
+  env?: NodeJS.ProcessEnv;
 }) => void;
 
 // Starts a program on its own, the way a shortcut would: no console, not tied to our lifetime
-export function launchDetached({ file, args }: Parameters<Launch>[0]) {
+export function launchDetached({ file, args, env = process.env }: Parameters<Launch>[0]) {
   const child = spawn(file, args, {
     detached: true,
     stdio: "ignore",
-    windowsHide: true
+    windowsHide: true,
+    env
   });
   child.on("error", () => undefined);
   child.unref();
