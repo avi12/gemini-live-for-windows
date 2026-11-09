@@ -11,16 +11,29 @@ export const Motion = {
   swapOutMilliseconds: 100,
   followMilliseconds: 90,
   bounceMilliseconds: 100,
+  menuExitMilliseconds: 120,
   staggerMilliseconds: 60,
   pillRise: 24,
   pillSink: 40,
   pillScale: 0.96,
   cardRise: 12,
   lineRise: 8,
+  menuSink: 8,
+  menuScale: 0.96,
   bounceScale: 0.9
 } as const;
 
 const SCALE_ORIGIN = "center bottom";
+export const MENU_EXIT_STEPS = 8;
+
+export function menuExitAt(progress: number) {
+  const eased = emphasizedAccelerate(progress);
+  return {
+    opacity: 1 - progress,
+    sink: eased * Motion.menuSink,
+    scale: 1 + (Motion.menuScale - 1) * eased
+  };
+}
 
 function riseInOf({ rise, scaleFrom }: {
   rise: number;

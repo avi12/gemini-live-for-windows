@@ -2,6 +2,7 @@
   import "./theme.css";
   import { sendAction, view } from "@/lib/view.svelte.ts";
   import { Glyph } from "@/ui/glyph/glyphs.ts";
+  import LinkMenu from "@/ui/menu/LinkMenu.svelte";
   import { Motion } from "@/ui/motion/motion.ts";
   import { PillActionKind } from "@gemini-live/protocol/view";
   import { scale } from "svelte/transition";
@@ -9,14 +10,11 @@
     Button,
     FontIcon,
     InlineUIContainer,
-    MenuFlyout,
-    MenuFlyoutItem,
     Paragraph,
     RichTextBlock,
     StackPanel,
     TextBlock
   } from "winui-svelte/components";
-  import { clipboard } from "winui-svelte/data-transfer";
 
   const CHIP_ICON_SIZE = 18;
   const CHIP_SCALE_FROM = 0.9;
@@ -66,10 +64,7 @@
             toolTip={link.address}
           >
             {#snippet contextFlyout()}
-              <MenuFlyout placement="Top" shouldConstrainToRootBounds={false}>
-                <MenuFlyoutItem onclick={() => open(link.uri)} text="Open link" />
-                <MenuFlyoutItem onclick={() => clipboard.writeText(link.uri)} text="Copy link address" />
-              </MenuFlyout>
+              <LinkMenu uri={link.uri} />
             {/snippet}
             <StackPanel class="chip-face">
               <FontIcon class="live-icon chip-icon" fontSize={CHIP_ICON_SIZE} glyph={glyphOf(link.isSearch)} />
