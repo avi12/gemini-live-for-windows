@@ -191,6 +191,7 @@ export async function startConversation({ context, monitor }: {
 }) {
   const { state, deps, captions, focus } = context;
   captions.clear();
+  state.isMuted = false;
   showOn({
     context,
     monitor

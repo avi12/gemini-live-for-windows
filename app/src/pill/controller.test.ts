@@ -444,6 +444,19 @@ describe("muting", () => {
   });
 });
 
+describe("a new session after muting", () => {
+  it("never shows the old mute, not even while connecting", async () => {
+    const pill = await started();
+    await pill.controller.apply({ kind: PillActionKind.mute });
+    await pill.controller.onTrigger(KeyTrigger.tap);
+    const seen: boolean[] = [];
+    pill.controller.subscribe(view => seen.push(view.isMuted));
+    seen.length = 0;
+    await pill.controller.onTrigger(KeyTrigger.tap);
+    assert.deepEqual([...new Set(seen)], [false]);
+  });
+});
+
 describe("the API key prompt", () => {
   it("asks first when the engine needs a key and there is none", async () => {
     const pill = await started({
