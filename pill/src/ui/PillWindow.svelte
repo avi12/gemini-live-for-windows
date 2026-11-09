@@ -12,7 +12,7 @@
   import { Window } from "winui-svelte/components";
   import type { WindowHandle } from "winui-svelte/components";
   import { enableElementAnimation } from "winui-svelte/element-animation";
-  import { exitApplication, WindowAnchor } from "winui-svelte/window";
+  import { exitApplication, systemSettings, WindowAnchor, WindowTheme } from "winui-svelte/window";
 
   const PILL_WIDTH = 504;
   const DOCK_INSET = 6;
@@ -20,6 +20,7 @@
 
   enableElementAnimation();
 
+  const settings = systemSettings();
   const content = elementSize();
   const windowRef: { handle: WindowHandle | undefined } = $state({ handle: undefined });
   let isExitDone = $state(true);
@@ -87,6 +88,7 @@
   onscalechanged={dock}
   {passthroughRegions}
   sizeToContent="height"
+  theme={settings.isDarkTheme ? WindowTheme.dark : WindowTheme.light}
   title="Gemini Live"
   width={PILL_WIDTH}
   bind:handle={() => windowRef.handle, handle => {
