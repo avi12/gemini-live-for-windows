@@ -106,6 +106,7 @@
   isActivatable={view.isFocusable}
   isAlwaysOnTop
   isBorderless
+  isExcludedFromCapture
   isHidden={isWindowHidden}
   isResizable={false}
   isToolWindow
