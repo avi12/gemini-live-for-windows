@@ -72,6 +72,7 @@ internal static unsafe class Native {
   public const uint MONITORINFOF_PRIMARY = 1;
   public const uint MONITOR_DEFAULTTONEAREST = 2;
   public const uint SWP_NOSIZE = 0x1;
+  public const uint SWP_NOMOVE = 0x2;
   public const uint SWP_NOACTIVATE = 0x10;
   public const uint SWP_SHOWWINDOW = 0x40;
   public const int GWL_EXSTYLE = -20;

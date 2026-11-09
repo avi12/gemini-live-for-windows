@@ -25,6 +25,7 @@ public sealed partial class PillController : IDisposable {
   private IReadOnlyList<PillNamed> _microphones = [];
   // The pill's exit animation runs 260 ms in the window (pill/src/ui/motion/motion.ts), then it hides
   private static readonly TimeSpan _exitSettle = TimeSpan.FromMilliseconds(400);
+  private static readonly TimeSpan _pillShowSettle = TimeSpan.FromMilliseconds(250);
 
   private readonly PreviousApp _previousApp;
   private bool _isShown;
@@ -286,6 +287,7 @@ public sealed partial class PillController : IDisposable {
   private void ShowOn(MonitorInfo monitor) {
     if (!_isShown) {
       _ = _previousApp.SettleAsync();
+      _ = KeepPillOnTopAsync();
     }
 
     _pillMonitor = monitor;
@@ -296,6 +298,11 @@ public sealed partial class PillController : IDisposable {
     _displays = Monitors.All();
     _ = RefreshMicrophonesAsync();
     Changed();
+  }
+
+  private async Task KeepPillOnTopAsync() {
+    await Task.Delay(_pillShowSettle);
+    Overlay.KeepOnTop(_host.WindowHandle);
   }
 
   private void Share(MonitorInfo monitor) {

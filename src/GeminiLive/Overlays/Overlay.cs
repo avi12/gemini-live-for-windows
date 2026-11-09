@@ -68,6 +68,19 @@ public static class Overlay {
     }
   }
 
+  /// <summary>
+  /// Puts the window in the topmost band, above a maximized app, without moving, sizing or
+  /// activating it. For a window whose own process never set the topmost style.
+  /// </summary>
+  public static void KeepOnTop(IntPtr hwnd) {
+    if (hwnd == IntPtr.Zero) {
+      return;
+    }
+
+    Native.SetWindowPos(hwnd, Native.HWND_TOPMOST, 0, 0, 0, 0,
+                        Native.SWP_NOMOVE | Native.SWP_NOSIZE | Native.SWP_NOACTIVATE);
+  }
+
   public static void Place(IntPtr hwnd, int x, int y, int? width = null, int? height = null) {
     uint flags = Native.SWP_NOACTIVATE | Native.SWP_SHOWWINDOW;
     if (width is null) {
