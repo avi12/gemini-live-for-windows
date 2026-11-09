@@ -46,19 +46,12 @@ public static class Monitors {
   }
 
   /// <summary>
-  /// The display holding the window the user was working in when the key was pressed.
+  /// The display under the mouse pointer, where the pill, screen share and mouse gestures belong,
+  /// whichever window has focus; the foreground window's display when the pointer cannot be read.
   /// </summary>
   public static MonitorInfo Active() {
-    return Find(Native.MonitorFromWindow(Native.GetForegroundWindow(), Native.MONITOR_DEFAULTTONEAREST));
-  }
-
-  /// <summary>
-  /// The display under the mouse pointer: where a gesture made with the mouse (Circle to Search)
-  /// belongs, whichever window happens to have focus.
-  /// </summary>
-  public static MonitorInfo UnderCursor() {
     if (!Native.GetCursorPos(out Native.POINT cursor)) {
-      return Active();
+      return Find(Native.MonitorFromWindow(Native.GetForegroundWindow(), Native.MONITOR_DEFAULTTONEAREST));
     }
 
     return Find(Native.MonitorFromPoint(cursor, Native.MONITOR_DEFAULTTONEAREST));

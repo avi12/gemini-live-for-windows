@@ -32,13 +32,9 @@ export function createMonitors({ native }: { native: DisplayNative }) {
     return monitor;
   }
 
-  // The display holding the window the user was working in when the key was pressed
+  // The display under the pointer, where the pill, screen share and mouse gestures belong, whichever window
+  // has focus; the foreground window's display when the pointer cannot be read
   function active() {
-    return pick(native.foregroundDisplayName());
-  }
-
-  // The display under the pointer: where a gesture made with the mouse belongs, whichever window has focus
-  function underCursor() {
     return pick(native.cursorDisplayName() ?? native.foregroundDisplayName());
   }
 
@@ -56,7 +52,6 @@ export function createMonitors({ native }: { native: DisplayNative }) {
   return {
     all,
     active,
-    underCursor,
     reconcile
   };
 }

@@ -32,7 +32,7 @@ async function runCircle({ media, controller, session, lens, log }: {
   log: (message: string) => void;
 }) {
   try {
-    const monitor = media.monitors.underCursor();
+    const monitor = media.monitors.active();
     const { isRunning } = controller();
     log(`circle on ${monitorName(monitor)}${isRunning ? " (Live running)" : ""}`);
     // While Live runs, the loop itself is the request: no buttons, it focuses on release

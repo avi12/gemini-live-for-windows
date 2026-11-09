@@ -136,7 +136,7 @@ public sealed partial class PillController : IDisposable {
   private async Task CircleAsync() {
     _focus.IsCircling = true;
     try {
-      MonitorInfo monitor = Monitors.UnderCursor();
+      MonitorInfo monitor = Monitors.Active();
       bool live = _conversation is not null;
       Log.Write($"circle on {monitor.Description}{(live ? " (Live running)" : "")}");
       // While Live runs, the loop itself is the request: no buttons, it focuses on release.

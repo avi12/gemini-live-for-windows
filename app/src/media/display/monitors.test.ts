@@ -297,31 +297,23 @@ function createNative({ displays, foreground, cursor }: {
 }
 
 describe("monitors", () => {
-  it("lists, and finds the active display from the foreground window", () => {
-    const { native } = createNative({
-      displays: [MAIN, LEFT],
-      foreground: LEFT.deviceName
-    });
-    const monitors = createMonitors({ native });
-    assert.equal(monitors.all().length, 2);
-    assert.equal(monitors.active().deviceName, LEFT.deviceName);
-  });
-
-  it("finds the display under the cursor, not the active one", () => {
+  it("lists, and finds the active display under the cursor, not the foreground window", () => {
     const { native } = createNative({
       displays: [MAIN, LEFT],
       foreground: LEFT.deviceName,
       cursor: MAIN.deviceName
     });
-    assert.equal(createMonitors({ native }).underCursor().deviceName, MAIN.deviceName);
+    const monitors = createMonitors({ native });
+    assert.equal(monitors.all().length, 2);
+    assert.equal(monitors.active().deviceName, MAIN.deviceName);
   });
 
-  it("uses the active display when the cursor cannot be read", () => {
+  it("uses the foreground window's display when the cursor cannot be read", () => {
     const { native } = createNative({
       displays: [MAIN, LEFT],
       foreground: LEFT.deviceName
     });
-    assert.equal(createMonitors({ native }).underCursor().deviceName, LEFT.deviceName);
+    assert.equal(createMonitors({ native }).active().deviceName, LEFT.deviceName);
   });
 
   it("says so when there is no display", () => {
