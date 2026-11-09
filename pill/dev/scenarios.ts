@@ -5,6 +5,7 @@ export const ScenarioName = {
   idle: "idle",
   captions: "captions",
   gearMenu: "gearMenu",
+  displayMenu: "displayMenu",
   keyPrompt: "keyPrompt",
   updateAvailable: "updateAvailable",
   cameraShared: "cameraShared"
@@ -17,11 +18,21 @@ export const SCENARIO_ORDER = Object.values(ScenarioName);
 const MONITORS = [
   {
     id: "\\\\.\\DISPLAY1",
-    name: "Display 1 (primary)"
+    name: "Display 1 (primary)",
+    refreshRateHertz: 60,
+    x: 0,
+    y: 0,
+    width: 1920,
+    height: 1080
   },
   {
     id: "\\\\.\\DISPLAY2",
-    name: "Display 2"
+    name: "Display 2",
+    refreshRateHertz: 120,
+    x: 1920,
+    y: 0,
+    width: 2560,
+    height: 1440
   }
 ];
 
@@ -43,6 +54,7 @@ const IDLE: PillView = {
   lines: [],
   links: [],
   displays: MONITORS,
+  pillDisplay: MONITORS[0]?.id ?? null,
   sharedDisplay: null,
   sharedDisplayName: null,
   isExtensionNeeded: false,
@@ -114,6 +126,23 @@ const SCENARIOS: Record<ScenarioName, PillView> = {
       isAvailable: false,
       isAutoUpdateOn: true
     }
+  },
+  displayMenu: {
+    ...IDLE,
+    displays: [
+      ...MONITORS,
+      {
+        id: "\\\\.\\DISPLAY3",
+        name: "Display 3 · 1920×1080",
+        refreshRateHertz: 144,
+        x: 4480,
+        y: 0,
+        width: 1920,
+        height: 1080
+      }
+    ],
+    sharedDisplay: MONITORS[0]?.id ?? null,
+    sharedDisplayName: MONITORS[0]?.name ?? null
   },
   keyPrompt: {
     ...IDLE,

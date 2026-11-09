@@ -15,6 +15,7 @@
     "pill/dev/window.ts",
     "pill/dev/attach.ts",
     "pill/dev/dev-mount.ts",
+    "pill/dev/fake-capture-bridge.ts",
     "pill/dev/module-server-worker.ts",
     "pill/vite.config.ts",
     "pill/svelte.config.js",

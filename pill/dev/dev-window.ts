@@ -7,13 +7,17 @@ const WINDOW_MODULE = path.join(import.meta.dirname, "window.ts");
 
 // The pill's window as a worker that loads its code from the module server, over `port` for the
 // host's state protocol
-export async function startDevWindow({ port }: { port: MessagePort }) {
+export async function startDevWindow({ port, isFakeCapture = false }: {
+  port: MessagePort;
+  isFakeCapture?: boolean;
+}) {
   const modules = new MessageChannel();
   const server = await servePillModules({ port: modules.port1 });
   const worker = new Worker(WINDOW_MODULE, {
     workerData: {
       modules: modules.port2,
-      port
+      port,
+      isFakeCapture
     },
     transferList: [modules.port2, port]
   });

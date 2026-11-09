@@ -1,3 +1,4 @@
+import type { PreviewSource } from "@/lib/capture/capture-schema.ts";
 import { pillWindow } from "@/lib/pill-window.ts";
 import type { PillAction, WindowProtocol } from "@gemini-live/protocol/view";
 import type { MessagePort } from "node:worker_threads";
@@ -13,8 +14,9 @@ export interface MountedPill {
 // Mounts the pill on the UI thread, over the port that carries the host's state protocol: the
 // sidecar's window.ts and the app's UI worker both call it from inside `runOnUiThread`. `onStart`
 // runs once the window thread's message pump has started.
-export async function mountPill({ port, onStart }: {
+export async function mountPill({ port, previewSource, onStart }: {
   port: MessagePort;
+  previewSource?: PreviewSource;
   onStart?: (pill: MountedPill) => void;
 }) {
   const { mountControl, registerControls } = await import("winui-svelte");
@@ -27,6 +29,8 @@ export async function mountPill({ port, onStart }: {
   const { exitWhenHostEnds, runWindow } = await import("winui-svelte/window");
   const { default: appComponent } = await import("@/App.svelte");
   const { connectView } = await import("@/lib/view.svelte.ts");
+  const { installPreviewSource } = await import("@/lib/display-previews.svelte.ts");
+  const { createWindowsPreviewSource } = await import("@/lib/capture/windows-preview-source.ts");
   const channel = createHostChannel<PillAction, WindowProtocol>({ transport: createMessagePortTransport({ port }) });
 
   registerControls({
@@ -38,6 +42,7 @@ export async function mountPill({ port, onStart }: {
   await runWindow({
     webApis: [installAnimations, installPage],
     onStart() {
+      installPreviewSource(previewSource ?? createWindowsPreviewSource());
       exitWhenHostEnds({ link: channel });
       mountControl({
         component: appComponent,

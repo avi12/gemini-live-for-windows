@@ -145,7 +145,7 @@
       }
     },
     {
-      "files": ["app/**/*.test.ts"],
+      "files": ["app/**/*.test.ts", "protocol/**/*.test.ts", "pill/**/*.test.ts"],
       "rules": {
         "typescript/no-floating-promises": "off"
       }

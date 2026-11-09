@@ -82,7 +82,10 @@ export async function runMock() {
     transport: createMessagePortTransport({ port: link.port1 }),
     scenario
   });
-  const { worker, server } = await startDevWindow({ port: link.port2 });
+  const { worker, server } = await startDevWindow({
+    port: link.port2,
+    isFakeCapture: true
+  });
   watchKeys({
     onPick: host.show,
     onQuit: () => worker.terminate()

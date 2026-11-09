@@ -267,3 +267,13 @@ text-block {
   --button-background-pointer-over: var(--live-control-hover);
   --button-background-pressed: var(--live-control-hover);
 }
+
+.live-display-frame {
+  background-color: var(--live-control);
+}
+
+.live-display-shared {
+  --button-background: var(--live-selected-container);
+  --button-background-pointer-over: var(--live-selected-container);
+  --button-background-pressed: var(--live-selected-container);
+}

@@ -15,7 +15,7 @@
     "lint:cs": "dotnet format src/GeminiLive/GeminiLive.csproj --verify-no-changes --severity warn",
     "fallow": "fallow audit --base HEAD",
     "dev:lint": "pnpm fallow && pnpm lint && pnpm stylelint && pnpm svelte:check && pnpm test && pnpm lint:cs",
-    "test": "pnpm --filter @gemini-live/app test"
+    "test": "pnpm --filter @gemini-live/app --filter @gemini-live/protocol test"
   },
   "devDependencies": {
     "@stylistic/eslint-plugin": "^5.10.0",

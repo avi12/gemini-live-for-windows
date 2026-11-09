@@ -159,6 +159,9 @@ importers:
       '@gemini-live/protocol':
         specifier: workspace:*
         version: link:../protocol
+      '@microsoft/dynwinrt':
+        specifier: 0.1.0-preview.23
+        version: 0.1.0-preview.23
       svelte:
         specifier: 5.57.3
         version: 5.57.3(@typescript-eslint/types@8.72.0)

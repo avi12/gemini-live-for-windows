@@ -3,14 +3,17 @@ import {
   GlowMode,
   pillActionSchema,
   pillViewSchema,
+  previewFramesPerSecond,
   VIEW_NAME
 } from "@gemini-live/protocol/view";
-import type { PillAction, PillView } from "@gemini-live/protocol/view";
+import type { PillAction, PillView, WindowProtocol } from "@gemini-live/protocol/view";
 import { hostState } from "winui-svelte/state";
 import type { HostChannel, HostState } from "winui-svelte/state";
 
+type PillChannel = HostChannel<PillAction, WindowProtocol>;
+
 interface Connection {
-  channel: HostChannel<PillAction>;
+  channel: PillChannel;
   state: HostState<PillView>;
 }
 
@@ -21,6 +24,7 @@ const EMPTY_VIEW: PillView = {
   lines: [],
   links: [],
   displays: [],
+  pillDisplay: null,
   sharedDisplay: null,
   sharedDisplayName: null,
   isExtensionNeeded: false,
@@ -96,7 +100,13 @@ function createView() {
  */
 export const view = createView();
 
-export function connectView({ channel }: { channel: HostChannel<PillAction> }) {
+export const pillPreview = {
+  get framesPerSecond() {
+    return previewFramesPerSecond(view);
+  }
+};
+
+export function connectView({ channel }: { channel: PillChannel }) {
   const state = hostState<PillView>({
     channel,
     name: VIEW_NAME
