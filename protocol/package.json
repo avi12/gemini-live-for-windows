@@ -7,6 +7,9 @@
   "license": "Apache-2.0",
   "author": "Avi (https://avi12.com)",
   "sideEffects": false,
+  "scripts": {
+    "test": "node --test \"src/**/*.test.ts\""
+  },
   "exports": {
     "./view": "./src/view.ts",
     "./link": "./src/link.ts",

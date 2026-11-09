@@ -6,7 +6,7 @@ namespace GeminiLive;
 /// </summary>
 public sealed record MonitorInfo(IntPtr Handle, string DeviceName, int Index, bool IsPrimary,
                                  int X, int Y, int Width, int Height,
-                                 int WorkRight, int WorkBottom) {
+                                 int WorkRight, int WorkBottom, int RefreshRateHertz) {
   public string Name => $"Display {Index}";
 
   public string Description =>
@@ -19,6 +19,9 @@ public sealed record MonitorInfo(IntPtr Handle, string DeviceName, int Index, bo
 }
 
 public static class Monitors {
+  public const int DefaultRefreshRateHertz = 60;
+  private const int _largestUnknownRefreshRateHertz = 1;
+
   /// <summary>
   /// All displays, numbered left-to-right like Windows' own display settings roughly do.
   /// </summary>
@@ -81,6 +84,20 @@ public static class Monitors {
                            (info.dwFlags & Native.MONITORINFOF_PRIMARY) != 0,
                            bounds.Left, bounds.Top,
                            bounds.Right - bounds.Left, bounds.Bottom - bounds.Top,
-                           info.rcWork.Right, info.rcWork.Bottom);
+                           info.rcWork.Right, info.rcWork.Bottom,
+                           RefreshRateOf(info.szDevice));
+  }
+
+  private static int RefreshRateOf(string deviceName) {
+    var mode = new Native.DEVMODE {
+      dmSize = (ushort)System.Runtime.InteropServices.Marshal.SizeOf<Native.DEVMODE>(),
+    };
+    if (!Native.EnumDisplaySettingsEx(deviceName, Native.ENUM_CURRENT_SETTINGS, ref mode, 0)) {
+      return DefaultRefreshRateHertz;
+    }
+
+    return mode.dmDisplayFrequency <= _largestUnknownRefreshRateHertz
+        ? DefaultRefreshRateHertz
+        : (int)mode.dmDisplayFrequency;
   }
 }

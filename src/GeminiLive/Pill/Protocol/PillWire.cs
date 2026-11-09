@@ -40,8 +40,12 @@ public static class PillWire {
   }
 
   public static string Snapshot(long id, JsonNode data) {
+    return Frame(id, PillFrameType.Snapshot, data);
+  }
+
+  private static string Frame(long id, PillFrameType type, JsonNode data) {
     long timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-    return JsonSerializer.Serialize(new PillFrame(id, PillFrameType.Snapshot, data, timestamp), WireName.Json);
+    return JsonSerializer.Serialize(new PillFrame(id, type, data, timestamp), WireName.Json);
   }
 
   public static string Answer(JsonElement id, string? error) {

@@ -1,6 +1,7 @@
 import type { RawDisplay } from "./monitor-structs.ts";
 import { monitorSchema } from "@/contracts/monitor.ts";
 import type { Monitor } from "@/contracts/monitor.ts";
+import { knownRefreshRate } from "@gemini-live/protocol/view";
 
 function toMonitor({ raw, index }: {
   raw: RawDisplay;
@@ -15,7 +16,8 @@ function toMonitor({ raw, index }: {
     width: raw.right - raw.left,
     height: raw.bottom - raw.top,
     workRight: raw.workRight,
-    workBottom: raw.workBottom
+    workBottom: raw.workBottom,
+    refreshRateHertz: knownRefreshRate(raw.refreshRateHertz)
   });
 }
 

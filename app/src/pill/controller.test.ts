@@ -1,4 +1,5 @@
 import { EngineKind, LiveEventKind, LiveStatus } from "@/contracts/live-engine.ts";
+import type { Monitor } from "@/contracts/monitor.ts";
 import { KeyTrigger } from "@/core/instance/key-trigger.ts";
 import { UpdateCheck } from "@/core/updates/update-checker.ts";
 import { INSTALLER_NOTE, NO_UPDATE, UNPACKAGED } from "@/pill/menus/update-menu.ts";
@@ -16,6 +17,21 @@ const CHECK_UPDATE: NonNullable<PillView["update"]> = {
   isAutoUpdateOn: true
 };
 
+function displayEntry({ monitor, name }: {
+  monitor: Monitor;
+  name: string;
+}) {
+  return {
+    id: monitor.deviceName,
+    name,
+    refreshRateHertz: monitor.refreshRateHertz,
+    x: monitor.x,
+    y: monitor.y,
+    width: monitor.width,
+    height: monitor.height
+  };
+}
+
 function expectedView(overrides: Partial<PillView> = {}) {
   const view: PillView = {
     status: "",
@@ -24,15 +40,16 @@ function expectedView(overrides: Partial<PillView> = {}) {
     lines: [],
     links: [],
     displays: [
-      {
-        id: PRIMARY.deviceName,
+      displayEntry({
+        monitor: PRIMARY,
         name: PRIMARY_NAME
-      },
-      {
-        id: SECONDARY.deviceName,
+      }),
+      displayEntry({
+        monitor: SECONDARY,
         name: SECONDARY_NAME
-      }
+      })
     ],
+    pillDisplay: PRIMARY.deviceName,
     sharedDisplay: null,
     sharedDisplayName: null,
     isExtensionNeeded: false,
@@ -87,7 +104,7 @@ async function started(options: Parameters<typeof createFakePill>[0] = {}) {
 describe("the pill view", () => {
   it("is a hidden, idle pill before anything happens", () => {
     const { controller } = createFakePill();
-    assert.deepEqual(controller.view(), expectedView());
+    assert.deepEqual(controller.view(), expectedView({ pillDisplay: null }));
   });
 
   it("always satisfies the protocol schema", async () => {
@@ -131,7 +148,7 @@ describe("the pill view", () => {
     const { controller } = createFakePill();
     const seen: PillView[] = [];
     controller.subscribe(view => seen.push(view));
-    assert.deepEqual(seen, [expectedView()]);
+    assert.deepEqual(seen, [expectedView({ pillDisplay: null })]);
   });
 });
 
@@ -695,10 +712,10 @@ describe("displays and sharing", () => {
     assert.deepEqual(
       pill.controller.view(), expectedView({
         ...LISTENING,
-        displays: [{
-          id: PRIMARY.deviceName,
+        displays: [displayEntry({
+          monitor: PRIMARY,
           name: PRIMARY_NAME
-        }]
+        })]
       })
     );
     assert.equal(pill.logs.includes("displays changed: 1"), true);

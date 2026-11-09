@@ -5,6 +5,7 @@ import {
   MonitorInfoLayout,
   parseDisplayDevice,
   parseModeBounds,
+  parseModeRefreshRate,
   parseMonitorInfo
 } from "./monitor-structs.ts";
 import type { ModeBounds, RawDisplay } from "./monitor-structs.ts";
@@ -89,14 +90,22 @@ function attachedDeviceNames() {
   return names;
 }
 
-function currentModeBounds(deviceName: string) {
+function currentMode(deviceName: string) {
   return withMemory({
     size: DevModeLayout.size,
     use(memory) {
       memory.writeU16(DevModeLayout.sizeField, DevModeLayout.size);
       const read = enumDisplaySettings([argWideString(deviceName), argU32(ENUM_CURRENT_SETTINGS), argPointer(memory)]);
       const isRead = read.number !== 0;
-      return isRead ? parseModeBounds(memory.readBytes(0, DevModeLayout.size)) : undefined;
+      if (!isRead) {
+        return undefined;
+      }
+
+      const bytes = memory.readBytes(0, DevModeLayout.size);
+      return {
+        bounds: parseModeBounds(bytes),
+        refreshRateHertz: parseModeRefreshRate(bytes)
+      };
     }
   });
 }
@@ -128,11 +137,14 @@ function monitorAtRect(bounds: ModeBounds) {
 function listRawDisplays() {
   const displays: RawDisplay[] = [];
   for (const deviceName of attachedDeviceNames()) {
-    const bounds = currentModeBounds(deviceName);
-    const info = bounds === undefined ? undefined : monitorInfoOf(monitorAtRect(bounds));
+    const mode = currentMode(deviceName);
+    const info = mode === undefined ? undefined : monitorInfoOf(monitorAtRect(mode.bounds));
     const hasInfo = info !== undefined;
     if (hasInfo) {
-      displays.push(info);
+      displays.push({
+        ...info,
+        refreshRateHertz: mode?.refreshRateHertz ?? 0
+      });
     }
   }
   return displays;

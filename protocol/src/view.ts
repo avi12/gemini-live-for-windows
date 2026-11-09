@@ -38,6 +38,24 @@ const namedSchema = z.object({
   name: z.string()
 });
 
+export const DEFAULT_REFRESH_RATE_HERTZ = 60;
+const LARGEST_UNKNOWN_REFRESH_RATE_HERTZ = 1;
+
+export const refreshRateSchema = z.number().int().positive();
+
+export function knownRefreshRate(reportedHertz: number) {
+  const isUnknown = !Number.isFinite(reportedHertz) || reportedHertz <= LARGEST_UNKNOWN_REFRESH_RATE_HERTZ;
+  return isUnknown ? DEFAULT_REFRESH_RATE_HERTZ : Math.round(reportedHertz);
+}
+
+const displaySchema = namedSchema.extend({
+  refreshRateHertz: refreshRateSchema,
+  x: z.number().int(),
+  y: z.number().int(),
+  width: z.number().int().positive(),
+  height: z.number().int().positive()
+});
+
 const updateSchema = z.object({
   text: z.string(),
   isAvailable: z.boolean(),
@@ -56,7 +74,8 @@ export const pillViewSchema = z.object({
   isMuted: z.boolean(),
   lines: z.array(lineSchema),
   links: z.array(linkSchema),
-  displays: z.array(namedSchema),
+  displays: z.array(displaySchema),
+  pillDisplay: z.string().nullable(),
   sharedDisplay: z.string().nullable(),
   sharedDisplayName: z.string().nullable(),
   isExtensionNeeded: z.boolean(),
@@ -74,6 +93,11 @@ export const pillViewSchema = z.object({
 });
 
 export type PillView = z.infer<typeof pillViewSchema>;
+
+export function previewFramesPerSecond({ displays, pillDisplay }: Pick<PillView, "displays" | "pillDisplay">) {
+  const own = displays.find(display => display.id === pillDisplay);
+  return own?.refreshRateHertz ?? DEFAULT_REFRESH_RATE_HERTZ;
+}
 
 export const PillActionKind = {
   mute: "mute",

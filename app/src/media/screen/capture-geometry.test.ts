@@ -18,7 +18,8 @@ const SECOND: Monitor = {
   width: 3840,
   height: 2160,
   workRight: 0,
-  workBottom: 1978
+  workBottom: 1978,
+  refreshRateHertz: 60
 };
 
 describe("detail settings", () => {

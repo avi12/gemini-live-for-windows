@@ -20,7 +20,8 @@ const PRIMARY: Monitor = {
   width: 1920,
   height: 1080,
   workRight: 1920,
-  workBottom: 1040
+  workBottom: 1040,
+  refreshRateHertz: 60
 };
 const SECOND: Monitor = {
   deviceName: "\\\\.\\DISPLAY2",
@@ -31,7 +32,8 @@ const SECOND: Monitor = {
   width: 2560,
   height: 1440,
   workRight: 4480,
-  workBottom: 1240
+  workBottom: 1240,
+  refreshRateHertz: 60
 };
 const REGION: Region = {
   x: 100,

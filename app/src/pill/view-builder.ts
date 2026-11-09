@@ -16,8 +16,14 @@ export function buildView(context: PillContext) {
     links: [...captions.links],
     displays: state.displays.map(display => ({
       id: display.deviceName,
-      name: describeMonitor(display)
+      name: describeMonitor(display),
+      refreshRateHertz: display.refreshRateHertz,
+      x: display.x,
+      y: display.y,
+      width: display.width,
+      height: display.height
     })),
+    pillDisplay: state.pillMonitor?.deviceName ?? null,
     sharedDisplay: shared?.deviceName ?? null,
     sharedDisplayName: shared === undefined ? null : monitorName(shared),
     isExtensionNeeded: state.isExtensionNeeded,

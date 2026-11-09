@@ -23,7 +23,8 @@ const MONITOR: Monitor = {
   width: 3840,
   height: 2160,
   workRight: 3940,
-  workBottom: 2162
+  workBottom: 2162,
+  refreshRateHertz: 60
 };
 
 function setup() {

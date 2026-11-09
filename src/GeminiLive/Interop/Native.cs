@@ -34,6 +34,42 @@ internal static unsafe class Native {
     public string szDevice;
   }
 
+  [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+  public struct DEVMODE {
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+    public string dmDeviceName;
+    public ushort dmSpecVersion;
+    public ushort dmDriverVersion;
+    public ushort dmSize;
+    public ushort dmDriverExtra;
+    public uint dmFields;
+    public int dmPositionX;
+    public int dmPositionY;
+    public uint dmDisplayOrientation;
+    public uint dmDisplayFixedOutput;
+    public short dmColor;
+    public short dmDuplex;
+    public short dmYResolution;
+    public short dmTTOption;
+    public short dmCollate;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+    public string dmFormName;
+    public ushort dmLogPixels;
+    public uint dmBitsPerPel;
+    public uint dmPelsWidth;
+    public uint dmPelsHeight;
+    public uint dmDisplayFlags;
+    public uint dmDisplayFrequency;
+    public uint dmICMMethod;
+    public uint dmICMIntent;
+    public uint dmMediaType;
+    public uint dmDitherType;
+    public uint dmReserved1;
+    public uint dmReserved2;
+    public uint dmPanningWidth;
+    public uint dmPanningHeight;
+  }
+
   // ---- Copilot key fast path: a property on the window's IPropertyStore ----
 
   [StructLayout(LayoutKind.Sequential)]
@@ -84,6 +120,7 @@ internal static unsafe class Native {
   public const ushort VT_UINT = 23;
   // GetCurrentPackageFullName's answer for a process that isn't running from a package.
   public const int APPMODEL_ERROR_NO_PACKAGE = 15700;
+  public const uint ENUM_CURRENT_SETTINGS = 0xFFFFFFFF;
   public static readonly IntPtr HWND_TOPMOST = new(-1);
 
   private static readonly Guid _memoryBufferByteAccessIid =
@@ -95,6 +132,10 @@ internal static unsafe class Native {
 
   [DllImport("user32.dll", CharSet = CharSet.Unicode)]
   public static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFOEX info);
+
+  [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+  public static extern bool EnumDisplaySettingsEx(string? deviceName, uint modeNumber,
+                                                  ref DEVMODE mode, uint flags);
 
   [DllImport("user32.dll")]
   public static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint flags);

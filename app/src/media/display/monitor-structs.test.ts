@@ -4,6 +4,7 @@ import {
   MonitorInfoLayout,
   parseDisplayDevice,
   parseModeBounds,
+  parseModeRefreshRate,
   parseMonitorInfo,
   wideStringAt
 } from "./monitor-structs.ts";
@@ -20,6 +21,7 @@ const NUMBER_2026 = 2026;
 const NUMBER_220 = 220;
 const NUMBER_840 = 840;
 const NUMBER_104 = 104;
+const NUMBER_120 = 120;
 
 function writeWide({ bytes, offset, text }: {
   bytes: Buffer;
@@ -148,6 +150,12 @@ describe("DEVMODEW", () => {
       right: 0,
       bottom: 2026
     });
+  });
+
+  it("reads the refresh rate from dmDisplayFrequency", () => {
+    const bytes = Buffer.alloc(DevModeLayout.size);
+    bytes.writeUInt32LE(NUMBER_120, DevModeLayout.displayFrequency);
+    assert.equal(parseModeRefreshRate(bytes), NUMBER_120);
   });
 });
 

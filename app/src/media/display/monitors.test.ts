@@ -7,17 +7,28 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 const NUMBER_3 = 3;
+const NUMBER_60 = 60;
+const NUMBER_120 = 120;
 const NUMBER_48 = 48;
 const NUMBER_1080 = 1080;
 const NUMBER_1920 = 1920;
 
-function raw({ name, left, top = 0, width = NUMBER_1920, height = NUMBER_1080, isPrimary = false }: {
+function raw({
+  name,
+  left,
+  top = 0,
+  width = NUMBER_1920,
+  height = NUMBER_1080,
+  isPrimary = false,
+  refreshRateHertz = NUMBER_60
+}: {
   name: string;
   left: number;
   top?: number;
   width?: number;
   height?: number;
   isPrimary?: boolean;
+  refreshRateHertz?: number;
 }) {
   return {
     deviceName: name,
@@ -27,7 +38,8 @@ function raw({ name, left, top = 0, width = NUMBER_1920, height = NUMBER_1080, i
     right: left + width,
     bottom: top + height,
     workRight: left + width,
-    workBottom: top + height - NUMBER_48
+    workBottom: top + height - NUMBER_48,
+    refreshRateHertz
   } satisfies RawDisplay;
 }
 
@@ -85,8 +97,47 @@ describe("display order", () => {
       width: 3840,
       height: 2160,
       workRight: 0,
-      workBottom: 1978
+      workBottom: 1978,
+      refreshRateHertz: NUMBER_60
     });
+  });
+
+  it("carries each display's refresh rate", () => {
+    const fast = raw({
+      name: "fast",
+      left: 0,
+      refreshRateHertz: NUMBER_120
+    });
+    assert.equal(orderDisplays([fast])[0]?.refreshRateHertz, NUMBER_120);
+  });
+
+  it("treats a rate of 0 or 1 as unknown and reads 60", () => {
+    for (const unknown of [0, 1]) {
+      const display = raw({
+        name: "unknown",
+        left: 0,
+        refreshRateHertz: unknown
+      });
+      assert.equal(orderDisplays([display])[0]?.refreshRateHertz, NUMBER_60);
+    }
+  });
+
+  it("sees a refresh rate change as a display change", () => {
+    const before = orderDisplays([raw({
+      name: "main",
+      left: 0
+    })]);
+    const after = orderDisplays([raw({
+      name: "main",
+      left: 0,
+      refreshRateHertz: NUMBER_120
+    })]);
+    assert.equal(
+      haveDisplaysChanged({
+        before,
+        after
+      }), true
+    );
   });
 
   it("lists a display once when two devices map to it", () => {

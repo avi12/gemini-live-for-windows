@@ -46,6 +46,9 @@ public sealed record PillLink(string Id, string Title, string Uri, string Addres
 /// <summary>A display or a microphone: what to send back, and what to call it.</summary>
 public sealed record PillNamed(string Id, string Name);
 
+public sealed record PillDisplayEntry(string Id, string Name, int RefreshRateHertz, int X, int Y, int Width,
+                                      int Height);
+
 /// <summary>The update entry of the gear menu; the view carries none when there is nothing to update.</summary>
 public sealed record PillUpdate(string Text, bool IsAvailable, bool IsAutoUpdateOn);
 
@@ -61,7 +64,8 @@ public sealed record PillView(
     bool IsMuted,
     IReadOnlyList<PillLine> Lines,
     IReadOnlyList<PillLink> Links,
-    IReadOnlyList<PillNamed> Displays,
+    IReadOnlyList<PillDisplayEntry> Displays,
+    string? PillDisplay,
     string? SharedDisplay,
     string? SharedDisplayName,
     bool IsExtensionNeeded,

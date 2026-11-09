@@ -17,7 +17,8 @@ const MONITOR: Monitor = {
   width: 1920,
   height: 1080,
   workRight: 1920,
-  workBottom: 1040
+  workBottom: 1040,
+  refreshRateHertz: 60
 };
 const REGION = {
   x: 10,

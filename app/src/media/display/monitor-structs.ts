@@ -45,7 +45,8 @@ export const DevModeLayout = {
   positionX: 76,
   positionY: 80,
   pixelsWidth: 172,
-  pixelsHeight: 176
+  pixelsHeight: 176,
+  displayFrequency: 184
 } as const;
 
 export const ENUM_CURRENT_SETTINGS = 0xffffffff;
@@ -59,6 +60,7 @@ export interface RawDisplay {
   bottom: number;
   workRight: number;
   workBottom: number;
+  refreshRateHertz: number;
 }
 
 export interface ModeBounds {
@@ -106,6 +108,10 @@ export function parseDisplayDevice(bytes: Buffer) {
     isOnDesktop: (stateFlags & DISPLAY_DEVICE_FLAG_ATTACHED_TO_DESKTOP) !== 0,
     isMirroringDriver: (stateFlags & DISPLAY_DEVICE_FLAG_MIRRORING_DRIVER) !== 0
   };
+}
+
+export function parseModeRefreshRate(bytes: Buffer) {
+  return bytes.readUInt32LE(DevModeLayout.displayFrequency);
 }
 
 export function parseModeBounds(bytes: Buffer) {

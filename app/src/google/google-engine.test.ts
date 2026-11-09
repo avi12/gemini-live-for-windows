@@ -21,7 +21,8 @@ const MONITOR = {
   width: 100,
   height: 100,
   workRight: 100,
-  workBottom: 100
+  workBottom: 100,
+  refreshRateHertz: 60
 };
 
 const PARTIAL_PAUSE_MS = 500;

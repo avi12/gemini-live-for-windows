@@ -77,7 +77,10 @@ public sealed partial class PillController : IDisposable {
         IsMuted: _muted,
         Lines: [.. _captions.Lines],
         Links: [.. _captions.Links],
-        Displays: [.. _displays.Select(display => new PillNamed(display.DeviceName, display.Description))],
+        Displays: [.. _displays.Select(display => new PillDisplayEntry(
+            display.DeviceName, display.Description, display.RefreshRateHertz, display.X, display.Y,
+            display.Width, display.Height))],
+        PillDisplay: _pillMonitor?.DeviceName,
         SharedDisplay: Shared?.DeviceName,
         SharedDisplayName: Shared?.Name,
         IsExtensionNeeded: _isExtensionNeeded,

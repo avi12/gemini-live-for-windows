@@ -26,7 +26,10 @@ public static class ScreenGrabber {
       ImageCodecInfo.GetImageEncoders().First(codec => codec.FormatID == ImageFormat.Jpeg.Guid);
 
   private static (int MaxEdge, long JpegQuality) Settings(Detail detail) {
-    return detail == Detail.Sharp ? (2200, 85) : (1280, 70);
+    return detail switch {
+      Detail.Sharp => (2200, 85),
+      _ => (1280, 70),
+    };
   }
 
   /// <summary>

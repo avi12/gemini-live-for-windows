@@ -1,3 +1,4 @@
+import { refreshRateSchema } from "@gemini-live/protocol/view";
 import { z } from "zod";
 
 // One physical display, in physical pixels (the process is per-monitor DPI aware). The work edges
@@ -11,7 +12,8 @@ export const monitorSchema = z.object({
   width: z.number().int().positive(),
   height: z.number().int().positive(),
   workRight: z.number().int(),
-  workBottom: z.number().int()
+  workBottom: z.number().int(),
+  refreshRateHertz: refreshRateSchema
 });
 
 export type Monitor = z.infer<typeof monitorSchema>;

@@ -17,7 +17,8 @@ const MONITOR: Monitor = {
   width: 1920,
   height: 1080,
   workRight: 1920,
-  workBottom: 1032
+  workBottom: 1032,
+  refreshRateHertz: 60
 };
 const FRAME = {
   jpeg: Uint8Array.of(HEX_FF, HEX_D8),

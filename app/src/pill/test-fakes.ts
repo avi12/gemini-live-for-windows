@@ -15,7 +15,8 @@ export const PRIMARY: Monitor = {
   width: 1920,
   height: 1080,
   workRight: 1920,
-  workBottom: 1040
+  workBottom: 1040,
+  refreshRateHertz: 60
 };
 
 export const SECONDARY: Monitor = {
@@ -27,7 +28,8 @@ export const SECONDARY: Monitor = {
   width: 2560,
   height: 1440,
   workRight: 4480,
-  workBottom: 1400
+  workBottom: 1400,
+  refreshRateHertz: 120
 };
 
 const DEFAULT_MICROPHONES: readonly PillNamed[] = [

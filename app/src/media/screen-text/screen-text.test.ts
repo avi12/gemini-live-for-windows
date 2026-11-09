@@ -19,7 +19,8 @@ const MONITOR: Monitor = {
   width: 3840,
   height: 2160,
   workRight: 3840,
-  workBottom: 2112
+  workBottom: 2112,
+  refreshRateHertz: 60
 };
 const OWN_PID = 100;
 
