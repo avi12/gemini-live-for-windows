@@ -142,8 +142,35 @@ else {
   Publish-Project 'GeminiLiveHost'
 }
 # Both manifests live in package\; only the chosen one is the layout's AppxManifest.xml.
-Copy-Item (Join-Path $root 'package\*') $layout -Recurse -Force -Exclude 'AppxManifest*.xml'
+Copy-Item (Join-Path $root 'package\*') $layout -Recurse -Force -Exclude 'AppxManifest*.xml', 'win2d-classes.txt'
 Copy-Item (Join-Path $root "package\$manifestFile") (Join-Path $layout 'AppxManifest.xml') -Force
+
+# Win2D's classes (glow blur, capture previews) aren't in any framework package's catalogue, so the
+# DLL winui-svelte ships is registered here, one entry for every class in package\win2d-classes.txt
+# (generated from Microsoft.Graphics.Canvas.winmd). One list feeds both manifests; only the DLL's
+# place in the layout differs: beside the bundle for the SEA app, inside pill\ for the .NET one.
+$win2dDll = if ($isSea) { 'bin\x64\Microsoft.Graphics.Canvas.dll' } else { 'pill\bin\x64\Microsoft.Graphics.Canvas.dll' }
+if (-not (Test-Path (Join-Path $layout $win2dDll))) { throw "The package layout has no $win2dDll; Win2D can't activate" }
+$layoutManifestFile = Join-Path $layout 'AppxManifest.xml'
+[xml] $withWin2D = Get-Content $layoutManifestFile
+$foundation = $withWin2D.Package.NamespaceURI
+$server = $withWin2D.CreateElement('InProcessServer', $foundation)
+$server.AppendChild($withWin2D.CreateElement('Path', $foundation)).InnerText = $win2dDll
+foreach ($class in Get-Content (Join-Path $root 'package\win2d-classes.txt') | Where-Object { $_ }) {
+  $registration = $server.AppendChild($withWin2D.CreateElement('ActivatableClass', $foundation))
+  $registration.SetAttribute('ActivatableClassId', $class)
+  $registration.SetAttribute('ThreadingModel', 'both')
+}
+$win2dExtension = $withWin2D.CreateElement('Extension', $foundation)
+$win2dExtension.SetAttribute('Category', 'windows.activatableClass.inProcessServer')
+$win2dExtension.AppendChild($server) | Out-Null
+$packageExtensions = $withWin2D.Package.ChildNodes | Where-Object LocalName -eq 'Extensions' | Select-Object -First 1
+if (-not $packageExtensions) {
+  $packageExtensions = $withWin2D.CreateElement('Extensions', $foundation)
+  $withWin2D.Package.InsertBefore($packageExtensions, $withWin2D.Package.Capabilities) | Out-Null
+}
+$packageExtensions.AppendChild($win2dExtension) | Out-Null
+$withWin2D.Save($layoutManifestFile)
 if ($isSea -and $HostExe -eq 'Shared') {
   [xml] $shared = Get-Content (Join-Path $layout 'AppxManifest.xml')
   $hostApplication = $shared.Package.Applications.Application | Where-Object Id -eq 'NativeHost'

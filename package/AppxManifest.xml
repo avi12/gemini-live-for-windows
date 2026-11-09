@@ -6,7 +6,9 @@
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
   xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
   xmlns:desktop6="http://schemas.microsoft.com/appx/manifest/desktop/windows10/6"
-  IgnorableNamespaces="uap uap3 rescap desktop desktop6">
+  xmlns:uap6="http://schemas.microsoft.com/appx/manifest/uap/windows10/6"
+  xmlns:uap11="http://schemas.microsoft.com/appx/manifest/uap/windows10/11"
+  IgnorableNamespaces="uap uap3 uap6 uap11 rescap desktop desktop6">
 
   <!-- Publisher must equal the signing certificate's subject (scripts\install.ps1 creates it). -->
   <Identity Name="Avi.GeminiLiveForWindows" Publisher="CN=GeminiLiveForWindows" Version="0.1.0.0" ProcessorArchitecture="x64" />
@@ -87,10 +89,16 @@
     </Application>
   </Applications>
 
+  <!-- Win2D's inProcessServer entry (pill\bin\x64\Microsoft.Graphics.Canvas.dll) is added here by
+       scripts\install.ps1 from package\win2d-classes.txt when it stages the layout. -->
+
   <Capabilities>
     <Capability Name="internetClient" />
     <rescap:Capability Name="runFullTrust" />
     <rescap:Capability Name="unvirtualizedResources" />
+    <uap6:Capability Name="graphicsCapture" />
+    <uap11:Capability Name="graphicsCaptureProgrammatic" />
+    <uap11:Capability Name="graphicsCaptureWithoutBorder" />
     <DeviceCapability Name="microphone" />
     <DeviceCapability Name="webcam" />
   </Capabilities>
