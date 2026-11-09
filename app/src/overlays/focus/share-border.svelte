@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Rect } from "@/overlays/shapes.ts";
+  import { windowTheme } from "@/overlays/window/window-theme.svelte.ts";
   import "@gemini-live/pill/theme.css";
   import { Window } from "winui-svelte/components";
   import type { WindowHandle } from "winui-svelte/components";
@@ -16,6 +17,7 @@
   const { bounds, isRegion, isExcludedFromCapture }: Props = $props();
 
   const windowRef: { handle: WindowHandle | undefined } = $state({ handle: undefined });
+  const theme = windowTheme();
 
   const radius = $derived.by(() => {
     if (isRegion) {
@@ -59,6 +61,7 @@
   isToolWindow
   onscalechanged={place}
   placement={bounds ?? null}
+  theme={theme.current}
   title="Gemini sees this"
   bind:handle={() => windowRef.handle, handle => {
     windowRef.handle = handle;

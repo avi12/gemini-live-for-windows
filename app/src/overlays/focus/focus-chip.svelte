@@ -3,6 +3,7 @@
   import { chipOrigin } from "@/overlays/focus/focus-layout.ts";
   import { OverlayGlyph } from "@/overlays/glyphs.ts";
   import type { Point } from "@/overlays/shapes.ts";
+  import { windowTheme } from "@/overlays/window/window-theme.svelte.ts";
   import "@gemini-live/pill/theme.css";
   import { elementSize } from "winui-svelte";
   import { Button, StackPanel, TextBlock, Window } from "winui-svelte/components";
@@ -42,6 +43,7 @@
 
   const windowRef: { handle: WindowHandle | undefined } = $state({ handle: undefined });
   const content = elementSize();
+  const theme = windowTheme();
   const drag: { origin: Point | undefined } = $state({ origin: undefined });
 
   // Just above the region's frame, or below it when the region touches the top of the display:
@@ -84,6 +86,7 @@
   isToolWindow
   onscalechanged={place}
   sizeToContent="both"
+  theme={theme.current}
   title="Gemini sees this area"
   bind:handle={() => windowRef.handle, handle => {
     windowRef.handle = handle;

@@ -22,6 +22,7 @@
   } from "@/overlays/motion/transitions.ts";
   import { CircleAction as CircleActionName } from "@/overlays/protocol.ts";
   import type { Rect, Size } from "@/overlays/shapes.ts";
+  import { windowTheme } from "@/overlays/window/window-theme.svelte.ts";
   import "@gemini-live/pill/theme.css";
   import { elementSize } from "winui-svelte";
   import {
@@ -80,6 +81,7 @@
   const SPARKLE = "M9,0 C9,4.95 13.05,9 18,9 C13.05,9 9,13.05 9,18 C9,13.05 4.95,9 0,9 C4.95,9 9,4.95 9,0 Z";
 
   const screen = elementSize();
+  const theme = windowTheme();
   const reducedMotion = mediaQuery("(prefers-reduced-motion: reduce)");
   const clicks = createClickCounter();
   const windowRef: { handle: WindowHandle | undefined } = $state({ handle: undefined });
@@ -209,6 +211,7 @@
   }}
   onscalechanged={place}
   placement={bounds}
+  theme={theme.current}
   title="Circle to Search"
   bind:handle={() => windowRef.handle, handle => {
     windowRef.handle = handle;
