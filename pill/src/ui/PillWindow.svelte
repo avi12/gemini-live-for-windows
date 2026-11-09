@@ -13,7 +13,13 @@
   import { Window } from "winui-svelte/components";
   import type { WindowHandle } from "winui-svelte/components";
   import { enableElementAnimation } from "winui-svelte/element-animation";
-  import { exitApplication, systemSettings, WindowAnchor, WindowTheme } from "winui-svelte/window";
+  import {
+    DockDisplay,
+    exitApplication,
+    systemSettings,
+    WindowAnchor,
+    WindowTheme
+  } from "winui-svelte/window";
 
   const PILL_WIDTH = 504;
   const DOCK_INSET = 6;
@@ -46,6 +52,7 @@
 
   $effect(() => {
     void displayLayout;
+    void view.pillDisplay;
 
     if (!view.isShown) {
       return;
@@ -55,9 +62,23 @@
   });
 
   function dock() {
-    windowRef.handle?.dock({
+    const handle = windowRef.handle;
+    if (!handle) {
+      return;
+    }
+
+    const target = view.displays.find(display => display.id === view.pillDisplay);
+    if (target) {
+      handle.appWindow.move({
+        x: target.x + DOCK_INSET,
+        y: target.y + DOCK_INSET
+      });
+    }
+
+    handle.dock({
       anchor: WindowAnchor.bottomRight,
-      inset: DOCK_INSET
+      inset: DOCK_INSET,
+      display: DockDisplay.current
     });
   }
 
