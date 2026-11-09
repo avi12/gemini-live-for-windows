@@ -209,23 +209,33 @@ async function logDebugPort({ spec, log }: {
   }
 }
 
-function closeWindow({ window, spec, log }: {
+function closeWindow({ window, spec, log, replacing }: {
   window: AppWindow<object> | undefined;
   spec: WindowSpec;
   log: Logger;
+  replacing: Replacing;
 }) {
+  replacing.isActive = true;
   try {
     window?.close();
   } catch (error) {
     log.write(`${spec.logTag}: closing the crashed window: ${errorMessage(error)}`);
+  } finally {
+    replacing.isActive = false;
   }
 }
 
-function openParkedWindow({ bindings, control, spec, log }: {
+// True while this module itself closes the parked window to replace it
+interface Replacing {
+  isActive: boolean;
+}
+
+function openParkedWindow({ bindings, control, spec, log, replacing }: {
   bindings: Bindings;
   control: InstanceType<Bindings["webViewClass"]>;
   spec: WindowSpec;
   log: Logger;
+  replacing: Replacing;
 }) {
   const host = bindings.createWindow({
     control,
@@ -236,19 +246,24 @@ function openParkedWindow({ bindings, control, spec, log }: {
     },
     isToolWindow: true,
     isActivatable: false,
-    isShownInSwitchers: false
+    isShownInSwitchers: false,
+    // Task Manager or the window list can ask the parked window to close; it stays, as
+    // GoogleWebViewHost.cs cancels Closing. The library asks on a close from code too, so the
+    // replacement of a crashed control's window is let through.
+    onclosing() {
+      if (replacing.isActive) {
+        return false;
+      }
+
+      log.write(`${spec.logTag}: the parked window was asked to close; kept`);
+      return true;
+    }
   });
   host.window.appWindow.moveAndResize({
     x: PARKED_AT,
     y: PARKED_AT,
     width: spec.width,
     height: spec.height
-  });
-  // Task Manager or the window list can ask the parked window to close; it stays, as GoogleWebViewHost.cs
-  // cancels Closing. Closing it from code (a crashed control's replacement) does not raise this.
-  host.window.appWindow.onClosing((_sender, event) => {
-    event.cancel = true;
-    log.write(`${spec.logTag}: the parked window was asked to close; kept`);
   });
   return host;
 }
@@ -266,6 +281,7 @@ export function createWinUiWebViewFactory({ spec, log }: {
   log: Logger;
 }) {
   let previous: AppWindow<object> | undefined;
+  const replacing: Replacing = { isActive: false };
 
   async function create({ isDebugging }: WebViewOptions) {
     const bindings = await loadBindings();
@@ -273,7 +289,8 @@ export function createWinUiWebViewFactory({ spec, log }: {
     closeWindow({
       window: previous,
       spec,
-      log
+      log,
+      replacing
     });
 
     const control = new bindings.webViewClass();
@@ -281,7 +298,8 @@ export function createWinUiWebViewFactory({ spec, log }: {
       bindings,
       control,
       spec,
-      log
+      log,
+      replacing
     });
     previous = host;
 
