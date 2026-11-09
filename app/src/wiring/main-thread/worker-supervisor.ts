@@ -27,7 +27,9 @@ export function rapidRestartsOf(env: NodeJS.ProcessEnv) {
 }
 
 // The command that starts this app again: a single-executable app is its own entry, any other
-// Node run needs its flags and script first
+// Node run needs its flags and script first. winui-svelte's relaunch builds the same command but
+// ends the application on the UI thread, which is the thread that just died, so the main thread
+// builds it here.
 export function restartCommand({ isSingleExecutable, execPath, execArgv, script }: {
   isSingleExecutable: boolean;
   execPath: string;

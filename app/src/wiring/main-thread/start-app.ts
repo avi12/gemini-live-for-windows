@@ -6,7 +6,12 @@ import { log } from "@/core/log/log.ts";
 import { keepRunningOnUnhandledErrors } from "@/core/log/unhandled-errors.ts";
 import { loadSettings } from "@/core/settings/settings.ts";
 import { readInstalledVersion } from "@/core/updates/version/installed-version.ts";
-import { ActivationKind, describeActivation, userArguments } from "@/entry/activation/activation.ts";
+import {
+  ActivationKind,
+  describeActivation,
+  RECOVERED_ARGUMENT,
+  userArguments
+} from "@/entry/activation/activation.ts";
 import type { Activation } from "@/entry/activation/activation.ts";
 import { readPackagedKind } from "@/entry/activation/packaged-activation.ts";
 import { serveKeyTriggers } from "@/entry/activation/protocol.ts";
@@ -28,6 +33,7 @@ import { roInitialize } from "@microsoft/dynwinrt";
 import path from "node:path";
 import { isSea } from "node:sea";
 import { Worker } from "node:worker_threads";
+import { restartAfterCrash } from "winui-svelte/app";
 import { initWindowsAppSdk } from "winui-svelte/bootstrap";
 
 const WINDOWS_APP_SDK_MAJOR = 2;
@@ -52,6 +58,16 @@ function startWindowsAppSdk({ isPackaged }: { isPackaged: boolean }) {
     if (!isRuntimeFromPackage) {
       throw error;
     }
+  }
+}
+
+// After a crash, a hang or an update, Windows offers to start the app again, as a recovered copy
+// that comes up without a conversation. Failing to register only costs that offer.
+function registerCrashRestart() {
+  try {
+    restartAfterCrash({ arguments: [RECOVERED_ARGUMENT] });
+  } catch (error) {
+    writeLog(`restart after a crash: ${errorMessage(error)}`);
   }
 }
 
@@ -129,6 +145,8 @@ export async function startApp({ files }: { files: ShippedFiles }) {
   if (!claim.isPrimary) {
     process.exit(0);
   }
+
+  registerCrashRestart();
 
   const installedVersion = await readInstalledVersion();
   const isPackaged = installedVersion !== undefined;
