@@ -3,6 +3,8 @@
   import type { GlyphButtonKind } from "@/ui/glyph/glyph-button.ts";
   import GlyphIcon from "@/ui/glyph/GlyphIcon.svelte";
   import type { Glyph } from "@/ui/glyph/glyphs.ts";
+  import { Motion } from "@/ui/motion/motion.ts";
+  import { fade } from "svelte/transition";
 
   interface Props {
     glyph: Glyph;
@@ -15,7 +17,9 @@
 </script>
 
 <grid class="face">
-  <border class="muted-layer" class:shown={props.isMuted}></border>
+  {#if props.isMuted}
+    <border class="muted-layer" transition:fade={{ duration: Motion.standardMilliseconds }}></border>
+  {/if}
   <stack-panel class="glyphs">
     <GlyphIcon glyph={props.glyph} glyphSize={props.glyphSize} isBouncing isMuted={props.isMuted} kind={props.kind} />
   </stack-panel>
@@ -29,12 +33,6 @@
   .muted-layer {
     border-radius: 20px;
     background-color: var(--live-muted);
-    opacity: 0;
-    transition: opacity 200ms;
-  }
-
-  .muted-layer.shown {
-    opacity: 1;
   }
 
   .glyphs {
