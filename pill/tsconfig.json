@@ -24,5 +24,5 @@
     "types": ["node"],
     "paths": { "@/*": ["./src/*"] }
   },
-  "include": ["src/**/*.ts", "src/**/*.svelte", "*.ts", "*.js"]
+  "include": ["src/**/*.ts", "dev/**/*.ts", "src/**/*.svelte", "*.ts", "*.js"]
 }

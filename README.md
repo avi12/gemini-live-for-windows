@@ -142,6 +142,18 @@ Windows only lists signed providers in the Copilot key setting, so use the defau
 | `analyzers/` | the C# side of the lint rules |
 | `package/` | the MSIX manifest and assets |
 
+### Hot reload for the pill
+
+```powershell
+pnpm dev                                  # the installed app's pill, served from pill\src: Win+C opens it, and saving a .svelte, .ts or .css file updates it in place
+pnpm dev -- --mock                        # open the pill on a mock host instead, with no app running
+pnpm dev -- --mock --scenario keyPrompt   # start the mock on another scenario
+```
+
+**Against the installed app.** While `pnpm dev` runs it keeps `%LOCALAPPDATA%\GeminiLive\dev.json` (`pillDevEntry`, `repoRoot`, `pid`; the schema is `protocol/src/pill-dev.ts`, mirrored by `Pill/Sidecar/PillDevMarker.cs`). The app watches that file: when it appears the app restarts its pill from `pill/dev/attach.ts`, run by the bundled `node.exe` from the repo, which loads the pill's code through winui-svelte's module server and talks to the app over the real state protocol, so the pill shows your real session. When `pnpm dev` stops (Ctrl+C, a kill, a crash) the marker goes, or its `pid` is dead and it is ignored, and the app goes back to the bundled pill with no manual step. Without a marker nothing changes. Both entries honor it: the C# one (`PillSidecar.cs`) and the TypeScript one (`app/src/pill/host/dev-attach.ts`).
+
+**Mock.** The pill's real entry (`pill/src/mount.ts`) runs on winui-svelte's dev server, and `pill/dev/` stands in for the app: it serves the view over the same state protocol, so no app needs to be running. Scenarios (`pill/dev/scenarios.ts`): idle, captions, gearMenu, keyPrompt, updateAvailable, cameraShared. In an interactive terminal press `1`-`6` to pick one, or `n` / `p` for next / previous; Ctrl+C closes the pill. The gear menu opens with a click, and its items come from the gearMenu scenario. Actions the pill sends are printed to the terminal and change nothing.
+
 ### Lint
 
 ```powershell

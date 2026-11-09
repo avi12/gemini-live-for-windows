@@ -19,12 +19,21 @@ public static class PillSidecar {
   private const string _nodeFile = "node.exe";
   private const string _entryFile = "main.js";
 
-  public sealed record Launch(string NodeExe, string Entry);
+  public sealed record Launch(string NodeExe, string Entry, string WorkingDirectory);
 
-  /// <summary>Both files, or a <see cref="FileNotFoundException"/> that says what is missing.</summary>
+  /// <summary>
+  /// Both files, or a <see cref="FileNotFoundException"/> that says what is missing. While
+  /// <c>pnpm dev</c> runs (<see cref="PillDevMarker"/>), the entry is its attach script, run from
+  /// the repo so the modules it imports resolve there.
+  /// </summary>
   public static Launch Resolve() {
     string folder = Path.Combine(AppContext.BaseDirectory, _folder);
-    return new Launch(Require(Path.Combine(folder, _nodeFile)), Require(Path.Combine(folder, _entryFile)));
+    string nodeExe = Require(Path.Combine(folder, _nodeFile));
+    if (PillDevMarker.Read() is { } marker) {
+      return new Launch(nodeExe, marker.PillDevEntry, marker.RepoRoot);
+    }
+
+    return new Launch(nodeExe, Require(Path.Combine(folder, _entryFile)), AppContext.BaseDirectory);
   }
 
   private static string Require(string path) {

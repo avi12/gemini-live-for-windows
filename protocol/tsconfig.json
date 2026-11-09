@@ -2,7 +2,7 @@
   "extends": "../pill/tsconfig.json",
   "compilerOptions": {
     "paths": {},
-    "types": []
+    "types": ["node"]
   },
   "include": ["src/**/*.ts"]
 }

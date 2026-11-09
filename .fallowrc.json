@@ -11,6 +11,11 @@
     "pill/src/main.ts",
     "pill/src/window.ts",
     "pill/build.ts",
+    "pill/dev/main.ts",
+    "pill/dev/window.ts",
+    "pill/dev/attach.ts",
+    "pill/dev/dev-mount.ts",
+    "pill/dev/module-server-worker.ts",
     "pill/vite.config.ts",
     "pill/svelte.config.js",
     "app/src/main.ts",
@@ -29,7 +34,8 @@
     "app/vite.config.ts",
     "app/svelte.config.js",
     "protocol/src/view.ts",
-    "protocol/src/link.ts"
+    "protocol/src/link.ts",
+    "protocol/src/pill-dev.ts"
   ],
   "ignorePatterns": [".claude/worktrees/**", "src/GeminiLive/Glic/Bridges/*.js", "pill/dist/**", "app/dist/**"],
   "ignoreDependencies": ["postcss-html"],

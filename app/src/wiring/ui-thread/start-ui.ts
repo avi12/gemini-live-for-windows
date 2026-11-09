@@ -2,6 +2,7 @@ import { log } from "@/core/log/log.ts";
 import { keepRunningOnUnhandledErrors } from "@/core/log/unhandled-errors.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 import { createForegroundApi } from "@/overlays/window/win32-api.ts";
+import { loadMountPill } from "@/pill/host/dev-attach.ts";
 import { serveWindowAbilities } from "@/pill/host/window-abilities.ts";
 import type { PillWindowSurface } from "@/pill/host/window-abilities.ts";
 import { startKeyTriggers } from "@/wiring/ui-thread/ui-entry.ts";
@@ -83,7 +84,7 @@ function startUiServices({ pill, data }: {
 // The UI-thread worker's whole job: the pill window, and what else needs this thread
 export async function startUi(data: UiWorkerData) {
   keepRunningOnUnhandledErrors();
-  const { mountPill } = await import("@gemini-live/pill/mount");
+  const mountPill = await loadMountPill();
   await mountPill({
     port: data.ports.pill,
     onStart: pill => startUiServices({

@@ -30,6 +30,7 @@ public sealed class PillHost : IDisposable {
   private string? _lastSent;
   private long _lastId;
   private Process? _process;
+  private FileSystemWatcher? _devWatcher;
 
   public PillHost(Func<PillAction, Task> onAction) {
     _onAction = onAction;
@@ -45,15 +46,15 @@ public sealed class PillHost : IDisposable {
 
   /// <summary>Starts the window; throws when Node or the bundle is missing, rather than guess.</summary>
   public void Start() {
-    PillSidecar.Launch launch;
     try {
-      launch = PillSidecar.Resolve();
+      PillSidecar.Resolve();
     } catch (FileNotFoundException e) {
       Log.Write($"pill: {e.Message}");
       throw;
     }
 
-    _ = RunAsync(launch);
+    WatchDevMarker();
+    _ = RunAsync();
   }
 
   /// <summary>Offers the state; the window gets it soon, and only the newest of a burst.</summary>
@@ -64,7 +65,22 @@ public sealed class PillHost : IDisposable {
 
   public void Dispose() {
     _stopped.Cancel();
+    _devWatcher?.Dispose();
+    StopWindow();
+  }
 
+  /// <summary>
+  /// <c>pnpm dev</c> starting or stopping ends the running window, so the next one is started from
+  /// whichever source <see cref="PillSidecar.Resolve"/> then finds.
+  /// </summary>
+  private void WatchDevMarker() {
+    Directory.CreateDirectory(Log.Dir);
+    _devWatcher = new FileSystemWatcher(Log.Dir, PillDevMarker.FileName) { EnableRaisingEvents = true };
+    _devWatcher.Created += (_, _) => StopWindow();
+    _devWatcher.Deleted += (_, _) => StopWindow();
+  }
+
+  private void StopWindow() {
     try {
       if (_process is { HasExited: false } process) {
         process.Kill(entireProcessTree: true);
@@ -74,11 +90,11 @@ public sealed class PillHost : IDisposable {
     }
   }
 
-  private async Task RunAsync(PillSidecar.Launch launch) {
+  private async Task RunAsync() {
     int rapid = 0;
     while (!_stopped.IsCancellationRequested) {
       var run = Stopwatch.StartNew();
-      int code = await RunOnceAsync(launch);
+      int code = await RunOnceAsync();
       if (_stopped.IsCancellationRequested) {
         return;
       }
@@ -95,9 +111,9 @@ public sealed class PillHost : IDisposable {
     }
   }
 
-  private async Task<int> RunOnceAsync(PillSidecar.Launch launch) {
+  private async Task<int> RunOnceAsync() {
     try {
-      using Process process = Start(launch);
+      using Process process = Start(PillSidecar.Resolve());
       _process = process;
       _lastSent = null;
       _changed.Writer.TryWrite(true);
@@ -117,7 +133,7 @@ public sealed class PillHost : IDisposable {
 
   private static Process Start(PillSidecar.Launch launch) {
     var info = new ProcessStartInfo(launch.NodeExe) {
-      WorkingDirectory = AppContext.BaseDirectory,
+      WorkingDirectory = launch.WorkingDirectory,
       UseShellExecute = false,
       CreateNoWindow = true,
       RedirectStandardInput = true,

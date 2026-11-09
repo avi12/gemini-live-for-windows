@@ -8,6 +8,7 @@
   "author": "Avi (https://avi12.com)",
   "sideEffects": false,
   "scripts": {
+    "dev": "node dev/main.ts",
     "svelte:check": "svelte-check --tsconfig ./tsconfig.json",
     "build": "pnpm svelte:check && node build.ts"
   },
@@ -32,6 +33,8 @@
   "packageManager": "pnpm@11.13.1",
   "exports": {
     "./theme.css": "./src/ui/theme.css",
+    "./dev-mount": "./dev/dev-mount.ts",
+    "./relay": "./src/lib/relay.ts",
     "./mount": {
       "types": "./mount.d.ts",
       "default": "./src/mount.ts"

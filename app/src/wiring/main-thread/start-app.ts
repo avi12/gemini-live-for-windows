@@ -18,6 +18,7 @@ import { serveKeyTriggers } from "@/entry/activation/protocol.ts";
 import { ensureDpiAware } from "@/entry/dpi.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 import { launchDetached } from "@/lib/launch.ts";
+import { watchPillDevMarker } from "@/pill/host/dev-attach.ts";
 import { buildController } from "@/wiring/main-thread/build-controller.ts";
 import { openChannels } from "@/wiring/main-thread/channels.ts";
 import type { ShippedFiles } from "@/wiring/main-thread/shipped-files.ts";
@@ -105,6 +106,7 @@ function startUiWorker({ files, data, onEnded }: {
   worker.on("error", error => {
     writeLog(`ui worker: ${errorMessage(error)}`);
   });
+  watchPillDevMarker({ onChanged: () => void worker.terminate() });
   worker.on("exit", exitCode => {
     onEnded({
       exitCode,

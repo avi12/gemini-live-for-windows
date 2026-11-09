@@ -7,6 +7,7 @@
   "author": "Avi (https://avi12.com)",
   "repository": "github:avi12/gemini-live-for-windows",
   "scripts": {
+    "dev": "pnpm --filter @gemini-live/pill dev",
     "prepare": "simple-git-hooks",
     "lint": "oxlint --type-aware --ignore-path .oxlintignore --fix -c .oxlintrc.fix.json && eslint --fix && oxlint --type-aware --ignore-path .oxlintignore",
     "stylelint": "stylelint \"{pill,app}/**/*.svelte\" --config pill/.stylelintrc.json --fix",
