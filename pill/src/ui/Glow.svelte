@@ -1,5 +1,6 @@
 <script lang="ts">
   import { view } from "@/lib/view.svelte.ts";
+  import { voice } from "@/lib/voice-level.svelte.ts";
   import { emphasizedDecelerate } from "@/ui/motion/easing.ts";
   import { Motion } from "@/ui/motion/motion.ts";
   import { GlowMode } from "@gemini-live/protocol/view";
@@ -19,11 +20,13 @@
   const LEVEL_BOOST = 3;
   const GEMINI_GAIN = 0.55;
   const USER_GAIN = 0.35;
-  const QUIET_LEVEL = 0.02;
 
   const reducedMotion = mediaQuery("(prefers-reduced-motion: reduce)");
 
-  let followedOpacity = $state(REST_OPACITY);
+  const followedOpacity = $derived.by(() => {
+    const gain = voice.isUser ? USER_GAIN : GEMINI_GAIN;
+    return LEVEL_FLOOR + Math.min(1, voice.level * LEVEL_BOOST) * gain;
+  });
 
   const isBreathingMode = $derived(view.glow.mode === GlowMode.breathe);
   const isBreathing = $derived(isBreathingMode && !reducedMotion.matches && view.isShown);
@@ -74,21 +77,6 @@
     void shownOpacity.set(opacity, timing);
   });
 
-  $effect(() => {
-    const { level, isUser } = view.glow;
-    if (!isFollowing) {
-      return;
-    }
-
-    const isUserQuiet = isUser && level < QUIET_LEVEL;
-    if (isUserQuiet) {
-      return;
-    }
-
-    const gain = isUser ? USER_GAIN : GEMINI_GAIN;
-    followedOpacity = LEVEL_FLOOR + Math.min(1, level * LEVEL_BOOST) * gain;
-  });
-
   function breathe(node: HTMLElement) {
     if (!isBreathing) {
       return;
@@ -109,7 +97,10 @@
 
 <grid class="glow-and-pill">
   <border class="live-pill-base"></border>
-  <border style:opacity={shownOpacity.current} class="glow" {@attach breathe}></border>
+  <grid style:opacity={shownOpacity.current} class="glow-layers" {@attach breathe}>
+    <border class="live-glow"></border>
+    <border class="live-glow-highlight"></border>
+  </grid>
   {@render children()}
 </grid>
 
@@ -118,12 +109,12 @@
     display: grid;
   }
 
-  .glow-and-pill > * {
+  .glow-and-pill > *,
+  .glow-layers > * {
     grid-area: 1 / 1;
   }
 
-  .glow {
-    border-radius: 34px;
-    background-image: linear-gradient(to top, #437ee4 0%, #3c72ec 18%, transparent 60%);
+  .glow-layers {
+    display: grid;
   }
 </style>

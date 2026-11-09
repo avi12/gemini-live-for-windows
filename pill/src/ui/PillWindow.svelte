@@ -2,6 +2,7 @@
   import "./theme.css";
   import { setPillWindow } from "@/lib/pill-window.ts";
   import { sendAction, view } from "@/lib/view.svelte.ts";
+  import { holdVoiceLevel } from "@/lib/voice-level.svelte.ts";
   import CaptionCard from "@/ui/CaptionCard.svelte";
   import Glow from "@/ui/Glow.svelte";
   import { pillEnter, pillExit } from "@/ui/motion/motion.ts";
@@ -19,6 +20,7 @@
   const BUTTON_PARTS = [PillPart.share, PillPart.mic, PillPart.gear, PillPart.end] as const;
 
   enableElementAnimation();
+  holdVoiceLevel();
 
   const settings = systemSettings();
   const content = elementSize();

@@ -16,23 +16,20 @@
     label: string;
     toolTip?: string | undefined;
     isMuted?: boolean;
-    isSpaced?: boolean;
     isHitTestVisible?: boolean;
-    hasChevron?: boolean;
     onpress?: () => void;
     flyout?: Snippet | undefined;
   }
 
   const props: Props = $props();
 
-  const isShare = $derived(props.kind === GlyphButtonKind.share);
-
   const buttonClass = $derived.by(() => {
-    if (isShare) {
-      return ["live-share-button", props.isSpaced === true && "live-spaced"];
+    const isAccent = props.kind === GlyphButtonKind.accent;
+    if (isAccent) {
+      return "live-round-button live-accent-round";
     }
 
-    return ["live-round-button", props.isSpaced === true && "live-spaced"];
+    return "live-round-button";
   });
 
   const flyoutProps = $derived(props.flyout === undefined ? {} : { flyout: props.flyout });
@@ -56,7 +53,6 @@
   <GlyphFace
     glyph={props.glyph}
     glyphSize={props.glyphSize}
-    hasChevron={props.hasChevron === true}
     isMuted={props.isMuted === true}
     kind={props.kind}
   />

@@ -47,7 +47,7 @@
     {#each view.lines as line (line.id)}
       <border in:lineLift>
         <TextBlock
-          class="live-body line"
+          class="live-body"
           isTextSelectionEnabled
           onpointerpressed={makeFocusable}
           onselectionchanged={makeFocusable}
@@ -64,10 +64,5 @@
   .transcript {
     max-height: 200px;
     mask-image: linear-gradient(to bottom, transparent 0%, #000000 14%);
-  }
-
-  .line {
-    font-size: 17px;
-    line-height: 24px;
   }
 </style>

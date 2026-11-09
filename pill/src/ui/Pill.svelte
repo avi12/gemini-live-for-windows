@@ -7,20 +7,20 @@
   import GearMenu from "@/ui/menu/GearMenu.svelte";
   import { Motion } from "@/ui/motion/motion.ts";
   import { PillPart, trackPart } from "@/ui/places.svelte.ts";
-  import { PillActionKind } from "@gemini-live/protocol/view";
+  import Waveform from "@/ui/Waveform.svelte";
+  import { LiveStatus, PillActionKind } from "@gemini-live/protocol/view";
   import { fade } from "svelte/transition";
   import { TextBlock } from "winui-svelte/components";
 
   const MIN_DISPLAYS_TO_PICK = 2;
   const PillColumn = {
     share: 0,
-    mic: 1,
-    status: 2,
+    middle: 1,
+    mic: 2,
     gear: 3,
     end: 4
   } as const;
-  const SHARE_GLYPH_SIZE = 20;
-  const ROUND_GLYPH_SIZE = 24;
+  const GLYPH_SIZE = 24;
 
   const hasDisplayPicker = $derived(view.displays.length >= MIN_DISPLAYS_TO_PICK);
 
@@ -38,6 +38,8 @@
     };
   });
 
+  const isListening = $derived(view.status === LiveStatus.listening);
+  const middleKey = $derived(isListening ? "waveform" : view.status);
   const isDetailEmpty = $derived(view.statusDetail === "");
 
   const statusDetail = $derived.by(() => {
@@ -79,43 +81,45 @@
     column={PillColumn.share}
     flyout={shareFlyout}
     glyph={Glyph.display}
-    glyphSize={SHARE_GLYPH_SIZE}
-    hasChevron={hasDisplayPicker}
+    glyphSize={GLYPH_SIZE}
     isHitTestVisible={hasDisplayPicker}
-    kind={GlyphButtonKind.share}
+    kind={GlyphButtonKind.round}
     label="Share"
     part={PillPart.share}
     toolTip={shareToolTip}
   />
-  <GlyphButton
-    column={PillColumn.mic}
-    glyph={mic.glyph}
-    glyphSize={ROUND_GLYPH_SIZE}
-    isMuted={view.isMuted}
-    isSpaced
-    kind={GlyphButtonKind.round}
-    label={mic.label}
-    onpress={() => sendAction({ kind: PillActionKind.mute })}
-    part={PillPart.mic}
-    toolTip={mic.label}
-  />
 
-  <grid class="status" toolTip={statusDetail}>
-    {#key view.status}
+  <grid class="middle" toolTip={statusDetail}>
+    {#key middleKey}
       <border
         in:fade={{ duration: Motion.standardMilliseconds }}
         out:fade={{ duration: Motion.swapOutMilliseconds }}
       >
-        <TextBlock class="live-supporting-text" textTrimming="CharacterEllipsis">{view.status}</TextBlock>
+        {#if isListening}
+          <Waveform />
+        {:else}
+          <TextBlock class="live-supporting-text" textTrimming="CharacterEllipsis">{view.status}</TextBlock>
+        {/if}
       </border>
     {/key}
   </grid>
 
   <GlyphButton
+    column={PillColumn.mic}
+    glyph={mic.glyph}
+    glyphSize={GLYPH_SIZE}
+    isMuted={view.isMuted}
+    kind={GlyphButtonKind.accent}
+    label={mic.label}
+    onpress={() => sendAction({ kind: PillActionKind.mute })}
+    part={PillPart.mic}
+    toolTip={mic.label}
+  />
+  <GlyphButton
     column={PillColumn.gear}
     flyout={gearFlyout}
     glyph={Glyph.gear}
-    glyphSize={ROUND_GLYPH_SIZE}
+    glyphSize={GLYPH_SIZE}
     kind={GlyphButtonKind.round}
     label="Settings"
     part={PillPart.gear}
@@ -124,8 +128,7 @@
   <GlyphButton
     column={PillColumn.end}
     glyph={Glyph.close}
-    glyphSize={ROUND_GLYPH_SIZE}
-    isSpaced
+    glyphSize={GLYPH_SIZE}
     kind={GlyphButtonKind.round}
     label="End (Win+C)"
     onpress={() => sendAction({ kind: PillActionKind.end })}
@@ -137,14 +140,15 @@
 <style>
   .pill {
     display: grid;
-    grid-template-columns: auto auto 1fr auto auto;
-    height: 68px;
-    padding: 0 12px;
+    grid-template-columns: auto 1fr auto auto auto;
+    height: 76px;
+    padding: 0 18px;
+    column-gap: 12px;
   }
 
-  .status {
-    grid-column: 3;
+  .middle {
+    grid-column: 2;
+    justify-items: center;
     align-self: center;
-    margin: 0 14px;
   }
 </style>

@@ -9,16 +9,20 @@
 }
 
 :root {
-  --live-surface: rgb(240 244 249 / 0.96);
-  --live-menu-surface: #f8fafd;
-  --live-text: #1f1f1f;
-  --live-secondary-text: #444746;
-  --live-outline-variant: #c4c7c5;
-  --live-outline: #747775;
+  --live-surface: rgb(243 237 247 / 0.96);
+  --live-menu-surface: #f3edf7;
+  --live-text: #1d1b20;
+  --live-secondary-text: #49454f;
+  --live-outline-variant: #cac4d0;
+  --live-outline: #79747e;
   --live-selected-container: #c2e7ff;
   --live-on-selected-container: #001d35;
-  --live-control: #dde3ea;
-  --live-control-hover: #d3dae2;
+  --live-control: rgb(73 69 79 / 0.08);
+  --live-control-hover: rgb(73 69 79 / 0.16);
+  --live-mic-control: #a9d1f2;
+  --live-mic-control-hover: #96c5ec;
+  --live-on-mic: #0a3a63;
+  --live-wave: #79747e;
   --live-primary: #0b57d0;
   --live-share: #d3e3fd;
   --live-share-hover: #c2d3ef;
@@ -31,8 +35,7 @@
   --live-hover-layer: rgb(31 31 31 / 0.08);
   --live-pressed-layer: rgb(31 31 31 / 0.1);
   --live-edge: rgb(0 0 0 / 0.1);
-  --live-card-surface: #f0f4f9;
-  --live-pill-surface: #f0f4f9;
+  --live-card-surface: rgb(243 237 247 / 0.94);
   --live-brand-blue: #4285f4;
 }
 
@@ -46,8 +49,12 @@
     --live-outline: #8e918f;
     --live-selected-container: #004a77;
     --live-on-selected-container: #c2e7ff;
-    --live-control: #333537;
-    --live-control-hover: #44474a;
+    --live-control: rgb(17 31 57 / 0.9);
+    --live-control-hover: rgb(31 52 90 / 0.95);
+    --live-mic-control: #1e365a;
+    --live-mic-control-hover: #29467a;
+    --live-on-mic: #ffffff;
+    --live-wave: #d6e3fb;
     --live-primary: #a8c7fa;
     --live-share: #a8c7fa;
     --live-share-hover: #9bbbef;
@@ -60,8 +67,7 @@
     --live-hover-layer: rgb(227 227 227 / 0.08);
     --live-pressed-layer: rgb(227 227 227 / 0.1);
     --live-edge: rgb(138 180 248 / 0.33);
-    --live-card-surface: #2f3033;
-    --live-pill-surface: #0b1a2c;
+    --live-card-surface: rgb(47 47 49 / 0.88);
   }
 }
 
@@ -86,8 +92,8 @@ text-block {
   color: var(--live-text);
 }
 
-.live-glyph-share {
-  color: var(--live-on-share);
+.live-glyph-accent {
+  color: var(--live-on-mic);
 }
 
 .live-glyph-muted {
@@ -109,6 +115,7 @@ text-block {
 
 .live-body {
   font-size: 16px;
+  line-height: 22px;
 }
 
 .live-caption-text {
@@ -119,19 +126,48 @@ text-block {
 .live-card {
   padding: 20px;
   border-width: 0;
-  border-radius: 20px;
+  border-radius: 24px;
   background-color: var(--live-card-surface);
 }
 
 .live-pill {
-  border-color: var(--live-edge);
-  border-width: 1px;
-  border-radius: 34px;
+  border-width: 0;
+  border-radius: 38px;
 }
 
 .live-pill-base {
-  border-radius: 34px;
-  background-color: var(--live-pill-surface);
+  border-radius: 38px;
+  background-image: linear-gradient(to bottom, #e8dfe6, #dacbd8);
+}
+
+.live-glow {
+  border-radius: 38px;
+  background-image: linear-gradient(to top, rgb(0 140 236 / 0.4) 0%, rgb(0 140 236 / 0.2) 18%, transparent 55%);
+}
+
+.live-glow-highlight {
+  border-radius: 38px;
+  background-image: radial-gradient(ellipse at 88% 100%, rgb(121 198 254 / 0.6) 0%, transparent 45%);
+}
+
+@media (prefers-color-scheme: dark) {
+  .live-pill-base {
+    background-image: linear-gradient(to bottom, #0a1420, #133251);
+  }
+
+  .live-glow {
+    background-image: linear-gradient(to top, #437ee4 0%, #3c72ec 18%, transparent 60%);
+  }
+
+  .live-glow-highlight {
+    background-image: radial-gradient(ellipse at 88% 100%, #79c6fe 0%, transparent 45%);
+  }
+}
+
+.live-wave-bar {
+  width: 3px;
+  border-radius: 2px;
+  background-color: var(--live-wave);
 }
 
 .live-chip {
@@ -151,29 +187,23 @@ text-block {
   --button-foreground-pressed: var(--live-text);
 }
 
-.live-spaced {
-  margin-left: 8px;
-}
-
 .live-round-button {
-  width: 46px;
-  height: 46px;
+  width: 40px;
+  height: 40px;
   padding: 0;
   border-width: 0;
-  border-radius: 23px;
+  border-radius: 20px;
+  background-color: var(--live-control);
   --button-background: var(--live-control);
   --button-background-pointer-over: var(--live-control-hover);
   --button-background-pressed: var(--live-control-hover);
 }
 
-.live-share-button {
-  height: 46px;
-  padding: 0 18px;
-  border-width: 0;
-  border-radius: 23px;
-  --button-background: var(--live-share);
-  --button-background-pointer-over: var(--live-share-hover);
-  --button-background-pressed: var(--live-share-pressed);
+.live-accent-round {
+  background-color: var(--live-mic-control);
+  --button-background: var(--live-mic-control);
+  --button-background-pointer-over: var(--live-mic-control-hover);
+  --button-background-pressed: var(--live-mic-control-hover);
 }
 
 .live-accent-button {

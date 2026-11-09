@@ -1,20 +1,11 @@
 import type { Monitor, Region } from "@/contracts/monitor.ts";
-import { EngineKind } from "@gemini-live/protocol/view";
+import { EngineKind, LiveStatus } from "@gemini-live/protocol/view";
 
 // The one contract both engines satisfy (the Google account engine over the Gemini web client and
 // the API-key engine over the public Live API). Mirrors ILiveEngine.cs; the pill controller
 // builds the pill's view from these events and knows nothing else about an engine.
 
-export { EngineKind };
-
-export const LiveStatus = {
-  connecting: "Connecting…",
-  listening: "Listening",
-  reconnecting: "Reconnecting…",
-  resuming: "Resuming…",
-  stopped: "Gemini Live stopped",
-  needsApiKey: "Setup: Gemini needs an API key"
-} as const;
+export { EngineKind, LiveStatus };
 
 export interface FoundLink {
   readonly title: string;

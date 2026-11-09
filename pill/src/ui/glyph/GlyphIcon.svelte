@@ -17,15 +17,14 @@
 
   let shownGlyph: Glyph | undefined;
 
-  const isShare = $derived(props.kind === GlyphButtonKind.share);
-
   const iconClass = $derived.by(() => {
     if (props.isMuted) {
       return "live-icon live-glyph-muted";
     }
 
-    if (isShare) {
-      return "live-icon live-glyph-share";
+    const isAccent = props.kind === GlyphButtonKind.accent;
+    if (isAccent) {
+      return "live-icon live-glyph-accent";
     }
 
     return "live-icon live-glyph-round";

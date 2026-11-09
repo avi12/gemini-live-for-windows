@@ -3,6 +3,7 @@ import type { PillView } from "@gemini-live/protocol/view";
 
 export const ScenarioName = {
   idle: "idle",
+  listening: "listening",
   captions: "captions",
   longCaptions: "longCaptions",
   gearMenu: "gearMenu",
@@ -148,6 +149,14 @@ const LONG_CAPTIONS: PillView = {
 
 const SCENARIOS: Record<ScenarioName, PillView> = {
   idle: IDLE,
+  listening: {
+    ...IDLE,
+    glow: {
+      mode: GlowMode.level,
+      level: 0,
+      isUser: true
+    }
+  },
   captions: CAPTIONS,
   longCaptions: LONG_CAPTIONS,
   gearMenu: {

@@ -1,5 +1,5 @@
 export const GlyphButtonKind = {
   round: "round",
-  share: "share"
+  accent: "accent"
 } as const;
 export type GlyphButtonKind = typeof GlyphButtonKind[keyof typeof GlyphButtonKind];

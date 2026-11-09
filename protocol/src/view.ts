@@ -18,6 +18,15 @@ export const EngineKind = {
 
 export type EngineKind = (typeof EngineKind)[keyof typeof EngineKind];
 
+export const LiveStatus = {
+  connecting: "Connecting…",
+  listening: "Listening",
+  reconnecting: "Reconnecting…",
+  resuming: "Resuming…",
+  stopped: "Gemini Live stopped",
+  needsApiKey: "Setup: Gemini needs an API key"
+} as const;
+
 const lineSchema = z.object({
   id: z.string(),
   text: z.string(),
