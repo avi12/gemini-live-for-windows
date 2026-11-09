@@ -14,7 +14,7 @@ export const PeSubsystem = {
 } as const;
 export type PeSubsystem = typeof PeSubsystem[keyof typeof PeSubsystem];
 
-function subsystemOffsetOf(image: Buffer) {
+export function optionalHeaderOffsetOf(image: Buffer) {
   const isTooShort = image.length < PE_OFFSET_POSITION + PE_OFFSET_FIELD_BYTES;
   const isInvalidDos = isTooShort || image.readUInt16LE(0) !== DOS_MAGIC;
   if (isInvalidDos) {
@@ -22,13 +22,18 @@ function subsystemOffsetOf(image: Buffer) {
   }
 
   const peOffset = image.readUInt32LE(PE_OFFSET_POSITION);
-  const offset = peOffset + PE_SIGNATURE_BYTES + COFF_HEADER_BYTES + SUBSYSTEM_OFFSET_IN_OPTIONAL_HEADER;
-  const isInvalidPe = offset + SUBSYSTEM_FIELD_BYTES > image.length || image.readUInt32LE(peOffset) !== PE_MAGIC;
+  const offset = peOffset + PE_SIGNATURE_BYTES + COFF_HEADER_BYTES;
+  const isInvalidPe = offset + SUBSYSTEM_OFFSET_IN_OPTIONAL_HEADER + SUBSYSTEM_FIELD_BYTES > image.length
+    || image.readUInt32LE(peOffset) !== PE_MAGIC;
   if (isInvalidPe) {
     throw new Error("Not a PE file: no PE signature");
   }
 
   return offset;
+}
+
+function subsystemOffsetOf(image: Buffer) {
+  return optionalHeaderOffsetOf(image) + SUBSYSTEM_OFFSET_IN_OPTIONAL_HEADER;
 }
 
 export function readSubsystem(image: Buffer) {

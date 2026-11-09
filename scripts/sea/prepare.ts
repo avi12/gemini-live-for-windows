@@ -1,3 +1,4 @@
+import { stripSignature } from "../../app/src/entry/sea/pe-signature.ts";
 import { PeSubsystem, readSubsystem, setSubsystem } from "../../app/src/entry/sea/pe-subsystem.ts";
 import { seaStubSource } from "../../app/src/entry/sea/sea-stub.ts";
 import fs from "node:fs";
@@ -7,6 +8,7 @@ import fs from "node:fs";
 const Command = {
   stub: "stub",
   guiSubsystem: "gui-subsystem",
+  stripSignature: "strip-signature",
   subsystem: "subsystem"
 } as const;
 
@@ -24,6 +26,8 @@ if (command === Command.stub) {
     subsystem: PeSubsystem.windowsGui
   });
   fs.writeFileSync(file, image);
+} else if (command === Command.stripSignature) {
+  fs.writeFileSync(file, stripSignature(fs.readFileSync(file)));
 } else if (command === Command.subsystem) {
   process.stdout.write(`${readSubsystem(fs.readFileSync(file))}\n`);
 } else {
