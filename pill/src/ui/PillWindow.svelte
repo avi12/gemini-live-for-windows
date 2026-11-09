@@ -32,8 +32,9 @@
   const content = elementSize();
   const windowRef: { handle: WindowHandle | undefined } = $state({ handle: undefined });
   let isExitDone = $state(true);
+  let isDocked = $state(false);
 
-  const isWindowHidden = $derived(!view.isShown && isExitDone);
+  const isWindowHidden = $derived(!isDocked && isExitDone);
 
   const pillPlace = $derived(placeOf(PillPart.pill));
   const dragRegions = $derived([pillPlace].filter(place => place !== undefined));
@@ -42,29 +43,30 @@
     BUTTON_PARTS.map(part => placeOf(part)).filter(place => place !== undefined)
   );
 
-  $effect(() => {
-    if (view.isShown) {
-      isExitDone = false;
-    }
-  });
-
   const displayLayout = $derived(view.displays.map(display => `${display.id} ${display.name}`).join("|"));
 
+  // The window is shown, and the pill's entrance starts, only once it sits on its display: showing it
+  // first and docking after made it jump while it rose
   $effect(() => {
     void displayLayout;
     void view.pillDisplay;
 
     if (!view.isShown) {
+      isDocked = false;
       return;
     }
 
-    dock();
+    isDocked = dock();
+
+    if (isDocked) {
+      isExitDone = false;
+    }
   });
 
   function dock() {
     const handle = windowRef.handle;
     if (!handle) {
-      return;
+      return false;
     }
 
     const target = view.displays.find(display => display.id === view.pillDisplay);
@@ -80,6 +82,7 @@
       inset: DOCK_INSET,
       display: DockDisplay.current
     });
+    return true;
   }
 
   function dropFocusable(isActive: boolean) {
@@ -120,7 +123,7 @@
   }}
 >
   <stack-panel class="root" {@attach content.attach}>
-    {#if view.isShown}
+    {#if view.isShown && isDocked}
       <stack-panel
         onoutroend={() => {
           isExitDone = true;
