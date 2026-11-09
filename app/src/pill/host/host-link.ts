@@ -25,6 +25,7 @@ export function openPillLink({ transport, log }: PillLinkSetup) {
 
   const windowPort: PillWindowPort = {
     bringToFront: () => messaging.notify(WindowMessage.bringToFront),
+    restorePreviousApp: () => messaging.notify(WindowMessage.restorePreviousApp),
     moveBy: data => messaging.notify(WindowMessage.moveBy, data)
   };
 

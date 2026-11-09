@@ -7,7 +7,6 @@ export { createLensSearch } from "@/overlays/circle/lens/lens-search.ts";
 export { connectOverlayWindows } from "@/overlays/controller-link.ts";
 export type { OverlayControllerEvents } from "@/overlays/controller-link.ts";
 export { createPreviousApp } from "@/overlays/focus/previous-app.ts";
-export type { StartPolling } from "@/overlays/focus/previous-app.ts";
 export { createScreenFocus } from "@/overlays/focus/screen-focus.ts";
 export type { FocusEngine, FocusWindows } from "@/overlays/focus/screen-focus.ts";
 export type {

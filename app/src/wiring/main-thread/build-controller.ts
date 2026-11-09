@@ -103,8 +103,8 @@ function buildPillDeps({ settings, installedVersion, files, media, google, overl
     microphones: createMicrophonesPort(google),
     createFocus: overlays.createFocus,
     previousApp: createPreviousAppPort({
-      delay,
-      log
+      window: pillLink.windowPort,
+      delay
     }),
     window: pillLink.windowPort,
     updates: createUpdatesPort({

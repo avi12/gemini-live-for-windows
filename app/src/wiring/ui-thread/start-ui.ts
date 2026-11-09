@@ -9,6 +9,7 @@ import { startGoogle } from "@/wiring/ui-thread/ui-google.ts";
 import { startOverlayWindows } from "@/wiring/ui-thread/ui-overlays.ts";
 import type { UiWorkerData } from "@/wiring/ui-thread/ui-worker-data.ts";
 import type { MountedPill } from "@gemini-live/pill/mount";
+import { bringWindowToFront, trackForeground } from "winui-svelte/window/foreground";
 
 function writeLog(message: string) {
   log.write(message);
@@ -48,7 +49,10 @@ function startUiServices({ pill, data }: {
   serveWindowAbilities({
     link: pill.messaging,
     surface: () => surfaceOf(pill.window()),
-    foreground: createForegroundApi()
+    foreground: createForegroundApi(),
+    memory: trackForeground(),
+    bringToFrontOf: bringWindowToFront,
+    log: writeLog
   });
   void attempt({
     name: "the Copilot key",

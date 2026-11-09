@@ -31,6 +31,9 @@ function connect() {
   window.onMessage(WindowMessage.bringToFront, () => {
     windowCalls.push("bringToFront");
   });
+  window.onMessage(WindowMessage.restorePreviousApp, () => {
+    windowCalls.push("restorePreviousApp");
+  });
   window.onMessage(WindowMessage.moveBy, message => {
     windowCalls.push(message.data);
   });
@@ -104,12 +107,13 @@ describe("the pill link", () => {
   it("reaches the window for its own abilities", async () => {
     const { link, windowCalls } = connect();
     link.windowPort.bringToFront();
+    link.windowPort.restorePreviousApp();
     const move = {
       deltaX: 4,
       deltaY: -2
     };
     link.windowPort.moveBy(move);
     await settle();
-    assert.deepEqual(windowCalls, ["bringToFront", move]);
+    assert.deepEqual(windowCalls, ["bringToFront", "restorePreviousApp", move]);
   });
 });

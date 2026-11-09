@@ -238,8 +238,6 @@ export function createPillController(deps: PillDeps) {
       for (const stop of stops) {
         stop();
       }
-
-      deps.previousApp.dispose();
     }
   };
 }

@@ -62,11 +62,11 @@ export interface ScreenFocusOptions {
 export interface PreviousAppPort {
   settle(): Promise<void>;
   restore(): void;
-  dispose(): void;
 }
 
 export interface PillWindowPort {
   bringToFront(): void;
+  restorePreviousApp(): void;
   moveBy(options: {
     deltaX: number;
     deltaY: number;

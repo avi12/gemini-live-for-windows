@@ -321,11 +321,11 @@ function createFakeShell({ world, calls }: {
         calls.push("settle");
         return Promise.resolve();
       },
-      restore: () => calls.push("restore"),
-      dispose: () => calls.push("disposePreviousApp")
+      restore: () => calls.push("restore")
     },
     window: {
       bringToFront: () => calls.push("bringToFront"),
+      restorePreviousApp: () => calls.push("restorePreviousApp"),
       moveBy: ({ deltaX, deltaY }) => calls.push(`moveBy ${deltaX} ${deltaY}`)
     }
   } satisfies Pick<PillDeps, "google" | "microphones" | "previousApp" | "window">;

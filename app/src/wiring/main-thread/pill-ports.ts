@@ -9,12 +9,12 @@ import { errorMessage } from "@/lib/error-message.ts";
 import { createApiKeyEngine } from "@/live/api-key-engine.ts";
 import type { Media } from "@/media/media.ts";
 import { createPreviousApp } from "@/overlays/focus/previous-app.ts";
-import { createForegroundApi } from "@/overlays/window/win32-api.ts";
 import type {
   DisplaysPort,
   EnginesPort,
   GooglePort,
   MicrophonesPort,
+  PillWindowPort,
   PreviousAppPort,
   UpdatesPort
 } from "@/pill/ports.ts";
@@ -105,24 +105,15 @@ export function createUpdatesPort({ checker, installed }: {
   return port;
 }
 
-// Polls the foreground here on the main thread; the pill's window is ours like every other, so
-// the process id alone tells which windows are not the user's app
-export function createPreviousAppPort({ delay, log }: {
+// The foreground is followed on the UI worker, which owns the windows and the message pump; the
+// main thread only asks it to put the previous app back
+export function createPreviousAppPort({ window, delay }: {
+  window: PillWindowPort;
   delay: (milliseconds: number) => Promise<void>;
-  log: (message: string) => void;
 }) {
   const port: PreviousAppPort = createPreviousApp({
-    api: createForegroundApi(),
-    startPolling({ onTick, milliseconds }) {
-      const timer = setInterval(onTick, milliseconds);
-      return () => clearInterval(timer);
-    },
-    delay,
-    ownProcessId: process.pid,
-    ownWindows: () => [],
-    log: {
-      write: log
-    }
+    window,
+    delay
   });
   return port;
 }

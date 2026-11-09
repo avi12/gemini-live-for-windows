@@ -943,10 +943,9 @@ describe("circling a region", () => {
 });
 
 describe("disposing", () => {
-  it("stops listening and lets the previous app go", () => {
+  it("stops listening", () => {
     const pill = createFakePill();
     pill.controller.dispose();
-    assert.equal(pill.calls.at(-1), "disposePreviousApp");
     assert.equal(pill.calls.includes("unwatch"), true);
     assert.equal(pill.listeners.displays.size, 0);
   });

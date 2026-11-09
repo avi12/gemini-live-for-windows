@@ -2,7 +2,7 @@ import { linkedTransports } from "@/lib/transport/linked-transports.ts";
 import type { ForegroundApi } from "@/overlays/ports.ts";
 import type { PillProtocol } from "@/pill/host/host-link.ts";
 import { serveWindowAbilities, WINDOW_NOT_UP } from "@/pill/host/window-abilities.ts";
-import type { PillWindowSurface } from "@/pill/host/window-abilities.ts";
+import type { ForegroundMemory, PillWindowSurface } from "@/pill/host/window-abilities.ts";
 import { WindowMessage } from "@gemini-live/protocol/view";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
@@ -10,8 +10,21 @@ import { defineMessaging } from "winui-svelte/messaging";
 
 const PILL_WINDOW = 4242n;
 const APP_IN_FRONT = 7n;
+const EARLIER_APP = 9n;
+const SHELL = 3n;
 
-function setup({ isUp = true }: { isUp?: boolean } = {}) {
+const SHELL_IN_FRONT: ForegroundMemory = {
+  lastRealApp: EARLIER_APP,
+  foreground: {
+    hwnd: SHELL,
+    isRealApp: false
+  }
+};
+
+function setup({ isUp = true, memory = SHELL_IN_FRONT }: {
+  isUp?: boolean;
+  memory?: ForegroundMemory;
+} = {}) {
   const transports = linkedTransports();
   const calls: string[] = [];
   const foreground: ForegroundApi = {
@@ -40,7 +53,13 @@ function setup({ isUp = true }: { isUp?: boolean } = {}) {
   serveWindowAbilities({
     link: defineMessaging<PillProtocol>({ transport: transports.second }),
     surface: () => isUp ? surface : undefined,
-    foreground
+    foreground,
+    memory,
+    bringToFrontOf(hwnd) {
+      calls.push(`bring ${hwnd}`);
+      return true;
+    },
+    log: message => calls.push(message)
   });
   return {
     host: defineMessaging<PillProtocol>({ transport: transports.first }),
@@ -53,6 +72,40 @@ describe("the pill window's abilities", () => {
     const { host, calls } = setup();
     await host.sendMessage(WindowMessage.bringToFront);
     assert.deepEqual(calls, [`top ${PILL_WINDOW}`, `foreground ${PILL_WINDOW}`]);
+  });
+
+  it("puts the earlier app back when the shell holds the foreground", async () => {
+    const { host, calls } = setup();
+    await host.sendMessage(WindowMessage.restorePreviousApp);
+    assert.deepEqual(calls, [`bring ${EARLIER_APP}`, "focus: back to the app that was in front"]);
+  });
+
+  it("leaves an app the user switched to alone", async () => {
+    const { host, calls } = setup({
+      memory: {
+        lastRealApp: EARLIER_APP,
+        foreground: {
+          hwnd: APP_IN_FRONT,
+          isRealApp: true
+        }
+      }
+    });
+    await host.sendMessage(WindowMessage.restorePreviousApp);
+    assert.deepEqual(calls, []);
+  });
+
+  it("restores nothing before any app was seen", async () => {
+    const { host, calls } = setup({
+      memory: {
+        lastRealApp: null,
+        foreground: {
+          hwnd: null,
+          isRealApp: false
+        }
+      }
+    });
+    await host.sendMessage(WindowMessage.restorePreviousApp);
+    assert.deepEqual(calls, []);
   });
 
   it("moves the window by the distance it was dragged", async () => {

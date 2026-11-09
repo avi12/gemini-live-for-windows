@@ -93,7 +93,8 @@ export const PillActionKind = {
   setAutoUpdate: "setAutoUpdate",
   quit: "quit",
   setFocusable: "setFocusable",
-  moveBy: "moveBy"
+  moveBy: "moveBy",
+  restorePreviousApp: "restorePreviousApp"
 } as const;
 
 // The actions back to C#, one variant per kind. C# answers each with `null`, or an error text.
@@ -153,7 +154,8 @@ export const VIEW_NAME = "view";
 
 export const WindowMessage = {
   bringToFront: "bringToFront",
-  moveBy: "moveBy"
+  moveBy: "moveBy",
+  restorePreviousApp: "restorePreviousApp"
 } as const;
 
 export const moveByDataSchema = z.object({
@@ -166,4 +168,5 @@ export type MoveByData = z.infer<typeof moveByDataSchema>;
 export interface WindowProtocol {
   [WindowMessage.bringToFront](): void;
   [WindowMessage.moveBy](data: MoveByData): void;
+  [WindowMessage.restorePreviousApp](): void;
 }
