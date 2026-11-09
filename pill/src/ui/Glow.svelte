@@ -108,9 +108,8 @@
 </script>
 
 <grid class="glow-and-pill">
-  <grid class="live-glow-peak">
-    <border style:opacity={shownOpacity.current} class="glow" {@attach breathe}></border>
-  </grid>
+  <border class="live-pill-base"></border>
+  <border style:opacity={shownOpacity.current} class="glow" {@attach breathe}></border>
   {@render children()}
 </grid>
 
@@ -119,13 +118,12 @@
     display: grid;
   }
 
+  .glow-and-pill > * {
+    grid-area: 1 / 1;
+  }
+
   .glow {
-    margin-top: 36px;
-    margin-right: 8px;
-    margin-bottom: -6px;
-    margin-left: 8px;
     border-radius: 34px;
-    background-image: linear-gradient(to right, #4285f4 0%, #b36bf0 40%, #f06292 70%, #fbbc04 100%);
-    filter: blur(24px);
+    background-image: linear-gradient(to top, #437ee4 0%, #3c72ec 18%, transparent 60%);
   }
 </style>

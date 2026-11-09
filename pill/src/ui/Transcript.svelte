@@ -7,18 +7,9 @@
 
   interface ScrollerControl {
     scrollableHeight: number;
-    changeView(horizontalOffset: null, verticalOffset: number, zoomFactor: null): boolean;
+    changeView(...view: [null, number, null, boolean]): boolean;
     onLayoutUpdated(callback: () => void): () => void;
   }
-
-  let isScrollPending = false;
-
-  const transcriptSignature = $derived(view.lines.map(line => `${line.id}:${line.text}`).join("\n"));
-
-  $effect(() => {
-    void transcriptSignature;
-    isScrollPending = true;
-  });
 
   function speaker(isUser: boolean) {
     if (isUser) {
@@ -30,12 +21,7 @@
 
   function keepEnd(scroller: ScrollerControl) {
     return scroller.onLayoutUpdated(() => {
-      if (!isScrollPending) {
-        return;
-      }
-
-      isScrollPending = false;
-      scroller.changeView(null, scroller.scrollableHeight, null);
+      scroller.changeView(null, scroller.scrollableHeight, null, true);
     });
   }
 
@@ -67,7 +53,7 @@
           onselectionchanged={makeFocusable}
           textWrapping="Wrap"
         >
-          <Run class="speaker">{speaker(line.isUser)}</Run><Run>{line.text}</Run>
+          <Run fontWeight="bold">{speaker(line.isUser)}</Run><Run>{line.text}</Run>
         </TextBlock>
       </border>
     {/each}
@@ -77,13 +63,11 @@
 <style>
   .transcript {
     max-height: 200px;
+    mask-image: linear-gradient(to bottom, transparent 0%, #000000 14%);
   }
 
   .line {
+    font-size: 17px;
     line-height: 24px;
-  }
-
-  .speaker {
-    font-weight: 500;
   }
 </style>

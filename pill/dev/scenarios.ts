@@ -4,6 +4,7 @@ import type { PillView } from "@gemini-live/protocol/view";
 export const ScenarioName = {
   idle: "idle",
   captions: "captions",
+  longCaptions: "longCaptions",
   gearMenu: "gearMenu",
   displayMenu: "displayMenu",
   keyPrompt: "keyPrompt",
@@ -114,9 +115,41 @@ const CAPTIONS: PillView = {
   }
 };
 
+const LONG_CAPTIONS: PillView = {
+  ...IDLE,
+  lines: [
+    {
+      id: "line-1",
+      text: "מה מזג האוויר מחר?",
+      isUser: true,
+      isNote: false
+    },
+    {
+      id: "line-2",
+      text: "שלום! במה אוכל לעזור לך היום?",
+      isUser: false,
+      isNote: false
+    },
+    {
+      id: "line-3",
+      text: "There is no rain expected in Tel Aviv-Yafo over the next week. The forecast calls for clear, sunny weather through at least next Monday.",
+      isUser: true,
+      isNote: false
+    },
+    {
+      id: "line-4",
+      text: "Thank you for that update on the weather. It's always good to know what the forecast is like when planning the week ahead. Is there anything else I can help you with today?",
+      isUser: false,
+      isNote: false
+    }
+  ],
+  links: CAPTIONS.links.slice(0, 1)
+};
+
 const SCENARIOS: Record<ScenarioName, PillView> = {
   idle: IDLE,
   captions: CAPTIONS,
+  longCaptions: LONG_CAPTIONS,
   gearMenu: {
     ...IDLE,
     sharedDisplay: MONITORS[0]?.id ?? null,

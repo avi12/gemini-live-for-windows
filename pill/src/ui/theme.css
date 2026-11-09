@@ -31,7 +31,8 @@
   --live-hover-layer: rgb(31 31 31 / 0.08);
   --live-pressed-layer: rgb(31 31 31 / 0.1);
   --live-edge: rgb(0 0 0 / 0.1);
-  --live-card-glow: rgb(91 141 239 / 0.23);
+  --live-card-surface: #f0f4f9;
+  --live-pill-surface: #f0f4f9;
   --live-brand-blue: #4285f4;
 }
 
@@ -59,7 +60,8 @@
     --live-hover-layer: rgb(227 227 227 / 0.08);
     --live-pressed-layer: rgb(227 227 227 / 0.1);
     --live-edge: rgb(138 180 248 / 0.33);
-    --live-card-glow: rgb(138 180 248 / 0.7);
+    --live-card-surface: #2f3033;
+    --live-pill-surface: #0b1a2c;
   }
 }
 
@@ -115,22 +117,21 @@ text-block {
 }
 
 .live-card {
-  padding: 18px 22px;
-  border-color: var(--live-edge);
-  border-width: 1px;
-  border-radius: 28px;
-  background-color: var(--live-surface);
+  padding: 20px;
+  border-width: 0;
+  border-radius: 20px;
+  background-color: var(--live-card-surface);
 }
 
 .live-pill {
   border-color: var(--live-edge);
   border-width: 1px;
   border-radius: 34px;
-  background-color: var(--live-surface);
 }
 
-.live-glow-peak {
-  opacity: 0.6;
+.live-pill-base {
+  border-radius: 34px;
+  background-color: var(--live-pill-surface);
 }
 
 .live-chip {
@@ -188,12 +189,6 @@ text-block {
   --button-foreground: var(--live-on-share);
   --button-foreground-pointer-over: var(--live-on-share);
   --button-foreground-pressed: var(--live-on-share);
-}
-
-@media (prefers-color-scheme: dark) {
-  .live-glow-peak {
-    opacity: 1;
-  }
 }
 
 .circle-bar {

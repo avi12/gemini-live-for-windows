@@ -7,7 +7,7 @@
   import KeyPanel from "@/ui/panels/KeyPanel.svelte";
   import Transcript from "@/ui/Transcript.svelte";
   import { glideHeight } from "winui-svelte";
-  import { Border, StackPanel } from "winui-svelte/components";
+  import { StackPanel } from "winui-svelte/components";
 
   const hasContent = $derived(
     view.lines.length > 0
@@ -19,7 +19,6 @@
 
 {#if hasContent}
   <grid class="card" in:cardLift>
-    <Border class="halo" isHitTestVisible={false} />
     <border
       class="live-card"
       {@attach glideHeight({
@@ -45,12 +44,6 @@
 
 <style>
   .card {
-    margin-bottom: 10px;
-  }
-
-  .halo {
-    border-radius: 28px;
-    background-color: var(--live-card-glow);
-    filter: blur(16px);
+    margin-bottom: 16px;
   }
 </style>
