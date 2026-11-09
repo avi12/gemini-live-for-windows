@@ -4,7 +4,7 @@ import type { Launch } from "@/lib/launch.ts";
 export const RAPID_RESTARTS_VARIABLE = "GEMINI_LIVE_RAPID_RESTARTS";
 export const MAX_RAPID_RESTARTS = 5;
 export const STABLE_RUN_MILLISECONDS = 10_000;
-export const RESTART_DELAY_MILLISECONDS = 1000;
+const RESTART_DELAY_MILLISECONDS = 1000;
 
 // Mirrors PillHost.cs: a window that ran long enough starts the count over, and one that keeps
 // exiting right after it starts is given up on
