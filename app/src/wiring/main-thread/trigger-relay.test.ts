@@ -1,13 +1,36 @@
 import { KeyTrigger } from "@/core/instance/key-trigger.ts";
-import { createTriggerRelay } from "@/wiring/main-thread/trigger-relay.ts";
+import { KeySource } from "@/entry/activation/protocol.ts";
+import { createTriggerRelay, FORWARDED_ECHO_MILLISECONDS } from "@/wiring/main-thread/trigger-relay.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+
+const ECHO_DELAY_MILLISECONDS = 3500;
+
+function pressOf({ trigger, source }: {
+  trigger: KeyTrigger;
+  source: KeySource;
+}) {
+  return {
+    trigger,
+    source
+  };
+}
 
 describe("the trigger relay", () => {
   it("hands over the presses that came before the target, in order", () => {
     const relay = createTriggerRelay();
-    relay.send(KeyTrigger.holdStart);
-    relay.send(KeyTrigger.holdStop);
+    relay.send(
+      pressOf({
+        trigger: KeyTrigger.holdStart,
+        source: KeySource.fastPath
+      })
+    );
+    relay.send(
+      pressOf({
+        trigger: KeyTrigger.holdStop,
+        source: KeySource.fastPath
+      })
+    );
     const heard: KeyTrigger[] = [];
     relay.attach(trigger => heard.push(trigger));
     assert.deepEqual(heard, [KeyTrigger.holdStart, KeyTrigger.holdStop]);
@@ -17,16 +40,111 @@ describe("the trigger relay", () => {
     const relay = createTriggerRelay();
     const heard: KeyTrigger[] = [];
     relay.attach(trigger => heard.push(trigger));
-    relay.send(KeyTrigger.tap);
+    relay.send(
+      pressOf({
+        trigger: KeyTrigger.tap,
+        source: KeySource.coldStart
+      })
+    );
     assert.deepEqual(heard, [KeyTrigger.tap]);
   });
 
   it("hands each waiting press over once", () => {
     const relay = createTriggerRelay();
-    relay.send(KeyTrigger.tap);
+    relay.send(
+      pressOf({
+        trigger: KeyTrigger.tap,
+        source: KeySource.coldStart
+      })
+    );
     relay.attach(() => undefined);
     const heard: KeyTrigger[] = [];
     relay.attach(trigger => heard.push(trigger));
     assert.deepEqual(heard, []);
+  });
+});
+
+describe("the shell's echo of a fast-path press", () => {
+  function setup() {
+    const clock = { at: 0 };
+    const logged: string[] = [];
+    const relay = createTriggerRelay({
+      now: () => clock.at,
+      log: message => logged.push(message)
+    });
+    const heard: KeyTrigger[] = [];
+    relay.attach(trigger => heard.push(trigger));
+    return {
+      clock,
+      relay,
+      heard,
+      logged
+    };
+  }
+
+  it("is dropped when a forwarded press follows a fast-path one", () => {
+    const { clock, relay, heard, logged } = setup();
+    relay.send(
+      pressOf({
+        trigger: KeyTrigger.tap,
+        source: KeySource.fastPath
+      })
+    );
+    clock.at = ECHO_DELAY_MILLISECONDS;
+    relay.send(
+      pressOf({
+        trigger: KeyTrigger.tap,
+        source: KeySource.forwarded
+      })
+    );
+    assert.deepEqual(heard, [KeyTrigger.tap]);
+    assert.equal(logged.length, 1);
+  });
+
+  it("is a real press once the window has passed", () => {
+    const { clock, relay, heard } = setup();
+    relay.send(
+      pressOf({
+        trigger: KeyTrigger.tap,
+        source: KeySource.fastPath
+      })
+    );
+    clock.at = FORWARDED_ECHO_MILLISECONDS;
+    relay.send(
+      pressOf({
+        trigger: KeyTrigger.tap,
+        source: KeySource.forwarded
+      })
+    );
+    assert.deepEqual(heard, [KeyTrigger.tap, KeyTrigger.tap]);
+  });
+
+  it("never drops a forwarded press when no fast-path one came first", () => {
+    const { relay, heard } = setup();
+    relay.send(
+      pressOf({
+        trigger: KeyTrigger.tap,
+        source: KeySource.forwarded
+      })
+    );
+    assert.deepEqual(heard, [KeyTrigger.tap]);
+  });
+
+  it("never drops a second fast-path press", () => {
+    const { clock, relay, heard } = setup();
+    relay.send(
+      pressOf({
+        trigger: KeyTrigger.tap,
+        source: KeySource.fastPath
+      })
+    );
+    clock.at = ECHO_DELAY_MILLISECONDS;
+    relay.send(
+      pressOf({
+        trigger: KeyTrigger.tap,
+        source: KeySource.fastPath
+      })
+    );
+    assert.deepEqual(heard, [KeyTrigger.tap, KeyTrigger.tap]);
   });
 });

@@ -14,7 +14,7 @@ import {
 } from "@/entry/activation/activation.ts";
 import type { Activation } from "@/entry/activation/activation.ts";
 import { readPackagedKind } from "@/entry/activation/packaged-activation.ts";
-import { serveKeyTriggers } from "@/entry/activation/protocol.ts";
+import { KeySource, serveKeyTriggers } from "@/entry/activation/protocol.ts";
 import { ensureDpiAware } from "@/entry/dpi.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 import { launchDetached } from "@/lib/launch.ts";
@@ -139,10 +139,13 @@ function firstTriggerOf(activation: Activation) {
 export async function startApp({ files }: { files: ShippedFiles }) {
   keepRunningOnUnhandledErrors();
   ensureDpiAware();
-  const relay = createTriggerRelay();
+  const relay = createTriggerRelay({ log: writeLog });
   const claim = await claimInstance({
     trigger: triggerOf(describeActivation({ args: userArguments(process.argv) })),
-    onTrigger: trigger => relay.send(trigger)
+    onTrigger: trigger => relay.send({
+      trigger,
+      source: KeySource.forwarded
+    })
   });
   if (!claim.isPrimary) {
     process.exit(0);
@@ -174,7 +177,7 @@ export async function startApp({ files }: { files: ShippedFiles }) {
   });
   serveKeyTriggers({
     transport: channels.transports.entry,
-    onTrigger: payload => relay.send(payload.trigger),
+    onTrigger: payload => relay.send(payload),
     log: writeLog
   });
   relay.attach(trigger => {
@@ -184,7 +187,10 @@ export async function startApp({ files }: { files: ShippedFiles }) {
   });
   const firstTrigger = firstTriggerOf(activation);
   if (firstTrigger) {
-    relay.send(firstTrigger);
+    relay.send({
+      trigger: firstTrigger,
+      source: KeySource.coldStart
+    });
   }
 
   startUiWorker({
