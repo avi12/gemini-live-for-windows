@@ -16,10 +16,19 @@ const sealer: SecretSealer = {
 // The Google account's side: its hidden Gemini and Google Home pages are WebView2 controls, so they
 // are built here, on the UI thread; the main thread reaches the engine over the link. Resolves once
 // the link is served, and boots the pages and the extension link in the background.
-export async function startGoogle({ port, bridgesDirectory, audioWorkerUrl, nativeHostPath, isDebugging, log }: {
+export async function startGoogle({
+  port,
+  bridgesDirectory,
+  audioWorkerUrl,
+  uiaWorkerUrl,
+  nativeHostPath,
+  isDebugging,
+  log
+}: {
   port: MessagePort;
   bridgesDirectory: string;
   audioWorkerUrl: URL;
+  uiaWorkerUrl: URL;
   nativeHostPath: string;
   isDebugging: boolean;
   log: (message: string) => void;
@@ -34,7 +43,8 @@ export async function startGoogle({ port, bridgesDirectory, audioWorkerUrl, nati
   const media = createMedia({
     log,
     microphoneId: () => null,
-    audioWorkerUrl
+    audioWorkerUrl,
+    uiaWorkerUrl
   });
   const services = await createGoogleServices({
     dataDir: dataDir(),

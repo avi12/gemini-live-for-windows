@@ -1,12 +1,14 @@
 import { appNameOf } from "./foreground-window.ts";
 import type { ForegroundWindow } from "./foreground-window.ts";
-import { createOcrScreenTextReader } from "./screen-text.ts";
-import type { ScreenTextDeps } from "./screen-text.ts";
+import { createOcrScreenTextReader, createUiaScreenTextReader } from "./screen-text.ts";
+import type { ScreenTextDeps, UiaScreenTextDeps } from "./screen-text.ts";
 import type { Monitor } from "@/contracts/monitor.ts";
 import type { OcrLine } from "@/media/ocr/ocr-geometry.ts";
 import { ScreenDetail } from "@/media/screen/capture-geometry.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { TextBlockKind } from "winui-svelte/automation";
+import type { WindowText } from "winui-svelte/automation";
 
 const MONITOR: Monitor = {
   deviceName: "\\\\.\\DISPLAY2",
@@ -149,6 +151,126 @@ describe("OCR screen text reader", () => {
 
   it("is undefined when nothing was read", async () => {
     assert.equal(await setup({ readLines: () => Promise.resolve([]) }).reader.read(MONITOR), undefined);
+  });
+});
+
+const EXACT_TEXT: WindowText = {
+  title: "Article",
+  blocks: [
+    {
+      kind: TextBlockKind.heading,
+      level: 1,
+      text: "Big news"
+    },
+    {
+      kind: TextBlockKind.text,
+      level: 0,
+      text: "The exact words."
+    }
+  ],
+  version: "abcdef0123456789",
+  end: "complete"
+};
+
+function setupUia(overrides: Partial<UiaScreenTextDeps> = {}) {
+  const requests: Array<Parameters<UiaScreenTextDeps["readText"]>[0]> = [];
+  const logs: string[] = [];
+  const fallback = setup();
+  const reader = createUiaScreenTextReader({
+    foregroundWindow: () => WINDOW,
+    foregroundDisplayName: () => MONITOR.deviceName,
+    ownProcessId: OWN_PID,
+    readText(request) {
+      requests.push(request);
+      return Promise.resolve(EXACT_TEXT);
+    },
+    fallback: fallback.reader,
+    log: message => logs.push(message),
+    ...overrides
+  });
+  return {
+    reader,
+    requests,
+    logs,
+    grabs: fallback.grabs
+  };
+}
+
+describe("UI Automation screen text reader", () => {
+  it("shapes the exact text of the foreground window as a screen view", async () => {
+    const { reader, requests, grabs } = setupUia();
+    const view = await reader.read(MONITOR);
+    assert.deepEqual(view, {
+      title: "Article",
+      app: "msedge",
+      blocks: [
+        {
+          kind: "heading",
+          text: "Big news"
+        },
+        {
+          kind: "paragraph",
+          text: "The exact words."
+        }
+      ],
+      version: "abcdef0123456789"
+    });
+    assert.deepEqual(requests, [{
+      hwnd: WINDOW.hwnd,
+      excludeProcessId: OWN_PID
+    }]);
+    assert.equal(grabs.length, 0);
+  });
+
+  it("takes the window's title when the tree has none", async () => {
+    const { reader } = setupUia({
+      readText: () => Promise.resolve({
+        ...EXACT_TEXT,
+        title: ""
+      })
+    });
+    assert.equal((await reader.read(MONITOR))?.title, "Article - Browser");
+  });
+
+  it("reads the picture when the tree gives no text", async () => {
+    for (const text of [null, {
+      ...EXACT_TEXT,
+      blocks: []
+    }]) {
+      const { reader, grabs } = setupUia({ readText: () => Promise.resolve(text) });
+      const view = await reader.read(MONITOR);
+      assert.deepEqual(view?.blocks, [{
+        kind: "paragraph",
+        text: "Hello"
+      }]);
+      assert.equal(grabs.length, 1);
+    }
+  });
+
+  it("reads the picture, and says why, when UI Automation fails", async () => {
+    const { reader, logs } = setupUia({ readText: () => Promise.reject(new Error("the target did not answer")) });
+    const view = await reader.read(MONITOR);
+    assert.equal(view?.blocks[0]?.text, "Hello");
+    assert.match(logs.join(" "), /the target did not answer/);
+  });
+
+  it("is undefined, without reading anything, for no window, our own or another display", async () => {
+    const cases: Array<Partial<UiaScreenTextDeps>> = [
+      { foregroundWindow: () => undefined },
+      {
+        foregroundWindow: () => ({
+          ...WINDOW,
+          processId: OWN_PID
+        })
+      },
+      { foregroundDisplayName: () => "elsewhere" }
+    ];
+    for (const overrides of cases) {
+      const { reader, requests, grabs } = setupUia(overrides);
+      assert.equal(await reader.read(MONITOR), undefined);
+      assert.equal(requests.length, 0);
+      assert.equal(grabs.length, 0);
+    }
   });
 });
 

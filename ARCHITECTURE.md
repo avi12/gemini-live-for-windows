@@ -173,7 +173,7 @@ Mic chunks and screen frames are two producers writing to the same socket, so li
 
 ## The TypeScript app (`app/`)
 
-`app/` is the whole app in TypeScript on [winui-svelte](https://github.com/avi12/winui-svelte), staged beside the C# one. Both ship the same pill, engines and overlays; only the process around them differs. The C# entry stays the default install. `scripts/install.ps1 -Entry Sea` builds the TypeScript one: `app/` bundles into `main.js`, `window.js`, `host.js` and `audio-worker.js`, and `scripts/Build-SeaExe.ps1` turns the bundled `node.exe` into `GeminiLive.exe` (a single-executable application) with `package/AppxManifest.sea.xml` as its manifest.
+`app/` is the whole app in TypeScript on [winui-svelte](https://github.com/avi12/winui-svelte), staged beside the C# one. Both ship the same pill, engines and overlays; only the process around them differs. The C# entry stays the default install. `scripts/install.ps1 -Entry Sea` builds the TypeScript one: `app/` bundles into `main.js`, `window.js`, `host.js`, `audio-worker.js` and `uia-worker.js`, and `scripts/Build-SeaExe.ps1` turns the bundled `node.exe` into `GeminiLive.exe` (a single-executable application) with `package/AppxManifest.sea.xml` as its manifest.
 
 ```mermaid
 flowchart LR
@@ -181,7 +181,7 @@ flowchart LR
     Pipe["Single-instance pipe"] --> Relay["Trigger relay"]
     Relay --> Ctl["Pill controller"]
     Ctl --> Api["API key engine"]
-    Ctl --> Media["Media: displays, capture, OCR"]
+    Ctl --> Media["Media: displays, capture, UIA text, OCR"]
     Ctl --> Circle["Circle session and screen focus"]
     Ctl --> Upd["Update checker"]
   end
@@ -214,7 +214,7 @@ flowchart LR
 | `pill/` | The pill controller: state, captions, the view, the actions; the main thread's end of the pill link. |
 | `google/` | The Google engine: glic and Home hosts, the session link, detours, and `remote/`. |
 | `live/` | The API key engine over the public Live API. |
-| `media/` | Displays, screen capture, OCR, camera, and the audio graph on its own worker thread. |
+| `media/` | Displays, screen capture, screen text (UI Automation, OCR as the fallback), camera, and the audio graph on its own worker thread. |
 | `overlays/` | The share border, focus chip, circle overlay and hotkeys, and the controller's end of their link. |
 | `core/` | Settings, secrets, the log, updates, the single-instance pipe, the native host and extension setup. |
 | `entry/` | How the process starts and hears the Copilot key: activation, DPI, the fast path. |

@@ -33,7 +33,8 @@ export function buildController({ settings, installedVersion, files, channels, q
   const media = createMedia({
     log,
     microphoneId: () => settings.microphoneId,
-    audioWorkerUrl: files.audioWorkerUrl
+    audioWorkerUrl: files.audioWorkerUrl,
+    uiaWorkerUrl: files.uiaWorkerUrl
   });
   const google = connectGoogle({
     transport: channels.transports.google,

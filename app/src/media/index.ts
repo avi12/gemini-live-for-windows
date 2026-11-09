@@ -20,6 +20,6 @@ export { NoOcrLanguageError } from "./ocr/ocr-geometry.ts";
 export { readLines } from "./ocr/ocr.ts";
 export { listCameras, openCamera } from "./camera/camera.ts";
 export type { Camera } from "./camera/camera.ts";
-export { createOcrScreenTextReader } from "./screen-text/screen-text.ts";
+export { createOcrScreenTextReader, createUiaScreenTextReader } from "./screen-text/screen-text.ts";
 export type { ScreenTextReader } from "./screen-text/screen-text.ts";
 export { ensureDpiAware } from "@/entry/dpi.ts";

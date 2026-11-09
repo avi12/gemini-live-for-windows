@@ -1,46 +1,74 @@
 import type { ForegroundWindow } from "./foreground-window.ts";
 import { buildScreenView } from "./screen-text-blocks.ts";
 import type { Monitor, Region } from "@/contracts/monitor.ts";
+import { BlockKind } from "@/google/protocols/glic.ts";
 import type { ScreenView } from "@/google/protocols/glic.ts";
+import { errorMessage } from "@/lib/error-message.ts";
 import type { OcrLine } from "@/media/ocr/ocr-geometry.ts";
 import { clipToSurface, ScreenDetail } from "@/media/screen/capture-geometry.ts";
 import type { EncodedFrame } from "@/media/screen/jpeg-encoder.ts";
+import { TextBlockKind } from "winui-svelte/automation";
+import type { WindowText } from "winui-svelte/automation";
 
 // An exact text copy of the window the user is looking at. The real reader is UI Automation (Windows'
-// accessibility tree: exact words, headings, no recognition errors), which has no client in the library
-// yet; until it does, createOcrScreenTextReader answers with the same shape from a picture of the
-// window. Swap the implementation, not the callers.
+// accessibility tree: exact words, headings, no recognition errors), createUiaScreenTextReader;
+// where it finds nothing (a window that exposes no tree, an elevated one, a timeout) it falls back to
+// createOcrScreenTextReader, which answers with the same shape from a picture of the window.
 export interface ScreenTextReader {
   // The text of the foreground window if it is on `monitor`; undefined when there is none, it is on
   // another display, it is this app's own, or nothing readable was found
   read(monitor: Monitor): Promise<ScreenView | undefined>;
 }
 
-export interface ScreenTextDeps {
+export interface ForegroundDeps {
   foregroundWindow: () => ForegroundWindow | undefined;
   foregroundDisplayName: () => string | undefined;
+  ownProcessId: number;
+}
+
+export interface ScreenTextDeps extends ForegroundDeps {
   grab: (request: {
     monitor: Monitor;
     region: Region;
     detail: ScreenDetail;
   }) => Promise<EncodedFrame>;
   readLines: (request: { image: Uint8Array }) => Promise<OcrLine[]>;
-  ownProcessId: number;
+}
+
+export interface UiaScreenTextDeps extends ForegroundDeps {
+  readText: (request: {
+    hwnd: bigint;
+    excludeProcessId: number;
+  }) => Promise<WindowText | null>;
+  fallback: ScreenTextReader;
+  log: (message: string) => void;
+}
+
+// The foreground window when it is the user's: not this app's own, and on `monitor`
+function userWindowOn({ deps, monitor }: {
+  deps: ForegroundDeps;
+  monitor: Monitor;
+}) {
+  const window = deps.foregroundWindow();
+  const isNoWindowOrOurs = window === undefined || window.processId === deps.ownProcessId;
+  if (isNoWindowOrOurs) {
+    return undefined;
+  }
+
+  const isOnAnotherDisplay = deps.foregroundDisplayName() !== monitor.deviceName;
+  return isOnAnotherDisplay ? undefined : window;
 }
 
 // Degraded on purpose: lines of recognised text, no exact copy, headings guessed from line height
 export function createOcrScreenTextReader(deps: ScreenTextDeps) {
-  const { foregroundWindow, foregroundDisplayName, grab, readLines, ownProcessId } = deps;
+  const { grab, readLines } = deps;
   return {
     async read(monitor) {
-      const window = foregroundWindow();
-      const isNoWindowOrOurs = window === undefined || window.processId === ownProcessId;
-      if (isNoWindowOrOurs) {
-        return undefined;
-      }
-
-      const isOnAnotherDisplay = foregroundDisplayName() !== monitor.deviceName;
-      if (isOnAnotherDisplay) {
+      const window = userWindowOn({
+        deps,
+        monitor
+      });
+      if (!window) {
         return undefined;
       }
 
@@ -69,6 +97,57 @@ export function createOcrScreenTextReader(deps: ScreenTextDeps) {
         app: window.appName,
         lines
       });
+    }
+  } satisfies ScreenTextReader;
+}
+
+function screenViewOf({ text, window }: {
+  text: WindowText;
+  window: ForegroundWindow;
+}) {
+  const hasTitle = text.title.length > 0;
+  return {
+    title: hasTitle ? text.title : window.title,
+    app: window.appName,
+    blocks: text.blocks.map(block => ({
+      kind: block.kind === TextBlockKind.heading ? BlockKind.heading : BlockKind.paragraph,
+      text: block.text
+    })),
+    version: text.version
+  } satisfies ScreenView;
+}
+
+// The exact text and headings of the foreground window from its accessibility tree; the picture-based
+// reader answers when the tree gives no text or the read fails
+export function createUiaScreenTextReader(deps: UiaScreenTextDeps) {
+  const { readText, fallback, log, ownProcessId } = deps;
+  return {
+    async read(monitor) {
+      const window = userWindowOn({
+        deps,
+        monitor
+      });
+      if (!window) {
+        return undefined;
+      }
+
+      try {
+        const text = await readText({
+          hwnd: window.hwnd,
+          excludeProcessId: ownProcessId
+        });
+        const isTextFound = text !== null && text.blocks.length > 0;
+        if (isTextFound) {
+          return screenViewOf({
+            text,
+            window
+          });
+        }
+      } catch (error) {
+        log(`screen text: UI Automation failed, reading the picture instead: ${errorMessage(error)}`);
+      }
+
+      return fallback.read(monitor);
     }
   } satisfies ScreenTextReader;
 }

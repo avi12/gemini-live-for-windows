@@ -125,7 +125,7 @@ if ($isSea) {
   Copy-Item (Join-Path $root 'src\GeminiLive\Glic\Bridges\*.js') (Join-Path $layout 'bridges')
   Copy-Item (Join-Path $root 'extension\.output\chrome-mv3') (Join-Path $layout 'extension') -Recurse -Force
   $seaExe = & (Join-Path $PSScriptRoot 'Build-SeaExe.ps1') -OutDirectory $layout | Select-Object -Last 1
-  foreach ($file in 'main.js', 'window.js', 'host.js', 'audio-worker.js', 'bridges\glic_bridge.js', 'bridges\home_bridge.js', 'extension\manifest.json') {
+  foreach ($file in 'main.js', 'window.js', 'host.js', 'audio-worker.js', 'uia-worker.js', 'bridges\glic_bridge.js', 'bridges\home_bridge.js', 'extension\manifest.json') {
     if (-not (Test-Path (Join-Path $layout $file))) { throw "The package layout has no $file; the app build didn't reach the layout" }
   }
   # The host application's alias target. Shared keeps the manifest's one executable; Copy gives the

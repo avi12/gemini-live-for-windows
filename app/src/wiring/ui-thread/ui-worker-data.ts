@@ -14,6 +14,7 @@ export const uiWorkerDataSchema = z.object({
   // The executable the browsers start as the native messaging host
   nativeHostPath: z.string(),
   audioWorkerUrl: z.string(),
+  uiaWorkerUrl: z.string(),
   isDebugging: z.boolean()
 });
 

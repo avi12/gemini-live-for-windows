@@ -192,6 +192,7 @@ export async function startApp({ files }: { files: ShippedFiles }) {
       bridgesDirectory: files.bridgesDirectory,
       nativeHostPath: nativeHostPathOf({ isPackaged }),
       audioWorkerUrl: files.audioWorkerUrl.href,
+      uiaWorkerUrl: files.uiaWorkerUrl.href,
       isDebugging: log.isDebugging
     },
     async onEnded({ exitCode, ranMilliseconds }) {

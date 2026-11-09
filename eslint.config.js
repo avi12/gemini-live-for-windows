@@ -362,6 +362,7 @@ export default [
       "app/src/window.ts",
       "app/src/host.ts",
       "app/src/media/audio/audio-worker.ts",
+      "app/src/media/screen-text/uia-worker.ts",
       "**/*.test.ts"
     ],
     rules: {

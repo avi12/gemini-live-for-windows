@@ -72,6 +72,7 @@ function startUiServices({ pill, data }: {
       port: data.ports.google,
       bridgesDirectory: data.bridgesDirectory,
       audioWorkerUrl: new URL(data.audioWorkerUrl),
+      uiaWorkerUrl: new URL(data.uiaWorkerUrl),
       nativeHostPath: data.nativeHostPath,
       isDebugging: data.isDebugging,
       log: writeLog
