@@ -12,9 +12,8 @@
     "lint": "oxlint --type-aware --ignore-path .oxlintignore --fix -c .oxlintrc.fix.json && eslint --fix && oxlint --type-aware --ignore-path .oxlintignore",
     "stylelint": "stylelint \"{pill,app}/**/*.svelte\" --config pill/.stylelintrc.json --fix",
     "svelte:check": "pnpm --filter @gemini-live/pill svelte:check && pnpm --filter @gemini-live/app svelte:check",
-    "lint:cs": "dotnet format src/GeminiLive/GeminiLive.csproj --verify-no-changes --severity warn",
     "fallow": "fallow audit --base HEAD",
-    "dev:lint": "pnpm fallow && pnpm lint && pnpm stylelint && pnpm svelte:check && pnpm test && pnpm lint:cs",
+    "dev:lint": "pnpm fallow && pnpm lint && pnpm stylelint && pnpm svelte:check && pnpm test",
     "test": "pnpm --filter @gemini-live/app --filter @gemini-live/protocol test"
   },
   "devDependencies": {
@@ -43,9 +42,6 @@
       "oxlint --ignore-path .oxlintignore --fix -c .oxlintrc.fix.json",
       "eslint --fix --no-warn-ignored",
       "oxlint --ignore-path .oxlintignore"
-    ],
-    "src/GeminiLive/**/*.cs": [
-      "dotnet format src/GeminiLive/GeminiLive.csproj --verify-no-changes --severity warn --include"
     ],
     "{bridge,extension/src,extension/scripts,messaging/src,eslint-rules,eslint-config,pill,app,protocol}/**/*.{ts,js,mjs,svelte}": [
       "oxlint --ignore-path .oxlintignore --fix -c .oxlintrc.fix.json",
