@@ -36,7 +36,7 @@
   let isDocked = $state(false);
 
   const isWindowHidden = $derived(!isDocked && isExitDone);
-  const isBeingCaptured = $derived(arePreviewsOpen() || view.sharedDisplay !== null);
+  const isBeingCaptured = $derived(arePreviewsOpen());
 
   const pillPlace = $derived(placeOf(PillPart.pill));
   const dragRegions = $derived([pillPlace].filter(place => place !== undefined));
