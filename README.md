@@ -18,7 +18,7 @@ https://github.com/user-attachments/assets/46c1a0e1-f0db-4c0c-8835-ba38f46a29fb
 - Windows 11 23H2 or newer, up to date, so it has the **Customize Copilot key on keyboard** setting that lets you choose what Win+C opens
 - A Chromium browser (Chrome, Edge, Brave…) that can sideload an extension in Developer mode, signed in to the Google account you use Gemini with
 
-Nothing else to install by hand: the package carries its own Node for the pill (about 90 MB of the download) and the install script adds the Windows App SDK 2.2 runtime if your PC lacks it.
+Nothing else to install by hand: the package carries its own Node, which the app runs on (about 90 MB of the download) and the install script adds the Windows App SDK 2.2 runtime if your PC lacks it.
 
 ## Install
 
@@ -113,34 +113,31 @@ The last command prints the key. `--api-target` restricts it to the Gemini API a
 
 ## Build from source
 
-Needs the .NET 10 SDK, the Windows 10 SDK (for `makeappx` and `signtool`), Node 24 and pnpm. Node is only for building; the installed app runs the pill on the `node.exe` it ships. The install script downloads that Node (the version in `Directory.Build.props`, checked against nodejs.org's SHA-256) into `build\node`, and installs the Windows App SDK 2.2 runtime if it is missing.
+Needs the Windows 10 SDK (for `makeappx` and `signtool`), Node 24 and pnpm. Node is also what the installed app runs on: the install script downloads the Node version in `package\build-config.json` (checked against nodejs.org's SHA-256) into `build\node` and turns its `node.exe` into `GeminiLive.exe`. It also installs the Windows App SDK 2.2 runtime if it is missing.
 
 ```powershell
 pnpm install
-pnpm --filter @gemini-live/pill build  # type-check and build the pill into pill\dist
-pnpm --filter @gemini-live/app build   # type-check and build the TypeScript app into app\dist
+pnpm --filter @gemini-live/app build   # type-check and build the app and its pill into app\dist
 .\scripts\install.ps1                  # build, sign with a local certificate, install
 .\scripts\install.ps1 -Mode Register   # unsigned dev-mode install for fast iteration
 .\scripts\install.ps1 -Mode Release    # the release files, in build\release
-.\scripts\install.ps1 -Mode Stage -Entry Sea  # lay out the TypeScript app's package, install nothing
+.\scripts\install.ps1 -Mode Stage      # lay out the package, install nothing
 ```
 
-The default install is the WPF app with the pill as a sidecar. `-Entry Sea` builds the TypeScript app in `app/` instead: the same pill, engines and overlays in one Node process (the bundled `node.exe`, turned into `GeminiLive.exe`), with a main thread for the logic and a UI worker for the windows. See [the architecture note](ARCHITECTURE.md#the-typescript-app-app).
+The app in `app/` is one Node process (`GeminiLive.exe`, a single-executable application), with a main thread for the logic and a UI worker for the windows. `-HostExe Copy` (the default) ships the browsers' native messaging host as a second copy of that exe, `GeminiLiveHost.exe`; `-HostExe Shared` points the host at `GeminiLive.exe` instead. See [the architecture note](ARCHITECTURE.md#the-app-app).
 
 Windows only lists signed providers in the Copilot key setting, so use the default mode to try Win+C. The release mode signs the extension's `.crx` with `keys\chrome.pem`, which git ignores; the extension's ID comes from that key.
 
 | Path | What |
 | --- | --- |
-| `src/GeminiLive` | the WPF app |
-| `src/GeminiLiveHost` | the native messaging host the extension asks for the app's link |
-| `pill/` | the pill's UI: Svelte on [winui-svelte](https://github.com/avi12/winui-svelte), run by the app as a Node sidecar |
-| `app/` | the whole app in TypeScript on winui-svelte (the `-Entry Sea` install): `src/main.ts` and `src/window.ts` are its two threads, `src/wiring/` builds it |
+| `app/` | the whole app in TypeScript on [winui-svelte](https://github.com/avi12/winui-svelte): `src/main.ts` and `src/window.ts` are its two threads, `src/host.ts` the native messaging host, `src/wiring/` builds it |
+| `pill/` | the pill's UI in Svelte on winui-svelte, with its fonts in `pill/fonts` |
 | `protocol/` | the wire shared by the pill, the app and the extension: the pill's view and actions, and the extension link |
-| `bridge/` | the TypeScript injected into the hidden Gemini and Google Home pages (`glic/`, `home/`, `shared/`) |
+| `bridge/` | the TypeScript injected into the hidden Gemini and Google Home pages (`glic/`, `home/`, `shared/`), built into `bridge/dist` |
 | `extension/` | the companion browser extension (WXT) |
-| `messaging/` | typed messaging, in [@webext-core/messaging](https://webext-core.aklinker1.io/messaging/)'s protocol-map style, shared by the bridges, the extension and (as `Messaging.cs`) the app |
-| `analyzers/` | the C# side of the lint rules |
-| `package/` | the MSIX manifest and assets |
+| `messaging/` | typed messaging, in [@webext-core/messaging](https://webext-core.aklinker1.io/messaging/)'s protocol-map style, shared by the bridges, the extension and the app |
+| `package/` | the MSIX manifest, assets, and `build-config.json` (the Node version and the minimum Windows) |
+| `scripts/` | the install and release scripts |
 
 ### Hot reload for the pill
 
@@ -150,19 +147,19 @@ pnpm dev -- --mock                        # open the pill on a mock host instead
 pnpm dev -- --mock --scenario keyPrompt   # start the mock on another scenario
 ```
 
-**Against the installed app.** While `pnpm dev` runs it keeps `%LOCALAPPDATA%\GeminiLive\dev.json` (`pillDevEntry`, `repoRoot`, `pid`; the schema is `protocol/src/pill-dev.ts`, mirrored by `Pill/Sidecar/PillDevMarker.cs`). The app watches that file: when it appears the app restarts its pill from `pill/dev/attach.ts`, run by the bundled `node.exe` from the repo, which loads the pill's code through winui-svelte's module server and talks to the app over the real state protocol, so the pill shows your real session. When `pnpm dev` stops (Ctrl+C, a kill, a crash) the marker goes, or its `pid` is dead and it is ignored, and the app goes back to the bundled pill with no manual step. Without a marker nothing changes. Both entries honor it: the C# one (`PillSidecar.cs`) and the TypeScript one (`app/src/pill/host/dev-attach.ts`).
+**Against the installed app.** While `pnpm dev` runs it keeps `%LOCALAPPDATA%\GeminiLive\dev.json` (`pillDevEntry`, `repoRoot`, `pid`; the schema is `protocol/src/pill-dev.ts`). The app watches that file: when it appears the app restarts its pill from `pill/dev/attach.ts`, run by the bundled `node.exe` from the repo, which loads the pill's code through winui-svelte's module server and talks to the app over the real state protocol, so the pill shows your real session. When `pnpm dev` stops (Ctrl+C, a kill, a crash) the marker goes, or its `pid` is dead and it is ignored, and the app goes back to the bundled pill with no manual step. Without a marker nothing changes. The app honors it in `app/src/pill/host/dev-attach.ts`.
 
 **Mock.** The pill's real entry (`pill/src/mount.ts`) runs on winui-svelte's dev server, and `pill/dev/` stands in for the app: it serves the view over the same state protocol, so no app needs to be running. Scenarios (`pill/dev/scenarios.ts`): idle, captions, gearMenu, keyPrompt, updateAvailable, cameraShared. In an interactive terminal press `1`-`6` to pick one, or `n` / `p` for next / previous; Ctrl+C closes the pill. The gear menu opens with a click, and its items come from the gearMenu scenario. Actions the pill sends are printed to the terminal and change nothing.
 
 ### Lint
 
 ```powershell
-pnpm dev:lint   # fallow, oxlint + ESLint, stylelint, svelte-check, the tests, and dotnet format
+pnpm dev:lint   # fallow, oxlint + ESLint, stylelint, svelte-check, and the tests
 pnpm svelte:check                              # type-check the pill's and the app's Svelte and TypeScript
 pnpm test                                      # the TypeScript app's tests (Node's test runner)
 ```
 
-TypeScript follows the youtube-time-manager setup: oxlint for logic, ESLint for layout, fallow for dead code and complexity. The C# side mirrors the same rules through `.editorconfig` and the analyzers in `analyzers/`. A pre-commit hook runs them on staged files.
+The code follows the youtube-time-manager setup: oxlint for logic, ESLint for layout, fallow for dead code and complexity. A pre-commit hook runs them on staged files.
 
 ## Debugging
 
