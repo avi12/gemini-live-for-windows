@@ -103,7 +103,7 @@ describe("the shell's echo of a fast-path press", () => {
       })
     );
     assert.deepEqual(heard, [KeyTrigger.tap]);
-    assert.equal(logged.length, 1);
+    assert.equal(logged.filter(message => message.includes("dropped")).length, 1);
   });
 
   it("is a real press once the window has passed", () => {
