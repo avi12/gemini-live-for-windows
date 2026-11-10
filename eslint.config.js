@@ -295,7 +295,7 @@ export default [
     "build/",
     ".fallow/",
     ".claude/worktrees/",
-    "src/GeminiLive/Glic/Bridges/*.js"
+    "bridge/dist/*.js"
   ]),
   {
     files: ["**/*.{ts,js,mjs}"],

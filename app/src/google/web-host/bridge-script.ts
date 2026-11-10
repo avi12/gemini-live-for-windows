@@ -11,7 +11,7 @@ export type BridgeName = typeof BridgeName[keyof typeof BridgeName];
 
 // Where bridge/build.mjs writes them
 function defaultBridgesDir() {
-  return path.resolve(import.meta.dirname, "../../../../src/GeminiLive/Glic/Bridges");
+  return path.resolve(import.meta.dirname, "../../../../bridge/dist");
 }
 
 export function readBridgeScript({ name, directory = defaultBridgesDir() }: {

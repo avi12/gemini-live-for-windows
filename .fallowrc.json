@@ -38,7 +38,7 @@
     "protocol/src/link.ts",
     "protocol/src/pill-dev.ts"
   ],
-  "ignorePatterns": [".claude/worktrees/**", "src/GeminiLive/Glic/Bridges/*.js", "pill/dist/**", "app/dist/**"],
+  "ignorePatterns": [".claude/worktrees/**", "bridge/dist/*.js", "pill/dist/**", "app/dist/**"],
   "ignoreDependencies": ["postcss-html"],
   "health": {
     "maxCognitive": 30,

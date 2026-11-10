@@ -3,6 +3,7 @@ obj/
 build/
 node_modules/
 pill/dist/
+bridge/dist/
 .svelte-check/
 *.user
 .vs/

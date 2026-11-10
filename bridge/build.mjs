@@ -6,7 +6,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const outDir = resolve(here, "../src/GeminiLive/Glic/Bridges");
+const outDir = resolve(here, "dist");
 
 // Each bridge's entry file lives in the folder named for the page it runs in.
 const bridges = [

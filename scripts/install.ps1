@@ -122,7 +122,7 @@ if ($isSea) {
   Copy-Item (Join-Path $root 'app\dist\*') $layout -Recurse -Force
   # What the app reads at run time, beside the entry: the page bridges (built above) and the extension
   New-Item -ItemType Directory (Join-Path $layout 'bridges') | Out-Null
-  Copy-Item (Join-Path $root 'src\GeminiLive\Glic\Bridges\*.js') (Join-Path $layout 'bridges')
+  Copy-Item (Join-Path $root 'bridge\dist\*.js') (Join-Path $layout 'bridges')
   Copy-Item (Join-Path $root 'extension\.output\chrome-mv3') (Join-Path $layout 'extension') -Recurse -Force
   $seaExe = & (Join-Path $PSScriptRoot 'Build-SeaExe.ps1') -OutDirectory $layout | Select-Object -Last 1
   foreach ($file in 'main.js', 'window.js', 'host.js', 'audio-worker.js', 'uia-worker.js', 'bridges\glic_bridge.js', 'bridges\home_bridge.js', 'extension\manifest.json') {
