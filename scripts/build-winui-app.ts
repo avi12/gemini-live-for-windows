@@ -3,7 +3,7 @@ import { createRequire } from "node:module";
 import path from "node:path";
 
 const FONT_FILES = ["GoogleSans-Variable.ttf", "MaterialSymbolsRounded.ttf"] as const;
-const FONT_DIRECTORY = path.join(import.meta.dirname, "..", "src", "GeminiLive", "Fonts");
+const FONT_DIRECTORY = path.join(import.meta.dirname, "..", "pill", "fonts");
 
 // winui-svelte resolves every entry with the window's "browser" condition (Svelte's browser build
 // is the one that mounts), which also picks a browser-only export for packages that ship both
