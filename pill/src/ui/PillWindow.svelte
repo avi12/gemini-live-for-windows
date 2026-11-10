@@ -125,24 +125,22 @@
     setPillWindow(handle);
   }}
 >
-  {#key settings.isDarkTheme}
-    <stack-panel class="root" {@attach content.attach}>
-      {#if view.isShown && isDocked}
-        <stack-panel
-          onoutroend={() => {
-            isExitDone = true;
-          }}
-          in:pillEnter
-          out:pillExit
-        >
-          <CaptionCard />
-          <Glow>
-            <Pill />
-          </Glow>
-        </stack-panel>
-      {/if}
-    </stack-panel>
-  {/key}
+  <stack-panel class="root" {@attach content.attach}>
+    {#if view.isShown && isDocked}
+      <stack-panel
+        onoutroend={() => {
+          isExitDone = true;
+        }}
+        in:pillEnter
+        out:pillExit
+      >
+        <CaptionCard />
+        <Glow>
+          <Pill />
+        </Glow>
+      </stack-panel>
+    {/if}
+  </stack-panel>
 </Window>
 
 <style>
