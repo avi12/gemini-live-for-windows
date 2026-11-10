@@ -203,6 +203,8 @@
     const handle = windowRef.handle;
     const hasHandle = handle !== undefined;
     if (hasHandle) {
+      // The window prop alone left it below other apps' windows, out of reach of the pointer
+      handle.presenter.isAlwaysOnTop = true;
       onready(handle.appWindow.id.value);
     }
   });
