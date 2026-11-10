@@ -1,6 +1,11 @@
 import { KeyTrigger } from "@/core/instance/key-trigger.ts";
 import { KeySource } from "@/entry/activation/protocol.ts";
-import { createTriggerRelay, FORWARDED_ECHO_MILLISECONDS } from "@/wiring/main-thread/trigger-relay.ts";
+import {
+  createTriggerRelay,
+  FORWARDED_ECHO_MILLISECONDS,
+  REPEAT_ECHO_FROM_MILLISECONDS,
+  REPEAT_ECHO_UNTIL_MILLISECONDS
+} from "@/wiring/main-thread/trigger-relay.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
@@ -130,7 +135,7 @@ describe("the shell's echo of a fast-path press", () => {
     assert.deepEqual(heard, [KeyTrigger.tap]);
   });
 
-  it("never drops a second fast-path press", () => {
+  it("is dropped when the shell repeats the fast-path tap itself", () => {
     const { clock, relay, heard } = setup();
     relay.send(
       pressOf({
@@ -139,6 +144,42 @@ describe("the shell's echo of a fast-path press", () => {
       })
     );
     clock.at = ECHO_DELAY_MILLISECONDS;
+    relay.send(
+      pressOf({
+        trigger: KeyTrigger.tap,
+        source: KeySource.fastPath
+      })
+    );
+    assert.deepEqual(heard, [KeyTrigger.tap]);
+  });
+
+  it("keeps a quick second fast-path press", () => {
+    const { clock, relay, heard } = setup();
+    relay.send(
+      pressOf({
+        trigger: KeyTrigger.tap,
+        source: KeySource.fastPath
+      })
+    );
+    clock.at = REPEAT_ECHO_FROM_MILLISECONDS - 1;
+    relay.send(
+      pressOf({
+        trigger: KeyTrigger.tap,
+        source: KeySource.fastPath
+      })
+    );
+    assert.deepEqual(heard, [KeyTrigger.tap, KeyTrigger.tap]);
+  });
+
+  it("keeps a fast-path press after the repeat band", () => {
+    const { clock, relay, heard } = setup();
+    relay.send(
+      pressOf({
+        trigger: KeyTrigger.tap,
+        source: KeySource.fastPath
+      })
+    );
+    clock.at = REPEAT_ECHO_UNTIL_MILLISECONDS;
     relay.send(
       pressOf({
         trigger: KeyTrigger.tap,
