@@ -26,7 +26,6 @@ const EMPTY_VIEW: PillView = {
   displays: [],
   pillDisplay: null,
   sharedDisplay: null,
-  sharedDisplayName: null,
   isExtensionNeeded: false,
   isExtensionStepsShown: false,
   isKeyPromptShown: false,

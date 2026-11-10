@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { findSharedDisplayName } from "@/lib/display-labels.ts";
   import { sendAction, view } from "@/lib/view.svelte.ts";
   import { GlyphButtonKind } from "@/ui/glyph/glyph-button.ts";
   import GlyphButton from "@/ui/glyph/GlyphButton.svelte";
@@ -50,10 +51,17 @@
     return view.statusDetail;
   });
 
+  const sharedDisplayName = $derived(
+    findSharedDisplayName({
+      displays: view.displays,
+      sharedDisplayId: view.sharedDisplay
+    })
+  );
+
   const shareToolTip = $derived.by(() => {
-    const isSharedKnown = hasDisplayPicker && view.sharedDisplayName !== null;
+    const isSharedKnown = hasDisplayPicker && sharedDisplayName !== null;
     if (isSharedKnown) {
-      return `Sharing ${view.sharedDisplayName} • click to change`;
+      return `Sharing ${sharedDisplayName} • click to change`;
     }
 
     return "Gemini sees your screen";

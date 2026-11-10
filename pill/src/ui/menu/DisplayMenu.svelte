@@ -1,5 +1,6 @@
 <script lang="ts">
   import { menuOf } from "./menu.ts";
+  import { describeDisplay } from "@/lib/display-labels.ts";
   import { previewOf, setPreviewsOpen, syncPreviews } from "@/lib/display-previews.svelte.ts";
   import { pillPreview, sendAction, view } from "@/lib/view.svelte.ts";
   import { PillActionKind } from "@gemini-live/protocol/view";
@@ -37,7 +38,7 @@
         <Image source={picture} stretch="Uniform" />
       {/if}
     </border>
-    <TextBlock class="tile-name" text={display.name} textWrapping="Wrap" />
+    <TextBlock class="tile-name" text={describeDisplay(display)} textWrapping="Wrap" />
   </stack-panel>
 {/snippet}
 

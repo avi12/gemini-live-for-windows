@@ -45,7 +45,7 @@
     BUTTON_PARTS.map(part => placeOf(part)).filter(place => place !== undefined)
   );
 
-  const displayLayout = $derived(view.displays.map(display => `${display.id} ${display.name}`).join("|"));
+  const displayLayout = $derived(JSON.stringify(view.displays));
 
   // The window is shown, and the pill's entrance starts, only once it sits on its display: showing it
   // first and docking after made it jump while it rose

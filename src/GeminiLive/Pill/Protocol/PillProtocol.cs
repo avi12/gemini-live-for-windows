@@ -43,11 +43,12 @@ public sealed record PillLine(string Id, string Text, bool IsUser, bool IsNote);
 /// <summary>A link chip: Address is its readable form for the tooltip, IsSearch marks a search we built.</summary>
 public sealed record PillLink(string Id, string Title, string Uri, string Address, bool IsSearch);
 
-/// <summary>A display or a microphone: what to send back, and what to call it.</summary>
+/// <summary>A microphone: what to send back, and what to call it.</summary>
 public sealed record PillNamed(string Id, string Name);
 
-public sealed record PillDisplayEntry(string Id, string Name, int RefreshRateHertz, int X, int Y, int Width,
-                                      int Height);
+/// <summary>A display as raw facts; the window words its name and description.</summary>
+public sealed record PillDisplayEntry(string Id, int Index, bool IsPrimary, int RefreshRateHertz, int X, int Y,
+                                      int Width, int Height);
 
 /// <summary>The update entry of the gear menu; the view carries none when there is nothing to update.</summary>
 public sealed record PillUpdate(string Text, bool IsAvailable, bool IsAutoUpdateOn);
@@ -67,7 +68,6 @@ public sealed record PillView(
     IReadOnlyList<PillDisplayEntry> Displays,
     string? PillDisplay,
     string? SharedDisplay,
-    string? SharedDisplayName,
     bool IsExtensionNeeded,
     bool IsExtensionStepsShown,
     bool IsKeyPromptShown,

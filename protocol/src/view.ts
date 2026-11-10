@@ -57,13 +57,18 @@ export function knownRefreshRate(reportedHertz: number) {
   return isUnknown ? DEFAULT_REFRESH_RATE_HERTZ : Math.round(reportedHertz);
 }
 
-const displaySchema = namedSchema.extend({
+const displaySchema = z.object({
+  id: z.string(),
+  index: z.number().int().positive(),
+  isPrimary: z.boolean(),
   refreshRateHertz: refreshRateSchema,
   x: z.number().int(),
   y: z.number().int(),
   width: z.number().int().positive(),
   height: z.number().int().positive()
 });
+
+export type PillDisplay = z.infer<typeof displaySchema>;
 
 const updateSchema = z.object({
   text: z.string(),
@@ -86,7 +91,6 @@ export const pillViewSchema = z.object({
   displays: z.array(displaySchema),
   pillDisplay: z.string().nullable(),
   sharedDisplay: z.string().nullable(),
-  sharedDisplayName: z.string().nullable(),
   isExtensionNeeded: z.boolean(),
   isExtensionStepsShown: z.boolean(),
   isKeyPromptShown: z.boolean(),

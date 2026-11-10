@@ -9,7 +9,6 @@ import type { PillView } from "@gemini-live/protocol/view";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-const PRIMARY_NAME = "Display 1 (primary) · 1920×1080";
 const SECONDARY_NAME = "Display 2 · 2560×1440";
 const CHECK_UPDATE: NonNullable<PillView["update"]> = {
   text: "Check for updates",
@@ -17,13 +16,11 @@ const CHECK_UPDATE: NonNullable<PillView["update"]> = {
   isAutoUpdateOn: true
 };
 
-function displayEntry({ monitor, name }: {
-  monitor: Monitor;
-  name: string;
-}) {
+function displayEntry(monitor: Monitor) {
   return {
     id: monitor.deviceName,
-    name,
+    index: monitor.index,
+    isPrimary: monitor.isPrimary,
     refreshRateHertz: monitor.refreshRateHertz,
     x: monitor.x,
     y: monitor.y,
@@ -40,18 +37,11 @@ function expectedView(overrides: Partial<PillView> = {}) {
     lines: [],
     links: [],
     displays: [
-      displayEntry({
-        monitor: PRIMARY,
-        name: PRIMARY_NAME
-      }),
-      displayEntry({
-        monitor: SECONDARY,
-        name: SECONDARY_NAME
-      })
+      displayEntry(PRIMARY),
+      displayEntry(SECONDARY)
     ],
     pillDisplay: PRIMARY.deviceName,
     sharedDisplay: null,
-    sharedDisplayName: null,
     isExtensionNeeded: false,
     isExtensionStepsShown: false,
     isKeyPromptShown: false,
@@ -84,7 +74,6 @@ const LISTENING: Partial<PillView> = {
   status: LiveStatus.listening,
   isShown: true,
   sharedDisplay: PRIMARY.deviceName,
-  sharedDisplayName: "Display 1",
   microphones: [HEADSET, DESK],
   glow: {
     mode: GlowMode.breathe,
@@ -171,7 +160,6 @@ describe("starting a conversation", () => {
         status: LiveStatus.connecting,
         isShown: true,
         sharedDisplay: PRIMARY.deviceName,
-        sharedDisplayName: "Display 1",
         microphones: [HEADSET, DESK]
       })
     );
@@ -676,8 +664,7 @@ describe("displays and sharing", () => {
     assert.deepEqual(
       pill.controller.view(), expectedView({
         ...LISTENING,
-        sharedDisplay: SECONDARY.deviceName,
-        sharedDisplayName: "Display 2"
+        sharedDisplay: SECONDARY.deviceName
       })
     );
     const expectedCalls = ["cover 2", "unfocus"];
@@ -720,10 +707,7 @@ describe("displays and sharing", () => {
     assert.deepEqual(
       pill.controller.view(), expectedView({
         ...LISTENING,
-        displays: [displayEntry({
-          monitor: PRIMARY,
-          name: PRIMARY_NAME
-        })]
+        displays: [displayEntry(PRIMARY)]
       })
     );
     assert.equal(pill.logs.includes("displays changed: 1"), true);
@@ -744,7 +728,7 @@ describe("displays and sharing", () => {
     await settle();
     assert.equal(pill.calls.at(-1), "unfocus");
     assert.equal(pill.engine.engine.monitor.width, SECONDARY.width);
-    assert.equal(pill.controller.view()?.displays[0]?.name, "Display 1 (primary) · 2560×1440");
+    assert.equal(pill.controller.view()?.displays[0]?.width, SECONDARY.width);
   });
 
   it("shows a changed display list even with no conversation", () => {
