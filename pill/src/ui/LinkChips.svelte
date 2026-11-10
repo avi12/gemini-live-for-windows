@@ -46,7 +46,7 @@
   }
 </script>
 
-<RichTextBlock style:margin-top="{trayTop}px" class="tray">
+<RichTextBlock style:margin-top="{trayTop}px" class="tray" isTextSelectionEnabled={false}>
   <Paragraph>
     {#each view.links as link, iLink (link.id)}
       <InlineUIContainer>
