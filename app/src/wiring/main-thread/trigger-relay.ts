@@ -29,6 +29,7 @@ export function createTriggerRelay({ now = () => performance.now(), log = () => 
 
   return {
     send(press: Press) {
+      log(`key: ${press.trigger} from ${press.source}`);
       const isFastPath = press.source === KeySource.fastPath;
       if (isFastPath) {
         lastFastPathAt = now();
