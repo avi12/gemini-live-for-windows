@@ -84,6 +84,7 @@
       inset: DOCK_INSET,
       display: DockDisplay.current
     });
+    handle.presenter.isAlwaysOnTop = true;
     return true;
   }
 
