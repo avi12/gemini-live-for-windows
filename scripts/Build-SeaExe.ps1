@@ -4,7 +4,7 @@
   the built app (main.js beside it) and doubles as the browsers' native messaging host (host.js).
 
 .DESCRIPTION
-  Steps: take the Node scripts\Get-Node.ps1 fetched (one version, Directory.Build.props), verify its
+  Steps: take the Node scripts\Get-Node.ps1 fetched (one version, package\build-config.json), verify its
   Authenticode signature, make a SEA blob of a tiny CommonJS stub (app\src\entry\sea-stub.ts), inject
   it into a copy of node.exe with postject (pinned: Node 24 has no --build-sea, that arrives in 25.5),
   flip the PE subsystem to Windows GUI so no console shows (stdin and stdout pipes still work), then

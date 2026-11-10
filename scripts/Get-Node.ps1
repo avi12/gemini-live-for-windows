@@ -4,7 +4,7 @@
 
 .DESCRIPTION
   The app ships its own node.exe (pill\node.exe), so it never relies on the machine having Node.
-  The version is Directory.Build.props' BundledNodeVersion, the one place it is written. The win-x64
+  The version is package\build-config.json's bundledNodeVersion, the one place it is written. The win-x64
   zip comes from nodejs.org and must match the SHA-256 in that release's SHASUMS256.txt; only
   node.exe, whose Authenticode signature must be valid, and Node's LICENSE (MIT, kept in the package
   for compliance) are extracted. A cached copy is reused.
@@ -20,9 +20,9 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'   # Windows PowerShell 5.1 crawls with the progress bar on
 
 $root = Split-Path $PSScriptRoot -Parent
-[xml] $props = Get-Content (Join-Path $root 'Directory.Build.props')
-$version = $props.Project.PropertyGroup.BundledNodeVersion | Where-Object { $_ } | Select-Object -First 1
-if (-not $version) { throw 'Directory.Build.props has no BundledNodeVersion' }
+$config = Get-Content (Join-Path $root 'package\build-config.json') -Raw | ConvertFrom-Json
+$version = $config.bundledNodeVersion
+if (-not $version) { throw 'package\build-config.json has no bundledNodeVersion' }
 
 $folder = Join-Path $root "build\node\$version"
 $node = Join-Path $folder 'node.exe'

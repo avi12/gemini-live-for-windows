@@ -47,12 +47,12 @@ $manifestFile = if ($isSea) { 'AppxManifest.sea.xml' } else { 'AppxManifest.xml'
 $publisher = $manifest.Package.Identity.Publisher   # the one source for the cert subject
 $name      = $manifest.Package.Identity.Name
 
-# The minimum Windows lives in Directory.Build.props; the manifest has to repeat it, so stop on drift.
-[xml] $props = Get-Content (Join-Path $root 'Directory.Build.props')
-$minWindows  = $props.Project.PropertyGroup.SupportedOSPlatformVersion
+# The minimum Windows lives in package\build-config.json; the manifest has to repeat it, so stop on drift.
+$buildConfig = Get-Content (Join-Path $root 'package\build-config.json') -Raw | ConvertFrom-Json
+$minWindows  = $buildConfig.minimumWindowsVersion
 $manifestMin = $manifest.Package.Dependencies.TargetDeviceFamily.MinVersion
 if ($manifestMin -ne $minWindows) {
-    throw "AppxManifest.xml MinVersion $manifestMin differs from Directory.Build.props $minWindows"
+    throw "AppxManifest.xml MinVersion $manifestMin differs from package\build-config.json $minWindows"
 }
 
 $release = $Mode -eq 'Release'
