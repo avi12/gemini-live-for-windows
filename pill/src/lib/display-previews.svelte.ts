@@ -19,6 +19,7 @@ const STATS_INTERVAL_MILLISECONDS = 1000;
 const images = new SvelteMap<string, PreviewImage>();
 const displayIdOfCapture = new SvelteMap<string, string>();
 const frameCounts = new SvelteMap<string, number>();
+const previewState = $state({ isOpen: false });
 let source: PreviewSource | undefined;
 let manager: CaptureManager | undefined;
 let statsTimer: NodeJS.Timeout | undefined;
@@ -102,7 +103,12 @@ export function previewOf(displayId: string) {
   return images.get(displayId);
 }
 
+export function arePreviewsOpen() {
+  return previewState.isOpen;
+}
+
 export function setPreviewsOpen(isOpen: boolean) {
+  previewState.isOpen = isOpen;
   const installed = source;
   const isInstalled = installed !== undefined;
   if (!isInstalled) {

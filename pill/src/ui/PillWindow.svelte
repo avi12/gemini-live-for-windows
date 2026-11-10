@@ -1,5 +1,6 @@
 <script lang="ts">
   import "./theme.css";
+  import { arePreviewsOpen } from "@/lib/display-previews.svelte.ts";
   import { setPillWindow } from "@/lib/pill-window.ts";
   import { sendAction, view } from "@/lib/view.svelte.ts";
   import { holdVoiceLevel } from "@/lib/voice-level.svelte.ts";
@@ -35,6 +36,7 @@
   let isDocked = $state(false);
 
   const isWindowHidden = $derived(!isDocked && isExitDone);
+  const isBeingCaptured = $derived(arePreviewsOpen() || view.sharedDisplay !== null);
 
   const pillPlace = $derived(placeOf(PillPart.pill));
   const dragRegions = $derived([pillPlace].filter(place => place !== undefined));
@@ -106,7 +108,7 @@
   isActivatable={view.isFocusable}
   isAlwaysOnTop
   isBorderless
-  isExcludedFromCapture
+  isExcludedFromCapture={isBeingCaptured}
   isHidden={isWindowHidden}
   isResizable={false}
   isToolWindow
