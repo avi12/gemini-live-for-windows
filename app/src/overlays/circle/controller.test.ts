@@ -1,8 +1,4 @@
-import {
-  CIRCLE_SETTLE_MILLISECONDS,
-  createCircleController,
-  NOTICE_MILLISECONDS
-} from "@/overlays/circle/controller.ts";
+import { CIRCLE_SETTLE_MILLISECONDS, createCircleController } from "@/overlays/circle/controller.ts";
 import type { CircleView, CircleWorld } from "@/overlays/circle/controller.ts";
 import { CircleHint, GestureEventKind } from "@/overlays/circle/gesture/gesture.ts";
 import type { OcrLine } from "@/overlays/ports.ts";
@@ -54,11 +50,6 @@ function setup({ isAskOnRelease = false, lines = LINES, isCopySuccessful = true,
   isCopySuccessful?: boolean;
 } = {}) {
   let clock = START_MILLISECONDS;
-  const timers: Array<{
-    milliseconds: number;
-    onTick: () => void;
-    isStopped: boolean;
-  }> = [];
   const outcomes: CircleOutcome[] = [];
   const copyKeys: boolean[] = [];
   const copied: string[] = [];
@@ -81,17 +72,6 @@ function setup({ isAskOnRelease = false, lines = LINES, isCopySuccessful = true,
     },
     holdCopyKey: isHeld => copyKeys.push(isHeld),
     close: outcome => outcomes.push(outcome),
-    setTimer({ milliseconds, onTick }) {
-      const timer = {
-        milliseconds,
-        onTick,
-        isStopped: false
-      };
-      timers.push(timer);
-      return () => {
-        timer.isStopped = true;
-      };
-    },
     now: () => clock,
     log: {
       write: message => logs.push(message)
@@ -114,7 +94,6 @@ function setup({ isAskOnRelease = false, lines = LINES, isCopySuccessful = true,
     copied,
     read,
     logs,
-    timers,
     advance(milliseconds: number) {
       clock += milliseconds;
     },
@@ -159,7 +138,9 @@ describe("createCircleController", () => {
     const { view } = setup();
     assert.deepEqual(view()?.hint, {
       text: HINT,
-      isVisible: true
+      isVisible: true,
+      isLasting: true,
+      revision: 0
     });
     assert.equal(view()?.landing, undefined);
   });
@@ -339,30 +320,23 @@ describe("createCircleController", () => {
     assert.equal(view()?.hint.text, CircleHint.copyFailed);
   });
 
-  it("fades a notice after its time", async () => {
-    const { controller, timers, view } = setup({ lines: [] });
+  it("marks a notice as passing and the how-to as lasting", async () => {
+    const { controller, view } = setup({ lines: [] });
+    assert.equal(view()?.hint.isLasting, true);
     controller.dispatch({ kind: GestureEventKind.selectText });
     await settleAsync();
     assert.equal(view()?.hint.isVisible, true);
-    const timer = timers.at(-1);
-    assert.equal(timer?.milliseconds, NOTICE_MILLISECONDS);
-    timer?.onTick();
-    assert.equal(view()?.hint.isVisible, false);
+    assert.equal(view()?.hint.isLasting, false);
   });
 
-  it("stops a notice's timer when drawing begins", async () => {
-    const { controller, timers } = setup({ lines: [] });
+  it("gives each hint said its own revision", async () => {
+    const { controller, view } = setup({ lines: [] });
+    const first = view()?.hint.revision;
     controller.dispatch({ kind: GestureEventKind.selectText });
+    const second = view()?.hint.revision;
     await settleAsync();
-    draw({ controller });
-    assert.equal(timers.at(-1)?.isStopped, true);
-  });
-
-  it("stops a pending notice when disposed", async () => {
-    const { controller, timers } = setup({ lines: [] });
-    controller.dispatch({ kind: GestureEventKind.selectText });
-    await settleAsync();
-    controller.dispose();
-    assert.equal(timers.at(-1)?.isStopped, true);
+    const third = view()?.hint.revision;
+    assert.notEqual(first, second);
+    assert.notEqual(second, third);
   });
 });

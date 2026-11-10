@@ -10,7 +10,6 @@ import {
 } from "@/overlays/worker.ts";
 import type { MessagePort } from "node:worker_threads";
 import { createMessagePortTransport } from "winui-svelte/state/host";
-import { startTimer } from "winui-svelte/window";
 
 // About one 60 Hz frame; the circle overlay folds the pointer's moves into one update per frame
 const FRAME_MILLISECONDS = 16;
@@ -54,11 +53,6 @@ export async function startOverlayWindows({ port, isDebugging, log }: {
         requestFrame(callback) {
           setTimeout(callback, FRAME_MILLISECONDS);
         },
-        setTimer: ({ milliseconds, onTick }) => startTimer({
-          milliseconds,
-          onTick,
-          isRepeating: false
-        }),
         now: () => Date.now()
       }
     })

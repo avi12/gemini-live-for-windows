@@ -26,10 +26,6 @@ export interface OverlayWindowDeps {
   // Debug runs leave the overlays visible to screenshots
   isDebugging: boolean;
   requestFrame: (callback: () => void) => void;
-  setTimer: (options: {
-    milliseconds: number;
-    onTick: () => void;
-  }) => () => void;
   now: () => number;
 }
 
@@ -112,7 +108,6 @@ function startCircleController({ size, options, deps, events, copyKey, close, on
       copyText: text => deps.clipboard.writeText(text),
       holdCopyKey: isHeld => copyKey.hold(isHeld),
       close,
-      setTimer: deps.setTimer,
       now: deps.now,
       log: deps.log
     },
@@ -205,7 +200,6 @@ function openCircleWindow({ options, events, deps }: {
   function close(outcome: CircleOutcome) {
     keys.hold(false);
     copyKey.hold(false);
-    controller?.dispose();
     overlay.unmount();
     answer.resolve(outcome);
   }

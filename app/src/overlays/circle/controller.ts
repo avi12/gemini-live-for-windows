@@ -16,12 +16,13 @@ import type { Rect, Size } from "@/overlays/shapes.ts";
 // How long after opening a deactivation is still just Windows settling, not the user leaving
 export const CIRCLE_SETTLE_MILLISECONDS = 800;
 
-// How long a notice ("Copied") stays in the hint chip before it fades
-export const NOTICE_MILLISECONDS = 1600;
-
 export interface CircleHintView {
   readonly text: string;
   readonly isVisible: boolean;
+  // A lasting hint (the how-to) stays until told otherwise; a notice ("Copied") the window fades itself
+  readonly isLasting: boolean;
+  // Changes for each hint said, so the window restarts a notice's fade
+  readonly revision: number;
 }
 
 // Everything the overlay window draws, in one value the window renders
@@ -45,32 +46,19 @@ export interface CircleWorld {
   holdCopyKey(isHeld: boolean): void;
   // The overlay is done: hide it, release its keys, answer
   close(outcome: CircleOutcome): void;
-  setTimer(options: {
-    milliseconds: number;
-    onTick: () => void;
-  }): () => void;
   now(): number;
   log: OverlayLog;
 }
 
-function createHint({ text, setTimer, onExpired }: {
-  text: string;
-  setTimer: CircleWorld["setTimer"];
-  onExpired: () => void;
-}) {
+function createHint(text: string) {
   let hint: CircleHintView = {
     text,
-    isVisible: true
+    isVisible: true,
+    isLasting: true,
+    revision: 0
   };
-  let stopNotice: (() => void) | undefined;
-
-  function dispose() {
-    stopNotice?.();
-    stopNotice = undefined;
-  }
 
   function hide() {
-    dispose();
     hint = {
       ...hint,
       isVisible: false
@@ -81,34 +69,18 @@ function createHint({ text, setTimer, onExpired }: {
     message: string;
     isLasting: boolean;
   }) {
-    dispose();
     hint = {
       text: message,
-      isVisible: true
+      isVisible: true,
+      isLasting,
+      revision: hint.revision + 1
     };
-
-    if (isLasting) {
-      return;
-    }
-
-    stopNotice = setTimer({
-      milliseconds: NOTICE_MILLISECONDS,
-      onTick() {
-        stopNotice = undefined;
-        hint = {
-          ...hint,
-          isVisible: false
-        };
-        onExpired();
-      }
-    });
   }
 
   return {
     view: () => hint,
     hide,
-    say,
-    dispose
+    say
   };
 }
 
@@ -282,11 +254,7 @@ export function createCircleController(options: CircleControllerOptions) {
     isAskOnRelease
   });
   const landings = createLandings();
-  const hint = createHint({
-    text: hintText,
-    setTimer: world.setTimer,
-    onExpired: publish
-  });
+  const hint = createHint(hintText);
   const tasks = createCircleTasks({
     window,
     still,
@@ -328,7 +296,6 @@ export function createCircleController(options: CircleControllerOptions) {
       world,
       openedAt,
       dispatch
-    }),
-    dispose: hint.dispose
+    })
   };
 }

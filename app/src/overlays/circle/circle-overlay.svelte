@@ -37,7 +37,7 @@
   import type { WindowHandle } from "winui-svelte/components";
   import { releasePointerCapture, setPointerCapture } from "winui-svelte/input";
   import type { PointerEvent } from "winui-svelte/input";
-  import { mediaQuery } from "winui-svelte/window";
+  import { mediaQuery, startTimer } from "winui-svelte/window";
 
   interface Props {
     // The monitor in physical pixels: the window covers it exactly
@@ -75,6 +75,8 @@
   const FLASH_OPACITY = 0.45;
   // The how-to at top centre drops in from slightly above
   const HINT_DROP = -12;
+  // How long a notice ("Copied") stays in the hint chip before it fades
+  const NOTICE_MILLISECONDS = 1600;
   const PRIMARY_BUTTON = 0;
   const SECONDARY_BUTTON = 2;
   // Gemini's four-point sparkle, in an 18-unit box (the C# draws it in 24 and scales)
@@ -86,6 +88,7 @@
   const clicks = createClickCounter();
   const windowRef: { handle: WindowHandle | undefined } = $state({ handle: undefined });
   const pointer: { cursor: CircleCursor } = $state({ cursor: CircleCursor.draw });
+  const fadedHintRevision: { value: number | undefined } = $state({ value: undefined });
 
   const isReduced = $derived(reducedMotion.matches);
   const gesture = $derived(view?.gesture);
@@ -167,6 +170,24 @@
     })
   );
   const hintLeave = $derived(fadeOut({ isReduced }));
+
+  const isHintShown = $derived(view?.hint.isVisible === true && fadedHintRevision.value !== view.hint.revision);
+
+  $effect(() => {
+    const hint = view?.hint;
+    const isNoticeShown = hint !== undefined && hint.isVisible && !hint.isLasting;
+    if (!isNoticeShown) {
+      return;
+    }
+
+    return startTimer({
+      milliseconds: NOTICE_MILLISECONDS,
+      isRepeating: false,
+      onTick() {
+        fadedHintRevision.value = hint.revision;
+      }
+    });
+  });
 
   $effect(() => {
     const isMeasured = screen.width > 0 && screen.height > 0;
@@ -344,7 +365,7 @@
       {/if}
     </Canvas>
 
-    {#if view?.hint.isVisible === true}
+    {#if isHintShown && view !== undefined}
       {#key view.hint.text}
         <border class="circle-hint circle-hint-frame" in:hintEnter out:hintLeave>
           <TextBlock class="circle-hint-text" text={view.hint.text} />
