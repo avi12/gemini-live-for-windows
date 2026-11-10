@@ -11,8 +11,7 @@ import { describe, it } from "node:test";
 
 const SECONDARY_NAME = "Display 2 · 2560×1440";
 const CHECK_UPDATE: NonNullable<PillView["update"]> = {
-  text: "Check for updates",
-  isAvailable: false,
+  readyVersion: null,
   isAutoUpdateOn: true
 };
 
@@ -792,8 +791,7 @@ describe("updates", () => {
 
     await settle();
     assert.deepEqual(pill.controller.view()?.update, {
-      text: "Restart to update to 2.0.0",
-      isAvailable: true,
+      readyVersion: "2.0.0",
       isAutoUpdateOn: true
     });
   });

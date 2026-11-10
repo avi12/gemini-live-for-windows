@@ -5,19 +5,16 @@ public static class UpdateMenu {
   /// <summary>What the pill says after the installer window opens.</summary>
   public const string InstallerNote = "Choose Update in the installer window. Gemini Live restarts when it's done.";
 
-  private const string _checkText = "Check for updates";
-
   /// <summary>
-  /// "Restart to update to x" when a release is downloaded and checked, else "Check for updates",
-  /// with whether the app looks on its own; null when unpackaged, with nothing to replace.
+  /// The version downloaded and checked, if any, with whether the app looks on its own; null when
+  /// unpackaged, with nothing to replace. The window words the entry.
   /// </summary>
   public static PillUpdate? Describe(UpdateChecker updates, Settings settings) {
     if (UpdateChecker.Installed is null) {
       return null;
     }
 
-    string text = updates.Ready is { } release ? $"Restart to update to {release.Version}" : _checkText;
-    return new PillUpdate(text, updates.Ready is not null, settings.CheckForUpdates);
+    return new PillUpdate(updates.Ready?.Version, settings.CheckForUpdates);
   }
 
   /// <summary>Turns looking on its own on or off; turning it on looks right away.</summary>

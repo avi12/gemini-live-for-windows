@@ -5,20 +5,17 @@ import { runInBackground } from "@/pill/context.ts";
 export const INSTALLER_NOTE = "Choose Update in the installer window. Gemini Live restarts when it's done.";
 export const NO_UPDATE = "There is no update to install";
 export const UNPACKAGED = "Updates need the installed app";
-const CHECK_TEXT = "Check for updates";
 
-// The gear menu's update entry as data: restart into a ready update, or look again; null when
-// unpackaged, with nothing to replace
+// The gear menu's update facts: the version ready to restart into, if any; null when unpackaged,
+// with nothing to replace. The window words the entry.
 export function describeUpdate({ deps }: PillContext) {
   const isUnpackaged = deps.updates.installed === undefined;
   if (isUnpackaged) {
     return null;
   }
 
-  const ready = deps.updates.ready;
   return {
-    text: ready === undefined ? CHECK_TEXT : `Restart to update to ${ready.version}`,
-    isAvailable: ready !== undefined,
+    readyVersion: deps.updates.ready?.version ?? null,
     isAutoUpdateOn: deps.settings.isAutoUpdateOn
   };
 }

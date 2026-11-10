@@ -51,7 +51,7 @@ public sealed record PillDisplayEntry(string Id, int Index, bool IsPrimary, int 
                                       int Width, int Height);
 
 /// <summary>The update entry of the gear menu; the view carries none when there is nothing to update.</summary>
-public sealed record PillUpdate(string Text, bool IsAvailable, bool IsAutoUpdateOn);
+public sealed record PillUpdate(string? ReadyVersion, bool IsAutoUpdateOn);
 
 public sealed record PillGlow(GlowMode Mode, double Level, bool IsUser);
 

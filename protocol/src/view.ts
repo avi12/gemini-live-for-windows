@@ -71,8 +71,7 @@ const displaySchema = z.object({
 export type PillDisplay = z.infer<typeof displaySchema>;
 
 const updateSchema = z.object({
-  text: z.string(),
-  isAvailable: z.boolean(),
+  readyVersion: z.string().nullable(),
   isAutoUpdateOn: z.boolean()
 });
 
