@@ -89,7 +89,6 @@ public sealed partial class PillController : IDisposable {
         Engine: _settings.Engine,
         Microphones: _microphones,
         MicrophoneId: _settings.MicrophoneId,
-        IsCameraAvailable: _settings.Engine == EngineKind.Google,
         IsCameraShared: _glic.View.UseCamera,
         Update: UpdateMenu.Describe(_updates, _settings),
         Glow: _glow.Current,

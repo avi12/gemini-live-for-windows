@@ -93,7 +93,6 @@ export const pillViewSchema = z.object({
   engine: z.enum(EngineKind),
   microphones: z.array(namedSchema),
   microphoneId: z.string().nullable(),
-  isCameraAvailable: z.boolean(),
   isCameraShared: z.boolean(),
   update: updateSchema.nullable(),
   glow: glowSchema,

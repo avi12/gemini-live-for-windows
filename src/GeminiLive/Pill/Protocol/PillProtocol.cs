@@ -74,7 +74,6 @@ public sealed record PillView(
     [property: JsonConverter(typeof(EngineWire))] EngineKind Engine,
     IReadOnlyList<PillNamed> Microphones,
     string? MicrophoneId,
-    bool IsCameraAvailable,
     bool IsCameraShared,
     PillUpdate? Update,
     PillGlow Glow,

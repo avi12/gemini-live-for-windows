@@ -1,4 +1,3 @@
-import { EngineKind } from "@/contracts/live-engine.ts";
 import { monitorName } from "@/contracts/monitor.ts";
 import type { PillContext } from "@/pill/context.ts";
 import { describeMonitor } from "@/pill/menus/displays.ts";
@@ -32,7 +31,6 @@ export function buildView(context: PillContext) {
     engine: deps.settings.engine,
     microphones: [...state.microphones],
     microphoneId: deps.settings.microphoneId,
-    isCameraAvailable: deps.settings.engine === EngineKind.google,
     isCameraShared: state.conversation?.isCameraShared ?? false,
     update: describeUpdate(context),
     glow: state.glow,

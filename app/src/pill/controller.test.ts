@@ -58,7 +58,6 @@ function expectedView(overrides: Partial<PillView> = {}) {
     engine: EngineKind.google,
     microphones: [],
     microphoneId: null,
-    isCameraAvailable: true,
     isCameraShared: false,
     update: CHECK_UPDATE,
     glow: {
@@ -366,7 +365,6 @@ describe("a start that fails", () => {
         status: LiveStatus.needsApiKey,
         statusDetail: "",
         engine: EngineKind.apiKey,
-        isCameraAvailable: false,
         isShown: true,
         isKeyPromptShown: true,
         isFocusable: true,
@@ -468,7 +466,6 @@ describe("the API key prompt", () => {
       pill.controller.view(), expectedView({
         status: LiveStatus.needsApiKey,
         engine: EngineKind.apiKey,
-        isCameraAvailable: false,
         isShown: true,
         isKeyPromptShown: true,
         isFocusable: true,
@@ -491,8 +488,7 @@ describe("the API key prompt", () => {
     assert.deepEqual(
       pill.controller.view(), expectedView({
         ...LISTENING,
-        engine: EngineKind.apiKey,
-        isCameraAvailable: false
+        engine: EngineKind.apiKey
       })
     );
     assert.equal(pill.engine.engine.kind, EngineKind.apiKey);
@@ -547,8 +543,7 @@ describe("switching engines", () => {
     assert.deepEqual(
       pill.controller.view(), expectedView({
         ...LISTENING,
-        engine: EngineKind.apiKey,
-        isCameraAvailable: false
+        engine: EngineKind.apiKey
       })
     );
   });
@@ -788,7 +783,6 @@ describe("the camera", () => {
     });
     await settle();
     assert.equal(pill.controller.view()?.isCameraShared, false);
-    assert.equal(pill.controller.view()?.isCameraAvailable, false);
     assert.equal(pill.logs.at(-1), "Camera sharing needs the Gemini subscription engine");
   });
 

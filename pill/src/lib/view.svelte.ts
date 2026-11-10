@@ -33,7 +33,6 @@ const EMPTY_VIEW: PillView = {
   engine: EngineKind.google,
   microphones: [],
   microphoneId: null,
-  isCameraAvailable: false,
   isCameraShared: false,
   update: null,
   glow: {
