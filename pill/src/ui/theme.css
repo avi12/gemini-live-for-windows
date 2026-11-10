@@ -1,11 +1,11 @@
 @font-face {
   font-family: "Google Sans";
-  src: url("../../../src/GeminiLive/Fonts/GoogleSans-Variable.ttf");
+  src: url("../../fonts/GoogleSans-Variable.ttf");
 }
 
 @font-face {
   font-family: "Material Symbols Rounded";
-  src: url("../../../src/GeminiLive/Fonts/MaterialSymbolsRounded.ttf");
+  src: url("../../fonts/MaterialSymbolsRounded.ttf");
 }
 
 :root {
