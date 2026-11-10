@@ -5,7 +5,7 @@
   (Avi.GeminiLiveForWindows) is not touched.
 
 .DESCRIPTION
-  Takes the staged SEA layout (scripts\install.ps1 -Mode Stage -Entry Sea), copies it to
+  Takes the staged SEA layout (scripts\install.ps1 -Mode Stage), copies it to
   build\spike-layout, renames the identity, protocol, provider and aliases so nothing collides, drops
   the flag file that makes the app run app\src\entry\fast-path-spike.ts, and registers the layout.
   Then, by hand: Settings > Personalization > Text input > Customize Copilot key > "Gemini Live SPIKE",
@@ -40,7 +40,7 @@ if ($Remove) {
 }
 
 if (-not (Test-Path (Join-Path $staged 'GeminiLive.exe'))) {
-  throw 'No staged SEA layout: run  pwsh scripts\install.ps1 -Mode Stage -Entry Sea  first'
+  throw 'No staged SEA layout: run  pwsh scripts\install.ps1 -Mode Stage  first'
 }
 if (Test-Path $spike) { Remove-Item $spike -Recurse -Force }
 Copy-Item $staged $spike -Recurse

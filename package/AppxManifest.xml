@@ -41,12 +41,13 @@
         BackgroundColor="transparent" Square150x150Logo="Assets\Square150x150Logo.png" Square44x44Logo="Assets\Square44x44Logo.png" />
 
       <Extensions>
-        <!-- How Windows launches us on Win+C / the Copilot key. -->
-        <uap:Extension Category="windows.protocol">
-          <uap:Protocol Name="geminilive-key">
+        <!-- How Windows launches us on Win+C / the Copilot key. Parameters hands the URI to the exe as
+             its first argument (process.argv[2]); a bare uap:Protocol passes nothing to a Node exe. -->
+        <uap3:Extension Category="windows.protocol" Executable="GeminiLive.exe" EntryPoint="Windows.FullTrustApplication">
+          <uap3:Protocol Name="geminilive-key" Parameters="&quot;%1&quot;">
             <uap:DisplayName>Gemini Live key</uap:DisplayName>
-          </uap:Protocol>
-        </uap:Extension>
+          </uap3:Protocol>
+        </uap3:Extension>
 
         <!-- Puts "Gemini Live" in Settings > Personalization > Text input > Copilot key.
              MessageWParam values and ?state= names mirror the KeyTrigger enum in CopilotKey.cs. -->
@@ -72,8 +73,11 @@
       </Extensions>
     </Application>
 
-    <!-- The browsers' native messaging host (src\GeminiLiveHost). A browser can't start an exe
-         inside the package folder, so it starts the execution alias in WindowsApps instead. -->
+    <!-- The browsers' native messaging host: the same SEA exe in host mode (it sees chrome-extension://
+         as its first argument). A browser can't start an exe inside the package folder, so it starts
+         the execution alias in WindowsApps. scripts\install.ps1 -HostExe Copy (default) ships
+         GeminiLiveHost.exe as a second copy of the exe; -HostExe Shared points this application and its
+         alias at GeminiLive.exe instead (untested: two applications on one executable). -->
     <Application Id="NativeHost" Executable="GeminiLiveHost.exe" EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements DisplayName="Gemini Live native host" Description="Tells the Gemini Live extension where the app listens"
         BackgroundColor="transparent" Square150x150Logo="Assets\Square150x150Logo.png" Square44x44Logo="Assets\Square44x44Logo.png"
@@ -89,8 +93,21 @@
     </Application>
   </Applications>
 
-  <!-- Win2D's inProcessServer entry (pill\bin\x64\Microsoft.Graphics.Canvas.dll) is added here by
-       scripts\install.ps1 from package\win2d-classes.txt when it stages the layout. -->
+  <Extensions>
+    <!-- The SEA app activates WebView2's WinRT classes by name (an environment per Google page). A
+         package's own catalogue lists only the framework package's classes, so the DLL beside the
+         bundle (app\dist\bin\x64, from winui-svelte's build) is registered here. -->
+    <Extension Category="windows.activatableClass.inProcessServer">
+      <InProcessServer>
+        <Path>bin\x64\Microsoft.Web.WebView2.Core.dll</Path>
+        <ActivatableClass ActivatableClassId="Microsoft.Web.WebView2.Core.CoreWebView2Environment" ThreadingModel="both" />
+        <ActivatableClass ActivatableClassId="Microsoft.Web.WebView2.Core.CoreWebView2EnvironmentOptions" ThreadingModel="both" />
+        <ActivatableClass ActivatableClassId="Microsoft.Web.WebView2.Core.CoreWebView2CustomSchemeRegistration" ThreadingModel="both" />
+      </InProcessServer>
+    </Extension>
+    <!-- Win2D's classes (Microsoft.Graphics.Canvas.dll, same folder) are added to this list by
+         scripts\install.ps1 from package\win2d-classes.txt when it stages the layout. -->
+  </Extensions>
 
   <Capabilities>
     <Capability Name="internetClient" />

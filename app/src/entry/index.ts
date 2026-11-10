@@ -1,7 +1,6 @@
 /**
  * The process entry layer: how the process starts, how it hears the Copilot key, and how it becomes
- * `GeminiLive.exe`. Staged, not shipped: the C# entry stays the shipped one until the manifest points at
- * the SEA exe (`scripts\install.ps1 -Entry Sea`, `package\AppxManifest.sea.xml`).
+ * `GeminiLive.exe` (`scripts\install.ps1`, `package\AppxManifest.xml`).
  *
  * Wiring for the app (main.ts / window.ts, owned by the composition):
  * - main thread, first line: `ensureDpiAware()`. Then `describeActivation({ args: userArguments(process.argv),
