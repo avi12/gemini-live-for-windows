@@ -20,7 +20,8 @@ export const SCENARIO_ORDER = Object.values(ScenarioName);
 const MONITORS = [
   {
     id: "\\\\.\\DISPLAY1",
-    name: "Display 1 (primary)",
+    index: 1,
+    isPrimary: true,
     refreshRateHertz: 60,
     x: 0,
     y: 0,
@@ -29,7 +30,8 @@ const MONITORS = [
   },
   {
     id: "\\\\.\\DISPLAY2",
-    name: "Display 2",
+    index: 2,
+    isPrimary: false,
     refreshRateHertz: 120,
     x: 1920,
     y: 0,
@@ -58,14 +60,12 @@ const IDLE: PillView = {
   displays: MONITORS,
   pillDisplay: MONITORS[0]?.id ?? null,
   sharedDisplay: null,
-  sharedDisplayName: null,
   isExtensionNeeded: false,
   isExtensionStepsShown: false,
   isKeyPromptShown: false,
   engine: EngineKind.google,
   microphones: MICROPHONES,
   microphoneId: "mic-headset",
-  isCameraAvailable: true,
   isCameraShared: false,
   update: null,
   glow: {
@@ -162,10 +162,8 @@ const SCENARIOS: Record<ScenarioName, PillView> = {
   gearMenu: {
     ...IDLE,
     sharedDisplay: MONITORS[0]?.id ?? null,
-    sharedDisplayName: MONITORS[0]?.name ?? null,
     update: {
-      text: "Check for updates",
-      isAvailable: false,
+      readyVersion: null,
       isAutoUpdateOn: true
     }
   },
@@ -175,7 +173,8 @@ const SCENARIOS: Record<ScenarioName, PillView> = {
       ...MONITORS,
       {
         id: "\\\\.\\DISPLAY3",
-        name: "Display 3 · 1920×1080",
+        index: 3,
+        isPrimary: false,
         refreshRateHertz: 144,
         x: 4480,
         y: 0,
@@ -183,8 +182,7 @@ const SCENARIOS: Record<ScenarioName, PillView> = {
         height: 1080
       }
     ],
-    sharedDisplay: MONITORS[0]?.id ?? null,
-    sharedDisplayName: MONITORS[0]?.name ?? null
+    sharedDisplay: MONITORS[0]?.id ?? null
   },
   keyPrompt: {
     ...IDLE,
@@ -196,16 +194,14 @@ const SCENARIOS: Record<ScenarioName, PillView> = {
   updateAvailable: {
     ...IDLE,
     update: {
-      text: "Restart to update to 1.2.3",
-      isAvailable: true,
+      readyVersion: "1.2.3",
       isAutoUpdateOn: false
     }
   },
   cameraShared: {
     ...IDLE,
     isCameraShared: true,
-    sharedDisplay: MONITORS[1]?.id ?? null,
-    sharedDisplayName: MONITORS[1]?.name ?? null
+    sharedDisplay: MONITORS[1]?.id ?? null
   }
 };
 
