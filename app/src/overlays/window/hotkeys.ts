@@ -12,6 +12,7 @@ export const CircleKeyCombination = {
   escape: "escape",
   askGemini: "enter",
   lens: "l",
+  bing: "b",
   selectText: "t",
   copy: "ctrl+c"
 } as const;
@@ -23,6 +24,7 @@ const KEY_NAMES: Record<CircleKeyCombination, string> = {
   [CircleKeyCombination.escape]: "Esc",
   [CircleKeyCombination.askGemini]: "Enter",
   [CircleKeyCombination.lens]: "L",
+  [CircleKeyCombination.bing]: "B",
   [CircleKeyCombination.selectText]: "T",
   [CircleKeyCombination.copy]: "Ctrl+C"
 };
@@ -129,9 +131,9 @@ export function createCopyKey({ register, onPressed, log }: {
   });
 }
 
-// The overlay's own keys, held only while it is open: Esc backs out, Enter asks Gemini, L asks
-// Lens, T selects text. The main side lets go of its Esc first (ScreenFocus.isCircling), so the
-// two never both want Esc
+// The overlay's own keys, held only while it is open: Esc backs out, Enter asks Gemini, L searches
+// Lens, B searches Bing, T selects text. The main side lets go of its Esc first
+// (ScreenFocus.isCircling), so the two never both want Esc
 export function createOverlayKeys({ register, log, onEscape, onFinish, onSelectText }: {
   register: RegisterHotkey;
   log: OverlayLog;
@@ -156,6 +158,12 @@ export function createOverlayKeys({ register, log, onEscape, onFinish, onSelectT
       keys: CircleKeyCombination.lens,
       register,
       onPressed: () => onFinish(CircleAction.lens),
+      log
+    }),
+    createHeldKey({
+      keys: CircleKeyCombination.bing,
+      register,
+      onPressed: () => onFinish(CircleAction.bing),
       log
     }),
     createHeldKey({

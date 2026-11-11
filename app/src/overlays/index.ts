@@ -3,7 +3,7 @@
 
 export { createCircleSession } from "@/overlays/circle/session.ts";
 export type { CircleSelection } from "@/overlays/circle/session.ts";
-export { createLensSearch } from "@/overlays/circle/lens/lens-search.ts";
+export { createImageSearch, searchEngineOf } from "@/overlays/circle/image-search.ts";
 export { connectOverlayWindows } from "@/overlays/controller-link.ts";
 export type { OverlayControllerEvents } from "@/overlays/controller-link.ts";
 export { createPreviousApp } from "@/overlays/focus/previous-app.ts";

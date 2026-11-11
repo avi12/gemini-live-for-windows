@@ -431,6 +431,19 @@
               {/snippet}
             </CircleAction>
             <CircleAction
+              isPrimary={false}
+              label="Bing"
+              onpress={() => dispatch({
+                kind: GestureEventKind.finish,
+                action: CircleActionName.bing
+              })}
+              shortcut="B"
+            >
+              {#snippet icon()}
+                <TextBlock class="circle-icon" text={OverlayGlyph.search} />
+              {/snippet}
+            </CircleAction>
+            <CircleAction
               isDisabled={view.gesture.isReading}
               isPrimary={false}
               label="Select text"

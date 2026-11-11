@@ -49,10 +49,6 @@ export interface Clipboard {
   writeText(text: string): Promise<boolean>;
 }
 
-export interface FileOpener {
-  openFile(options: { filePath: string }): void;
-}
-
 // The Win32 foreground calls PreviousApp and the overlay's bring-to-front make
 export interface ForegroundApi {
   foregroundWindow(): bigint;

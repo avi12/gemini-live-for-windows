@@ -2,7 +2,7 @@ import { monitorSchema, regionSchema } from "@/contracts/monitor.ts";
 import type { ProtocolWithReturn } from "winui-svelte/messaging";
 import { z } from "zod";
 
-// The overlay boundary: the controller on the main thread (engine, screen capture, OCR, Lens) and
+// The overlay boundary: the controller on the main thread (engine, screen capture, OCR, image search) and
 // the windows on the UI worker (the share border, the focus chip, the circle overlay and every
 // global hotkey, which Windows delivers to the thread that registered it).
 
@@ -25,7 +25,8 @@ export const OverlayMessage = {
 
 export const CircleAction = {
   askGemini: "askGemini",
-  lens: "lens"
+  lens: "lens",
+  bing: "bing"
 } as const;
 export type CircleAction = typeof CircleAction[keyof typeof CircleAction];
 

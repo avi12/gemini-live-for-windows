@@ -1,12 +1,11 @@
 import { monitorName } from "@/contracts/monitor.ts";
-import { openFile } from "@/core/shell/open-external.ts";
+import { openExternal } from "@/core/shell/open-external.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 import type { Media } from "@/media/media.ts";
-import { createLensSearch } from "@/overlays/circle/lens/lens-search.ts";
+import { createImageSearch, searchEngineOf } from "@/overlays/circle/image-search.ts";
 import { createCircleSession } from "@/overlays/circle/session.ts";
 import { connectOverlayWindows } from "@/overlays/controller-link.ts";
 import { createScreenFocus } from "@/overlays/focus/screen-focus.ts";
-import { CircleAction } from "@/overlays/protocol.ts";
 import type { PillController } from "@/pill/controller.ts";
 import type { ScreenFocusOptions, ScreenFocusPort } from "@/pill/ports.ts";
 import type { Transport } from "winui-svelte/state/host";
@@ -23,12 +22,12 @@ function toCircleText(lines: Awaited<ReturnType<ReturnType<typeof createCircleSe
 }
 
 // Freezes the display under the pointer for the user to circle something, then sends the crop
-// on: to Lens, or to Gemini as what it sees, starting a conversation if none is running
-async function runCircle({ media, controller, session, lens, log }: {
+// on: to a reverse image search, or to Gemini as what it sees, starting a conversation if none is running
+async function runCircle({ media, controller, session, imageSearch, log }: {
   media: Pick<Media, "monitors">;
   controller: () => Pick<PillController, "focusRegion" | "isRunning">;
   session: ReturnType<typeof createCircleSession>;
-  lens: ReturnType<typeof createLensSearch>;
+  imageSearch: ReturnType<typeof createImageSearch>;
   log: (message: string) => void;
 }) {
   try {
@@ -44,9 +43,13 @@ async function runCircle({ media, controller, session, lens, log }: {
       return;
     }
 
-    const isLens = selection.action === CircleAction.lens;
-    if (isLens) {
-      await lens.search(selection.crop);
+    const engine = searchEngineOf(selection.action);
+    const isSearch = engine !== undefined;
+    if (isSearch) {
+      await imageSearch.search({
+        engine,
+        crop: selection.crop
+      });
       return;
     }
 
@@ -89,10 +92,8 @@ export function createOverlayControl({ transport, media, controller, log }: {
     setCircling: isCircling => focus?.setCircling(isCircling),
     log: overlayLog
   });
-  const lens = createLensSearch({
-    opener: {
-      openFile
-    },
+  const imageSearch = createImageSearch({
+    openUrl: uri => openExternal({ uri }),
     log: overlayLog
   });
 
@@ -101,7 +102,7 @@ export function createOverlayControl({ transport, media, controller, log }: {
       media,
       controller,
       session,
-      lens,
+      imageSearch,
       log
     });
   }
