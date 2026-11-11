@@ -10,7 +10,7 @@
     scrimPath,
     WORD_RADIUS
   } from "@/overlays/circle/gesture/geometry.ts";
-  import { CircleCursor, GestureEventKind, GesturePhase, hoverCursor } from "@/overlays/circle/gesture/gesture.ts";
+  import { CircleCursor, GestureEventKind, hoverCursor } from "@/overlays/circle/gesture/gesture.ts";
   import type { GestureEvent } from "@/overlays/circle/gesture/gesture.ts";
   import { OverlayGlyph } from "@/overlays/glyphs.ts";
   import {
@@ -37,6 +37,7 @@
   import type { WindowHandle } from "winui-svelte/components";
   import { releasePointerCapture, setPointerCapture } from "winui-svelte/input";
   import type { PointerEvent } from "winui-svelte/input";
+  import { SelectionPhase } from "winui-svelte/selection";
   import { mediaQuery, startTimer } from "winui-svelte/window";
 
   interface Props {
@@ -92,9 +93,9 @@
 
   const isReduced = $derived(reducedMotion.matches);
   const gesture = $derived(view?.gesture);
-  const selection = $derived(gesture?.selection);
+  const selection = $derived(gesture?.selector.selection);
   const isTextMode = $derived(gesture?.isTextMode === true);
-  const isStroking = $derived(gesture?.phase === GesturePhase.stroke);
+  const isStroking = $derived(gesture?.selector.phase === SelectionPhase.draw);
   const screenSize = $derived({
     width: screen.width,
     height: screen.height
@@ -117,7 +118,7 @@
     return 0;
   });
 
-  const strokePoints = $derived((gesture?.stroke ?? []).map(point => [point.x, point.y] as const));
+  const strokePoints = $derived((gesture?.selector.stroke ?? []).map(point => [point.x, point.y] as const));
   const scrim = $derived(
     scrimPath({
       screen: screenSize,
@@ -288,7 +289,7 @@
         });
       }
 
-      const isIdle = gesture?.phase === GesturePhase.idle;
+      const isIdle = gesture?.selector.phase === SelectionPhase.idle;
       if (isIdle) {
         pointer.cursor = hoverCursor({
           state: gesture,

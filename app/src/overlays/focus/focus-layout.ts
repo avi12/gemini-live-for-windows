@@ -1,7 +1,6 @@
 import type { Monitor, Region } from "@/contracts/monitor.ts";
-import { moved } from "@/overlays/circle/gesture/geometry.ts";
-import { inflateRect } from "@/overlays/shapes.ts";
 import type { Point } from "@/overlays/shapes.ts";
+import { inflateRectangle, moveRegion } from "winui-svelte/selection";
 
 // Around a circled region the frame sits just outside it, so it never covers what Gemini sees
 export const REGION_FRAME_GAP = 4;
@@ -25,8 +24,8 @@ export function borderBounds({ monitor, region }: {
     };
   }
 
-  return inflateRect({
-    rect: {
+  return inflateRectangle({
+    rectangle: {
       x: monitor.x + region.x,
       y: monitor.y + region.y,
       width: region.width,
@@ -59,7 +58,7 @@ export function regionAfterDrag({ start, travelled, monitor }: {
   travelled: Point;
   monitor: Monitor;
 }) {
-  const origin = moved({
+  const origin = moveRegion({
     selection: start,
     grip: {
       x: 0,
@@ -69,7 +68,7 @@ export function regionAfterDrag({ start, travelled, monitor }: {
       x: start.x + travelled.x,
       y: start.y + travelled.y
     },
-    screen: monitor
+    bounds: monitor
   });
   return {
     x: Math.trunc(origin.x),

@@ -1,24 +1,17 @@
 import type { OcrLine } from "@/overlays/ports.ts";
 import {
   addPoints,
-  boundsOf,
-  distanceBetween,
-  inflateRect,
-  intersectRects,
   rectBottom,
-  rectContains,
   rectCorners,
-  rectFromPoints,
-  rectOfSize,
   rectRight,
-  rectsTouch,
-  subtractPoints
+  rectsTouch
 } from "@/overlays/shapes.ts";
-import type { Point, Rect, Size, Vector } from "@/overlays/shapes.ts";
+import type { Point, Rect, Size } from "@/overlays/shapes.ts";
+import { inflateRectangle, rectangleContains } from "winui-svelte/selection";
 
-// Circle to Search's pure geometry, in the overlay's DIPs: how a loop becomes a selection, how a
-// corner or the whole selection follows the pointer, the brackets' shape, where the action bar
-// goes, and how the selection maps onto the frozen still's pixels. Ported from CircleGeometry.cs.
+// Circle to Search's pure geometry, in the overlay's DIPs: the brackets' shape, where the action
+// bar goes, and the text words OCR found. The selection itself (loop, move, resize, the mapping
+// onto the still's pixels) is winui-svelte's. Ported from CircleGeometry.cs.
 
 export const BarSide = {
   below: "below",
@@ -29,12 +22,6 @@ export const BarSide = {
 } as const;
 type BarSide = typeof BarSide[keyof typeof BarSide];
 
-export interface CornerGrip {
-  readonly anchor: Point;
-  // Plus or minus one per axis: which way from the anchor the grabbed corner lies
-  readonly direction: Vector;
-}
-
 export interface TextWord {
   readonly text: string;
   readonly bounds: Rect;
@@ -44,13 +31,6 @@ export interface TextWord {
 
 // A pointer this close to a word still counts as on it, so the gaps in a line don't drop a drag
 const WORD_SLOP = 3;
-// A loop's bounding box grows by this, so the loop's own line doesn't clip what it circled
-const SELECTION_PADDING = 16;
-// A stroke narrower or shorter than this was a click or a slip, not a circle
-const MIN_STROKE = 10;
-const MIN_SELECTION = 20;
-// How close to a corner a press grabs it for resizing
-const CORNER_REACH = 28;
 // The cutout and the brackets share this radius, so the brackets hug the clear hole exactly
 const SELECTION_RADIUS = 24;
 const BRACKET_ARM = 44;
@@ -74,149 +54,6 @@ function bracketArm(area: Rect) {
 
 export function cornerRadius(area: Rect) {
   return Math.min(SELECTION_RADIUS, bracketArm(area));
-}
-
-// The selection a finished loop makes: its padded bounding box, kept on the screen; undefined
-// when the loop was too small to be a circle
-export function loopSelection({ loop, screen }: {
-  loop: Iterable<Point>;
-  screen: Size;
-}) {
-  const drawn = boundsOf(loop);
-  const isLoopEmpty = drawn === undefined;
-  if (isLoopEmpty) {
-    return undefined;
-  }
-
-  const isTooSmall = drawn.width < MIN_STROKE || drawn.height < MIN_STROKE;
-  if (isTooSmall) {
-    return undefined;
-  }
-
-  return intersectRects({
-    first: inflateRect({
-      rect: drawn,
-      amount: SELECTION_PADDING
-    }),
-    second: rectOfSize(screen)
-  });
-}
-
-// The selection dragged so `grip` (where in it the drag took hold) sits under `pointer`, its size
-// unchanged and never past the screen's edge
-export function moved({ selection, grip, pointer, screen }: {
-  selection: Rect;
-  grip: Vector;
-  pointer: Point;
-  screen: Size;
-}) {
-  const target = subtractPoints({
-    first: pointer,
-    second: grip
-  });
-  const farthestX = Math.max(0, screen.width - selection.width);
-  const farthestY = Math.max(0, screen.height - selection.height);
-  return {
-    x: Math.min(Math.max(target.x, 0), farthestX),
-    y: Math.min(Math.max(target.y, 0), farthestY),
-    width: selection.width,
-    height: selection.height
-  };
-}
-
-// The corner of the selection within reach of the point, if any
-export function nearestCorner({ selection, point }: {
-  selection: Rect;
-  point: Point;
-}) {
-  let nearest: Point | undefined;
-  let nearestDistance = Infinity;
-  for (const corner of rectCorners(selection)) {
-    const distance = distanceBetween({
-      first: corner,
-      second: point
-    });
-    const isNearer = distance < nearestDistance;
-    if (isNearer) {
-      nearest = corner;
-      nearestDistance = distance;
-    }
-  }
-
-  const isInReach = nearestDistance <= CORNER_REACH;
-  if (!isInReach) {
-    return undefined;
-  }
-
-  return nearest;
-}
-
-// Whether the corner resizes along the falling diagonal (top-left and bottom-right) rather than
-// the rising one, for the cursor to match
-export function isFallingCorner({ selection, corner }: {
-  selection: Rect;
-  corner: Point;
-}) {
-  const isLeft = corner.x === selection.x;
-  const isTop = corner.y === selection.y;
-  return isLeft === isTop;
-}
-
-export function grabCorner({ selection, corner }: {
-  selection: Rect;
-  corner: Point;
-}) {
-  const anchor = {
-    x: selection.x + rectRight(selection) - corner.x,
-    y: selection.y + rectBottom(selection) - corner.y
-  };
-  return {
-    anchor,
-    direction: {
-      x: Math.sign(corner.x - anchor.x),
-      y: Math.sign(corner.y - anchor.y)
-    }
-  };
-}
-
-// Where the grabbed edge lands on one axis: at least the minimum size away from the anchor on its
-// own side, and on screen
-function reach({ anchor, pointer, direction, limit }: {
-  anchor: number;
-  pointer: number;
-  direction: number;
-  limit: number;
-}) {
-  const extent = Math.max(MIN_SELECTION, (pointer - anchor) * direction);
-  return Math.min(Math.max(anchor + extent * direction, 0), limit);
-}
-
-// The selection with the grabbed corner at the pointer, never past the minimum size and never off
-// the screen
-export function followCorner({ grip, pointer, screen }: {
-  grip: CornerGrip;
-  pointer: Point;
-  screen: Size;
-}) {
-  const left = reach({
-    anchor: grip.anchor.x,
-    pointer: pointer.x,
-    direction: grip.direction.x,
-    limit: screen.width
-  });
-  const top = reach({
-    anchor: grip.anchor.y,
-    pointer: pointer.y,
-    direction: grip.direction.y,
-    limit: screen.height
-  });
-  return rectFromPoints({
-    first: grip.anchor,
-    second: {
-      x: left,
-      y: top
-    }
-  });
 }
 
 // The two edge directions each corner's bracket runs along, in rectCorners' order
@@ -508,32 +345,8 @@ export function barPlacement({ selection, bar, screen }: {
   };
 }
 
-// The selection in the still's physical pixels, kept inside the still. The window spans the
-// monitor in DIPs and the still in pixels, so their ratio is the monitor's DPI scale
-export function pixelRegion({ selection, window, still }: {
-  selection: Rect;
-  window: Size;
-  still: Size;
-}) {
-  const scaleX = still.width / window.width;
-  const scaleY = still.height / window.height;
-  const left = Math.floor(selection.x * scaleX);
-  const top = Math.floor(selection.y * scaleY);
-  const right = Math.ceil(rectRight(selection) * scaleX);
-  const bottom = Math.ceil(rectBottom(selection) * scaleY);
-  return intersectRects({
-    first: {
-      x: left,
-      y: top,
-      width: right - left,
-      height: bottom - top
-    },
-    second: rectOfSize(still)
-  });
-}
-
 // Every word in reading order (line by line), mapped from the still's pixels to the window's DIPs:
-// the inverse of pixelRegion's scale
+// the inverse of the DPI scale that maps the selection onto the still
 export function textWords({ lines, still, window }: {
   lines: readonly OcrLine[];
   still: Size;
@@ -566,9 +379,9 @@ export function wordAt({ words, point }: {
   point: Point;
 }) {
   for (const [iWord, word] of words.entries()) {
-    const isOnWord = rectContains({
-      rect: inflateRect({
-        rect: word.bounds,
+    const isOnWord = rectangleContains({
+      rectangle: inflateRectangle({
+        rectangle: word.bounds,
         amount: WORD_SLOP
       }),
       point

@@ -1,36 +1,29 @@
 import {
-  followCorner,
-  grabCorner,
-  isFallingCorner,
   joinWords,
-  loopSelection,
-  moved,
-  nearestCorner,
   wordAt,
   wordsBetween,
   wordsIn,
   wordsOnLine
 } from "@/overlays/circle/gesture/geometry.ts";
-import type { CornerGrip, TextWord } from "@/overlays/circle/gesture/geometry.ts";
+import type { TextWord } from "@/overlays/circle/gesture/geometry.ts";
 import { CircleAction } from "@/overlays/protocol.ts";
-import { distanceBetween, rectContains, rectFromPoints, subtractPoints } from "@/overlays/shapes.ts";
-import type { Point, Rect, Size, Vector } from "@/overlays/shapes.ts";
+import type { Point, Rect, Size } from "@/overlays/shapes.ts";
+import {
+  createSelector,
+  rectangleFromPoints,
+  reduceSelector,
+  SelectionCursor,
+  SelectionPhase,
+  hoverCursor as selectorCursor,
+  SelectorEventKind
+} from "winui-svelte/selection";
+import type { SelectorState } from "winui-svelte/selection";
 
 // Circle to Search's gesture state machine as a pure reducer (CircleOverlay.cs): what the pointer
-// and the keys do to the selection, the stroke and text mode. It touches no window; whatever the
-// outside world has to do comes back as effects.
-
+// and the keys do to text mode, the buttons and the answer. The loop, the move and the resize are
+// winui-svelte's selector, held in `selector`. It touches no window; whatever the outside world
+// has to do comes back as effects.
 export { CircleAction };
-
-export const GesturePhase = {
-  idle: "idle",
-  stroke: "stroke",
-  resize: "resize",
-  move: "move",
-  textSelect: "textSelect"
-} as const;
-export type GesturePhase = typeof GesturePhase[keyof typeof GesturePhase];
-
 export const CircleHint = {
   readingText: "Reading text…",
   noText: "No text found",
@@ -42,35 +35,26 @@ export const CircleHint = {
 } as const;
 
 export const CircleCursor = {
-  draw: "crosshair",
-  move: "move",
-  resizeFalling: "nwse-resize",
-  resizeRising: "nesw-resize",
+  ...SelectionCursor,
   text: "text",
   arrow: "default"
 } as const;
 export type CircleCursor = typeof CircleCursor[keyof typeof CircleCursor];
 
-// Pointer moves shorter than this add no point, so a slow hand doesn't pile up thousands
-const MIN_POINT_STEP = 1.5;
 // Three presses in a row select a whole line
 export const LINE_CLICK_COUNT = 3;
 const NO_WORD = -1;
 
 export interface GestureState {
-  readonly phase: GesturePhase;
-  readonly screen: Size;
+  // The loop, the selection and its move and resize
+  readonly selector: SelectorState;
   // Gemini Live is already running: no buttons, the first loop is the answer
   readonly isAskOnRelease: boolean;
   readonly isFinished: boolean;
-  // The loop being drawn, or the one just drawn until the next press clears it
-  readonly stroke: readonly Point[];
-  readonly selection: Rect | undefined;
-  readonly resizeGrip: CornerGrip | undefined;
-  // Where in the selection a move grabbed it, so the selection doesn't jump to the pointer
-  readonly moveGrip: Vector | undefined;
   readonly isReading: boolean;
   readonly isTextMode: boolean;
+  // A press in text mode is down: a word drag or a rubber band
+  readonly isSelectingText: boolean;
   readonly words: readonly TextWord[];
   readonly picked: readonly number[];
   readonly textOrigin: Point | undefined;
@@ -174,16 +158,12 @@ export function initialGesture({ screen, isAskOnRelease }: {
   isAskOnRelease: boolean;
 }) {
   return {
-    phase: GesturePhase.idle,
-    screen,
+    selector: createSelector({ bounds: screen }),
     isAskOnRelease,
     isFinished: false,
-    stroke: [],
-    selection: undefined,
-    resizeGrip: undefined,
-    moveGrip: undefined,
     isReading: false,
     isTextMode: false,
+    isSelectingText: false,
     words: [],
     picked: [],
     textOrigin: undefined,
@@ -226,7 +206,7 @@ function beginTextSelect({ state, point, clickCount }: {
   });
   const begun = {
     ...state,
-    phase: GesturePhase.textSelect,
+    isSelectingText: true,
     textOrigin: point,
     textAnchor
   };
@@ -265,7 +245,7 @@ function extendTextSelect({ state, point }: {
   const isBand = state.textAnchor === NO_WORD;
   const isBandDrag = isBand && state.textOrigin !== undefined;
   if (isBandDrag) {
-    const band = rectFromPoints({
+    const band = rectangleFromPoints({
       first: state.textOrigin,
       second: point
     });
@@ -299,47 +279,6 @@ function extendTextSelect({ state, point }: {
   });
 }
 
-function grabSelection({ state, point }: {
-  state: GestureState;
-  point: Point;
-}) {
-  const corner = state.selection === undefined
-    ? undefined
-    : nearestCorner({
-      selection: state.selection,
-      point
-    });
-  const isOnCorner = state.selection !== undefined && corner !== undefined;
-  if (isOnCorner) {
-    return stay({
-      ...state,
-      phase: GesturePhase.resize,
-      resizeGrip: grabCorner({
-        selection: state.selection,
-        corner
-      })
-    });
-  }
-
-  const selected = state.selection;
-  const isOnSelection = selected !== undefined && rectContains({
-    rect: selected,
-    point
-  });
-  if (isOnSelection) {
-    return stay({
-      ...state,
-      phase: GesturePhase.move,
-      moveGrip: subtractPoints({
-        first: point,
-        second: selected
-      })
-    });
-  }
-
-  return undefined;
-}
-
 function pressDown({ state, point, clickCount }: {
   state: GestureState;
   point: Point;
@@ -358,100 +297,50 @@ function pressDown({ state, point, clickCount }: {
     });
   }
 
-  const grabbed = grabSelection({
-    state,
-    point
+  const selector = reduceSelector({
+    state: state.selector,
+    event: {
+      kind: SelectorEventKind.pointerDown,
+      point
+    }
   });
-  const isGrabbed = grabbed !== undefined;
-  if (isGrabbed) {
-    return grabbed;
-  }
-
+  const isStartingLoop = selector.phase === SelectionPhase.draw;
   return {
     state: {
       ...state,
-      phase: GesturePhase.stroke,
-      selection: undefined,
-      stroke: [point]
+      selector
     },
-    effects: [{ kind: GestureEffectKind.hideHint }]
+    effects: isStartingLoop ? [{ kind: GestureEffectKind.hideHint }] : []
   };
-}
-
-function extendStroke({ state, point }: {
-  state: GestureState;
-  point: Point;
-}) {
-  const last = state.stroke.at(-1);
-  const isTooClose = last !== undefined && distanceBetween({
-    first: point,
-    second: last
-  }) < MIN_POINT_STEP;
-  if (isTooClose) {
-    return stay(state);
-  }
-
-  return stay({
-    ...state,
-    stroke: [...state.stroke, point]
-  });
 }
 
 function pointerMoved({ state, point }: {
   state: GestureState;
   point: Point;
 }) {
-  const isStroking = state.phase === GesturePhase.stroke;
-  if (isStroking) {
-    return extendStroke({
-      state,
-      point
-    });
-  }
-
-  const isResizing = state.phase === GesturePhase.resize && state.resizeGrip !== undefined;
-  if (isResizing) {
-    return stay({
-      ...state,
-      selection: followCorner({
-        grip: state.resizeGrip,
-        pointer: point,
-        screen: state.screen
-      })
-    });
-  }
-
-  const isMoving = state.phase === GesturePhase.move && state.selection !== undefined && state.moveGrip !== undefined;
-  if (isMoving) {
-    return stay({
-      ...state,
-      selection: moved({
-        selection: state.selection,
-        grip: state.moveGrip,
-        pointer: point,
-        screen: state.screen
-      })
-    });
-  }
-
-  const isSelectingText = state.phase === GesturePhase.textSelect;
-  if (isSelectingText) {
+  if (state.isSelectingText) {
     return extendTextSelect({
       state,
       point
     });
   }
 
-  return stay(state);
+  return stay({
+    ...state,
+    selector: reduceSelector({
+      state: state.selector,
+      event: {
+        kind: SelectorEventKind.pointerMove,
+        point
+      }
+    })
+  });
 }
 
 // The loop fades either way; one big enough becomes the selection, a smaller one is ignored and
 // drawing simply carries on. With isAskOnRelease the loop itself is the request
 function endStroke(state: GestureState) {
-  const drawn = loopSelection({
-    loop: state.stroke,
-    screen: state.screen
-  });
+  const drawn = state.selector.selection;
   const isTooSmall = drawn === undefined;
   if (isTooSmall) {
     return stay(state);
@@ -459,19 +348,13 @@ function endStroke(state: GestureState) {
 
   if (state.isAskOnRelease) {
     return finish({
-      state: {
-        ...state,
-        selection: drawn
-      },
+      state,
       action: CircleAction.askGemini
     });
   }
 
   return {
-    state: {
-      ...state,
-      selection: drawn
-    },
+    state,
     effects: [{
       kind: GestureEffectKind.snapIn,
       area: drawn
@@ -480,34 +363,37 @@ function endStroke(state: GestureState) {
 }
 
 function pressEnded(state: GestureState) {
-  const ended = state.phase;
-  const idle = {
-    ...state,
-    phase: GesturePhase.idle,
-    resizeGrip: undefined,
-    moveGrip: undefined
-  };
-  const isEndingStroke = ended === GesturePhase.stroke;
-  if (isEndingStroke) {
-    return endStroke(idle);
-  }
-
-  const isEndingTextSelect = ended === GesturePhase.textSelect;
-  if (isEndingTextSelect) {
+  if (state.isSelectingText) {
     return stay({
-      ...idle,
+      ...state,
+      isSelectingText: false,
       band: undefined
     });
   }
 
-  return stay(idle);
+  const isEndingDraw = state.selector.phase === SelectionPhase.draw;
+  const released = {
+    ...state,
+    selector: reduceSelector({
+      state: state.selector,
+      event: {
+        kind: SelectorEventKind.pointerUp
+      }
+    })
+  };
+  if (isEndingDraw) {
+    return endStroke(released);
+  }
+
+  return stay(released);
 }
 
 function finish({ state, action }: {
   state: GestureState;
   action: CircleAction;
 }) {
-  const isUnanswerable = state.isFinished || state.selection === undefined;
+  const { selection } = state.selector;
+  const isUnanswerable = state.isFinished || selection === undefined;
   if (isUnanswerable) {
     return stay(state);
   }
@@ -520,7 +406,7 @@ function finish({ state, action }: {
     effects: [{
       kind: GestureEffectKind.finish,
       action,
-      selection: state.selection
+      selection
     }]
   };
 }
@@ -596,7 +482,7 @@ function requestText(state: GestureState) {
       },
       {
         kind: GestureEffectKind.readText,
-        selection: state.selection
+        selection: state.selector.selection
       }
     ]
   };
@@ -729,27 +615,8 @@ export function hoverCursor({ state, point }: {
     return isOnWord ? CircleCursor.text : CircleCursor.arrow;
   }
 
-  const isUnselected = state.selection === undefined;
-  if (isUnselected) {
-    return CircleCursor.draw;
-  }
-
-  const corner = nearestCorner({
-    selection: state.selection,
+  return selectorCursor({
+    state: state.selector,
     point
   });
-  const isAwayFromCorners = corner === undefined;
-  if (isAwayFromCorners) {
-    const isInside = rectContains({
-      rect: state.selection,
-      point
-    });
-    return isInside ? CircleCursor.move : CircleCursor.draw;
-  }
-
-  const isFalling = isFallingCorner({
-    selection: state.selection,
-    corner
-  });
-  return isFalling ? CircleCursor.resizeFalling : CircleCursor.resizeRising;
 }

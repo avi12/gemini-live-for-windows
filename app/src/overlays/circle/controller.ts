@@ -1,7 +1,7 @@
 import { regionSchema } from "@/contracts/monitor.ts";
 import type { Region } from "@/contracts/monitor.ts";
 import { errorMessage } from "@/lib/error-message.ts";
-import { pixelRegion, textWords } from "@/overlays/circle/gesture/geometry.ts";
+import { textWords } from "@/overlays/circle/gesture/geometry.ts";
 import {
   GestureEffectKind,
   GestureEventKind,
@@ -12,6 +12,7 @@ import type { GestureEffect, GestureEvent, GestureState } from "@/overlays/circl
 import type { OcrLine, OverlayLog } from "@/overlays/ports.ts";
 import type { CircleAction, CircleOutcome } from "@/overlays/protocol.ts";
 import type { Rect, Size } from "@/overlays/shapes.ts";
+import { pixelRegion } from "winui-svelte/selection";
 
 // How long after opening a deactivation is still just Windows settling, not the user leaving
 export const CIRCLE_SETTLE_MILLISECONDS = 800;
@@ -91,8 +92,8 @@ function createRegionParser({ window, still }: {
   return (selection: Rect) => {
     const region = pixelRegion({
       selection,
-      window,
-      still
+      drawnIn: window,
+      picture: still
     });
     return regionSchema.safeParse(region);
   };

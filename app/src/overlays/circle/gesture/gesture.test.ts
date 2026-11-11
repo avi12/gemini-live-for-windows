@@ -5,7 +5,6 @@ import {
   CircleHint,
   GestureEffectKind,
   GestureEventKind,
-  GesturePhase,
   hoverCursor,
   initialGesture,
   LINE_CLICK_COUNT,
@@ -15,6 +14,7 @@ import type { GestureEffect, GestureEvent, GestureState } from "@/overlays/circl
 import type { Point } from "@/overlays/shapes.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { SelectionPhase } from "winui-svelte/selection";
 
 const SCREEN = {
   width: 1920,
@@ -176,8 +176,8 @@ describe("a loop", () => {
         y: 10
       })]
     });
-    assert.equal(state.phase, GesturePhase.stroke);
-    assert.deepEqual(state.stroke, [{
+    assert.equal(state.selector.phase, SelectionPhase.draw);
+    assert.deepEqual(state.selector.stroke, [{
       x: 10,
       y: 10
     }]);
@@ -198,7 +198,7 @@ describe("a loop", () => {
         y: 0
       })]
     });
-    assert.deepEqual(state.stroke, [{
+    assert.deepEqual(state.selector.stroke, [{
       x: 0,
       y: 0
     }, {
@@ -218,7 +218,7 @@ describe("a loop", () => {
         y: 0
       })]
     });
-    assert.equal(state.stroke.length, 2);
+    assert.equal(state.selector.stroke.length, 2);
   });
 
   it("becomes a padded, landed selection on release", () => {
@@ -226,8 +226,8 @@ describe("a loop", () => {
       state: start(),
       events: drawLoop()
     });
-    assert.equal(state.phase, GesturePhase.idle);
-    assert.deepEqual(state.selection, LOOP_SELECTION);
+    assert.equal(state.selector.phase, SelectionPhase.idle);
+    assert.deepEqual(state.selector.selection, LOOP_SELECTION);
     assert.deepEqual(effects, [
       { kind: GestureEffectKind.hideHint },
       {
@@ -238,7 +238,7 @@ describe("a loop", () => {
   });
 
   it("keeps the drawn points to fade out after release", () => {
-    assert.equal(selected().stroke.length, LOOP.length);
+    assert.equal(selected().selector.stroke.length, LOOP.length);
   });
 
   it("ignores a click that is too small to be a circle", () => {
@@ -249,8 +249,8 @@ describe("a loop", () => {
         y: 50
       }), RELEASE]
     });
-    assert.equal(state.selection, undefined);
-    assert.equal(state.phase, GesturePhase.idle);
+    assert.equal(state.selector.selection, undefined);
+    assert.equal(state.selector.phase, SelectionPhase.idle);
     assert.deepEqual(effects, [{ kind: GestureEffectKind.hideHint }]);
   });
 
@@ -276,8 +276,8 @@ describe("a loop", () => {
         y: 900
       })]
     });
-    assert.equal(state.selection, undefined);
-    assert.equal(state.phase, GesturePhase.stroke);
+    assert.equal(state.selector.selection, undefined);
+    assert.equal(state.selector.phase, SelectionPhase.draw);
   });
 
   it("ends the loop when the pointer is lost without a release", () => {
@@ -285,7 +285,7 @@ describe("a loop", () => {
       state: start(),
       events: [...drawLoop().slice(0, -1), RELEASE]
     });
-    assert.deepEqual(state.selection, LOOP_SELECTION);
+    assert.deepEqual(state.selector.selection, LOOP_SELECTION);
   });
 
   it("moving with nothing held changes nothing", () => {
@@ -321,8 +321,8 @@ describe("resizing", () => {
         y: 600
       })]
     });
-    assert.equal(state.phase, GesturePhase.resize);
-    assert.deepEqual(state.selection, {
+    assert.equal(state.selector.phase, SelectionPhase.resize);
+    assert.deepEqual(state.selector.selection, {
       x: 284,
       y: 284,
       width: 416,
@@ -341,7 +341,7 @@ describe("resizing", () => {
         y: 0
       })]
     });
-    assert.deepEqual(state.selection, {
+    assert.deepEqual(state.selector.selection, {
       x: 284,
       y: 284,
       width: 20,
@@ -360,9 +360,9 @@ describe("resizing", () => {
         y: 600
       }), RELEASE]
     });
-    assert.equal(state.phase, GesturePhase.idle);
-    assert.equal(state.resizeGrip, undefined);
-    assert.deepEqual(state.selection, {
+    assert.equal(state.selector.phase, SelectionPhase.idle);
+    assert.equal(state.selector.resizeGrip, undefined);
+    assert.deepEqual(state.selector.selection, {
       x: 284,
       y: 284,
       width: 416,
@@ -397,8 +397,8 @@ describe("moving", () => {
         y: 400
       })]
     });
-    assert.equal(state.phase, GesturePhase.move);
-    assert.deepEqual(state.selection, {
+    assert.equal(state.selector.phase, SelectionPhase.move);
+    assert.deepEqual(state.selector.selection, {
       x: 334,
       y: 304,
       width: 232,
@@ -414,7 +414,7 @@ describe("moving", () => {
         y: 380
       }), RELEASE]
     });
-    assert.deepEqual(state.selection, LOOP_SELECTION);
+    assert.deepEqual(state.selector.selection, LOOP_SELECTION);
   });
 
   it("stops at the screen edge", () => {
@@ -428,7 +428,7 @@ describe("moving", () => {
         y: -500
       })]
     });
-    assert.deepEqual(state.selection, {
+    assert.deepEqual(state.selector.selection, {
       x: 0,
       y: 0,
       width: 232,
@@ -610,7 +610,7 @@ describe("reading text", () => {
         y: 5
       })
     });
-    assert.equal(step.state.phase, GesturePhase.idle);
+    assert.equal(step.state.selector.phase, SelectionPhase.idle);
   });
 
   it("enters text mode when words were found", () => {
@@ -685,7 +685,7 @@ describe("selecting words", () => {
         y: 110
       })]
     });
-    assert.equal(state.phase, GesturePhase.textSelect);
+    assert.equal(state.isSelectingText, true);
     assert.deepEqual(state.picked, [0]);
     assert.deepEqual(effects.at(-1), {
       kind: GestureEffectKind.setCopyKey,
@@ -948,7 +948,7 @@ describe("escape in text mode", () => {
       state: picked,
       events: [ESCAPE, ESCAPE]
     });
-    assert.deepEqual(state.selection, LOOP_SELECTION);
+    assert.deepEqual(state.selector.selection, LOOP_SELECTION);
   });
 });
 
