@@ -4,12 +4,14 @@
   import CircleChips from "@/overlays/circle/chips/circle-chips.svelte";
   import CircleAction from "@/overlays/circle/circle-action.svelte";
   import CircleBar from "@/overlays/circle/circle-bar.svelte";
+  import CircleCancel from "@/overlays/circle/circle-cancel.svelte";
   import type { CircleView } from "@/overlays/circle/controller.ts";
   import { createClickCounter } from "@/overlays/circle/gesture/click-counter.ts";
   import { cornerRadius, roundedRectsPath, WORD_RADIUS } from "@/overlays/circle/gesture/geometry.ts";
   import { CircleCursor, GestureEventKind, hoverCursor, pickedWords } from "@/overlays/circle/gesture/gesture.ts";
   import type { GestureEvent } from "@/overlays/circle/gesture/gesture.ts";
   import { movePoints, pointerPoint } from "@/overlays/circle/gesture/pointer-points.ts";
+  import { createPointerTracker, PressVerdict } from "@/overlays/circle/gesture/pointer-tracker.ts";
   import { withoutStaleStroke } from "@/overlays/circle/gesture/stale-stroke.ts";
   import { CORE_SEARCH_ACTION, extraSearchActions, SEARCH_ENGINES } from "@/overlays/circle/search-engines.ts";
   import { OverlayGlyph } from "@/overlays/glyphs.ts";
@@ -17,6 +19,7 @@
   import { CircleAction as CircleActionName } from "@/overlays/protocol.ts";
   import type { SearchAction } from "@/overlays/protocol.ts";
   import type { Size } from "@/overlays/shapes.ts";
+  import { CircleKeyCombination, keyName } from "@/overlays/window/hotkeys.ts";
   import { reassertTopmost } from "@/overlays/window/topmost.ts";
   import { windowTheme } from "@/overlays/window/window-theme.svelte.ts";
   import "@gemini-live/pill/theme.css";
@@ -30,6 +33,7 @@
     Window
   } from "winui-svelte/components";
   import type { WindowHandle } from "winui-svelte/components";
+  import "winui-svelte/css/environment";
   import { releasePointerCapture, setPointerCapture } from "winui-svelte/input";
   import type { PointerEvent } from "winui-svelte/input";
   import { createSelector, SelectionPhase } from "winui-svelte/selection";
@@ -79,8 +83,6 @@
   const NOTICE_MILLISECONDS = 1600;
   // The overlay fades the loop over 260 ms after release
   const STROKE_FADE_MILLISECONDS = 400;
-  const PRIMARY_BUTTON = 0;
-  const SECONDARY_BUTTON = 2;
   // Gemini's four-point sparkle, in an 18-unit box (the C# draws it in 24 and scales)
   const SPARKLE = "M9,0 C9,4.95 13.05,9 18,9 C13.05,9 9,13.05 9,18 C9,13.05 4.95,9 0,9 C4.95,9 9,4.95 9,0 Z";
 
@@ -88,6 +90,7 @@
   const theme = windowTheme();
   const reducedMotion = mediaQuery("(prefers-reduced-motion: reduce)");
   const clicks = createClickCounter();
+  const tracker = createPointerTracker();
   const windowRef: { handle: WindowHandle | undefined } = $state({ handle: undefined });
   const pointer: { cursor: CircleCursor } = $state({ cursor: CircleCursor.draw });
   const fadedHintRevision: { value: number | undefined } = $state({ value: undefined });
@@ -150,7 +153,82 @@
   );
   const hintLeave = $derived(fadeOut({ isReduced }));
 
+  const isBarShown = $derived(
+    selection !== undefined && view !== undefined && (isTextMode || !view.gesture.isAskOnRelease)
+  );
   const isHintShown = $derived(view?.hint.isVisible === true && fadedHintRevision.value !== view.hint.revision);
+
+  function pressDown(event: PointerEvent) {
+    const verdict = tracker.press(event);
+    const isCancel = verdict === PressVerdict.cancel;
+    if (isCancel) {
+      dispatch({ kind: GestureEventKind.escape });
+      return;
+    }
+
+    const isIgnored = verdict === PressVerdict.ignore;
+    if (isIgnored) {
+      return;
+    }
+
+    const point = pointerPoint(event);
+    setPointerCapture({
+      control: event.currentTarget,
+      pointerId: event.pointerId
+    });
+    dispatch({
+      kind: GestureEventKind.pointerDown,
+      point,
+      clickCount: clicks.press({
+        point,
+        time: performance.now()
+      })
+    });
+  }
+
+  function moveTo(event: PointerEvent) {
+    const isStranger = !tracker.isFollowed(event.pointerId);
+    if (isStranger) {
+      return;
+    }
+
+    for (const point of movePoints(event)) {
+      dispatch({
+        kind: GestureEventKind.pointerMove,
+        point
+      });
+    }
+
+    const isIdle = gesture?.selector.phase === SelectionPhase.idle;
+    if (isIdle) {
+      pointer.cursor = hoverCursor({
+        state: gesture,
+        point: pointerPoint(event)
+      });
+    }
+  }
+
+  function pressUp(event: PointerEvent) {
+    const isStranger = !tracker.release(event.pointerId);
+    if (isStranger) {
+      return;
+    }
+
+    releasePointerCapture({
+      control: event.currentTarget,
+      pointerId: event.pointerId
+    });
+    dispatch({ kind: GestureEventKind.pointerUp });
+  }
+
+  function endPress(event: PointerEvent) {
+    const isStranger = !tracker.release(event.pointerId);
+    if (isStranger) {
+      return;
+    }
+
+    dispatch({ kind: GestureEventKind.pointerUp });
+  }
 
   function cancel() {
     dispatch({ kind: GestureEventKind.cancel });
@@ -245,57 +323,11 @@
     style:cursor={pointer.cursor}
     class="circle-root"
     {@attach screen.attach}
-    onpointercancel={() => dispatch({ kind: GestureEventKind.pointerUp })}
-    onpointercapturelost={() => dispatch({ kind: GestureEventKind.pointerUp })}
-    onpointerdown={(event: PointerEvent) => {
-      const isSecondary = event.button === SECONDARY_BUTTON;
-      if (isSecondary) {
-        dispatch({ kind: GestureEventKind.escape });
-        return;
-      }
-
-      const isOtherButton = event.button !== PRIMARY_BUTTON;
-      if (isOtherButton) {
-        return;
-      }
-
-      const point = pointerPoint(event);
-      setPointerCapture({
-        control: event.currentTarget,
-        pointerId: event.pointerId
-      });
-      dispatch({
-        kind: GestureEventKind.pointerDown,
-        point,
-        clickCount: clicks.press({
-          point,
-          time: performance.now()
-        })
-      });
-    }}
-    onpointermove={(event: PointerEvent) => {
-      for (const point of movePoints(event)) {
-        dispatch({
-          kind: GestureEventKind.pointerMove,
-          point
-        });
-      }
-
-      const isIdle = gesture?.selector.phase === SelectionPhase.idle;
-      if (isIdle) {
-        pointer.cursor = hoverCursor({
-          state: gesture,
-          point: pointerPoint(event)
-        });
-      }
-    }}
-    onpointerup={(event: PointerEvent) => {
-      releasePointerCapture({
-        control: event.currentTarget,
-        pointerId: event.pointerId
-      });
-      dispatch({ kind: GestureEventKind.pointerUp });
-    }}
+    onpointercancel={endPress}
+    onpointercapturelost={endPress}
+    onpointerdown={pressDown}
+    onpointermove={moveTo}
+    onpointerup={pressUp}
     role="presentation"
   >
     <SelectionOverlay image={still} state={overlayState} />
@@ -343,26 +375,39 @@
       {/key}
     {/if}
 
+    {#if !isBarShown}
+      <!-- Touch has no Esc: the X is on screen before the first loop too -->
+      <border
+        class="circle-corner-cancel"
+        onpointerdown={(event: PointerEvent) => event.stopPropagation()}
+        role="presentation"
+      >
+        <CircleCancel onpress={cancel} />
+      </border>
+    {/if}
+
     <Canvas class="circle-layer">
       {#if view !== undefined && selection !== undefined}
         {#if isTextMode}
           <CircleBar oncancel={cancel} screen={screenSize} {selection}>
             <CircleAction
               isDisabled={picked.length === 0}
+              isLabelled
               isPrimary
               label="Copy"
               onpress={() => dispatch({ kind: GestureEventKind.copy })}
-              shortcut="Ctrl+C"
+              shortcut={keyName(CircleKeyCombination.copy)}
             >
               {#snippet icon()}
                 <TextBlock class="circle-icon circle-primary-ink" text={OverlayGlyph.copy} />
               {/snippet}
             </CircleAction>
             <CircleAction
+              isLabelled={false}
               isPrimary={false}
               label="Done"
               onpress={() => dispatch({ kind: GestureEventKind.leaveText })}
-              shortcut="Esc"
+              shortcut={keyName(CircleKeyCombination.escape)}
             >
               {#snippet icon()}
                 <TextBlock class="circle-icon" text={OverlayGlyph.close} />
@@ -375,26 +420,28 @@
           {/if}
           <CircleBar oncancel={cancel} screen={screenSize} {selection}>
             <CircleAction
+              isLabelled
               isPrimary
               label="Ask Gemini"
               onpress={() => dispatch({
                 kind: GestureEventKind.finish,
                 action: CircleActionName.askGemini
               })}
-              shortcut="Enter"
+              shortcut={keyName(CircleKeyCombination.askGemini)}
             >
               {#snippet icon()}
                 <Path class="circle-sparkle" data={SPARKLE} />
               {/snippet}
             </CircleAction>
             <CircleAction
+              isLabelled={false}
               isPrimary={false}
               label={SEARCH_ENGINES[CORE_SEARCH_ACTION].label}
               onpress={() => dispatch({
                 kind: GestureEventKind.finish,
                 action: CORE_SEARCH_ACTION
               })}
-              shortcut={SEARCH_ENGINES[CORE_SEARCH_ACTION].keys.toUpperCase()}
+              shortcut={keyName(SEARCH_ENGINES[CORE_SEARCH_ACTION].keys)}
             >
               {#snippet icon()}
                 <TextBlock class="circle-icon" text={SEARCH_ENGINES[CORE_SEARCH_ACTION].glyph} />
@@ -402,10 +449,11 @@
             </CircleAction>
             <CircleAction
               isDisabled={view.gesture.isReading}
+              isLabelled={false}
               isPrimary={false}
               label="Select text"
               onpress={() => dispatch({ kind: GestureEventKind.selectText })}
-              shortcut="T"
+              shortcut={keyName(CircleKeyCombination.selectText)}
             >
               {#snippet icon()}
                 <TextBlock class="circle-icon" text={OverlayGlyph.textSelect} />
@@ -413,12 +461,12 @@
             </CircleAction>
             <!-- Other engines: one small button opens the list, so the core actions stay alone -->
             <CircleAction
+              isLabelled={false}
               isPrimary={false}
               label="More"
               onpress={() => {
                 chooser.isOpen = !chooser.isOpen;
               }}
-              shortcut="Other search engines"
             >
               {#snippet icon()}
                 <TextBlock class="circle-icon" text={OverlayGlyph.more} />
@@ -427,13 +475,14 @@
             {#if chooser.isOpen}
               {#each extraActions as action (action)}
                 <CircleAction
+                  isLabelled
                   isPrimary={false}
                   label={SEARCH_ENGINES[action].label}
                   onpress={() => dispatch({
                     kind: GestureEventKind.finish,
                     action
                   })}
-                  shortcut={SEARCH_ENGINES[action].keys.toUpperCase()}
+                  shortcut={keyName(SEARCH_ENGINES[action].keys)}
                 >
                   {#snippet icon()}
                     <TextBlock class="circle-icon" text={SEARCH_ENGINES[action].glyph} />
@@ -451,11 +500,6 @@
 <style>
   .circle-root {
     background-color: transparent;
-  }
-
-  .circle-tint {
-    background-image: linear-gradient(to bottom, #4285f4 0%, #ea4335 33%, #fbbc04 66%, #34a853 100%);
-    opacity: 0.1;
   }
 
   .circle-edge {
@@ -498,7 +542,12 @@
     justify-self: center;
     margin-top: 28px;
     padding: 12px 20px;
-    border-radius: 34px;
+  }
+
+  .circle-corner-cancel {
+    align-self: start;
+    justify-self: end;
+    margin: 28px;
   }
 
   .circle-hint-text {

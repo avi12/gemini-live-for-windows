@@ -19,7 +19,7 @@ export const CircleKeyCombination = {
 } as const;
 export type CircleKeyCombination = typeof CircleKeyCombination[keyof typeof CircleKeyCombination];
 
-// Names as people say them, for the log
+// Names as people say them, for the log and the buttons' tooltips
 const KEY_NAMES: Record<CircleKeyCombination, string> = {
   [CircleKeyCombination.circle]: "Win+Alt+C",
   [CircleKeyCombination.escape]: "Esc",
@@ -29,6 +29,10 @@ const KEY_NAMES: Record<CircleKeyCombination, string> = {
   [CircleKeyCombination.selectText]: "T",
   [CircleKeyCombination.copy]: "Ctrl+C"
 };
+
+export function keyName(keys: CircleKeyCombination) {
+  return KEY_NAMES[keys];
+}
 
 export interface HotkeyHandle {
   unregister(): void;

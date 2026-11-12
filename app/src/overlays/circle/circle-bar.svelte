@@ -7,7 +7,9 @@
   import type { Snippet } from "svelte";
   import { elementSize } from "winui-svelte";
   import { StackPanel } from "winui-svelte/components";
-  import type { PointerEvent } from "winui-svelte/input";
+  import { FocusNavigationDirection } from "winui-svelte/enums";
+  import { moveFocus } from "winui-svelte/input";
+  import type { KeyboardEvent, PointerEvent } from "winui-svelte/input";
   import { mediaQuery } from "winui-svelte/window";
 
   interface Props {
@@ -24,7 +26,8 @@
   // place above it, and no slide beside it (a vertical rise there would read as drifting)
   const BAR_RISE = 24;
   const BAR_SCALE_FROM = 0.94;
-  const BUTTON_GAP = 8;
+  // The pill's own spacing between its round buttons and from its edge
+  const BUTTON_GAP = 12;
   const SIDE_RISE = {
     [BarSide.below]: BAR_RISE,
     [BarSide.inside]: BAR_RISE,
@@ -47,6 +50,26 @@
     })
   );
 
+  const ARROW_DIRECTIONS = new Map([
+    ["ArrowLeft", FocusNavigationDirection.Left],
+    ["ArrowRight", FocusNavigationDirection.Right]
+  ]);
+
+  // Tab walks the buttons by itself; the arrows do too, as in a toolbar
+  function onarrow(event: KeyboardEvent) {
+    const direction = ARROW_DIRECTIONS.get(event.key);
+    const isOtherKey = direction === undefined;
+    if (isOtherKey) {
+      return;
+    }
+
+    event.preventDefault();
+    moveFocus({
+      direction,
+      within: event.currentTarget
+    });
+  }
+
   const enter = $derived(
     riseIn({
       rise: SIDE_RISE[placement.side],
@@ -62,6 +85,7 @@
   style:top="{placement.origin.y}px"
   class="circle-bar circle-bar-frame"
   {@attach bar.attach}
+  onkeydown={onarrow}
   onpointerdown={(event: PointerEvent) => event.stopPropagation()}
   role="presentation"
   in:enter
@@ -75,6 +99,6 @@
 <style>
   .circle-bar-frame {
     position: absolute;
-    padding: 8px;
+    padding: 18px;
   }
 </style>

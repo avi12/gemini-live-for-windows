@@ -37,9 +37,9 @@
   --live-edge: rgb(0 0 0 / 0.1);
   --live-card-surface: rgb(243 237 247 / 0.94);
   --live-brand-blue: #4285f4;
-  --circle-secondary: #e6e0e9;
-  --circle-secondary-hover: #d9d2de;
-  --circle-secondary-pressed: #cfc8d4;
+  --circle-secondary: var(--live-mic-control);
+  --circle-secondary-hover: var(--live-mic-control-hover);
+  --circle-secondary-pressed: var(--live-mic-control-hover);
   --circle-on-secondary: var(--live-text);
   --circle-primary: var(--live-primary);
   --circle-primary-hover: #0842a0;
@@ -76,9 +76,6 @@
     --live-pressed-layer: rgb(227 227 227 / 0.1);
     --live-edge: rgb(138 180 248 / 0.33);
     --live-card-surface: rgb(47 47 49 / 0.88);
-    --circle-secondary: #3c3f43;
-    --circle-secondary-hover: #4a4d52;
-    --circle-secondary-pressed: #55585d;
     --circle-primary-hover: #9bbbef;
     --circle-primary-pressed: #98b8ec;
     --circle-on-primary: #062e6f;
@@ -149,12 +146,15 @@ text-block {
   border-radius: 38px;
 }
 
-.live-pill-base {
+.live-pill-base,
+.circle-bar,
+.circle-hint {
   border-radius: 38px;
   background-image: linear-gradient(to bottom, #e8dfe6, #dacbd8);
 }
 
-.live-glow {
+.live-glow,
+.circle-tint {
   border-radius: 38px;
   background-image: linear-gradient(to top, rgb(0 140 236 / 0.4) 0%, rgb(0 140 236 / 0.2) 18%, transparent 55%);
 }
@@ -165,11 +165,14 @@ text-block {
 }
 
 @media (prefers-color-scheme: dark) {
-  .live-pill-base {
+  .live-pill-base,
+  .circle-bar,
+  .circle-hint {
     background-image: linear-gradient(to bottom, #0a1420, #133251);
   }
 
-  .live-glow {
+  .live-glow,
+  .circle-tint {
     background-image: linear-gradient(to top, #437ee4 0%, #3c72ec 18%, transparent 60%);
   }
 
@@ -236,10 +239,7 @@ text-block {
 }
 
 .circle-bar {
-  border-color: var(--live-edge);
-  border-width: 1px;
-  border-radius: 34px;
-  background-color: var(--live-menu-surface);
+  border-width: 0;
 }
 
 .circle-action {
@@ -251,6 +251,41 @@ text-block {
   --button-foreground-pressed: var(--circle-on-secondary);
 }
 
+.circle-round,
+.circle-labelled,
+.circle-chip-button {
+  height: 40px;
+  padding: 0;
+  border-width: 0;
+  border-radius: 24px;
+}
+
+.circle-round {
+  width: 40px;
+}
+
+.circle-labelled {
+  padding: 0 20px;
+  font-weight: 500;
+  font-size: 16px;
+}
+
+.circle-chip-button {
+  padding: 0 16px;
+}
+
+@media (pointer: coarse) {
+  .circle-round,
+  .circle-labelled,
+  .circle-chip-button {
+    height: 48px;
+  }
+
+  .circle-round {
+    width: 48px;
+  }
+}
+
 .circle-action-primary {
   --button-background: var(--circle-primary);
   --button-background-pointer-over: var(--circle-primary-hover);
@@ -260,12 +295,17 @@ text-block {
   --button-foreground-pressed: var(--circle-on-primary);
 }
 
-.circle-hint {
-  background-color: var(--live-inverse-surface);
+.circle-tint {
+  border-radius: 0;
+  opacity: 0.3;
+}
+
+.circle-root {
+  --accent-fill-color-default: var(--live-primary);
 }
 
 .circle-hint-text {
-  color: var(--live-inverse-text);
+  color: var(--live-text);
 }
 
 .circle-words,
@@ -287,7 +327,7 @@ text-block {
 
 .circle-edge,
 .circle-edge-glow {
-  border-color: var(--live-brand-blue);
+  border-color: var(--live-primary);
 }
 
 .circle-stroke-glow {

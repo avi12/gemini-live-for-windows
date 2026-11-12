@@ -67,7 +67,7 @@
 
   .circle-chip {
     padding: 10px 14px;
-    border-radius: 16px;
+    border-radius: 24px;
   }
 
   .circle-chip-title {
@@ -80,10 +80,6 @@
   }
 
   .circle-chip-button {
-    height: 32px;
-    padding: 0 14px;
-    border-width: 0;
-    border-radius: 16px;
     font-size: 14px;
   }
 </style>
