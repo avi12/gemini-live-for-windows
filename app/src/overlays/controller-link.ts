@@ -6,6 +6,7 @@ import {
   circleOutcomeSchema,
   OverlayMessage,
   readCircleTextSchema,
+  scanCircleCodesSchema,
   searchCircleSchema
 } from "@/overlays/protocol.ts";
 import type {
@@ -13,6 +14,7 @@ import type {
   OpenCircle,
   OverlayProtocol,
   ReadCircleText,
+  ScanCircleCodes,
   SearchCircle
 } from "@/overlays/protocol.ts";
 import type { Point } from "@/overlays/shapes.ts";
@@ -30,6 +32,8 @@ export interface OverlayControllerEvents {
   readCircleText(options: ReadCircleText): Promise<OcrLines>;
   // Reverse image search on the circled part of the frozen still: whether the page opened
   searchCircle(options: SearchCircle): Promise<boolean>;
+  // The decoded text of each QR code inside the region of the frozen still
+  scanCircleCodes(options: ScanCircleCodes): Promise<string[]>;
 }
 
 function listenForEvents({ messaging, events }: {
@@ -74,6 +78,14 @@ function listenForEvents({ messaging, events }: {
     }
 
     return events.searchCircle(parsed.data);
+  });
+  messaging.onMessage(OverlayMessage.scanCircleCodes, async message => {
+    const parsed = scanCircleCodesSchema.safeParse(message.data);
+    if (!parsed.success) {
+      throw new Error(parsed.error.message);
+    }
+
+    return events.scanCircleCodes(parsed.data);
   });
 }
 

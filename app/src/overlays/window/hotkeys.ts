@@ -1,5 +1,6 @@
+import { SEARCH_ENGINES } from "@/overlays/circle/search-engines.ts";
 import type { OverlayLog } from "@/overlays/ports.ts";
-import { CircleAction } from "@/overlays/protocol.ts";
+import { CircleAction, SearchAction } from "@/overlays/protocol.ts";
 
 // Circle to Search's keys as global hotkeys (CircleKey.cs and Hotkey.cs): Windows' Copilot key
 // provider only ever delivers Win+C itself, and the overlay's own keys must work even when
@@ -11,8 +12,8 @@ export const CircleKeyCombination = {
   circle: "win+alt+c",
   escape: "escape",
   askGemini: "enter",
-  lens: "l",
-  bing: "b",
+  lens: SEARCH_ENGINES[SearchAction.lens].keys,
+  bing: SEARCH_ENGINES[SearchAction.bing].keys,
   selectText: "t",
   copy: "ctrl+c"
 } as const;
@@ -154,18 +155,12 @@ export function createOverlayKeys({ register, log, onEscape, onFinish, onSelectT
       onPressed: () => onFinish(CircleAction.askGemini),
       log
     }),
-    createHeldKey({
-      keys: CircleKeyCombination.lens,
+    ...Object.values(SearchAction).map(action => createHeldKey({
+      keys: SEARCH_ENGINES[action].keys,
       register,
-      onPressed: () => onFinish(CircleAction.lens),
+      onPressed: () => onFinish(action),
       log
-    }),
-    createHeldKey({
-      keys: CircleKeyCombination.bing,
-      register,
-      onPressed: () => onFinish(CircleAction.bing),
-      log
-    }),
+    })),
     createHeldKey({
       keys: CircleKeyCombination.selectText,
       register,

@@ -10,13 +10,15 @@ export interface CircleScreenDeps {
     image: Uint8Array;
     region: Region | undefined;
   }) => Promise<OcrLine[]>;
+  // The decoded text of each QR code in a JPEG
+  readCodes: (jpeg: Uint8Array) => Promise<readonly string[]>;
 }
 
 // What Circle to Search needs of the screen: a display frozen at full resolution the moment the key is
 // pressed (the overlay shows it and the user draws on it), the circled part cut out as the frame Gemini
 // gets, and the words under it for the chip. A failed OCR rejects, so the overlay can say it failed
 // rather than that there was no text.
-export function createCircleScreen({ screenCapture, readLines }: CircleScreenDeps) {
+export function createCircleScreen({ screenCapture, readLines, readCodes }: CircleScreenDeps) {
   async function freeze(monitor: Monitor) {
     const frame = await screenCapture.grab({
       monitor,
@@ -51,9 +53,21 @@ export function createCircleScreen({ screenCapture, readLines }: CircleScreenDep
     });
   }
 
+  async function scanCodes({ frozen, region }: {
+    frozen: FrozenScreen;
+    region: Region;
+  }) {
+    const frame = await crop({
+      frozen,
+      region
+    });
+    return readCodes(frame.jpeg);
+  }
+
   return {
     freeze,
     crop,
-    readText
+    readText,
+    scanCodes
   } satisfies CircleScreen;
 }

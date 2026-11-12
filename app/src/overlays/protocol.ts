@@ -21,18 +21,26 @@ export const OverlayMessage = {
   chipDragged: "overlay/chipDragged",
   circleKeyPressed: "overlay/circleKeyPressed",
   readCircleText: "overlay/readCircleText",
-  searchCircle: "overlay/searchCircle"
+  searchCircle: "overlay/searchCircle",
+  scanCircleCodes: "overlay/scanCircleCodes"
 } as const;
+
+// The circle actions that search the web for the crop: the one list `search-engines.ts` gives an
+// engine, a label and a key for each
+export const SearchAction = {
+  lens: "lens",
+  bing: "bing"
+} as const;
+export type SearchAction = typeof SearchAction[keyof typeof SearchAction];
 
 export const CircleAction = {
   askGemini: "askGemini",
-  lens: "lens",
-  bing: "bing"
+  ...SearchAction
 } as const;
 export type CircleAction = typeof CircleAction[keyof typeof CircleAction];
 
 // The actions that search the web for the crop rather than hand it to Gemini
-export function isSearchAction(action: CircleAction) {
+export function isSearchAction(action: CircleAction): action is SearchAction {
   return action !== CircleAction.askGemini;
 }
 
@@ -68,7 +76,9 @@ export const openCircleSchema = z.object({
   stillJpegBase64: z.string().regex(BASE64_PATTERN),
   stillWidth: z.number().int().positive(),
   stillHeight: z.number().int().positive(),
-  isAskOnRelease: z.boolean()
+  isAskOnRelease: z.boolean(),
+  // The engine the user searched with last, offered first
+  preferredSearch: z.enum(SearchAction)
 });
 export type OpenCircle = z.infer<typeof openCircleSchema>;
 
@@ -96,6 +106,11 @@ export const searchCircleSchema = z.object({
   region: regionSchema
 });
 export type SearchCircle = z.infer<typeof searchCircleSchema>;
+
+export const scanCircleCodesSchema = z.object({ region: regionSchema });
+export type ScanCircleCodes = z.infer<typeof scanCircleCodesSchema>;
+
+export const codeTextsSchema = z.array(z.string());
 
 export const ocrLinesSchema = z.array(
   z.object({
@@ -130,4 +145,6 @@ export interface OverlayProtocol {
   [OverlayMessage.readCircleText]: ProtocolWithReturn<ReadCircleText, OcrLines>;
   // Whether the search page opened: the overlay stays up and says so when it did not
   [OverlayMessage.searchCircle]: ProtocolWithReturn<SearchCircle, boolean>;
+  // The decoded text of each QR code inside the region
+  [OverlayMessage.scanCircleCodes]: ProtocolWithReturn<ScanCircleCodes, string[]>;
 }

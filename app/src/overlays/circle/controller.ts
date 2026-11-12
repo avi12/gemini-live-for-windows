@@ -1,7 +1,12 @@
 import { regionSchema } from "@/contracts/monitor.ts";
 import type { Region } from "@/contracts/monitor.ts";
 import { errorMessage } from "@/lib/error-message.ts";
+import { ChipActionKind } from "@/overlays/circle/chips/chip.ts";
+import type { Chip, ChipAction } from "@/overlays/circle/chips/chip.ts";
+import { isOpenableUri } from "@/overlays/circle/chips/open-uri.ts";
+import { createSelectionScan } from "@/overlays/circle/chips/selection-scan.ts";
 import {
+  CircleHint,
   GestureEffectKind,
   GestureEventKind,
   initialGesture,
@@ -13,7 +18,7 @@ import type { OcrLine, OverlayLog } from "@/overlays/ports.ts";
 import { isSearchAction } from "@/overlays/protocol.ts";
 import type { CircleAction, CircleOutcome, SearchCircle } from "@/overlays/protocol.ts";
 import type { Rect, Size } from "@/overlays/shapes.ts";
-import { pixelRegion } from "winui-svelte/selection";
+import { pixelRegion, SelectionPhase } from "winui-svelte/selection";
 
 // How long after opening a deactivation is still just Windows settling, not the user leaving
 export const CIRCLE_SETTLE_MILLISECONDS = 800;
@@ -31,6 +36,8 @@ export interface CircleHintView {
 export interface CircleView {
   readonly gesture: GestureState;
   readonly hint: CircleHintView;
+  // What the settled selection holds: links, e-mail addresses, phone numbers and QR codes
+  readonly chips: readonly Chip[];
   // The selection that just landed, for the sheen and the brackets' settle; the revision changes
   // for each landing so the window replays the motion
   readonly landing: {
@@ -44,6 +51,15 @@ export interface CircleWorld {
   readText(region: Region | null): Promise<readonly OcrLine[]>;
   // Searches the web for the region (the still's pixels); whether the search page opened
   searchImage(options: SearchCircle): Promise<boolean>;
+  // The decoded text of each QR code inside the region (the still's pixels)
+  scanCodes(region: Region): Promise<readonly string[]>;
+  // Opens a web page or a new message in the app Windows has for it; whether Windows started one
+  openUri(uri: string): Promise<boolean>;
+  // Runs the callback once after the delay; the returned function cancels it
+  schedule(options: {
+    callback: () => void;
+    milliseconds: number;
+  }): () => void;
   // Puts the text on the clipboard; false when another app has it locked
   copyText(text: string): Promise<boolean>;
   // Ctrl+C is held only while words are picked
@@ -102,24 +118,46 @@ function createRegionParser({ window, still }: {
   };
 }
 
-function createCircleTasks({ window, still, world, dispatch }: {
+// The selection worth reading for chips: a settled one, with nothing else going on
+function scannableSelection(gesture: GestureState) {
+  const isIdle = gesture.selector.phase === SelectionPhase.idle;
+  const isBusy = gesture.isFinished || gesture.isTextMode || gesture.isAskOnRelease || gesture.isReading;
+  const isScannable = isIdle && !isBusy;
+  return isScannable ? gesture.selector.selection : undefined;
+}
+
+// Waits for something the overlay hands to another app (a search page, a link): the overlay is
+// done once it worked, and a failure is logged and left for the caller to say
+async function closeWhenDone({ attempt, failure, world }: {
+  attempt: Promise<boolean>;
+  failure: string;
+  world: CircleWorld;
+}) {
+  const isDone = await attempt.catch((error: unknown) => {
+    world.log.write(`circle: ${failure}: ${errorMessage(error)}`);
+    return false;
+  });
+  if (isDone) {
+    world.close({ isCancelled: true });
+  }
+
+  return isDone;
+}
+
+function createCircleTasks({ window, still, world, regionOf, dispatch }: {
   window: Size;
   still: Size;
   world: CircleWorld;
+  regionOf: ReturnType<typeof createRegionParser>;
   dispatch: (event: GestureEvent) => void;
 }) {
-  const regionOf = createRegionParser({
-    window,
-    still
-  });
-
   async function search(options: SearchCircle) {
-    const isOpened = await world.searchImage(options).catch((error: unknown) => {
-      world.log.write(`circle: the image search failed: ${errorMessage(error)}`);
-      return false;
+    const isDone = await closeWhenDone({
+      attempt: world.searchImage(options),
+      failure: "the image search failed",
+      world
     });
-    if (isOpened) {
-      world.close({ isCancelled: true });
+    if (isDone) {
       return;
     }
 
@@ -286,19 +324,43 @@ export function createCircleController(options: CircleControllerOptions) {
   });
   const landings = createLandings();
   const hint = createHint(hintText);
+  let chips: readonly Chip[] = [];
+  const regionOf = createRegionParser({
+    window,
+    still
+  });
   const tasks = createCircleTasks({
     window,
     still,
     world,
+    regionOf,
     dispatch
   });
 
-  function publish() {
+  function emit() {
     onView({
       gesture,
       hint: hint.view(),
+      chips,
       landing: landings.current()
     });
+  }
+
+  const selectionScan = createSelectionScan({
+    world,
+    regionOf(selection) {
+      const parsed = regionOf(selection);
+      return parsed.success ? parsed.data : undefined;
+    },
+    onChips(found) {
+      chips = found;
+      emit();
+    }
+  });
+
+  function publish() {
+    selectionScan.watch(scannableSelection(gesture));
+    emit();
   }
 
   function dispatch(event: GestureEvent) {
@@ -320,9 +382,44 @@ export function createCircleController(options: CircleControllerOptions) {
     publish();
   }
 
+  async function openChipTarget(uri: string) {
+    const isOpenable = isOpenableUri(uri);
+    if (!isOpenable) {
+      world.log.write("circle: refused to open a link that is not a web page or a message");
+      return;
+    }
+
+    const isDone = await closeWhenDone({
+      attempt: world.openUri(uri),
+      failure: "opening failed",
+      world
+    });
+    if (isDone) {
+      return;
+    }
+
+    hint.say({
+      message: CircleHint.openFailed,
+      isLasting: false
+    });
+    publish();
+  }
+
+  // A click on a chip's button: nothing opens or is copied before it
+  function pressChip(action: ChipAction) {
+    const isCopy = action.kind === ChipActionKind.copy;
+    if (isCopy) {
+      void tasks.copyText(action.target);
+      return;
+    }
+
+    void openChipTarget(action.target);
+  }
+
   publish();
   return {
     dispatch,
+    pressChip,
     deactivated: () => cancelOnDeactivation({
       world,
       openedAt,

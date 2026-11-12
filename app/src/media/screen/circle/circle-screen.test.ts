@@ -35,6 +35,7 @@ function setup({ isOcrFailing = false }: { isOcrFailing?: boolean } = {}) {
         });
       }
     },
+    readCodes: async () => ["https://qr.example/"],
     readLines: () => isOcrFailing ? Promise.reject(new Error("no language")) : Promise.resolve([])
   });
   return {

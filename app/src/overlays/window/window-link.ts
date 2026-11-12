@@ -1,6 +1,7 @@
 import type { OverlayLog } from "@/overlays/ports.ts";
 import {
   attachChipSchema,
+  codeTextsSchema,
   coverBorderSchema,
   holdFocusEscapeSchema,
   ocrLinesSchema,
@@ -15,6 +16,7 @@ import type {
   OpenCircle,
   OverlayProtocol,
   ReadCircleText,
+  ScanCircleCodes,
   SearchCircle
 } from "@/overlays/protocol.ts";
 import type { Point } from "@/overlays/shapes.ts";
@@ -41,6 +43,7 @@ export interface OverlayWindowEvents {
   circleKeyPressed(): void;
   readCircleText(options: ReadCircleText): Promise<OcrLines>;
   searchCircle(options: SearchCircle): Promise<boolean>;
+  scanCircleCodes(options: ScanCircleCodes): Promise<string[]>;
 }
 
 function parsed<T>(result: {
@@ -84,6 +87,10 @@ export function serveOverlayWindows({ transport, createHost, log }: {
     async searchCircle(options) {
       const isOpened = await messaging.sendMessage(OverlayMessage.searchCircle, options);
       return z.boolean().parse(isOpened);
+    },
+    async scanCircleCodes(options) {
+      const texts = await messaging.sendMessage(OverlayMessage.scanCircleCodes, options);
+      return codeTextsSchema.parse(texts);
     }
   });
 

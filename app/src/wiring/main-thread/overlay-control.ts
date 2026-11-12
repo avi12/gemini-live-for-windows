@@ -5,9 +5,11 @@ import { createImageSearch, searchEngineOf } from "@/overlays/circle/image-searc
 import { createCircleSession } from "@/overlays/circle/session.ts";
 import { connectOverlayWindows } from "@/overlays/controller-link.ts";
 import { createScreenFocus } from "@/overlays/focus/screen-focus.ts";
+import { isSearchAction } from "@/overlays/protocol.ts";
 import type { SearchCircle } from "@/overlays/protocol.ts";
 import type { PillController } from "@/pill/controller.ts";
 import type { ScreenFocusOptions, ScreenFocusPort } from "@/pill/ports.ts";
+import type { SearchChoice } from "@/wiring/main-thread/search-choice.ts";
 import type { Transport } from "winui-svelte/state/host";
 
 function toCircleText(lines: Awaited<ReturnType<ReturnType<typeof createCircleSession>["readText"]>>) {
@@ -24,10 +26,11 @@ function toCircleText(lines: Awaited<ReturnType<ReturnType<typeof createCircleSe
 // Freezes the display under the pointer for the user to circle something, then sends the crop to
 // Gemini as what it sees, starting a conversation if none is running. A reverse image search is
 // answered while the overlay is still up (see searchCircle), so it can say when it fails
-async function runCircle({ media, controller, session, log }: {
+async function runCircle({ media, controller, session, searchChoice, log }: {
   media: Pick<Media, "monitors">;
   controller: () => Pick<PillController, "focusRegion" | "isRunning">;
   session: ReturnType<typeof createCircleSession>;
+  searchChoice: SearchChoice;
   log: (message: string) => void;
 }) {
   try {
@@ -37,7 +40,8 @@ async function runCircle({ media, controller, session, log }: {
     // While Live runs, the loop itself is the request: no buttons, it focuses on release
     const selection = await session.select({
       monitor,
-      isAskOnRelease: isRunning
+      isAskOnRelease: isRunning,
+      preferredSearch: searchChoice.current()
     });
     if (!selection) {
       return;
@@ -52,10 +56,15 @@ async function runCircle({ media, controller, session, log }: {
   }
 }
 
-async function searchCircle({ action, region, session, imageSearch }: SearchCircle & {
+async function searchCircle({ action, region, session, imageSearch, searchChoice }: SearchCircle & {
   session: ReturnType<typeof createCircleSession>;
   imageSearch: ReturnType<typeof createImageSearch>;
+  searchChoice: SearchChoice;
 }) {
+  if (isSearchAction(action)) {
+    searchChoice.remember(action);
+  }
+
   const engine = searchEngineOf(action);
   const crop = await session.crop(region);
   const isSearchable = engine !== undefined && crop !== undefined;
@@ -71,11 +80,12 @@ async function searchCircle({ action, region, session, imageSearch }: SearchCirc
 
 // The main thread's side of Circle to Search and the share border: the windows and hotkeys run on
 // the UI worker, so this turns what they report into the pill controller's calls and back
-export function createOverlayControl({ transport, media, controller, log }: {
+export function createOverlayControl({ transport, media, controller, searchChoice, log }: {
   transport: Transport;
   media: Pick<Media, "circleScreen" | "monitors">;
   // The controller is built over the focus this creates, so it is reached on demand
   controller: () => Pick<PillController, "focusRegion" | "isRunning">;
+  searchChoice: SearchChoice;
   log: (message: string) => void;
 }) {
   const overlayLog = { write: log };
@@ -94,8 +104,10 @@ export function createOverlayControl({ transport, media, controller, log }: {
       searchCircle: options => searchCircle({
         ...options,
         session,
-        imageSearch
-      })
+        imageSearch,
+        searchChoice
+      }),
+      scanCircleCodes: async ({ region }) => [...await session.scanCodes(region)]
     }
   });
   const session = createCircleSession({
@@ -111,6 +123,7 @@ export function createOverlayControl({ transport, media, controller, log }: {
       media,
       controller,
       session,
+      searchChoice,
       log
     });
   }
@@ -126,6 +139,7 @@ export function createOverlayControl({ transport, media, controller, log }: {
   }
 
   return {
+    circle,
     createFocus,
     close: () => link.close()
   };

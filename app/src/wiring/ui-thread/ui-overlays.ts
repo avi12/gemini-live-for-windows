@@ -8,6 +8,7 @@ import {
   serveOverlayWindows
 } from "@/overlays/worker.ts";
 import type { MessagePort } from "node:worker_threads";
+import { launchUri } from "winui-svelte/data-transfer";
 import { windowsDisplaySource } from "winui-svelte/devices/display";
 import { createMessagePortTransport } from "winui-svelte/state/host";
 import { bringWindowToFront } from "winui-svelte/window/foreground";
@@ -48,6 +49,7 @@ export async function startOverlayWindows({ port, isDebugging, log }: {
         bringToFront: bringWindowToFront,
         cursor,
         clipboard,
+        launchUri,
         log: overlayLog,
         isDebugging,
         displayAreas: () => windowsDisplaySource().list(),

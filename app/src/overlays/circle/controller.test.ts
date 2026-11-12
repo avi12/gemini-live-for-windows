@@ -54,8 +54,12 @@ function setup({
   lines = LINES,
   isCopySuccessful = true,
   isReadFailing = false,
-  isSearchOpening = true
+  isSearchOpening = true,
+  codes = [],
+  isOpenSuccessful = true
 }: {
+  codes?: readonly string[];
+  isOpenSuccessful?: boolean;
   isReadFailing?: boolean;
   isSearchOpening?: boolean;
   isAskOnRelease?: boolean;
@@ -69,6 +73,11 @@ function setup({
   const searched: SearchCircle[] = [];
   const read: (unknown)[] = [];
   const logs: string[] = [];
+  const opened: string[] = [];
+  const timers: Array<{
+    callback: () => void;
+    isCancelled: boolean;
+  }> = [];
   let view: CircleView | undefined;
   const world: CircleWorld = {
     async readText(region) {
@@ -87,6 +96,23 @@ function setup({
     async searchImage(options) {
       searched.push(options);
       return isSearchOpening;
+    },
+    async scanCodes() {
+      return codes;
+    },
+    async openUri(uri) {
+      opened.push(uri);
+      return isOpenSuccessful;
+    },
+    schedule({ callback }) {
+      const timer = {
+        callback,
+        isCancelled: false
+      };
+      timers.push(timer);
+      return () => {
+        timer.isCancelled = true;
+      };
     },
     holdCopyKey: isHeld => copyKeys.push(isHeld),
     close: outcome => outcomes.push(outcome),
@@ -113,6 +139,15 @@ function setup({
     searched,
     read,
     logs,
+    opened,
+    settle() {
+      for (const timer of timers) {
+        if (!timer.isCancelled) {
+          timer.isCancelled = true;
+          timer.callback();
+        }
+      }
+    },
     advance(milliseconds: number) {
       clock += milliseconds;
     },
@@ -146,6 +181,10 @@ function draw({ controller, offset = 0 }: {
   }
 
   controller.dispatch({ kind: GestureEventKind.pointerUp });
+}
+
+function valuesOf(chips: CircleView["chips"]) {
+  return chips.map(chip => chip.value);
 }
 
 async function settleAsync() {
@@ -392,5 +431,125 @@ describe("createCircleController", () => {
     const third = view()?.hint.revision;
     assert.notEqual(first, second);
     assert.notEqual(second, third);
+  });
+
+  describe("chips", () => {
+    const linkLines: readonly OcrLine[] = [{
+      words: [{
+        text: "example.com",
+        bounds: {
+          x: 200,
+          y: 200,
+          width: 100,
+          height: 40
+        }
+      }]
+    }];
+
+    it("reads nothing while the loop is still moving", () => {
+      const { controller, read, settle } = setup({ lines: linkLines });
+      controller.dispatch({
+        kind: GestureEventKind.pointerDown,
+        point: LOOP[0] ?? {
+          x: 0,
+          y: 0
+        },
+        clickCount: 1
+      });
+      controller.dispatch({
+        kind: GestureEventKind.pointerMove,
+        point: LOOP[1] ?? {
+          x: 0,
+          y: 0
+        }
+      });
+      settle();
+      assert.deepEqual(read, []);
+    });
+
+    it("shows the chips of a settled selection and no sooner", async () => {
+      const { controller, view, settle } = setup({
+        lines: linkLines,
+        codes: ["https://qr.example/"]
+      });
+      draw({ controller });
+      assert.deepEqual(view()?.chips, []);
+      settle();
+      await settleAsync();
+      const values = valuesOf(view()?.chips ?? []);
+      assert.deepEqual(values, ["https://qr.example/", "https://example.com/"]);
+    });
+
+    it("drops the chips when the selection is moved or redrawn", async () => {
+      const { controller, view, settle } = setup({ lines: linkLines });
+      draw({ controller });
+      settle();
+      await settleAsync();
+      assert.equal(view()?.chips.length, 1);
+      draw({
+        controller,
+        offset: SECOND_LOOP_OFFSET
+      });
+      assert.deepEqual(view()?.chips, []);
+    });
+
+    it("shows no chips in text mode or once an answer was sent", async () => {
+      const { controller, view, settle } = setup({ lines: linkLines });
+      draw({ controller });
+      controller.dispatch({ kind: GestureEventKind.selectText });
+      settle();
+      await settleAsync();
+      assert.deepEqual(view()?.chips, []);
+    });
+
+    it("opens nothing until a chip's button is pressed, then opens a web page and closes", async () => {
+      const { controller, opened, outcomes } = setup();
+      assert.deepEqual(opened, []);
+      controller.pressChip({
+        kind: "open",
+        target: "https://example.com/"
+      });
+      await settleAsync();
+      assert.deepEqual(opened, ["https://example.com/"]);
+      assert.deepEqual(outcomes, [{ isCancelled: true }]);
+    });
+
+    it("refuses to open anything that is not a web page or a message", async () => {
+      const { controller, opened, outcomes, logs } = setup();
+      const refused = ["javascript:alert(1)", "file:///C:/Windows/notepad.exe", "ms-settings:", "calc"];
+      for (const target of refused) {
+        controller.pressChip({
+          kind: "open",
+          target
+        });
+      }
+
+      await settleAsync();
+      assert.deepEqual(opened, []);
+      assert.deepEqual(outcomes, []);
+      assert.equal(logs.length, refused.length);
+    });
+
+    it("says so and stays up when Windows opens nothing", async () => {
+      const { controller, view, outcomes } = setup({ isOpenSuccessful: false });
+      controller.pressChip({
+        kind: "open",
+        target: "https://example.com/"
+      });
+      await settleAsync();
+      assert.deepEqual(outcomes, []);
+      assert.equal(view()?.hint.text, CircleHint.openFailed);
+    });
+
+    it("copies a phone number or a code's text and says so", async () => {
+      const { controller, copied, view } = setup();
+      controller.pressChip({
+        kind: "copy",
+        target: "0501234567"
+      });
+      await settleAsync();
+      assert.deepEqual(copied, ["0501234567"]);
+      assert.equal(view()?.hint.text, CircleHint.copied);
+    });
   });
 });

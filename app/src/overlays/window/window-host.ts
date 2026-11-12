@@ -1,4 +1,5 @@
 import { errorMessage } from "@/lib/error-message.ts";
+import type { ChipAction } from "@/overlays/circle/chips/chip.ts";
 import CircleOverlay from "@/overlays/circle/circle-overlay.svelte";
 import { createCircleController } from "@/overlays/circle/controller.ts";
 import type { CircleView } from "@/overlays/circle/controller.ts";
@@ -8,7 +9,7 @@ import FocusChip from "@/overlays/focus/focus-chip.svelte";
 import { borderBounds } from "@/overlays/focus/focus-layout.ts";
 import ShareBorder from "@/overlays/focus/share-border.svelte";
 import type { Clipboard, CursorApi, OverlayLog } from "@/overlays/ports.ts";
-import type { AttachChip, CircleOutcome, OpenCircle } from "@/overlays/protocol.ts";
+import type { AttachChip, CircleOutcome, OpenCircle, SearchAction } from "@/overlays/protocol.ts";
 import type { Size } from "@/overlays/shapes.ts";
 import { createCircleLifecycle } from "@/overlays/window/circle-lifecycle.ts";
 import { displayIdOf } from "@/overlays/window/display-id.ts";
@@ -28,6 +29,8 @@ export interface OverlayWindowDeps {
   displayAreas: () => readonly DisplayAreaEntry[];
   cursor: CursorApi;
   clipboard: Clipboard;
+  // Opens an address in the app Windows has for it; whether Windows started one
+  launchUri: (uri: string) => Promise<boolean>;
   log: OverlayLog;
   // Debug runs leave the overlays visible to screenshots
   isDebugging: boolean;
@@ -117,6 +120,9 @@ function startCircleController({ size, options, deps, events, copyKey, close, on
     world: {
       readText: region => events.readCircleText({ region }),
       searchImage: options => events.searchCircle(options),
+      scanCodes: region => events.scanCircleCodes({ region }),
+      openUri: deps.launchUri,
+      schedule: deps.schedule,
       copyText: text => deps.clipboard.writeText(text),
       holdCopyKey: isHeld => copyKey.hold(isHeld),
       close,
@@ -142,11 +148,23 @@ function raise({ hwnd, deps }: {
   }
 }
 
-function circleOverlayProps({ displayId, still, deps, dispatch, onsized, ondeactivated, onfailed }: {
+function circleOverlayProps({
+  displayId,
+  still,
+  preferredSearch,
+  deps,
+  dispatch,
+  onchip,
+  onsized,
+  ondeactivated,
+  onfailed
+}: {
   displayId: bigint;
   still: Uint8Array;
+  preferredSearch: SearchAction;
   deps: OverlayWindowDeps;
   dispatch: (event: GestureEvent) => void;
+  onchip: (action: ChipAction) => void;
   onsized: (size: Size) => void;
   ondeactivated: () => void;
   onfailed: (error: string) => void;
@@ -155,8 +173,10 @@ function circleOverlayProps({ displayId, still, deps, dispatch, onsized, ondeact
     displayId,
     still,
     view: undefined,
+    preferredSearch,
     isExcludedFromCapture: !deps.isDebugging,
     dispatch,
+    onchip,
     onsized,
     ondeactivated,
     onready: hwnd => raise({
@@ -214,8 +234,10 @@ function openCircleWindow({ options, events, deps }: {
       displayId,
       // Decoded once, into the bytes the Image takes
       still: Buffer.from(options.stillJpegBase64, "base64"),
+      preferredSearch: options.preferredSearch,
       deps,
       dispatch,
+      onchip: action => controller?.pressChip(action),
       onfailed: lifecycle.fail,
       onsized(size: Size) {
         const isStarted = controller !== undefined;

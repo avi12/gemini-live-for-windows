@@ -1,3 +1,4 @@
+import { SearchAction } from "@/overlays/protocol.ts";
 import { EngineKind } from "@gemini-live/protocol/view";
 import { z } from "zod";
 
@@ -12,7 +13,8 @@ const FILE_KEY = {
   voice: "Voice",
   protectedApiKey: "ProtectedApiKey",
   microphoneId: "MicrophoneId",
-  checkForUpdates: "CheckForUpdates"
+  checkForUpdates: "CheckForUpdates",
+  circleSearch: "CircleSearch"
 } as const;
 
 // .NET's JsonStringEnumConverter reads names in any casing
@@ -34,14 +36,18 @@ export const settingsFileSchema = z.object({
   [FILE_KEY.voice]: z.string().default(DEFAULT_VOICE),
   [FILE_KEY.protectedApiKey]: z.string().nullish().transform(value => value ?? null),
   [FILE_KEY.microphoneId]: z.string().nullish().transform(value => value ?? null),
-  [FILE_KEY.checkForUpdates]: z.boolean().default(true)
+  [FILE_KEY.checkForUpdates]: z.boolean().default(true),
+  // The image search engine the circle offered first: a value this version does not know (a file
+  // from a newer one) falls back to Lens rather than discarding the whole file
+  [FILE_KEY.circleSearch]: z.enum(SearchAction).catch(SearchAction.lens)
 }).transform(file => ({
   engine: file[FILE_KEY.engine],
   model: file[FILE_KEY.model],
   voice: file[FILE_KEY.voice],
   protectedApiKey: file[FILE_KEY.protectedApiKey],
   microphoneId: file[FILE_KEY.microphoneId],
-  checkForUpdates: file[FILE_KEY.checkForUpdates]
+  checkForUpdates: file[FILE_KEY.checkForUpdates],
+  circleSearch: file[FILE_KEY.circleSearch]
 }));
 
 export type Settings = z.infer<typeof settingsFileSchema>;
@@ -57,6 +63,7 @@ export function serializeSettings(settings: Settings) {
     [FILE_KEY.voice]: settings.voice,
     [FILE_KEY.protectedApiKey]: settings.protectedApiKey,
     [FILE_KEY.microphoneId]: settings.microphoneId,
-    [FILE_KEY.checkForUpdates]: settings.checkForUpdates
+    [FILE_KEY.checkForUpdates]: settings.checkForUpdates,
+    [FILE_KEY.circleSearch]: settings.circleSearch
   }, null, INDENT);
 }

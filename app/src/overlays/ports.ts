@@ -43,6 +43,11 @@ export interface CircleScreen {
     frozen: FrozenScreen;
     region: Region | undefined;
   }): Promise<readonly OcrLine[]>;
+  // The decoded text of each QR code inside the region
+  scanCodes(options: {
+    frozen: FrozenScreen;
+    region: Region;
+  }): Promise<readonly string[]>;
 }
 
 export interface Clipboard {

@@ -1,7 +1,7 @@
 import type { Monitor, Region } from "@/contracts/monitor.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 import type { CircleScreen, CropFrame, FrozenScreen, OverlayLog } from "@/overlays/ports.ts";
-import type { CircleAction, CircleOutcome, OpenCircle } from "@/overlays/protocol.ts";
+import type { CircleAction, CircleOutcome, OpenCircle, SearchAction } from "@/overlays/protocol.ts";
 
 // What the user circled: the sharp crop (for Lens), where it is on the monitor in physical pixels
 // (for Gemini to keep watching it live), the monitor, and what to do with it
@@ -12,10 +12,11 @@ export interface CircleSelection {
   readonly monitor: Monitor;
 }
 
-function openOptions({ monitor, frozen, isAskOnRelease }: {
+function openOptions({ monitor, frozen, isAskOnRelease, preferredSearch }: {
   monitor: Monitor;
   frozen: FrozenScreen;
   isAskOnRelease: boolean;
+  preferredSearch: SearchAction;
 }) {
   return {
     monitor,
@@ -23,16 +24,27 @@ function openOptions({ monitor, frozen, isAskOnRelease }: {
     stillJpegBase64: Buffer.from(frozen.jpeg.buffer, frozen.jpeg.byteOffset, frozen.jpeg.byteLength).toString("base64"),
     stillWidth: frozen.width,
     stillHeight: frozen.height,
-    isAskOnRelease
+    isAskOnRelease,
+    preferredSearch
   } satisfies OpenCircle;
 }
 
-async function circleMonitor({ screen, openOverlay, setCircling, monitor, isAskOnRelease, log, onFrozen }: {
+async function circleMonitor({
+  screen,
+  openOverlay,
+  setCircling,
+  monitor,
+  isAskOnRelease,
+  preferredSearch,
+  log,
+  onFrozen
+}: {
   screen: CircleScreen;
   openOverlay: (options: OpenCircle) => Promise<CircleOutcome>;
   setCircling: (isCircling: boolean) => void;
   monitor: Monitor;
   isAskOnRelease: boolean;
+  preferredSearch: SearchAction;
   log: OverlayLog;
   onFrozen: (frozen: FrozenScreen | undefined) => void;
 }) {
@@ -45,7 +57,8 @@ async function circleMonitor({ screen, openOverlay, setCircling, monitor, isAskO
     openOptions({
       monitor,
       frozen,
-      isAskOnRelease
+      isAskOnRelease,
+      preferredSearch
     })
   );
   setCircling(false);
@@ -106,9 +119,10 @@ export function createCircleSession({ screen, openOverlay, setCircling, log }: {
   // cancel. The overlay is gone before this resolves, so whatever runs next sees the real screen
   // again. With `isAskOnRelease` (Gemini Live is already running) there are no buttons: the first
   // loop the user finishes is the answer, as askGemini
-  async function select({ monitor, isAskOnRelease }: {
+  async function select({ monitor, isAskOnRelease, preferredSearch }: {
     monitor: Monitor;
     isAskOnRelease: boolean;
+    preferredSearch: SearchAction;
   }) {
     if (isOpen) {
       return undefined;
@@ -122,6 +136,7 @@ export function createCircleSession({ screen, openOverlay, setCircling, log }: {
         setCircling,
         monitor,
         isAskOnRelease,
+        preferredSearch,
         log,
         onFrozen(frozen) {
           frozenNow = frozen;
@@ -160,9 +175,24 @@ export function createCircleSession({ screen, openOverlay, setCircling, log }: {
     });
   }
 
+  // The decoded text of each QR code inside `region` of the still the open overlay shows
+  async function scanCodes(region: Region) {
+    const frozen = frozenNow;
+    const isMissing = frozen === undefined;
+    if (isMissing) {
+      return [];
+    }
+
+    return screen.scanCodes({
+      frozen,
+      region
+    });
+  }
+
   return {
     select,
     readText,
-    crop
+    crop,
+    scanCodes
   };
 }

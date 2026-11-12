@@ -1,7 +1,7 @@
 import type { Monitor } from "@/contracts/monitor.ts";
 import { createCircleSession } from "@/overlays/circle/session.ts";
 import type { CircleScreen, FrozenScreen } from "@/overlays/ports.ts";
-import { CircleAction } from "@/overlays/protocol.ts";
+import { CircleAction, SearchAction } from "@/overlays/protocol.ts";
 import type { CircleOutcome, OpenCircle } from "@/overlays/protocol.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
@@ -57,6 +57,9 @@ function setup({ outcome, isFreezeFailing = false, frozen = FROZEN }: {
 
       return frozen;
     },
+    async scanCodes() {
+      return [];
+    },
     async crop() {
       steps.push("crop");
       return CROP;
@@ -106,7 +109,8 @@ describe("createCircleSession", () => {
     });
     const pending = session.select({
       monitor: MONITOR,
-      isAskOnRelease: false
+      isAskOnRelease: false,
+      preferredSearch: SearchAction.lens
     });
     release();
     const selection = await pending;
@@ -122,7 +126,8 @@ describe("createCircleSession", () => {
       stillJpegBase64: STILL_BYTES.toString("base64"),
       stillWidth: 1920,
       stillHeight: 1080,
-      isAskOnRelease: false
+      isAskOnRelease: false,
+      preferredSearch: SearchAction.lens
     });
   });
 
@@ -136,7 +141,8 @@ describe("createCircleSession", () => {
     });
     const pending = session.select({
       monitor: MONITOR,
-      isAskOnRelease: true
+      isAskOnRelease: true,
+      preferredSearch: SearchAction.lens
     });
     release();
     await pending;
@@ -151,7 +157,8 @@ describe("createCircleSession", () => {
     });
     const pending = session.select({
       monitor: MONITOR,
-      isAskOnRelease: false
+      isAskOnRelease: false,
+      preferredSearch: SearchAction.lens
     });
     release();
     assert.equal(await pending, undefined);
@@ -172,7 +179,8 @@ describe("createCircleSession", () => {
     });
     const pending = session.select({
       monitor: MONITOR,
-      isAskOnRelease: false
+      isAskOnRelease: false,
+      preferredSearch: SearchAction.lens
     });
     release();
     await pending;
@@ -188,7 +196,8 @@ describe("createCircleSession", () => {
     });
     const pending = session.select({
       monitor: MONITOR,
-      isAskOnRelease: false
+      isAskOnRelease: false,
+      preferredSearch: SearchAction.lens
     });
     release();
     assert.equal(await pending, undefined);
@@ -203,11 +212,13 @@ describe("createCircleSession", () => {
     });
     const first = session.select({
       monitor: MONITOR,
-      isAskOnRelease: false
+      isAskOnRelease: false,
+      preferredSearch: SearchAction.lens
     });
     const second = await session.select({
       monitor: MONITOR,
-      isAskOnRelease: false
+      isAskOnRelease: false,
+      preferredSearch: SearchAction.lens
     });
     assert.equal(second, undefined);
     release();
@@ -224,11 +235,13 @@ describe("createCircleSession", () => {
     release();
     await session.select({
       monitor: MONITOR,
-      isAskOnRelease: false
+      isAskOnRelease: false,
+      preferredSearch: SearchAction.lens
     });
     await session.select({
       monitor: MONITOR,
-      isAskOnRelease: false
+      isAskOnRelease: false,
+      preferredSearch: SearchAction.lens
     });
     assert.equal(steps.filter(step => step === "freeze").length, 2);
   });
@@ -237,7 +250,8 @@ describe("createCircleSession", () => {
     const { session, steps, lines, release } = setup({ outcome: new Error("window died") });
     const pending = session.select({
       monitor: MONITOR,
-      isAskOnRelease: false
+      isAskOnRelease: false,
+      preferredSearch: SearchAction.lens
     });
     release();
     assert.equal(await pending, undefined);
@@ -255,7 +269,8 @@ describe("createCircleSession", () => {
     assert.equal(
       await session.select({
         monitor: MONITOR,
-        isAskOnRelease: false
+        isAskOnRelease: false,
+        preferredSearch: SearchAction.lens
       }), undefined
     );
     assert.deepEqual(lines, ["circle: no capture"]);
@@ -272,7 +287,8 @@ describe("createCircleSession", () => {
     assert.equal(steps.includes("readText"), false);
     const pending = session.select({
       monitor: MONITOR,
-      isAskOnRelease: false
+      isAskOnRelease: false,
+      preferredSearch: SearchAction.lens
     });
     await new Promise(resolve => setImmediate(resolve));
     await session.readText(REGION);
@@ -291,11 +307,27 @@ describe("createCircleSession", () => {
     assert.equal(steps.includes("crop"), false);
     const pending = session.select({
       monitor: MONITOR,
-      isAskOnRelease: false
+      isAskOnRelease: false,
+      preferredSearch: SearchAction.lens
     });
     await new Promise(resolve => setImmediate(resolve));
     assert.deepEqual(await session.crop(REGION), CROP);
     release();
     await pending;
+  });
+
+  it("passes the engine searched with last to the overlay", async () => {
+    const { session, opened } = setup({
+      outcome: {
+        isCancelled: true
+      }
+    });
+    void session.select({
+      monitor: MONITOR,
+      isAskOnRelease: false,
+      preferredSearch: SearchAction.bing
+    });
+    await new Promise(setImmediate);
+    assert.equal(opened[0]?.preferredSearch, SearchAction.bing);
   });
 });

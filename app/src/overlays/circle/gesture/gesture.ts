@@ -28,6 +28,7 @@ export const CircleHint = {
   selectText: "Drag across the text to select it  ·  Esc to go back",
   copied: "Copied",
   copyFailed: "Couldn't copy",
+  openFailed: "Couldn't open it",
   searchFailed: "Couldn't open the image search  ·  Try again or pick another",
   circle: "Circle anything to search  ·  Esc to cancel",
   circleToAsk: "Circle what Gemini should look at  ·  Esc to cancel"

@@ -1,7 +1,7 @@
 import type { Monitor } from "@/contracts/monitor.ts";
 import { linkedTransports } from "@/lib/transport/linked-transports.ts";
 import { connectOverlayWindows } from "@/overlays/controller-link.ts";
-import { CircleAction } from "@/overlays/protocol.ts";
+import { CircleAction, SearchAction } from "@/overlays/protocol.ts";
 import type { CircleOutcome, OpenCircle } from "@/overlays/protocol.ts";
 import { serveOverlayWindows } from "@/overlays/window/window-link.ts";
 import type { OverlayWindowEvents, OverlayWindowHost } from "@/overlays/window/window-link.ts";
@@ -31,7 +31,8 @@ const OPEN: OpenCircle = {
   stillJpegBase64: "AQID",
   stillWidth: 1920,
   stillHeight: 1080,
-  isAskOnRelease: false
+  isAskOnRelease: false,
+  preferredSearch: SearchAction.lens
 };
 
 async function settle() {
@@ -95,6 +96,10 @@ function setup({ outcome = CANCELLED }: { outcome?: CircleOutcome } = {}) {
       async searchCircle({ action }) {
         heard.push(`search:${action}`);
         return true;
+      },
+      async scanCircleCodes({ region }) {
+        heard.push(`scan:${region.width}`);
+        return ["https://qr.example/"];
       }
     }
   });
@@ -187,6 +192,12 @@ describe("the overlay link", () => {
     assert.deepEqual(heard, ["search:bing"]);
   });
 
+  it("asks the controller to scan for QR codes and gets their text", async () => {
+    const { events, heard } = setup();
+    assert.deepEqual(await events()?.scanCircleCodes({ region: REGION }), ["https://qr.example/"]);
+    assert.deepEqual(heard, ["scan:300"]);
+  });
+
   it("treats an overlay that failed as a cancel and logs it", async () => {
     const transports = linkedTransports();
     const lines: string[] = [];
@@ -218,7 +229,8 @@ describe("the overlay link", () => {
         chipDragged: () => undefined,
         circleKeyPressed: () => undefined,
         readCircleText: async () => [],
-        searchCircle: async () => false
+        searchCircle: async () => false,
+        scanCircleCodes: async () => []
       }
     });
     assert.deepEqual(await link.openCircle(OPEN), {
@@ -260,7 +272,8 @@ describe("the overlay link", () => {
         chipDragged: () => undefined,
         circleKeyPressed: () => undefined,
         readCircleText: async () => [],
-        searchCircle: async () => false
+        searchCircle: async () => false,
+        scanCircleCodes: async () => []
       }
     });
     const outcome = await link.openCircle({

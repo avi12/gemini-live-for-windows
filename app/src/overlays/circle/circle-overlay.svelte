@@ -1,5 +1,7 @@
 <script lang="ts">
   import { errorMessage } from "@/lib/error-message.ts";
+  import type { ChipAction } from "@/overlays/circle/chips/chip.ts";
+  import CircleChips from "@/overlays/circle/chips/circle-chips.svelte";
   import CircleAction from "@/overlays/circle/circle-action.svelte";
   import CircleBar from "@/overlays/circle/circle-bar.svelte";
   import type { CircleView } from "@/overlays/circle/controller.ts";
@@ -8,9 +10,11 @@
   import { CircleCursor, GestureEventKind, hoverCursor, pickedWords } from "@/overlays/circle/gesture/gesture.ts";
   import type { GestureEvent } from "@/overlays/circle/gesture/gesture.ts";
   import { movePoints, pointerPoint } from "@/overlays/circle/gesture/pointer-points.ts";
+  import { CORE_SEARCH_ACTION, extraSearchActions, SEARCH_ENGINES } from "@/overlays/circle/search-engines.ts";
   import { OverlayGlyph } from "@/overlays/glyphs.ts";
   import { fadeOut, riseIn, sheenIn, TransformOrigin } from "@/overlays/motion/transitions.ts";
   import { CircleAction as CircleActionName } from "@/overlays/protocol.ts";
+  import type { SearchAction } from "@/overlays/protocol.ts";
   import type { Size } from "@/overlays/shapes.ts";
   import { windowTheme } from "@/overlays/window/window-theme.svelte.ts";
   import "@gemini-live/pill/theme.css";
@@ -36,9 +40,13 @@
     still: Uint8Array;
     // Undefined until the window knows its size and the controller exists
     view: CircleView | undefined;
+    // The engine searched with last: the bar lists it first
+    preferredSearch: SearchAction;
     // False in debug runs, so the overlay shows in screenshots
     isExcludedFromCapture: boolean;
     dispatch: (event: GestureEvent) => void;
+    // A button on a chip was pressed
+    onchip: (action: ChipAction) => void;
     onsized: (size: Size) => void;
     ondeactivated: () => void;
     // The window exists: its handle, to bring it to the front
@@ -51,8 +59,10 @@
     displayId,
     still,
     view,
+    preferredSearch,
     isExcludedFromCapture,
     dispatch,
+    onchip,
     onsized,
     ondeactivated,
     onready,
@@ -83,6 +93,8 @@
   const gesture = $derived(view?.gesture);
   const selection = $derived(gesture?.selector.selection);
   const isTextMode = $derived(gesture?.isTextMode === true);
+  const extraActions = $derived(extraSearchActions(preferredSearch));
+  const chooser = $state({ isOpen: false });
   const screenSize = $derived({
     width: screen.width,
     height: screen.height
@@ -324,6 +336,9 @@
             </CircleAction>
           </CircleBar>
         {:else if !view.gesture.isAskOnRelease}
+          {#if view.chips.length > 0}
+            <CircleChips chips={view.chips} onpress={onchip} {selection} />
+          {/if}
           <CircleBar screen={screenSize} {selection}>
             <CircleAction
               isPrimary
@@ -340,28 +355,15 @@
             </CircleAction>
             <CircleAction
               isPrimary={false}
-              label="Google Lens"
+              label={SEARCH_ENGINES[CORE_SEARCH_ACTION].label}
               onpress={() => dispatch({
                 kind: GestureEventKind.finish,
-                action: CircleActionName.lens
+                action: CORE_SEARCH_ACTION
               })}
-              shortcut="L"
+              shortcut={SEARCH_ENGINES[CORE_SEARCH_ACTION].keys.toUpperCase()}
             >
               {#snippet icon()}
-                <TextBlock class="circle-icon" text={OverlayGlyph.search} />
-              {/snippet}
-            </CircleAction>
-            <CircleAction
-              isPrimary={false}
-              label="Bing"
-              onpress={() => dispatch({
-                kind: GestureEventKind.finish,
-                action: CircleActionName.bing
-              })}
-              shortcut="B"
-            >
-              {#snippet icon()}
-                <TextBlock class="circle-icon" text={OverlayGlyph.search} />
+                <TextBlock class="circle-icon" text={SEARCH_ENGINES[CORE_SEARCH_ACTION].glyph} />
               {/snippet}
             </CircleAction>
             <CircleAction
@@ -375,6 +377,36 @@
                 <TextBlock class="circle-icon" text={OverlayGlyph.textSelect} />
               {/snippet}
             </CircleAction>
+            <!-- Other engines: one small button opens the list, so the core actions stay alone -->
+            <CircleAction
+              isPrimary={false}
+              label="More"
+              onpress={() => {
+                chooser.isOpen = !chooser.isOpen;
+              }}
+              shortcut="Other search engines"
+            >
+              {#snippet icon()}
+                <TextBlock class="circle-icon" text={OverlayGlyph.search} />
+              {/snippet}
+            </CircleAction>
+            {#if chooser.isOpen}
+              {#each extraActions as action (action)}
+                <CircleAction
+                  isPrimary={false}
+                  label={SEARCH_ENGINES[action].label}
+                  onpress={() => dispatch({
+                    kind: GestureEventKind.finish,
+                    action
+                  })}
+                  shortcut={SEARCH_ENGINES[action].keys.toUpperCase()}
+                >
+                  {#snippet icon()}
+                    <TextBlock class="circle-icon" text={SEARCH_ENGINES[action].glyph} />
+                  {/snippet}
+                </CircleAction>
+              {/each}
+            {/if}
           </CircleBar>
         {/if}
       {/if}
