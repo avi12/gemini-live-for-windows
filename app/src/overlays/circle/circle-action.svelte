@@ -14,6 +14,13 @@
 
   const { label, shortcut, isPrimary, isDisabled = false, onpress, icon }: Props = $props();
 
+  const labelClass = $derived.by(() => {
+    if (isPrimary) {
+      return ["circle-action-label", "circle-primary-ink"];
+    }
+
+    return ["circle-action-label"];
+  });
   const buttonClass = $derived.by(() => {
     if (isPrimary) {
       return ["circle-action", "circle-action-primary", "circle-action-shape"];
@@ -26,7 +33,7 @@
 <Button class={buttonClass} isEnabled={!isDisabled} onclick={onpress} toolTip={shortcut}>
   <StackPanel orientation="Horizontal">
     {@render icon()}
-    <TextBlock class="circle-action-label" text={label} verticalAlignment="Center" />
+    <TextBlock class={labelClass} text={label} verticalAlignment="Center" />
   </StackPanel>
 </Button>
 

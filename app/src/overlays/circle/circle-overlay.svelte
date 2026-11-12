@@ -10,6 +10,7 @@
   import { CircleCursor, GestureEventKind, hoverCursor, pickedWords } from "@/overlays/circle/gesture/gesture.ts";
   import type { GestureEvent } from "@/overlays/circle/gesture/gesture.ts";
   import { movePoints, pointerPoint } from "@/overlays/circle/gesture/pointer-points.ts";
+  import { withoutStaleStroke } from "@/overlays/circle/gesture/stale-stroke.ts";
   import { CORE_SEARCH_ACTION, extraSearchActions, SEARCH_ENGINES } from "@/overlays/circle/search-engines.ts";
   import { OverlayGlyph } from "@/overlays/glyphs.ts";
   import { fadeOut, riseIn, sheenIn, TransformOrigin } from "@/overlays/motion/transitions.ts";
@@ -76,6 +77,8 @@
   const HINT_DROP = -12;
   // How long a notice ("Copied") stays in the hint chip before it fades
   const NOTICE_MILLISECONDS = 1600;
+  // The overlay fades the loop over 260 ms after release
+  const STROKE_FADE_MILLISECONDS = 400;
   const PRIMARY_BUTTON = 0;
   const SECONDARY_BUTTON = 2;
   // Gemini's four-point sparkle, in an 18-unit box (the C# draws it in 24 and scales)
@@ -88,6 +91,7 @@
   const windowRef: { handle: WindowHandle | undefined } = $state({ handle: undefined });
   const pointer: { cursor: CircleCursor } = $state({ cursor: CircleCursor.draw });
   const fadedHintRevision: { value: number | undefined } = $state({ value: undefined });
+  const strokeFade: { isDone: boolean } = $state({ isDone: false });
   const placement: { isCovered: boolean } = $state({ isCovered: false });
 
   const isReduced = $derived(reducedMotion.matches);
@@ -103,6 +107,12 @@
 
   // Before the controller exists the window shows the still alone: a selector with nothing in it
   const selector = $derived(gesture?.selector ?? createSelector({ bounds: screenSize }));
+  const overlayState = $derived(
+    withoutStaleStroke({
+      state: selector,
+      isStrokeFaded: strokeFade.isDone
+    })
+  );
   const picked = $derived.by(() => {
     const isUnstarted = gesture === undefined;
     if (isUnstarted) {
@@ -158,6 +168,24 @@
       isRepeating: false,
       onTick() {
         fadedHintRevision.value = hint.revision;
+      }
+    });
+  });
+
+  // The loop fades by itself after release (the overlay's own transition); once it has, the
+  // stroke is dropped, and a press that moves or resizes the selection drops it at once
+  $effect(() => {
+    const isFading = selector.phase === SelectionPhase.idle && selector.selection !== undefined;
+    if (!isFading) {
+      strokeFade.isDone = false;
+      return;
+    }
+
+    return startTimer({
+      milliseconds: STROKE_FADE_MILLISECONDS,
+      isRepeating: false,
+      onTick() {
+        strokeFade.isDone = true;
       }
     });
   });
@@ -270,7 +298,7 @@
     }}
     role="presentation"
   >
-    <SelectionOverlay image={still} state={selector} />
+    <SelectionOverlay image={still} state={overlayState} />
     <Border class="circle-tint" isHitTestVisible={false} />
     <Border class="circle-edge-glow" isHitTestVisible={false} />
     <Border class="circle-edge" isHitTestVisible={false} />
@@ -327,7 +355,7 @@
               shortcut="Ctrl+C"
             >
               {#snippet icon()}
-                <TextBlock class="circle-icon" text={OverlayGlyph.copy} />
+                <TextBlock class="circle-icon circle-primary-ink" text={OverlayGlyph.copy} />
               {/snippet}
             </CircleAction>
             <CircleAction
@@ -393,7 +421,7 @@
               shortcut="Other search engines"
             >
               {#snippet icon()}
-                <TextBlock class="circle-icon" text={OverlayGlyph.search} />
+                <TextBlock class="circle-icon" text={OverlayGlyph.more} />
               {/snippet}
             </CircleAction>
             {#if chooser.isOpen}
