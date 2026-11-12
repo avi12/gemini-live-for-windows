@@ -16,6 +16,7 @@
   import { CircleAction as CircleActionName } from "@/overlays/protocol.ts";
   import type { SearchAction } from "@/overlays/protocol.ts";
   import type { Size } from "@/overlays/shapes.ts";
+  import { reassertTopmost } from "@/overlays/window/topmost.ts";
   import { windowTheme } from "@/overlays/window/window-theme.svelte.ts";
   import "@gemini-live/pill/theme.css";
   import { elementSize } from "winui-svelte";
@@ -186,6 +187,7 @@
       return;
     }
 
+    reassertTopmost(handle.presenter);
     placement.isCovered = true;
     onready(handle.appWindow.id.value);
   });

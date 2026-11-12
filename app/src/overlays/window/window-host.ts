@@ -3,6 +3,7 @@ import type { ChipAction } from "@/overlays/circle/chips/chip.ts";
 import CircleOverlay from "@/overlays/circle/circle-overlay.svelte";
 import { createCircleController } from "@/overlays/circle/controller.ts";
 import type { CircleView } from "@/overlays/circle/controller.ts";
+import { createGestureDiagnostics } from "@/overlays/circle/gesture/gesture-diagnostics.ts";
 import { CircleHint, GestureEventKind } from "@/overlays/circle/gesture/gesture.ts";
 import type { GestureEvent } from "@/overlays/circle/gesture/gesture.ts";
 import FocusChip from "@/overlays/focus/focus-chip.svelte";
@@ -208,8 +209,14 @@ function openCircleWindow({ options, events, deps, onCloseable }: {
   }
 
   let controller: ReturnType<typeof createCircleController> | undefined;
+  let windowSize: Size | undefined;
+  const observe = createGestureDiagnostics({
+    log: deps.log,
+    size: () => windowSize
+  });
 
   function dispatch(event: GestureEvent) {
+    observe(event);
     controller?.dispatch(event);
   }
 
@@ -242,6 +249,7 @@ function openCircleWindow({ options, events, deps, onCloseable }: {
       onchip: action => controller?.pressChip(action),
       onfailed: lifecycle.fail,
       onsized(size: Size) {
+        windowSize = size;
         const isStarted = controller !== undefined;
         if (isStarted) {
           return;
