@@ -391,6 +391,10 @@ function createFakeHost({ world, calls, logs, listeners, isPackaged }: {
       listeners,
       isPackaged
     }),
+    circleToSearch() {
+      calls.push("circleToSearch");
+      return Promise.resolve();
+    },
     openExternal: uri => calls.push(`open ${uri}`),
     quit: () => calls.push("quit"),
     log: message => logs.push(message),

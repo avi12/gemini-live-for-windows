@@ -210,6 +210,13 @@ async function applyAppAction({ context, action }: {
         deltaY: action.dy
       });
       return true;
+    case PillActionKind.circleToSearch:
+      runInBackground({
+        context,
+        task: context.deps.circleToSearch(),
+        name: "circling to search"
+      });
+      return true;
     default:
       return false;
   }

@@ -384,6 +384,15 @@ describe("a start that fails", () => {
   });
 });
 
+describe("Circle to Search", () => {
+  it("runs the one shared entry when the pill button is pressed", async () => {
+    const pill = createFakePill();
+    await pill.controller.apply({ kind: PillActionKind.circleToSearch });
+    await settle();
+    assert.deepEqual(pill.calls.filter(call => call === "circleToSearch"), ["circleToSearch"]);
+  });
+});
+
 describe("the Copilot key", () => {
   it("ends the conversation on a tap while one runs, and hands focus back", async () => {
     const pill = await started();
