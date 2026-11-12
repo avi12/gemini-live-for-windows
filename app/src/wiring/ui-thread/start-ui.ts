@@ -1,7 +1,6 @@
 import { log } from "@/core/log/log.ts";
 import { keepRunningOnUnhandledErrors } from "@/core/log/unhandled-errors.ts";
 import { errorMessage } from "@/lib/error-message.ts";
-import { createForegroundApi } from "@/overlays/window/win32-api.ts";
 import { loadMountPill } from "@/pill/host/dev-attach.ts";
 import { serveWindowAbilities } from "@/pill/host/window-abilities.ts";
 import type { PillWindowSurface } from "@/pill/host/window-abilities.ts";
@@ -50,7 +49,6 @@ function startUiServices({ pill, data }: {
   serveWindowAbilities({
     link: pill.messaging,
     surface: () => surfaceOf(pill.window()),
-    foreground: createForegroundApi(),
     memory: trackForeground(),
     bringToFrontOf: bringWindowToFront,
     log: writeLog

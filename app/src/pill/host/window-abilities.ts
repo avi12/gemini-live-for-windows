@@ -1,5 +1,3 @@
-import { bringToFront } from "@/overlays/focus/foreground.ts";
-import type { ForegroundApi } from "@/overlays/ports.ts";
 import type { PillProtocol } from "@/pill/host/host-link.ts";
 import { moveByDataSchema, WindowMessage } from "@gemini-live/protocol/view";
 import type { Messaging } from "winui-svelte/messaging";
@@ -30,10 +28,9 @@ export interface ForegroundMemory {
 // What the controller asks of the pill's window, answered on the UI worker (the thread that owns
 // it): to be raised past Windows' foreground lock, and to be moved when the user drags it. A
 // request that arrives before the window exists is refused with a reason.
-export function serveWindowAbilities({ link, surface, foreground, memory, bringToFrontOf, log }: {
+export function serveWindowAbilities({ link, surface, memory, bringToFrontOf, log }: {
   link: Pick<Messaging<PillProtocol>, "onMessage">;
   surface: () => PillWindowSurface | undefined;
-  foreground: ForegroundApi;
   memory: ForegroundMemory;
   bringToFrontOf: (hwnd: bigint) => boolean;
   log: (message: string) => void;
@@ -48,10 +45,7 @@ export function serveWindowAbilities({ link, surface, foreground, memory, bringT
   }
 
   link.onMessage(WindowMessage.bringToFront, () => {
-    bringToFront({
-      api: foreground,
-      hwnd: windowOrThrow().hwnd
-    });
+    bringToFrontOf(windowOrThrow().hwnd);
   });
   // Gives the keyboard back to the app the user was in: when Windows left the foreground on the shell
   // or a window of ours, the last real app returns; an app the user switched to is left alone

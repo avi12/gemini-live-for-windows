@@ -57,8 +57,7 @@ export function createMedia({ log, microphoneId, audioWorkerUrl, uiaWorkerUrl, o
     screenSource: createScreenSource({ screenCapture }),
     circleScreen: createCircleScreen({
       screenCapture,
-      readLines,
-      log
+      readLines
     }),
     mediaPort: createMediaPort({
       screenCapture,

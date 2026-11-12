@@ -1,48 +1,37 @@
 <script lang="ts">
+  import { errorMessage } from "@/lib/error-message.ts";
   import CircleAction from "@/overlays/circle/circle-action.svelte";
   import CircleBar from "@/overlays/circle/circle-bar.svelte";
   import type { CircleView } from "@/overlays/circle/controller.ts";
   import { createClickCounter } from "@/overlays/circle/gesture/click-counter.ts";
-  import {
-    brackets,
-    cornerRadius,
-    roundedRectsPath,
-    scrimPath,
-    WORD_RADIUS
-  } from "@/overlays/circle/gesture/geometry.ts";
-  import { CircleCursor, GestureEventKind, hoverCursor } from "@/overlays/circle/gesture/gesture.ts";
+  import { cornerRadius, roundedRectsPath, WORD_RADIUS } from "@/overlays/circle/gesture/geometry.ts";
+  import { CircleCursor, GestureEventKind, hoverCursor, pickedWords } from "@/overlays/circle/gesture/gesture.ts";
   import type { GestureEvent } from "@/overlays/circle/gesture/gesture.ts";
+  import { movePoints, pointerPoint } from "@/overlays/circle/gesture/pointer-points.ts";
   import { OverlayGlyph } from "@/overlays/glyphs.ts";
-  import {
-    fadeOut,
-    riseIn,
-    settleIn,
-    sheenIn,
-    TransformOrigin
-  } from "@/overlays/motion/transitions.ts";
+  import { fadeOut, riseIn, sheenIn, TransformOrigin } from "@/overlays/motion/transitions.ts";
   import { CircleAction as CircleActionName } from "@/overlays/protocol.ts";
-  import type { Rect, Size } from "@/overlays/shapes.ts";
+  import type { Size } from "@/overlays/shapes.ts";
   import { windowTheme } from "@/overlays/window/window-theme.svelte.ts";
   import "@gemini-live/pill/theme.css";
   import { elementSize } from "winui-svelte";
   import {
     Border,
     Canvas,
-    Image,
     Path,
-    Polyline,
+    SelectionOverlay,
     TextBlock,
     Window
   } from "winui-svelte/components";
   import type { WindowHandle } from "winui-svelte/components";
   import { releasePointerCapture, setPointerCapture } from "winui-svelte/input";
   import type { PointerEvent } from "winui-svelte/input";
-  import { SelectionPhase } from "winui-svelte/selection";
+  import { createSelector, SelectionPhase } from "winui-svelte/selection";
   import { mediaQuery, startTimer } from "winui-svelte/window";
 
   interface Props {
-    // The monitor in physical pixels: the window covers it exactly
-    bounds: Rect;
+    // The display the window covers exactly, by the id Windows lists it under
+    displayId: bigint;
     // The frozen display, a JPEG
     still: Uint8Array;
     // Undefined until the window knows its size and the controller exists
@@ -54,24 +43,22 @@
     ondeactivated: () => void;
     // The window exists: its handle, to bring it to the front
     onready: (hwnd: bigint) => void;
+    // The window could not be placed over its display
+    onfailed: (error: string) => void;
   }
 
   const {
-    bounds,
+    displayId,
     still,
     view,
     isExcludedFromCapture,
     dispatch,
     onsized,
     ondeactivated,
-    onready
+    onready,
+    onfailed
   }: Props = $props();
 
-  // The scrim: barely there while drawing, deeper outside a selection so the selection pops
-  const IDLE_DIM = 0.08;
-  const SELECTED_DIM = 0.4;
-  // The brackets land from slightly larger, so the selection reads as snapping into place
-  const BRACKET_SCALE_FROM = 1.06;
   // The white sheen that sweeps the selection the moment it lands
   const FLASH_OPACITY = 0.45;
   // The how-to at top centre drops in from slightly above
@@ -90,63 +77,37 @@
   const windowRef: { handle: WindowHandle | undefined } = $state({ handle: undefined });
   const pointer: { cursor: CircleCursor } = $state({ cursor: CircleCursor.draw });
   const fadedHintRevision: { value: number | undefined } = $state({ value: undefined });
+  const placement: { isCovered: boolean } = $state({ isCovered: false });
 
   const isReduced = $derived(reducedMotion.matches);
   const gesture = $derived(view?.gesture);
   const selection = $derived(gesture?.selector.selection);
   const isTextMode = $derived(gesture?.isTextMode === true);
-  const isStroking = $derived(gesture?.selector.phase === SelectionPhase.draw);
   const screenSize = $derived({
     width: screen.width,
     height: screen.height
   });
 
-  const dim = $derived.by(() => {
-    const isSelectionMissing = selection === undefined;
-    if (isSelectionMissing) {
-      return IDLE_DIM;
+  // Before the controller exists the window shows the still alone: a selector with nothing in it
+  const selector = $derived(gesture?.selector ?? createSelector({ bounds: screenSize }));
+  const picked = $derived.by(() => {
+    const isUnstarted = gesture === undefined;
+    if (isUnstarted) {
+      return [];
     }
 
-    return SELECTED_DIM;
+    return pickedWords(gesture);
   });
 
-  const strokeOpacity = $derived.by(() => {
-    if (isStroking) {
-      return 1;
-    }
-
-    return 0;
-  });
-
-  const strokePoints = $derived((gesture?.selector.stroke ?? []).map(point => [point.x, point.y] as const));
-  const scrim = $derived(
-    scrimPath({
-      screen: screenSize,
-      selection
-    })
-  );
-  const localBrackets = $derived.by(() => {
-    const isSelectionMissing = selection === undefined;
-    if (isSelectionMissing) {
-      return "";
-    }
-
-    return brackets({
-      x: 0,
-      y: 0,
-      width: selection.width,
-      height: selection.height
-    });
-  });
   const wordsPath = $derived(
     roundedRectsPath({
-      rects: (gesture?.words ?? []).map(word => word.bounds),
+      rects: (gesture?.text.words ?? []).map(word => word.bounds),
       radius: WORD_RADIUS
     })
   );
   const pickedPath = $derived(
     roundedRectsPath({
-      rects: (gesture?.picked ?? []).flatMap(index => gesture?.words[index]?.bounds ?? []),
+      rects: picked.map(word => word.bounds),
       radius: WORD_RADIUS
     })
   );
@@ -154,12 +115,6 @@
   const sheen = $derived(
     sheenIn({
       from: FLASH_OPACITY,
-      isReduced
-    })
-  );
-  const settle = $derived(
-    settleIn({
-      scaleFrom: BRACKET_SCALE_FROM,
       isReduced
     })
   );
@@ -191,7 +146,8 @@
   });
 
   $effect(() => {
-    const isMeasured = screen.width > 0 && screen.height > 0;
+    // Only once covered: before that the window has its default size, not the display's
+    const isMeasured = placement.isCovered && screen.width > 0 && screen.height > 0;
     if (isMeasured) {
       onsized({
         width: screen.width,
@@ -202,22 +158,21 @@
 
   $effect(() => {
     const handle = windowRef.handle;
-    const hasHandle = handle !== undefined;
-    if (hasHandle) {
-      // The window prop alone left it below other apps' windows, out of reach of the pointer
-      handle.presenter.isAlwaysOnTop = true;
-      onready(handle.appWindow.id.value);
+    const isPlaced = handle !== undefined && !placement.isCovered;
+    if (!isPlaced) {
+      return;
     }
-  });
 
-  function place() {
-    windowRef.handle?.appWindow.moveAndResize({
-      x: bounds.x,
-      y: bounds.y,
-      width: bounds.width,
-      height: bounds.height
-    });
-  }
+    try {
+      handle.cover({ display: displayId });
+    } catch (error) {
+      onfailed(errorMessage(error));
+      return;
+    }
+
+    placement.isCovered = true;
+    onready(handle.appWindow.id.value);
+  });
 </script>
 
 <Window
@@ -226,6 +181,7 @@
   isAlwaysOnTop
   isBorderless
   {isExcludedFromCapture}
+  isHidden={!placement.isCovered}
   isResizable={false}
   isToolWindow
   onactivechanged={isActive => {
@@ -233,8 +189,6 @@
       ondeactivated();
     }
   }}
-  onscalechanged={place}
-  placement={bounds}
   theme={theme.current}
   title="Circle to Search"
   bind:handle={() => windowRef.handle, handle => {
@@ -259,10 +213,7 @@
         return;
       }
 
-      const point = {
-        x: event.clientX,
-        y: event.clientY
-      };
+      const point = pointerPoint(event);
       setPointerCapture({
         control: event.currentTarget,
         pointerId: event.pointerId
@@ -277,15 +228,10 @@
       });
     }}
     onpointermove={(event: PointerEvent) => {
-      const coalesced = event.getCoalescedEvents();
-      const reports = coalesced.length > 0 ? coalesced : [event];
-      for (const report of reports) {
+      for (const point of movePoints(event)) {
         dispatch({
           kind: GestureEventKind.pointerMove,
-          point: {
-            x: report.x,
-            y: report.y
-          }
+          point
         });
       }
 
@@ -293,10 +239,7 @@
       if (isIdle) {
         pointer.cursor = hoverCursor({
           state: gesture,
-          point: {
-            x: event.clientX,
-            y: event.clientY
-          }
+          point: pointerPoint(event)
         });
       }
     }}
@@ -309,47 +252,25 @@
     }}
     role="presentation"
   >
-    <Image class="circle-still" source={still} stretch="Fill" />
+    <SelectionOverlay image={still} state={selector} />
     <Border class="circle-tint" isHitTestVisible={false} />
-    <Path style="opacity: {dim};" class="circle-dim" data={scrim} isHitTestVisible={false} />
     <Border class="circle-edge-glow" isHitTestVisible={false} />
     <Border class="circle-edge" isHitTestVisible={false} />
 
     <Canvas class="circle-layer" isHitTestVisible={false}>
       {#if view !== undefined}
-        <Canvas style="opacity: {strokeOpacity};" class="circle-layer circle-stroke" isHitTestVisible={false}>
-          <Polyline class="circle-stroke-glow" points={strokePoints} />
-          <Polyline class="circle-stroke-core" points={strokePoints} />
-        </Canvas>
-
-        {#if selection !== undefined}
-          {#key view.landing?.revision}
+        {#if selection !== undefined && view.landing !== undefined}
+          {#key view.landing.revision}
             <border
               style:left="{selection.x}px"
               style:top="{selection.y}px"
               style:width="{selection.width}px"
               style:height="{selection.height}px"
-              class="circle-selection"
-              in:settle
-            >
-              <Path class="circle-bracket-halo" data={localBrackets} />
-              <Path class="circle-bracket" data={localBrackets} />
-            </border>
+              style:border-radius="{cornerRadius(selection)}px"
+              class="circle-flash"
+              in:sheen
+            ></border>
           {/key}
-
-          {#if view.landing !== undefined}
-            {#key view.landing.revision}
-              <border
-                style:left="{selection.x}px"
-                style:top="{selection.y}px"
-                style:width="{selection.width}px"
-                style:height="{selection.height}px"
-                style:border-radius="{cornerRadius(selection)}px"
-                class="circle-flash"
-                in:sheen
-              ></border>
-            {/key}
-          {/if}
         {/if}
 
         {#if isTextMode}
@@ -381,7 +302,7 @@
         {#if isTextMode}
           <CircleBar screen={screenSize} {selection}>
             <CircleAction
-              isDisabled={gesture?.picked.length === 0}
+              isDisabled={picked.length === 0}
               isPrimary
               label="Copy"
               onpress={() => dispatch({ kind: GestureEventKind.copy })}
@@ -471,11 +392,6 @@
     opacity: 0.1;
   }
 
-  .circle-dim {
-    fill: #000000;
-    transition: opacity 200ms;
-  }
-
   .circle-edge {
     border-width: 3px;
   }
@@ -491,50 +407,10 @@
     height: 100%;
   }
 
-  .circle-stroke {
-    transition: opacity 260ms;
-  }
-
-  .circle-stroke-glow {
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-width: 20px;
-    opacity: 0.85;
-    filter: blur(12px);
-  }
-
-  .circle-stroke-core {
-    stroke: #ffffff;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-width: 6px;
-  }
-
-  .circle-selection {
-    position: absolute;
-  }
-
   .circle-flash {
     position: absolute;
     background-color: #ffffff;
     opacity: 0;
-  }
-
-  .circle-bracket {
-    fill: none;
-    stroke: #ffffff;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-width: 5px;
-  }
-
-  .circle-bracket-halo {
-    fill: none;
-    stroke: #000000;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-width: 10px;
-    opacity: 0.35;
   }
 
   .circle-words {

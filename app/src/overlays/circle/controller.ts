@@ -1,7 +1,6 @@
 import { regionSchema } from "@/contracts/monitor.ts";
 import type { Region } from "@/contracts/monitor.ts";
 import { errorMessage } from "@/lib/error-message.ts";
-import { textWords } from "@/overlays/circle/gesture/geometry.ts";
 import {
   GestureEffectKind,
   GestureEventKind,
@@ -9,8 +8,10 @@ import {
   reduceGesture
 } from "@/overlays/circle/gesture/gesture.ts";
 import type { GestureEffect, GestureEvent, GestureState } from "@/overlays/circle/gesture/gesture.ts";
+import { ocrWords } from "@/overlays/circle/gesture/ocr-words.ts";
 import type { OcrLine, OverlayLog } from "@/overlays/ports.ts";
-import type { CircleAction, CircleOutcome } from "@/overlays/protocol.ts";
+import { isSearchAction } from "@/overlays/protocol.ts";
+import type { CircleAction, CircleOutcome, SearchCircle } from "@/overlays/protocol.ts";
 import type { Rect, Size } from "@/overlays/shapes.ts";
 import { pixelRegion } from "winui-svelte/selection";
 
@@ -41,6 +42,8 @@ export interface CircleView {
 export interface CircleWorld {
   // OCR of the still inside the region (the still's pixels), or all of it
   readText(region: Region | null): Promise<readonly OcrLine[]>;
+  // Searches the web for the region (the still's pixels); whether the search page opened
+  searchImage(options: SearchCircle): Promise<boolean>;
   // Puts the text on the clipboard; false when another app has it locked
   copyText(text: string): Promise<boolean>;
   // Ctrl+C is held only while words are picked
@@ -110,6 +113,19 @@ function createCircleTasks({ window, still, world, dispatch }: {
     still
   });
 
+  async function search(options: SearchCircle) {
+    const isOpened = await world.searchImage(options).catch((error: unknown) => {
+      world.log.write(`circle: the image search failed: ${errorMessage(error)}`);
+      return false;
+    });
+    if (isOpened) {
+      world.close({ isCancelled: true });
+      return;
+    }
+
+    dispatch({ kind: GestureEventKind.searchFailed });
+  }
+
   function finish({ action, selection }: {
     action: CircleAction;
     selection: Rect;
@@ -118,6 +134,14 @@ function createCircleTasks({ window, still, world, dispatch }: {
     if (!parsed.success) {
       world.log.write("circle: the selection is off the still");
       world.close({ isCancelled: true });
+      return;
+    }
+
+    if (isSearchAction(action)) {
+      void search({
+        action,
+        region: parsed.data
+      });
       return;
     }
 
@@ -133,11 +157,17 @@ function createCircleTasks({ window, still, world, dispatch }: {
     const region = parsed?.success === true ? parsed.data : null;
     const lines = await world.readText(region).catch((error: unknown) => {
       world.log.write(`circle: reading text failed: ${errorMessage(error)}`);
-      return [];
+      return undefined;
     });
+    const isFailed = lines === undefined;
+    if (isFailed) {
+      dispatch({ kind: GestureEventKind.textFailed });
+      return;
+    }
+
     dispatch({
       kind: GestureEventKind.textRead,
-      words: textWords({
+      words: ocrWords({
         lines,
         still,
         window

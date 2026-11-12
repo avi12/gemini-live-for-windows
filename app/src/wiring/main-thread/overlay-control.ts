@@ -1,11 +1,11 @@
 import { monitorName } from "@/contracts/monitor.ts";
-import { openExternal } from "@/core/shell/open-external.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 import type { Media } from "@/media/media.ts";
 import { createImageSearch, searchEngineOf } from "@/overlays/circle/image-search.ts";
 import { createCircleSession } from "@/overlays/circle/session.ts";
 import { connectOverlayWindows } from "@/overlays/controller-link.ts";
 import { createScreenFocus } from "@/overlays/focus/screen-focus.ts";
+import type { SearchCircle } from "@/overlays/protocol.ts";
 import type { PillController } from "@/pill/controller.ts";
 import type { ScreenFocusOptions, ScreenFocusPort } from "@/pill/ports.ts";
 import type { Transport } from "winui-svelte/state/host";
@@ -21,13 +21,13 @@ function toCircleText(lines: Awaited<ReturnType<ReturnType<typeof createCircleSe
   }));
 }
 
-// Freezes the display under the pointer for the user to circle something, then sends the crop
-// on: to a reverse image search, or to Gemini as what it sees, starting a conversation if none is running
-async function runCircle({ media, controller, session, imageSearch, log }: {
+// Freezes the display under the pointer for the user to circle something, then sends the crop to
+// Gemini as what it sees, starting a conversation if none is running. A reverse image search is
+// answered while the overlay is still up (see searchCircle), so it can say when it fails
+async function runCircle({ media, controller, session, log }: {
   media: Pick<Media, "monitors">;
   controller: () => Pick<PillController, "focusRegion" | "isRunning">;
   session: ReturnType<typeof createCircleSession>;
-  imageSearch: ReturnType<typeof createImageSearch>;
   log: (message: string) => void;
 }) {
   try {
@@ -43,16 +43,6 @@ async function runCircle({ media, controller, session, imageSearch, log }: {
       return;
     }
 
-    const engine = searchEngineOf(selection.action);
-    const isSearch = engine !== undefined;
-    if (isSearch) {
-      await imageSearch.search({
-        engine,
-        crop: selection.crop
-      });
-      return;
-    }
-
     await controller().focusRegion({
       monitor: selection.monitor,
       region: selection.region
@@ -60,6 +50,23 @@ async function runCircle({ media, controller, session, imageSearch, log }: {
   } catch (error) {
     log(`circle: ${errorMessage(error)}`);
   }
+}
+
+async function searchCircle({ action, region, session, imageSearch }: SearchCircle & {
+  session: ReturnType<typeof createCircleSession>;
+  imageSearch: ReturnType<typeof createImageSearch>;
+}) {
+  const engine = searchEngineOf(action);
+  const crop = await session.crop(region);
+  const isSearchable = engine !== undefined && crop !== undefined;
+  if (!isSearchable) {
+    return false;
+  }
+
+  return imageSearch.search({
+    engine,
+    crop
+  });
 }
 
 // The main thread's side of Circle to Search and the share border: the windows and hotkeys run on
@@ -83,7 +90,12 @@ export function createOverlayControl({ transport, media, controller, log }: {
       chipDragStarted: () => focus?.events.chipDragStarted(),
       chipDragged: travelled => focus?.events.chipDragged(travelled),
       circleKeyPressed: () => void circle(),
-      readCircleText: async ({ region }) => toCircleText(await session.readText(region))
+      readCircleText: async ({ region }) => toCircleText(await session.readText(region)),
+      searchCircle: options => searchCircle({
+        ...options,
+        session,
+        imageSearch
+      })
     }
   });
   const session = createCircleSession({
@@ -92,17 +104,13 @@ export function createOverlayControl({ transport, media, controller, log }: {
     setCircling: isCircling => focus?.setCircling(isCircling),
     log: overlayLog
   });
-  const imageSearch = createImageSearch({
-    openUrl: uri => openExternal({ uri }),
-    log: overlayLog
-  });
+  const imageSearch = createImageSearch({ log: overlayLog });
 
   function circle() {
     return runCircle({
       media,
       controller,
       session,
-      imageSearch,
       log
     });
   }

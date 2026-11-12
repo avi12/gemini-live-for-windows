@@ -24,7 +24,6 @@ const MONITOR: Monitor = {
 
 function setup({ isOcrFailing = false }: { isOcrFailing?: boolean } = {}) {
   const grabs: unknown[] = [];
-  const logs: string[] = [];
   const circle = createCircleScreen({
     screenCapture: {
       grab(request) {
@@ -36,13 +35,11 @@ function setup({ isOcrFailing = false }: { isOcrFailing?: boolean } = {}) {
         });
       }
     },
-    readLines: () => isOcrFailing ? Promise.reject(new Error("no language")) : Promise.resolve([]),
-    log: message => logs.push(message)
+    readLines: () => isOcrFailing ? Promise.reject(new Error("no language")) : Promise.resolve([])
   });
   return {
     circle,
-    grabs,
-    logs
+    grabs
   };
 }
 
@@ -58,15 +55,15 @@ describe("circle screen", () => {
     assert.deepEqual([frozen.width, frozen.height], [NUMBER_3840, NUMBER_2160]);
   });
 
-  it("reads text without throwing: a failure is logged and means no text", async () => {
-    const { circle, logs } = setup({ isOcrFailing: true });
+  it("rejects when OCR fails, so a failure is never mistaken for no text", async () => {
+    const { circle } = setup({ isOcrFailing: true });
     const frozen = await circle.freeze(MONITOR);
-    assert.deepEqual(
-      await circle.readText({
+    await assert.rejects(
+      circle.readText({
         frozen,
         region: undefined
-      }), []
+      }),
+      /no language/
     );
-    assert.deepEqual(logs, ["OCR failed: no language"]);
   });
 });

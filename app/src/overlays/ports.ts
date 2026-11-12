@@ -49,23 +49,6 @@ export interface Clipboard {
   writeText(text: string): Promise<boolean>;
 }
 
-// The Win32 foreground calls PreviousApp and the overlay's bring-to-front make
-export interface ForegroundApi {
-  foregroundWindow(): bigint;
-  isWindow(hwnd: bigint): boolean;
-  classNameOf(hwnd: bigint): string;
-  processIdOf(hwnd: bigint): number;
-  threadIdOf(hwnd: bigint): number;
-  currentThreadId(): number;
-  attachThreadInput(options: {
-    ours: number;
-    theirs: number;
-    isAttached: boolean;
-  }): boolean;
-  bringWindowToTop(hwnd: bigint): void;
-  setForegroundWindow(hwnd: bigint): void;
-}
-
 export interface CursorApi {
   cursorPosition(): {
     x: number;

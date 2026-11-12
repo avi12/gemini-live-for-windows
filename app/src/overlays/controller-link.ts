@@ -1,8 +1,20 @@
 import { errorMessage } from "@/lib/error-message.ts";
 import type { FocusWindows } from "@/overlays/focus/screen-focus.ts";
 import type { OverlayLog } from "@/overlays/ports.ts";
-import { chipDraggedSchema, circleOutcomeSchema, OverlayMessage, readCircleTextSchema } from "@/overlays/protocol.ts";
-import type { OcrLines, OpenCircle, OverlayProtocol, ReadCircleText } from "@/overlays/protocol.ts";
+import {
+  chipDraggedSchema,
+  circleOutcomeSchema,
+  OverlayMessage,
+  readCircleTextSchema,
+  searchCircleSchema
+} from "@/overlays/protocol.ts";
+import type {
+  OcrLines,
+  OpenCircle,
+  OverlayProtocol,
+  ReadCircleText,
+  SearchCircle
+} from "@/overlays/protocol.ts";
 import type { Point } from "@/overlays/shapes.ts";
 import { defineMessaging } from "winui-svelte/messaging";
 import type { Transport } from "winui-svelte/state/host";
@@ -16,6 +28,8 @@ export interface OverlayControllerEvents {
   circleKeyPressed(): void;
   // OCR of the frozen still the open circle overlay shows, inside the region or all of it
   readCircleText(options: ReadCircleText): Promise<OcrLines>;
+  // Reverse image search on the circled part of the frozen still: whether the page opened
+  searchCircle(options: SearchCircle): Promise<boolean>;
 }
 
 function listenForEvents({ messaging, events }: {
@@ -53,6 +67,14 @@ function listenForEvents({ messaging, events }: {
 
     return events.readCircleText(parsed.data);
   });
+  messaging.onMessage(OverlayMessage.searchCircle, async message => {
+    const parsed = searchCircleSchema.safeParse(message.data);
+    if (!parsed.success) {
+      throw new Error(parsed.error.message);
+    }
+
+    return events.searchCircle(parsed.data);
+  });
 }
 
 // The controller's end of the overlay link (main thread): the windows it drives, the circle overlay
@@ -87,7 +109,10 @@ export function connectOverlayWindows({ transport, events, log }: {
   async function openCircle(options: OpenCircle) {
     const answer = await messaging.sendMessage(OverlayMessage.openCircle, options).catch((error: unknown) => {
       notifyFailure(error);
-      return { isCancelled: true } as const;
+      return {
+        isCancelled: true,
+        error: errorMessage(error)
+      } as const;
     });
     return circleOutcomeSchema.parse(answer);
   }

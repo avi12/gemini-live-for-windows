@@ -1,5 +1,5 @@
 import { createImageSearch, searchEngineOf } from "./image-search.ts";
-import { CircleAction } from "@/overlays/protocol.ts";
+import { CircleAction, isSearchAction } from "@/overlays/protocol.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { ImageSearchEngine } from "winui-svelte/image-search";
@@ -28,6 +28,12 @@ describe("searchEngineOf", () => {
     assert.equal(searchEngineOf(CircleAction.bing), ImageSearchEngine.BING);
   });
 
+  it("has an engine for exactly the actions the overlay searches", () => {
+    for (const action of Object.values(CircleAction)) {
+      assert.equal(searchEngineOf(action) !== undefined, isSearchAction(action));
+    }
+  });
+
   it("is undefined for asking Gemini", () => {
     assert.equal(searchEngineOf(CircleAction.askGemini), undefined);
   });
@@ -36,20 +42,18 @@ describe("searchEngineOf", () => {
 describe("createImageSearch", () => {
   it("uploads the crop as a JPEG and opens the result page", async () => {
     const asked: ImageSearchOptions[] = [];
-    const opened: string[] = [];
     const search = createImageSearch({
-      openUrl: uri => opened.push(uri),
       log: silentLog(),
-      findUrl(options) {
+      open(options) {
         asked.push(options);
         return Promise.resolve(RESULT_URL);
       }
     });
-    await search.search({
+    const isOpened = await search.search({
       engine: ImageSearchEngine.GOOGLE_LENS,
       crop: CROP
     });
-    assert.deepEqual(opened, [RESULT_URL]);
+    assert.equal(isOpened, true);
     const [options] = asked;
     assert.equal(options?.engine, ImageSearchEngine.GOOGLE_LENS);
     const image = options?.image;
@@ -58,19 +62,17 @@ describe("createImageSearch", () => {
     assert.deepEqual([...new Uint8Array(await image.blob.arrayBuffer())], [...CROP.jpeg]);
   });
 
-  it("only logs when the engine refuses, and opens nothing", async () => {
+  it("only logs when the engine refuses, and says it did not open", async () => {
     const log = silentLog();
-    const opened: string[] = [];
     const search = createImageSearch({
-      openUrl: uri => opened.push(uri),
       log,
-      findUrl: () => Promise.reject(new Error("bing answered 403"))
+      open: () => Promise.reject(new Error("bing answered 403"))
     });
-    await search.search({
+    const isOpened = await search.search({
       engine: ImageSearchEngine.BING,
       crop: CROP
     });
-    assert.equal(opened.length, 0);
+    assert.equal(isOpened, false);
     assert.deepEqual(log.lines, ["bing search failed: bing answered 403"]);
   });
 });

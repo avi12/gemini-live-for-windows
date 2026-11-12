@@ -6,8 +6,7 @@ import { emphasizedDecelerate, linearEase, OverlayMotion, standardEase } from "@
 
 export const TransformOrigin = {
   bottom: "center bottom",
-  top: "center top",
-  center: "center center"
+  top: "center top"
 } as const;
 export type TransformOrigin = typeof TransformOrigin[keyof typeof TransformOrigin];
 
@@ -35,19 +34,6 @@ export function riseIn({ rise, scaleFrom = 1, isReduced, origin = TransformOrigi
       const scale = scaleFrom + (1 - scaleFrom) * eased;
       return `opacity: ${eased}; translate: 0 ${(1 - eased) * rise}px; scale: ${scale}; transform-origin: ${origin}`;
     }
-  });
-}
-
-// The selection's brackets settle in from slightly larger, about the selection's centre
-export function settleIn({ scaleFrom, isReduced }: {
-  scaleFrom: number;
-  isReduced: boolean;
-}) {
-  return riseIn({
-    rise: 0,
-    scaleFrom,
-    isReduced,
-    origin: TransformOrigin.center
   });
 }
 

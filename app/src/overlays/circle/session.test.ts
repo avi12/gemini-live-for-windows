@@ -19,6 +19,7 @@ const MONITOR: Monitor = {
   refreshRateHertz: 60
 };
 const STILL_BYTES = Buffer.from("still");
+const PREFIX_BYTES = 3;
 const CROP_BYTES = Buffer.from("crop");
 const FROZEN: FrozenScreen = {
   monitor: MONITOR,
@@ -38,9 +39,10 @@ const CROP = {
   height: 200
 };
 
-function setup({ outcome, isFreezeFailing = false }: {
+function setup({ outcome, isFreezeFailing = false, frozen = FROZEN }: {
   outcome: CircleOutcome | Error;
   isFreezeFailing?: boolean;
+  frozen?: FrozenScreen;
 }) {
   const steps: string[] = [];
   const opened: OpenCircle[] = [];
@@ -53,7 +55,7 @@ function setup({ outcome, isFreezeFailing = false }: {
         throw new Error("no capture");
       }
 
-      return FROZEN;
+      return frozen;
     },
     async crop() {
       steps.push("crop");
@@ -157,6 +159,42 @@ describe("createCircleSession", () => {
     assert.equal(steps.at(-1), "circling:false");
   });
 
+  it("encodes exactly the still's bytes when it is a view into a larger buffer", async () => {
+    const pool = Buffer.from(`xxx${STILL_BYTES.toString()}yyy`);
+    const { session, opened, release } = setup({
+      outcome: {
+        isCancelled: true
+      },
+      frozen: {
+        ...FROZEN,
+        jpeg: pool.subarray(PREFIX_BYTES, PREFIX_BYTES + STILL_BYTES.length)
+      }
+    });
+    const pending = session.select({
+      monitor: MONITOR,
+      isAskOnRelease: false
+    });
+    release();
+    await pending;
+    assert.equal(opened[0]?.stillJpegBase64, STILL_BYTES.toString("base64"));
+  });
+
+  it("logs why the overlay closed when it failed rather than being cancelled", async () => {
+    const { session, lines, release } = setup({
+      outcome: {
+        isCancelled: true,
+        error: "the window never got a size"
+      }
+    });
+    const pending = session.select({
+      monitor: MONITOR,
+      isAskOnRelease: false
+    });
+    release();
+    assert.equal(await pending, undefined);
+    assert.deepEqual(lines, ["circle: the overlay failed: the window never got a size"]);
+  });
+
   it("ignores a second request while open", async () => {
     const { session, steps, release } = setup({
       outcome: {
@@ -239,6 +277,24 @@ describe("createCircleSession", () => {
     await new Promise(resolve => setImmediate(resolve));
     await session.readText(REGION);
     assert.equal(steps.includes("readText"), true);
+    release();
+    await pending;
+  });
+
+  it("crops the still only while the overlay is open", async () => {
+    const { session, steps, release } = setup({
+      outcome: {
+        isCancelled: true
+      }
+    });
+    assert.equal(await session.crop(REGION), undefined);
+    assert.equal(steps.includes("crop"), false);
+    const pending = session.select({
+      monitor: MONITOR,
+      isAskOnRelease: false
+    });
+    await new Promise(resolve => setImmediate(resolve));
+    assert.deepEqual(await session.crop(REGION), CROP);
     release();
     await pending;
   });

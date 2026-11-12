@@ -14,11 +14,13 @@ import type {
   OcrLines,
   OpenCircle,
   OverlayProtocol,
-  ReadCircleText
+  ReadCircleText,
+  SearchCircle
 } from "@/overlays/protocol.ts";
 import type { Point } from "@/overlays/shapes.ts";
 import { defineMessaging } from "winui-svelte/messaging";
 import type { Transport } from "winui-svelte/state/host";
+import { z } from "zod";
 
 // What the controller can ask of the windows (UI worker)
 export interface OverlayWindowHost {
@@ -38,6 +40,7 @@ export interface OverlayWindowEvents {
   chipDragged(travelled: Point): void;
   circleKeyPressed(): void;
   readCircleText(options: ReadCircleText): Promise<OcrLines>;
+  searchCircle(options: SearchCircle): Promise<boolean>;
 }
 
 function parsed<T>(result: {
@@ -77,6 +80,10 @@ export function serveOverlayWindows({ transport, createHost, log }: {
     async readCircleText(options) {
       const lines = await messaging.sendMessage(OverlayMessage.readCircleText, options);
       return ocrLinesSchema.parse(lines);
+    },
+    async searchCircle(options) {
+      const isOpened = await messaging.sendMessage(OverlayMessage.searchCircle, options);
+      return z.boolean().parse(isOpened);
     }
   });
 

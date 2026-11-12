@@ -1,23 +1,20 @@
-import {
-  joinWords,
-  wordAt,
-  wordsBetween,
-  wordsIn,
-  wordsOnLine
-} from "@/overlays/circle/gesture/geometry.ts";
-import type { TextWord } from "@/overlays/circle/gesture/geometry.ts";
-import { CircleAction } from "@/overlays/protocol.ts";
+import { CircleAction, isSearchAction } from "@/overlays/protocol.ts";
 import type { Point, Rect, Size } from "@/overlays/shapes.ts";
 import {
   createSelector,
+  createTextSelector,
   rectangleFromPoints,
   reduceSelector,
+  reduceTextSelector,
   SelectionCursor,
   SelectionPhase,
   hoverCursor as selectorCursor,
-  SelectorEventKind
+  SelectorEventKind,
+  textSelection,
+  wordAt,
+  wordsInRegion
 } from "winui-svelte/selection";
-import type { SelectorState } from "winui-svelte/selection";
+import type { SelectableWord, SelectorState, TextSelectorState } from "winui-svelte/selection";
 
 // Circle to Search's gesture state machine as a pure reducer (CircleOverlay.cs): what the pointer
 // and the keys do to text mode, the buttons and the answer. The loop, the move and the resize are
@@ -27,9 +24,11 @@ export { CircleAction };
 export const CircleHint = {
   readingText: "Reading text…",
   noText: "No text found",
+  readFailed: "Couldn't read the text",
   selectText: "Drag across the text to select it  ·  Esc to go back",
   copied: "Copied",
   copyFailed: "Couldn't copy",
+  searchFailed: "Couldn't open the image search  ·  Try again or pick another",
   circle: "Circle anything to search  ·  Esc to cancel",
   circleToAsk: "Circle what Gemini should look at  ·  Esc to cancel"
 } as const;
@@ -43,7 +42,6 @@ export type CircleCursor = typeof CircleCursor[keyof typeof CircleCursor];
 
 // Three presses in a row select a whole line
 export const LINE_CLICK_COUNT = 3;
-const NO_WORD = -1;
 
 export interface GestureState {
   // The loop, the selection and its move and resize
@@ -51,15 +49,16 @@ export interface GestureState {
   // Gemini Live is already running: no buttons, the first loop is the answer
   readonly isAskOnRelease: boolean;
   readonly isFinished: boolean;
+  // An answer that searches the web was sent and has not come back: finished, but it can still fail
+  readonly isSearching: boolean;
   readonly isReading: boolean;
   readonly isTextMode: boolean;
   // A press in text mode is down: a word drag or a rubber band
   readonly isSelectingText: boolean;
-  readonly words: readonly TextWord[];
-  readonly picked: readonly number[];
+  // The OCR words and the run the user picked among them (winui-svelte's text selector)
+  readonly text: TextSelectorState;
+  // Where a press in empty space began: the drag is then a rubber band
   readonly textOrigin: Point | undefined;
-  // The word a text drag began on, or -1 for empty space (the drag is then a rubber band)
-  readonly textAnchor: number;
   readonly band: Rect | undefined;
 }
 
@@ -72,9 +71,11 @@ export const GestureEventKind = {
   finish: "finish",
   selectText: "selectText",
   textRead: "textRead",
+  textFailed: "textFailed",
   leaveText: "leaveText",
   copy: "copy",
-  copyDone: "copyDone"
+  copyDone: "copyDone",
+  searchFailed: "searchFailed"
 } as const;
 
 export type GestureEvent =
@@ -100,14 +101,18 @@ export type GestureEvent =
   | { readonly kind: typeof GestureEventKind.selectText }
   | {
     readonly kind: typeof GestureEventKind.textRead;
-    readonly words: readonly TextWord[];
+    readonly words: readonly SelectableWord[];
   }
+  // OCR failed: said apart from finding no text, as the user can do something about it
+  | { readonly kind: typeof GestureEventKind.textFailed }
   | { readonly kind: typeof GestureEventKind.leaveText }
   | { readonly kind: typeof GestureEventKind.copy }
   | {
     readonly kind: typeof GestureEventKind.copyDone;
     readonly isCopied: boolean;
-  };
+  }
+  // The search page did not open: the overlay is usable again and says so
+  | { readonly kind: typeof GestureEventKind.searchFailed };
 
 export const GestureEffectKind = {
   cancel: "cancel",
@@ -161,13 +166,12 @@ export function initialGesture({ screen, isAskOnRelease }: {
     selector: createSelector({ bounds: screen }),
     isAskOnRelease,
     isFinished: false,
+    isSearching: false,
     isReading: false,
     isTextMode: false,
     isSelectingText: false,
-    words: [],
-    picked: [],
+    text: createTextSelector([]),
     textOrigin: undefined,
-    textAnchor: NO_WORD,
     band: undefined
   };
 }
@@ -179,19 +183,42 @@ function stay(state: GestureState) {
   };
 }
 
-function pick({ state, picked }: {
+// The words the user picked, in reading order
+export function pickedWords(state: GestureState) {
+  const chosen = textSelection(state.text);
+  const isNothing = chosen === undefined;
+  if (isNothing) {
+    return [];
+  }
+
+  return state.text.words.slice(chosen.range.start, chosen.range.end + 1);
+}
+
+function retext({ state, text }: {
   state: GestureState;
-  picked: readonly number[];
+  text: TextSelectorState;
 }) {
   return {
     state: {
       ...state,
-      picked
+      text
     },
     effects: [{
       kind: GestureEffectKind.setCopyKey,
-      isRegistered: picked.length > 0
+      isRegistered: textSelection(text) !== undefined
     }]
+  };
+}
+
+// Words are in reading order, so a line's words sit side by side
+function lineRange({ words, index }: {
+  words: readonly SelectableWord[];
+  index: number;
+}) {
+  const line = words[index]?.line;
+  return {
+    first: words.findIndex(word => word.line === line),
+    last: words.findLastIndex(word => word.line === line)
   };
 }
 
@@ -200,41 +227,39 @@ function beginTextSelect({ state, point, clickCount }: {
   point: Point;
   clickCount: number;
 }) {
-  const textAnchor = wordAt({
-    words: state.words,
-    point
+  const pressed = reduceTextSelector({
+    state: state.text,
+    event: {
+      kind: SelectorEventKind.pointerDown,
+      point
+    }
   });
+  const isEmptySpace = pressed.anchor === undefined;
   const begun = {
     ...state,
     isSelectingText: true,
-    textOrigin: point,
-    textAnchor
+    textOrigin: isEmptySpace ? point : undefined
   };
-  const isEmptySpace = textAnchor === NO_WORD;
-  if (isEmptySpace) {
-    return pick({
-      state: begun,
-      picked: []
-    });
-  }
-
-  const isLine = clickCount >= LINE_CLICK_COUNT;
+  const isLine = !isEmptySpace && clickCount >= LINE_CLICK_COUNT;
   if (isLine) {
-    return pick({
+    const { first, last } = lineRange({
+      words: pressed.words,
+      index: pressed.anchor
+    });
+    return retext({
       state: begun,
-      picked: wordsOnLine({
-        words: state.words,
-        index: textAnchor
-      })
+      text: {
+        ...pressed,
+        anchor: first,
+        focus: last,
+        isDragging: false
+      }
     });
   }
 
-  return pick({
+  return retext({
     state: begun,
-    picked: wordsBetween({
-      first: textAnchor,
-      second: textAnchor
-    })
+    text: pressed
   });
 }
 
@@ -242,39 +267,37 @@ function extendTextSelect({ state, point }: {
   state: GestureState;
   point: Point;
 }) {
-  const isBand = state.textAnchor === NO_WORD;
-  const isBandDrag = isBand && state.textOrigin !== undefined;
+  const isBandDrag = state.textOrigin !== undefined;
   if (isBandDrag) {
     const band = rectangleFromPoints({
       first: state.textOrigin,
       second: point
     });
-    return pick({
+    const inside = wordsInRegion({
+      words: state.text.words,
+      region: band
+    });
+    return retext({
       state: {
         ...state,
         band
       },
-      picked: wordsIn({
-        words: state.words,
-        area: band
-      })
+      text: {
+        ...state.text,
+        anchor: inside.at(0),
+        focus: inside.at(-1)
+      }
     });
   }
 
-  const current = wordAt({
-    words: state.words,
-    point
-  });
-  const isOverNoWord = current === NO_WORD;
-  if (isOverNoWord) {
-    return stay(state);
-  }
-
-  return pick({
+  return retext({
     state,
-    picked: wordsBetween({
-      first: state.textAnchor,
-      second: current
+    text: reduceTextSelector({
+      state: state.text,
+      event: {
+        kind: SelectorEventKind.pointerMove,
+        point
+      }
     })
   });
 }
@@ -366,7 +389,14 @@ function pressEnded(state: GestureState) {
   if (state.isSelectingText) {
     return stay({
       ...state,
+      text: reduceTextSelector({
+        state: state.text,
+        event: {
+          kind: SelectorEventKind.pointerUp
+        }
+      }),
       isSelectingText: false,
+      textOrigin: undefined,
       band: undefined
     });
   }
@@ -401,7 +431,8 @@ function finish({ state, action }: {
   return {
     state: {
       ...state,
-      isFinished: true
+      isFinished: true,
+      isSearching: isSearchAction(action)
     },
     effects: [{
       kind: GestureEffectKind.finish,
@@ -416,14 +447,13 @@ function leaveText(state: GestureState) {
     return stay(state);
   }
 
-  const cleared = pick({
+  const cleared = retext({
     state: {
       ...state,
       isTextMode: false,
-      words: [],
       band: undefined
     },
-    picked: []
+    text: createTextSelector([])
   });
   return {
     state: cleared.state,
@@ -452,11 +482,11 @@ function escape(state: GestureState) {
     return cancel(state);
   }
 
-  const hasPicked = state.picked.length > 0;
+  const hasPicked = textSelection(state.text) !== undefined;
   if (hasPicked) {
-    return pick({
+    return retext({
       state,
-      picked: []
+      text: createTextSelector(state.text.words)
     });
   }
 
@@ -488,9 +518,9 @@ function requestText(state: GestureState) {
   };
 }
 
-function textWasRead({ state, words }: {
+function textWasNotShown({ state, message }: {
   state: GestureState;
-  words: readonly TextWord[];
+  message: string;
 }) {
   const reading = {
     ...state,
@@ -500,27 +530,44 @@ function textWasRead({ state, words }: {
     return stay(reading);
   }
 
+  return {
+    state: reading,
+    effects: [
+      { kind: GestureEffectKind.hideHint },
+      {
+        kind: GestureEffectKind.say,
+        message,
+        isLasting: false
+      }
+    ]
+  };
+}
+
+function textWasRead({ state, words }: {
+  state: GestureState;
+  words: readonly SelectableWord[];
+}) {
   const isEmpty = words.length === 0;
   if (isEmpty) {
-    return {
-      state: reading,
-      effects: [
-        { kind: GestureEffectKind.hideHint },
-        {
-          kind: GestureEffectKind.say,
-          message: CircleHint.noText,
-          isLasting: false
-        }
-      ]
-    };
+    return textWasNotShown({
+      state,
+      message: CircleHint.noText
+    });
+  }
+
+  const reading = {
+    ...state,
+    isReading: false
+  };
+  if (state.isFinished) {
+    return stay(reading);
   }
 
   return {
     state: {
       ...reading,
       isTextMode: true,
-      words,
-      picked: []
+      text: createTextSelector(words)
     },
     effects: [
       { kind: GestureEffectKind.hideHint },
@@ -533,8 +580,28 @@ function textWasRead({ state, words }: {
   };
 }
 
+function searchWasNotOpened(state: GestureState) {
+  if (!state.isSearching) {
+    return stay(state);
+  }
+
+  return {
+    state: {
+      ...state,
+      isFinished: false,
+      isSearching: false
+    },
+    effects: [{
+      kind: GestureEffectKind.say,
+      message: CircleHint.searchFailed,
+      isLasting: false
+    }]
+  };
+}
+
 function copyPicked(state: GestureState) {
-  const isNothingToCopy = !state.isTextMode || state.picked.length === 0;
+  const chosen = textSelection(state.text);
+  const isNothingToCopy = !state.isTextMode || chosen === undefined;
   if (isNothingToCopy) {
     return stay(state);
   }
@@ -543,10 +610,7 @@ function copyPicked(state: GestureState) {
     state,
     effects: [{
       kind: GestureEffectKind.copyText,
-      text: joinWords({
-        words: state.words,
-        picked: state.picked
-      })
+      text: chosen.text
     }]
   };
 }
@@ -585,10 +649,17 @@ export function reduceGesture({ state, event }: {
         state,
         words: event.words
       });
+    case GestureEventKind.textFailed:
+      return textWasNotShown({
+        state,
+        message: CircleHint.readFailed
+      });
     case GestureEventKind.leaveText:
       return leaveText(state);
     case GestureEventKind.copy:
       return copyPicked(state);
+    case GestureEventKind.searchFailed:
+      return searchWasNotOpened(state);
     case GestureEventKind.copyDone:
       return {
         state,
@@ -609,9 +680,9 @@ export function hoverCursor({ state, point }: {
 }) {
   if (state.isTextMode) {
     const isOnWord = wordAt({
-      words: state.words,
+      words: state.text.words,
       point
-    }) !== NO_WORD;
+    }) !== undefined;
     return isOnWord ? CircleCursor.text : CircleCursor.arrow;
   }
 

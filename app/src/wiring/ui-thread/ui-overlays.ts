@@ -2,14 +2,15 @@ import { copyTextWithPowerShell } from "@/lib/clipboard.ts";
 import type { Clipboard } from "@/overlays/ports.ts";
 import {
   createCursorApi,
-  createForegroundApi,
   createOverlayWindowHost,
   loadRegisterHotkey,
   prepareOverlayWindows,
   serveOverlayWindows
 } from "@/overlays/worker.ts";
 import type { MessagePort } from "node:worker_threads";
+import { windowsDisplaySource } from "winui-svelte/devices/display";
 import { createMessagePortTransport } from "winui-svelte/state/host";
+import { bringWindowToFront } from "winui-svelte/window/foreground";
 
 // About one 60 Hz frame; the circle overlay folds the pointer's moves into one update per frame
 const FRAME_MILLISECONDS = 16;
@@ -35,7 +36,6 @@ export async function startOverlayWindows({ port, isDebugging, log }: {
   await prepareOverlayWindows();
   const register = await loadRegisterHotkey();
   const overlayLog = { write: log };
-  const foreground = createForegroundApi();
   const cursor = createCursorApi();
 
   serveOverlayWindows({
@@ -45,11 +45,16 @@ export async function startOverlayWindows({ port, isDebugging, log }: {
       events,
       deps: {
         register,
-        foreground,
+        bringToFront: bringWindowToFront,
         cursor,
         clipboard,
         log: overlayLog,
         isDebugging,
+        displayAreas: () => windowsDisplaySource().list(),
+        schedule({ callback, milliseconds }) {
+          const timer = setTimeout(callback, milliseconds);
+          return () => clearTimeout(timer);
+        },
         requestFrame(callback) {
           setTimeout(callback, FRAME_MILLISECONDS);
         },

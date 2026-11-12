@@ -19,43 +19,56 @@ function openOptions({ monitor, frozen, isAskOnRelease }: {
 }) {
   return {
     monitor,
-    stillJpegBase64: Buffer.from(frozen.jpeg).toString("base64"),
+    // A view over the same memory: Buffer.from(bytes) would copy the whole still first
+    stillJpegBase64: Buffer.from(frozen.jpeg.buffer, frozen.jpeg.byteOffset, frozen.jpeg.byteLength).toString("base64"),
     stillWidth: frozen.width,
     stillHeight: frozen.height,
     isAskOnRelease
   } satisfies OpenCircle;
 }
 
-async function circleMonitor({ screen, openOverlay, setCircling, monitor, isAskOnRelease, onFrozen }: {
+async function circleMonitor({ screen, openOverlay, setCircling, monitor, isAskOnRelease, log, onFrozen }: {
   screen: CircleScreen;
   openOverlay: (options: OpenCircle) => Promise<CircleOutcome>;
   setCircling: (isCircling: boolean) => void;
   monitor: Monitor;
   isAskOnRelease: boolean;
-  onFrozen: (frozen: FrozenScreen) => void;
+  log: OverlayLog;
+  onFrozen: (frozen: FrozenScreen | undefined) => void;
 }) {
   // Captured before the window exists, so the still is the screen as the user last saw it
   const frozen = await screen.freeze(monitor);
   onFrozen(frozen);
   setCircling(true);
-  const options = openOptions({
-    monitor,
-    frozen,
-    isAskOnRelease
-  });
-  const outcome = await openOverlay(options);
+  // Not held in a variable: the base64 string is as big as the still and only the call needs it
+  const outcome = await openOverlay(
+    openOptions({
+      monitor,
+      frozen,
+      isAskOnRelease
+    })
+  );
   setCircling(false);
 
   if (outcome.isCancelled) {
+    onFrozen(undefined);
+
+    const hasFailed = outcome.error !== undefined;
+    if (hasFailed) {
+      log.write(`circle: the overlay failed: ${outcome.error}`);
+    }
+
     return undefined;
   }
 
+  const crop = await screen.crop({
+    frozen,
+    region: outcome.region
+  });
+  onFrozen(undefined);
   return {
     action: outcome.action,
-    crop: await screen.crop({
-      frozen,
-      region: outcome.region
-    }),
+    crop,
     region: outcome.region,
     monitor
   } satisfies CircleSelection;
@@ -109,6 +122,7 @@ export function createCircleSession({ screen, openOverlay, setCircling, log }: {
         setCircling,
         monitor,
         isAskOnRelease,
+        log,
         onFrozen(frozen) {
           frozenNow = frozen;
         }
@@ -132,8 +146,23 @@ export function createCircleSession({ screen, openOverlay, setCircling, log }: {
     });
   }
 
+  // The sharp crop of the still the open overlay shows, or undefined when none is open
+  async function crop(region: Region) {
+    const frozen = frozenNow;
+    const isMissing = frozen === undefined;
+    if (isMissing) {
+      return undefined;
+    }
+
+    return screen.crop({
+      frozen,
+      region
+    });
+  }
+
   return {
     select,
-    readText
+    readText,
+    crop
   };
 }

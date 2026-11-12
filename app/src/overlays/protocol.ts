@@ -20,7 +20,8 @@ export const OverlayMessage = {
   chipDragStarted: "overlay/chipDragStarted",
   chipDragged: "overlay/chipDragged",
   circleKeyPressed: "overlay/circleKeyPressed",
-  readCircleText: "overlay/readCircleText"
+  readCircleText: "overlay/readCircleText",
+  searchCircle: "overlay/searchCircle"
 } as const;
 
 export const CircleAction = {
@@ -29,6 +30,11 @@ export const CircleAction = {
   bing: "bing"
 } as const;
 export type CircleAction = typeof CircleAction[keyof typeof CircleAction];
+
+// The actions that search the web for the crop rather than hand it to Gemini
+export function isSearchAction(action: CircleAction) {
+  return action !== CircleAction.askGemini;
+}
 
 export const coverBorderSchema = z.object({
   monitor: monitorSchema,
@@ -53,10 +59,13 @@ export const chipDraggedSchema = z.object({
 });
 export type ChipDragged = z.infer<typeof chipDraggedSchema>;
 
+// A character class and a quantifier: no backtracking, so a multi-megabyte still checks in one pass
+const BASE64_PATTERN = /^[A-Za-z0-9+/]+={0,2}$/;
+
 export const openCircleSchema = z.object({
   monitor: monitorSchema,
   // The frozen display as a JPEG, base64; the window shows it and the controller crops it
-  stillJpegBase64: z.string(),
+  stillJpegBase64: z.string().regex(BASE64_PATTERN),
   stillWidth: z.number().int().positive(),
   stillHeight: z.number().int().positive(),
   isAskOnRelease: z.boolean()
@@ -64,7 +73,11 @@ export const openCircleSchema = z.object({
 export type OpenCircle = z.infer<typeof openCircleSchema>;
 
 export const circleOutcomeSchema = z.discriminatedUnion("isCancelled", [
-  z.object({ isCancelled: z.literal(true) }),
+  z.object({
+    isCancelled: z.literal(true),
+    // Set when the overlay failed rather than the user backing out
+    error: z.string().exactOptional()
+  }),
   z.object({
     isCancelled: z.literal(false),
     action: z.enum(CircleAction),
@@ -76,6 +89,13 @@ export type CircleOutcome = z.infer<typeof circleOutcomeSchema>;
 
 export const readCircleTextSchema = z.object({ region: regionSchema.nullable() });
 export type ReadCircleText = z.infer<typeof readCircleTextSchema>;
+
+export const searchCircleSchema = z.object({
+  action: z.enum(CircleAction),
+  // In the still's physical pixels
+  region: regionSchema
+});
+export type SearchCircle = z.infer<typeof searchCircleSchema>;
 
 export const ocrLinesSchema = z.array(
   z.object({
@@ -108,4 +128,6 @@ export interface OverlayProtocol {
   [OverlayMessage.chipDragged]: ProtocolWithReturn<ChipDragged, void>;
   [OverlayMessage.circleKeyPressed]: ProtocolWithReturn<void, void>;
   [OverlayMessage.readCircleText]: ProtocolWithReturn<ReadCircleText, OcrLines>;
+  // Whether the search page opened: the overlay stays up and says so when it did not
+  [OverlayMessage.searchCircle]: ProtocolWithReturn<SearchCircle, boolean>;
 }

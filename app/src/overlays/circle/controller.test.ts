@@ -3,7 +3,7 @@ import type { CircleView, CircleWorld } from "@/overlays/circle/controller.ts";
 import { CircleHint, GestureEventKind } from "@/overlays/circle/gesture/gesture.ts";
 import type { OcrLine } from "@/overlays/ports.ts";
 import { CircleAction } from "@/overlays/protocol.ts";
-import type { CircleOutcome } from "@/overlays/protocol.ts";
+import type { CircleOutcome, SearchCircle } from "@/overlays/protocol.ts";
 import type { Point } from "@/overlays/shapes.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
@@ -26,6 +26,12 @@ const LOOP: readonly Point[] = [{
   x: 200,
   y: 160
 }];
+const SEARCHED_REGION = {
+  x: 168,
+  y: 168,
+  width: 264,
+  height: 184
+};
 const START_MILLISECONDS = 1000;
 const SECOND_LOOP_OFFSET = 300;
 const HINT = "Circle anything";
@@ -43,8 +49,15 @@ const LINES: readonly OcrLine[] = [
   }
 ];
 
-function setup({ isAskOnRelease = false, lines = LINES, isCopySuccessful = true, isReadFailing = false }: {
+function setup({
+  isAskOnRelease = false,
+  lines = LINES,
+  isCopySuccessful = true,
+  isReadFailing = false,
+  isSearchOpening = true
+}: {
   isReadFailing?: boolean;
+  isSearchOpening?: boolean;
   isAskOnRelease?: boolean;
   lines?: readonly OcrLine[];
   isCopySuccessful?: boolean;
@@ -53,6 +66,7 @@ function setup({ isAskOnRelease = false, lines = LINES, isCopySuccessful = true,
   const outcomes: CircleOutcome[] = [];
   const copyKeys: boolean[] = [];
   const copied: string[] = [];
+  const searched: SearchCircle[] = [];
   const read: (unknown)[] = [];
   const logs: string[] = [];
   let view: CircleView | undefined;
@@ -69,6 +83,10 @@ function setup({ isAskOnRelease = false, lines = LINES, isCopySuccessful = true,
     async copyText(text) {
       copied.push(text);
       return isCopySuccessful;
+    },
+    async searchImage(options) {
+      searched.push(options);
+      return isSearchOpening;
     },
     holdCopyKey: isHeld => copyKeys.push(isHeld),
     close: outcome => outcomes.push(outcome),
@@ -92,6 +110,7 @@ function setup({ isAskOnRelease = false, lines = LINES, isCopySuccessful = true,
     outcomes,
     copyKeys,
     copied,
+    searched,
     read,
     logs,
     advance(milliseconds: number) {
@@ -167,11 +186,11 @@ describe("createCircleController", () => {
     draw({ controller });
     controller.dispatch({
       kind: GestureEventKind.finish,
-      action: CircleAction.lens
+      action: CircleAction.askGemini
     });
     assert.deepEqual(outcomes, [{
       isCancelled: false,
-      action: CircleAction.lens,
+      action: CircleAction.askGemini,
       region: {
         x: 168,
         y: 168,
@@ -179,6 +198,41 @@ describe("createCircleController", () => {
         height: 184
       }
     }]);
+  });
+
+  it("searches while the overlay is up and closes once the page opened", async () => {
+    const { controller, outcomes, searched } = setup();
+    draw({ controller });
+    controller.dispatch({
+      kind: GestureEventKind.finish,
+      action: CircleAction.lens
+    });
+    assert.deepEqual(outcomes, []);
+    await settleAsync();
+    assert.deepEqual(searched, [{
+      action: CircleAction.lens,
+      region: SEARCHED_REGION
+    }]);
+    assert.deepEqual(outcomes, [{ isCancelled: true }]);
+  });
+
+  it("says the search failed and stays usable when the page did not open", async () => {
+    const { controller, outcomes, view } = setup({ isSearchOpening: false });
+    draw({ controller });
+    controller.dispatch({
+      kind: GestureEventKind.finish,
+      action: CircleAction.bing
+    });
+    await settleAsync();
+    assert.deepEqual(outcomes, []);
+    assert.equal(view()?.hint.text, CircleHint.searchFailed);
+    assert.equal(view()?.hint.isLasting, false);
+    assert.notEqual(view()?.gesture.selector.selection, undefined);
+    controller.dispatch({
+      kind: GestureEventKind.finish,
+      action: CircleAction.askGemini
+    });
+    assert.equal(outcomes.length, 1);
   });
 
   it("asks Gemini the moment the loop is drawn when it is the request", () => {
@@ -226,8 +280,8 @@ describe("createCircleController", () => {
     await settleAsync();
     assert.deepEqual(read, [null]);
     assert.equal(view()?.gesture.isTextMode, true);
-    assert.deepEqual(view()?.gesture.words.map(word => word.text), ["hello"]);
-    assert.deepEqual(view()?.gesture.words[0]?.bounds, {
+    assert.deepEqual(view()?.gesture.text.words.map(word => word.text), ["hello"]);
+    assert.deepEqual(view()?.gesture.text.words[0]?.bounds, {
       x: 100,
       y: 100,
       width: 50,
@@ -257,13 +311,13 @@ describe("createCircleController", () => {
     assert.equal(view()?.hint.text, CircleHint.noText);
   });
 
-  it("treats a failed read as no text and logs it", async () => {
+  it("says the read failed, apart from no text, and logs it", async () => {
     const { controller, view, logs } = setup({ isReadFailing: true });
     controller.dispatch({ kind: GestureEventKind.selectText });
     await settleAsync();
     assert.deepEqual(logs, ["circle: reading text failed: no OCR"]);
     assert.equal(view()?.gesture.isTextMode, false);
-    assert.equal(view()?.hint.text, CircleHint.noText);
+    assert.equal(view()?.hint.text, CircleHint.readFailed);
   });
 
   it("holds Ctrl+C only while words are picked", async () => {

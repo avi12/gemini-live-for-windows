@@ -1,6 +1,5 @@
 import {
   argHandle,
-  argNull,
   argPointer,
   bindFunction,
   Win32Type,
@@ -52,10 +51,6 @@ export function readCursorPosition() {
       };
     }
   });
-}
-
-export function threadIdOfWindow(hwnd: bigint) {
-  return getWindowThreadProcessIdCall([argHandle(hwnd), argNull()]).number;
 }
 
 export function processIdOfWindow(hwnd: bigint) {

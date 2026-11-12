@@ -91,6 +91,10 @@ function setup({ outcome = CANCELLED }: { outcome?: CircleOutcome } = {}) {
             }
           }]
         }];
+      },
+      async searchCircle({ action }) {
+        heard.push(`search:${action}`);
+        return true;
       }
     }
   });
@@ -172,6 +176,17 @@ describe("the overlay link", () => {
     assert.deepEqual(heard, ["read:300"]);
   });
 
+  it("asks the controller to search and gets whether the page opened", async () => {
+    const { events, heard } = setup();
+    assert.equal(
+      await events()?.searchCircle({
+        action: CircleAction.bing,
+        region: REGION
+      }), true
+    );
+    assert.deepEqual(heard, ["search:bing"]);
+  });
+
   it("treats an overlay that failed as a cancel and logs it", async () => {
     const transports = linkedTransports();
     const lines: string[] = [];
@@ -202,10 +217,57 @@ describe("the overlay link", () => {
         chipDragStarted: () => undefined,
         chipDragged: () => undefined,
         circleKeyPressed: () => undefined,
-        readCircleText: async () => []
+        readCircleText: async () => [],
+        searchCircle: async () => false
       }
     });
-    assert.deepEqual(await link.openCircle(OPEN), { isCancelled: true });
+    assert.deepEqual(await link.openCircle(OPEN), {
+      isCancelled: true,
+      error: "window died"
+    });
     assert.ok(lines.some(line => line.includes("window died")));
+  });
+
+  it("refuses a still that is not base64 before the window sees it", async () => {
+    const transports = linkedTransports();
+    const opened: OpenCircle[] = [];
+    serveOverlayWindows({
+      transport: transports.second,
+      createHost: () => ({
+        coverBorder: () => undefined,
+        hideBorder: () => undefined,
+        attachChip: () => undefined,
+        hideChip: () => undefined,
+        holdFocusEscape: () => undefined,
+        async openCircle(options) {
+          opened.push(options);
+          return { isCancelled: true };
+        }
+      }),
+      log: {
+        write: () => undefined
+      }
+    });
+    const link = connectOverlayWindows({
+      transport: transports.first,
+      log: {
+        write: () => undefined
+      },
+      events: {
+        focusEscapePressed: () => undefined,
+        chipDismissed: () => undefined,
+        chipDragStarted: () => undefined,
+        chipDragged: () => undefined,
+        circleKeyPressed: () => undefined,
+        readCircleText: async () => [],
+        searchCircle: async () => false
+      }
+    });
+    const outcome = await link.openCircle({
+      ...OPEN,
+      stillJpegBase64: "not base64!"
+    });
+    assert.equal(outcome.isCancelled, true);
+    assert.deepEqual(opened, []);
   });
 });
