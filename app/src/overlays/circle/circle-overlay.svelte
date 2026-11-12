@@ -141,6 +141,10 @@
 
   const isHintShown = $derived(view?.hint.isVisible === true && fadedHintRevision.value !== view.hint.revision);
 
+  function cancel() {
+    dispatch({ kind: GestureEventKind.cancel });
+  }
+
   $effect(() => {
     const hint = view?.hint;
     const isNoticeShown = hint !== undefined && hint.isVisible && !hint.isLasting;
@@ -312,7 +316,7 @@
     <Canvas class="circle-layer">
       {#if view !== undefined && selection !== undefined}
         {#if isTextMode}
-          <CircleBar screen={screenSize} {selection}>
+          <CircleBar oncancel={cancel} screen={screenSize} {selection}>
             <CircleAction
               isDisabled={picked.length === 0}
               isPrimary
@@ -339,7 +343,7 @@
           {#if view.chips.length > 0}
             <CircleChips chips={view.chips} onpress={onchip} {selection} />
           {/if}
-          <CircleBar screen={screenSize} {selection}>
+          <CircleBar oncancel={cancel} screen={screenSize} {selection}>
             <CircleAction
               isPrimary
               label="Ask Gemini"

@@ -14,6 +14,7 @@ export const OverlayMessage = {
   hideChip: "overlay/hideChip",
   holdFocusEscape: "overlay/holdFocusEscape",
   openCircle: "overlay/openCircle",
+  closeCircle: "overlay/closeCircle",
   // Windows to controller
   focusEscapePressed: "overlay/focusEscapePressed",
   chipDismissed: "overlay/chipDismissed",
@@ -137,6 +138,8 @@ export interface OverlayProtocol {
   [OverlayMessage.holdFocusEscape]: ProtocolWithReturn<HoldFocusEscape, void>;
   // Answered when the overlay is gone: the action and region, or that it was cancelled
   [OverlayMessage.openCircle]: ProtocolWithReturn<OpenCircle, CircleOutcome>;
+  // Closes the open circle overlay as a cancel; it carries nothing, so it has no schema
+  [OverlayMessage.closeCircle]: ProtocolWithReturn<void, void>;
   [OverlayMessage.focusEscapePressed]: ProtocolWithReturn<void, void>;
   [OverlayMessage.chipDismissed]: ProtocolWithReturn<void, void>;
   [OverlayMessage.chipDragStarted]: ProtocolWithReturn<void, void>;

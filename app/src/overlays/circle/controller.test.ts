@@ -287,6 +287,12 @@ describe("createCircleController", () => {
     assert.deepEqual(outcomes, [{ isCancelled: true }]);
   });
 
+  it("cancels on the cancel button, whatever the selection", () => {
+    const { controller, outcomes } = setup();
+    controller.dispatch({ kind: GestureEventKind.cancel });
+    assert.deepEqual(outcomes, [{ isCancelled: true }]);
+  });
+
   it("ignores a deactivation while Windows is still settling", () => {
     const { controller, outcomes, logs, advance } = setup();
     advance(CIRCLE_SETTLE_MILLISECONDS - 1);

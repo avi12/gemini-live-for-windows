@@ -32,6 +32,7 @@ export interface OverlayWindowHost {
   hideChip(): void;
   holdFocusEscape(isHeld: boolean): void;
   openCircle(options: OpenCircle): Promise<CircleOutcome>;
+  closeCircle(): void;
 }
 
 // What the windows tell the controller
@@ -113,6 +114,9 @@ export function serveOverlayWindows({ transport, createHost, log }: {
     OverlayMessage.openCircle,
     message => host.openCircle(parsed(openCircleSchema.safeParse(message.data)))
   );
+  messaging.onMessage(OverlayMessage.closeCircle, () => {
+    host.closeCircle();
+  });
 
   return () => messaging.close();
 }

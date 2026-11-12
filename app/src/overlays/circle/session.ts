@@ -37,6 +37,7 @@ async function circleMonitor({
   isAskOnRelease,
   preferredSearch,
   log,
+  isCancelRequested,
   onFrozen
 }: {
   screen: CircleScreen;
@@ -46,10 +47,16 @@ async function circleMonitor({
   isAskOnRelease: boolean;
   preferredSearch: SearchAction;
   log: OverlayLog;
+  // Win+Alt+C pressed while the display was still being captured: there is no window to close yet
+  isCancelRequested: () => boolean;
   onFrozen: (frozen: FrozenScreen | undefined) => void;
 }) {
   // Captured before the window exists, so the still is the screen as the user last saw it
   const frozen = await screen.freeze(monitor);
+  if (isCancelRequested()) {
+    return undefined;
+  }
+
   onFrozen(frozen);
   setCircling(true);
   // Not held in a variable: the base64 string is as big as the still and only the call needs it
@@ -106,13 +113,16 @@ async function readFrozen({ screen, frozen, region }: {
 // Circle to Search from the controller's side (main thread): freezes the display, shows the
 // overlay on the UI worker, and turns the answer into a crop. The Esc the screen focus holds is
 // let go of first (`setCircling`), since the overlay needs Esc for its own cancel
-export function createCircleSession({ screen, openOverlay, setCircling, log }: {
+export function createCircleSession({ screen, openOverlay, closeOverlay, setCircling, log }: {
   screen: CircleScreen;
   openOverlay: (options: OpenCircle) => Promise<CircleOutcome>;
+  // Closes the open overlay as a cancel
+  closeOverlay: () => void;
   setCircling: (isCircling: boolean) => void;
   log: OverlayLog;
 }) {
   let isOpen = false;
+  let isCancelRequested = false;
   let frozenNow: FrozenScreen | undefined;
 
   // Freezes `monitor` and lets the user circle part of it; the selection, or undefined when they
@@ -129,6 +139,7 @@ export function createCircleSession({ screen, openOverlay, setCircling, log }: {
     }
 
     isOpen = true;
+    isCancelRequested = false;
     try {
       return await circleMonitor({
         screen,
@@ -138,6 +149,7 @@ export function createCircleSession({ screen, openOverlay, setCircling, log }: {
         isAskOnRelease,
         preferredSearch,
         log,
+        isCancelRequested: () => isCancelRequested,
         onFrozen(frozen) {
           frozenNow = frozen;
         }
@@ -150,6 +162,17 @@ export function createCircleSession({ screen, openOverlay, setCircling, log }: {
       isOpen = false;
       frozenNow = undefined;
     }
+  }
+
+  // Backs out of Circle to Search: the open overlay closes and the selection is discarded; select
+  // resolves undefined, so nothing else changes
+  function cancel() {
+    if (!isOpen) {
+      return;
+    }
+
+    isCancelRequested = true;
+    closeOverlay();
   }
 
   // OCR of the still the open overlay shows, inside `region` (its pixels) or all of it
@@ -190,7 +213,11 @@ export function createCircleSession({ screen, openOverlay, setCircling, log }: {
   }
 
   return {
+    get isOpen() {
+      return isOpen;
+    },
     select,
+    cancel,
     readText,
     crop,
     scanCodes

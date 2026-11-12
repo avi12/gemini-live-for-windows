@@ -54,6 +54,14 @@ function share({ context, monitor }: {
   deps.log(`sharing ${describeMonitor(monitor)}`);
 }
 
+// Back to the whole display Gemini would start on: the one with the foreground window or the cursor
+export function shareActiveDisplay(context: PillContext) {
+  share({
+    context,
+    monitor: context.deps.displays.active()
+  });
+}
+
 export function shareDisplay({ context, displayId }: {
   context: PillContext;
   displayId: string;

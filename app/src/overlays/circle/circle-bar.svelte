@@ -1,4 +1,5 @@
 <script lang="ts">
+  import CircleCancel from "@/overlays/circle/circle-cancel.svelte";
   import { barPlacement, BarSide } from "@/overlays/circle/gesture/geometry.ts";
   import { riseIn } from "@/overlays/motion/transitions.ts";
   import type { Rect, Size } from "@/overlays/shapes.ts";
@@ -12,10 +13,12 @@
   interface Props {
     selection: Rect;
     screen: Size;
+    // The X after the actions: closes the overlay and drops the selection
+    oncancel: () => void;
     children: Snippet;
   }
 
-  const { selection, screen, children }: Props = $props();
+  const { selection, screen, oncancel, children }: Props = $props();
 
   // How far the bar's entrance travels: up into place below or inside the selection, down into
   // place above it, and no slide beside it (a vertical rise there would read as drifting)
@@ -65,6 +68,7 @@
 >
   <StackPanel orientation="Horizontal" spacing={BUTTON_GAP}>
     {@render children()}
+    <CircleCancel onpress={oncancel} />
   </StackPanel>
 </border>
 

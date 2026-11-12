@@ -84,6 +84,10 @@ function setup({ outcome, isFreezeFailing = false, frozen = FROZEN }: {
 
       return outcome;
     },
+    closeOverlay() {
+      steps.push("close");
+      gate.resolve();
+    },
     setCircling: isCircling => steps.push(`circling:${isCircling}`),
     log: {
       write: message => lines.push(message)
@@ -99,6 +103,52 @@ function setup({ outcome, isFreezeFailing = false, frozen = FROZEN }: {
 }
 
 describe("createCircleSession", () => {
+  it("cancels the open overlay: select resolves undefined and nothing is cropped", async () => {
+    const { session, steps } = setup({
+      outcome: {
+        isCancelled: true
+      }
+    });
+    const pending = session.select({
+      monitor: MONITOR,
+      isAskOnRelease: false,
+      preferredSearch: SearchAction.lens
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+    assert.equal(session.isOpen, true);
+    session.cancel();
+    assert.equal(await pending, undefined);
+    assert.equal(session.isOpen, false);
+    assert.deepEqual(steps, ["freeze", "circling:true", "open", "close", "circling:false"]);
+  });
+
+  it("a cancel while the display is still being captured never opens the window", async () => {
+    const { session, steps } = setup({
+      outcome: {
+        isCancelled: true
+      }
+    });
+    const pending = session.select({
+      monitor: MONITOR,
+      isAskOnRelease: false,
+      preferredSearch: SearchAction.lens
+    });
+    session.cancel();
+    assert.equal(await pending, undefined);
+    assert.deepEqual(steps, ["freeze", "close"]);
+  });
+
+  it("ignores a cancel when no overlay is open", () => {
+    const { session, steps } = setup({
+      outcome: {
+        isCancelled: true
+      }
+    });
+    session.cancel();
+    assert.deepEqual(steps, []);
+  });
+
   it("freezes before the window, releases Esc around the overlay, and crops the answer", async () => {
     const { session, steps, opened, release } = setup({
       outcome: {

@@ -56,7 +56,8 @@ function setup({ outcome = CANCELLED }: { outcome?: CircleOutcome } = {}) {
     async openCircle(options) {
       calls.push(`open:${options.stillWidth}`);
       return outcome;
-    }
+    },
+    closeCircle: () => calls.push("closeCircle")
   };
   serveOverlayWindows({
     transport: transports.second,
@@ -159,6 +160,13 @@ describe("the overlay link", () => {
     assert.deepEqual(calls, ["open:1920"]);
   });
 
+  it("tells the window to close the open overlay", async () => {
+    const { link, calls } = setup();
+    link.closeCircle();
+    await Promise.resolve();
+    assert.deepEqual(calls, ["closeCircle"]);
+  });
+
   it("answers a cancelled overlay", async () => {
     const { link } = setup();
     assert.deepEqual(await link.openCircle(OPEN), { isCancelled: true });
@@ -209,6 +217,7 @@ describe("the overlay link", () => {
         attachChip: () => undefined,
         hideChip: () => undefined,
         holdFocusEscape: () => undefined,
+        closeCircle: () => undefined,
         async openCircle() {
           throw new Error("window died");
         }
@@ -251,6 +260,7 @@ describe("the overlay link", () => {
         attachChip: () => undefined,
         hideChip: () => undefined,
         holdFocusEscape: () => undefined,
+        closeCircle: () => undefined,
         async openCircle(options) {
           opened.push(options);
           return { isCancelled: true };

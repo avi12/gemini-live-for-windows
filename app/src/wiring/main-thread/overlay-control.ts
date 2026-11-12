@@ -1,5 +1,3 @@
-import { monitorName } from "@/contracts/monitor.ts";
-import { errorMessage } from "@/lib/error-message.ts";
 import type { Media } from "@/media/media.ts";
 import { createImageSearch, searchEngineOf } from "@/overlays/circle/image-search.ts";
 import { createCircleSession } from "@/overlays/circle/session.ts";
@@ -7,8 +5,9 @@ import { connectOverlayWindows } from "@/overlays/controller-link.ts";
 import { createScreenFocus } from "@/overlays/focus/screen-focus.ts";
 import { isSearchAction } from "@/overlays/protocol.ts";
 import type { SearchCircle } from "@/overlays/protocol.ts";
-import type { PillController } from "@/pill/controller.ts";
 import type { ScreenFocusOptions, ScreenFocusPort } from "@/pill/ports.ts";
+import { createCircleEntry } from "@/wiring/main-thread/circle-entry.ts";
+import type { CircleEntryController } from "@/wiring/main-thread/circle-entry.ts";
 import type { SearchChoice } from "@/wiring/main-thread/search-choice.ts";
 import type { Transport } from "winui-svelte/state/host";
 
@@ -21,39 +20,6 @@ function toCircleText(lines: Awaited<ReturnType<ReturnType<typeof createCircleSe
       }
     }))
   }));
-}
-
-// Freezes the display under the pointer for the user to circle something, then sends the crop to
-// Gemini as what it sees, starting a conversation if none is running. A reverse image search is
-// answered while the overlay is still up (see searchCircle), so it can say when it fails
-async function runCircle({ media, controller, session, searchChoice, log }: {
-  media: Pick<Media, "monitors">;
-  controller: () => Pick<PillController, "focusRegion" | "isRunning">;
-  session: ReturnType<typeof createCircleSession>;
-  searchChoice: SearchChoice;
-  log: (message: string) => void;
-}) {
-  try {
-    const monitor = media.monitors.active();
-    const { isRunning } = controller();
-    log(`circle on ${monitorName(monitor)}${isRunning ? " (Live running)" : ""}`);
-    // While Live runs, the loop itself is the request: no buttons, it focuses on release
-    const selection = await session.select({
-      monitor,
-      isAskOnRelease: isRunning,
-      preferredSearch: searchChoice.current()
-    });
-    if (!selection) {
-      return;
-    }
-
-    await controller().focusRegion({
-      monitor: selection.monitor,
-      region: selection.region
-    });
-  } catch (error) {
-    log(`circle: ${errorMessage(error)}`);
-  }
 }
 
 async function searchCircle({ action, region, session, imageSearch, searchChoice }: SearchCircle & {
@@ -84,7 +50,7 @@ export function createOverlayControl({ transport, media, controller, searchChoic
   transport: Transport;
   media: Pick<Media, "circleScreen" | "monitors">;
   // The controller is built over the focus this creates, so it is reached on demand
-  controller: () => Pick<PillController, "focusRegion" | "isRunning">;
+  controller: () => CircleEntryController;
   searchChoice: SearchChoice;
   log: (message: string) => void;
 }) {
@@ -113,20 +79,19 @@ export function createOverlayControl({ transport, media, controller, searchChoic
   const session = createCircleSession({
     screen: media.circleScreen,
     openOverlay: link.openCircle,
+    closeOverlay: link.closeCircle,
     setCircling: isCircling => focus?.setCircling(isCircling),
     log: overlayLog
   });
   const imageSearch = createImageSearch({ log: overlayLog });
 
-  function circle() {
-    return runCircle({
-      media,
-      controller,
-      session,
-      searchChoice,
-      log
-    });
-  }
+  const circle = createCircleEntry({
+    media,
+    controller,
+    session,
+    searchChoice,
+    log
+  });
 
   function createFocus({ currentEngine }: ScreenFocusOptions) {
     focus = createScreenFocus({

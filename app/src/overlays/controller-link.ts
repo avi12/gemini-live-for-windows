@@ -132,6 +132,7 @@ export function connectOverlayWindows({ transport, events, log }: {
   return {
     windows,
     openCircle,
+    closeCircle: () => messaging.notify(OverlayMessage.closeCircle),
     close: () => messaging.close()
   };
 }

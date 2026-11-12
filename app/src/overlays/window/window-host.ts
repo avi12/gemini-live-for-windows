@@ -188,10 +188,12 @@ function circleOverlayProps({
   return props;
 }
 
-function openCircleWindow({ options, events, deps }: {
+function openCircleWindow({ options, events, deps, onCloseable }: {
   options: OpenCircle;
   events: OverlayWindowEvents;
   deps: OverlayWindowDeps;
+  // Hands over the way to close this overlay as a cancel
+  onCloseable: (close: () => void) => void;
 }) {
   const displayId = displayIdOf({
     monitor: options.monitor,
@@ -261,6 +263,7 @@ function openCircleWindow({ options, events, deps }: {
     })
   });
 
+  onCloseable(() => lifecycle.close({ isCancelled: true }));
   return lifecycle.answer;
 }
 
@@ -291,6 +294,21 @@ export function createOverlayWindowHost({ events, deps }: {
     events
   });
 
+  let closeOpenCircle: (() => void) | undefined;
+
+  async function openCircle(options: OpenCircle) {
+    const outcome = await openCircleWindow({
+      options,
+      events,
+      deps,
+      onCloseable(close) {
+        closeOpenCircle = close;
+      }
+    });
+    closeOpenCircle = undefined;
+    return outcome;
+  }
+
   function attachChip(options: AttachChip) {
     chip.set({ attached: options });
   }
@@ -309,10 +327,7 @@ export function createOverlayWindowHost({ events, deps }: {
     attachChip,
     hideChip: () => chip.set({ attached: undefined }),
     holdFocusEscape: isHeld => focusEscape.hold(isHeld),
-    openCircle: options => openCircleWindow({
-      options,
-      events,
-      deps
-    })
+    openCircle,
+    closeCircle: () => closeOpenCircle?.()
   } satisfies OverlayWindowHost;
 }

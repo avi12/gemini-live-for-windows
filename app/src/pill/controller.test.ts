@@ -934,6 +934,23 @@ describe("circling a region", () => {
     assert.equal(pill.calls.at(-1), "focusOn 2 300x200");
   });
 
+  it("reports a focused region from the engine and hands the active display back whole", async () => {
+    const pill = await started();
+    assert.equal(pill.controller.isRegionFocused, false);
+    pill.engine.engine.region = {
+      x: 10,
+      y: 10,
+      width: 300,
+      height: 200
+    };
+    assert.equal(pill.controller.isRegionFocused, true);
+    pill.world.active = SECONDARY;
+    pill.controller.focusActiveDisplay();
+    const expectedCalls = ["cover 2", "unfocus"];
+    assert.deepEqual(pill.calls.slice(pill.calls.length - expectedCalls.length), expectedCalls);
+    assert.equal(pill.logs.at(-1), `sharing ${SECONDARY_NAME}`);
+  });
+
   it("passes the screen focus the running engine", async () => {
     const pill = await started();
     assert.equal(pill.focusOptions?.currentEngine(), pill.engine.engine);
