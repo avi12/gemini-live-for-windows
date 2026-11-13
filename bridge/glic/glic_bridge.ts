@@ -308,7 +308,6 @@ if (IS_FIRST_INSTALL_IN_TOP_WINDOW) {
       tryBootstrap();
 
       const shouldRetryPatching = !patchLiveTimeouts() && tries < MAX_START_TRIES / 2;
-
       // Live must not start before its timeouts are rewritten, or it reads the defaults.
       if (shouldRetryPatching) {
         tries++;
