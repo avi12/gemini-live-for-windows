@@ -17,3 +17,6 @@ bridge/dist/
 __pycache__/
 
 app/dist/
+
+# Lint cache
+.verify/

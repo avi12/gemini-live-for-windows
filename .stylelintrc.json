@@ -1,0 +1,13 @@
+{
+  "extends": ["./node_modules/stylelint-config-avi12/stylelint.json"],
+  "plugins": ["winui-svelte/stylelint"],
+  "rules": {
+    "winui-svelte/no-unsupported-css": true,
+    "property-disallowed-list": ["transform"],
+    "property-no-vendor-prefix": true,
+    "value-no-vendor-prefix": true,
+    "selector-no-vendor-prefix": true,
+    "at-rule-no-vendor-prefix": true,
+    "declaration-no-important": null
+  }
+}

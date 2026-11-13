@@ -1,5 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/getfallow/fallow/main/schema/fallowrc.json",
+  "extends": ["./node_modules/fallow-config-avi12/fallow.json"],
   "entry": [
     "bridge/glic/glic_bridge.ts",
     "bridge/home/home_bridge.ts",
@@ -39,12 +40,29 @@
     "protocol/src/pill-dev.ts"
   ],
   "ignorePatterns": [".claude/worktrees/**", "bridge/dist/*.js", "pill/dist/**", "app/dist/**"],
-  "ignoreDependencies": ["postcss-html"],
+  "ignoreDependencies": [
+    "postcss-html",
+    "avi12-lint",
+    "eslint-config-avi12",
+    "fallow-config-avi12",
+    "oxlint-config-avi12",
+    "oxlint-plugin-naming",
+    "stylelint-config-avi12",
+    "oxfmt-config-avi12"
+  ],
   "health": {
     "maxCognitive": 30,
     "maxCrap": 10000
   },
   "rules": {
     "unused-enum-members": "warn"
-  }
+  },
+  "overrides": [
+    {
+      "files": ["extension/scripts/pack-crx.mjs"],
+      "rules": {
+        "unresolved-imports": "off"
+      }
+    }
+  ]
 }

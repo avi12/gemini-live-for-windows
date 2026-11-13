@@ -1,56 +1,44 @@
 {
   "name": "gemini-live-windows",
   "private": true,
-  "type": "module",
   "description": "Workspace root: the page bridges, the companion extension and the messaging they share, linted as one.",
   "license": "Apache-2.0",
   "author": "Avi (https://avi12.com)",
   "repository": "github:avi12/gemini-live-for-windows",
+  "type": "module",
   "scripts": {
     "dev": "pnpm --filter @gemini-live/pill dev",
     "prepare": "simple-git-hooks",
-    "lint": "oxlint --type-aware --ignore-path .oxlintignore --fix -c .oxlintrc.fix.json && eslint --fix && oxlint --type-aware --ignore-path .oxlintignore",
-    "stylelint": "stylelint \"{pill,app}/**/*.svelte\" --config pill/.stylelintrc.json --fix",
+    "lint": "avi12-lint",
     "svelte:check": "pnpm --filter @gemini-live/pill svelte:check && pnpm --filter @gemini-live/app svelte:check",
     "fallow": "fallow audit --base HEAD",
-    "dev:lint": "pnpm fallow && pnpm lint && pnpm stylelint && pnpm svelte:check && pnpm test",
-    "test": "pnpm --filter @gemini-live/app --filter @gemini-live/protocol test"
+    "dev:lint": "pnpm fallow && pnpm lint && pnpm svelte:check && pnpm test",
+    "test": "pnpm --filter @gemini-live/app --filter @gemini-live/protocol test",
+    "lint:fix": "avi12-lint --fix"
   },
   "devDependencies": {
-    "@stylistic/eslint-plugin": "^5.10.0",
+    "avi12-lint": "github:avi12/lint-config#v0.4.6&path:/packages/avi12-lint",
     "eslint": "^10.13.0",
-    "eslint-plugin-import-newlines": "^2.0.0",
-    "eslint-plugin-perfectionist": "^5.13.0",
+    "eslint-config-avi12": "github:avi12/lint-config#v0.4.6&path:/packages/eslint-config",
     "eslint-plugin-svelte": "^3.24.0",
-    "eslint-plugin-unused-imports": "^4.4.1",
     "fallow": "2.103.0",
-    "globals": "^17.13.0",
-    "lint-staged": "^17.6.0",
-    "oxlint": "1.72.0",
-    "oxlint-tsgolint": "0.24.0",
+    "fallow-config-avi12": "github:avi12/lint-config#v0.4.6&path:/packages/fallow-config",
+    "oxfmt": "^0.78.0",
+    "oxfmt-config-avi12": "github:avi12/lint-config#v0.4.6&path:/packages/oxfmt-config",
+    "oxlint": "1.90.0",
+    "oxlint-config-avi12": "github:avi12/lint-config#v0.4.6&path:/packages/oxlint-config",
+    "oxlint-plugin-naming": "github:avi12/lint-config#v0.4.6&path:/packages/oxlint-plugin-naming",
+    "postcss-html": "^1.8.1",
     "simple-git-hooks": "^2.14.0",
+    "stylelint": "^17.16.0",
+    "stylelint-config-avi12": "github:avi12/lint-config#v0.4.6&path:/packages/stylelint-config",
+    "stylelint-config-standard": "^40.0.0",
     "svelte": "5.57.3",
     "svelte-eslint-parser": "^1.10.1",
-    "typescript": "^5.9.0",
-    "typescript-eslint": "^8.72.0"
+    "typescript": "^5.9.0"
   },
   "simple-git-hooks": {
-    "pre-commit": "pnpm lint-staged"
-  },
-  "lint-staged": {
-    "eslint.config.js": [
-      "oxlint --ignore-path .oxlintignore --fix -c .oxlintrc.fix.json",
-      "eslint --fix --no-warn-ignored",
-      "oxlint --ignore-path .oxlintignore"
-    ],
-    "{bridge,extension/src,extension/scripts,messaging/src,eslint-rules,eslint-config,pill,app,protocol}/**/*.{ts,js,mjs,svelte}": [
-      "oxlint --ignore-path .oxlintignore --fix -c .oxlintrc.fix.json",
-      "eslint --fix --no-warn-ignored",
-      "oxlint --ignore-path .oxlintignore"
-    ],
-    "{pill,app}/**/*.svelte": [
-      "stylelint --config pill/.stylelintrc.json --fix"
-    ]
+    "pre-commit": "pnpm avi12-lint --staged"
   },
   "packageManager": "pnpm@11.13.1"
 }
