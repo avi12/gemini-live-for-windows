@@ -6,25 +6,25 @@ import { z } from "zod";
 // mirrors the names and shapes one for one.
 
 export const GlowMode = {
-  rest: "rest",
-  breathe: "breathe",
-  level: "level"
+  REST: "rest",
+  BREATHE: "breathe",
+  LEVEL: "level"
 } as const;
 
 export const EngineKind = {
-  google: "Google",
-  apiKey: "ApiKey"
+  GOOGLE: "Google",
+  API_KEY: "ApiKey"
 } as const;
 
 export type EngineKind = (typeof EngineKind)[keyof typeof EngineKind];
 
 export const LiveStatus = {
-  connecting: "Connecting…",
-  listening: "Listening",
-  reconnecting: "Reconnecting…",
-  resuming: "Resuming…",
-  stopped: "Gemini Live stopped",
-  needsApiKey: "Setup: Gemini needs an API key"
+  CONNECTING: "Connecting…",
+  LISTENING: "Listening",
+  RECONNECTING: "Reconnecting…",
+  RESUMING: "Resuming…",
+  STOPPED: "Gemini Live stopped",
+  NEEDS_API_KEY: "Setup: Gemini needs an API key"
 } as const;
 
 const lineSchema = z.object({
@@ -57,15 +57,18 @@ export function knownRefreshRate(reportedHertz: number) {
   return isUnknown ? DEFAULT_REFRESH_RATE_HERTZ : Math.round(reportedHertz);
 }
 
-const displaySchema = z.object({
-  id: z.string(),
-  index: z.number().int().positive(),
-  isPrimary: z.boolean(),
-  refreshRateHertz: refreshRateSchema,
+export const regionSchema = z.object({
   x: z.number().int(),
   y: z.number().int(),
   width: z.number().int().positive(),
   height: z.number().int().positive()
+});
+
+const displaySchema = regionSchema.extend({
+  id: z.string(),
+  index: z.number().int().positive(),
+  isPrimary: z.boolean(),
+  refreshRateHertz: refreshRateSchema
 });
 
 export type PillDisplay = z.infer<typeof displaySchema>;
@@ -111,72 +114,72 @@ export function previewFramesPerSecond({ displays, pillDisplay }: Pick<PillView,
 }
 
 export const PillActionKind = {
-  mute: "mute",
-  end: "end",
-  share: "share",
-  setMicrophone: "setMicrophone",
-  refreshMicrophones: "refreshMicrophones",
-  setCamera: "setCamera",
-  setEngine: "setEngine",
-  askForKey: "askForKey",
-  submitKey: "submitKey",
-  cancelKey: "cancelKey",
-  connectExtension: "connectExtension",
-  openLink: "openLink",
-  update: "update",
-  checkForUpdates: "checkForUpdates",
-  setAutoUpdate: "setAutoUpdate",
-  quit: "quit",
-  setFocusable: "setFocusable",
-  moveBy: "moveBy",
-  restorePreviousApp: "restorePreviousApp"
+  MUTE: "mute",
+  END: "end",
+  SHARE: "share",
+  SET_MICROPHONE: "setMicrophone",
+  REFRESH_MICROPHONES: "refreshMicrophones",
+  SET_CAMERA: "setCamera",
+  SET_ENGINE: "setEngine",
+  ASK_FOR_KEY: "askForKey",
+  SUBMIT_KEY: "submitKey",
+  CANCEL_KEY: "cancelKey",
+  CONNECT_EXTENSION: "connectExtension",
+  OPEN_LINK: "openLink",
+  UPDATE: "update",
+  CHECK_FOR_UPDATES: "checkForUpdates",
+  SET_AUTO_UPDATE: "setAutoUpdate",
+  QUIT: "quit",
+  SET_FOCUSABLE: "setFocusable",
+  MOVE_BY: "moveBy",
+  RESTORE_PREVIOUS_APP: "restorePreviousApp"
 } as const;
 
 // The actions back to C#, one variant per kind. C# answers each with `null`, or an error text.
 export const pillActionSchema = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal(PillActionKind.mute) }),
-  z.object({ kind: z.literal(PillActionKind.end) }),
+  z.object({ kind: z.literal(PillActionKind.MUTE) }),
+  z.object({ kind: z.literal(PillActionKind.END) }),
   z.object({
-    kind: z.literal(PillActionKind.share),
+    kind: z.literal(PillActionKind.SHARE),
     displayId: z.string()
   }),
   z.object({
-    kind: z.literal(PillActionKind.setMicrophone),
+    kind: z.literal(PillActionKind.SET_MICROPHONE),
     microphoneId: z.string().nullable()
   }),
-  z.object({ kind: z.literal(PillActionKind.refreshMicrophones) }),
+  z.object({ kind: z.literal(PillActionKind.REFRESH_MICROPHONES) }),
   z.object({
-    kind: z.literal(PillActionKind.setCamera),
+    kind: z.literal(PillActionKind.SET_CAMERA),
     isOn: z.boolean()
   }),
   z.object({
-    kind: z.literal(PillActionKind.setEngine),
+    kind: z.literal(PillActionKind.SET_ENGINE),
     engine: z.enum(EngineKind)
   }),
-  z.object({ kind: z.literal(PillActionKind.askForKey) }),
+  z.object({ kind: z.literal(PillActionKind.ASK_FOR_KEY) }),
   z.object({
-    kind: z.literal(PillActionKind.submitKey),
+    kind: z.literal(PillActionKind.SUBMIT_KEY),
     key: z.string().trim().min(1)
   }),
-  z.object({ kind: z.literal(PillActionKind.cancelKey) }),
-  z.object({ kind: z.literal(PillActionKind.connectExtension) }),
+  z.object({ kind: z.literal(PillActionKind.CANCEL_KEY) }),
+  z.object({ kind: z.literal(PillActionKind.CONNECT_EXTENSION) }),
   z.object({
-    kind: z.literal(PillActionKind.openLink),
+    kind: z.literal(PillActionKind.OPEN_LINK),
     uri: z.url()
   }),
-  z.object({ kind: z.literal(PillActionKind.update) }),
-  z.object({ kind: z.literal(PillActionKind.checkForUpdates) }),
+  z.object({ kind: z.literal(PillActionKind.UPDATE) }),
+  z.object({ kind: z.literal(PillActionKind.CHECK_FOR_UPDATES) }),
   z.object({
-    kind: z.literal(PillActionKind.setAutoUpdate),
+    kind: z.literal(PillActionKind.SET_AUTO_UPDATE),
     isOn: z.boolean()
   }),
-  z.object({ kind: z.literal(PillActionKind.quit) }),
+  z.object({ kind: z.literal(PillActionKind.QUIT) }),
   z.object({
-    kind: z.literal(PillActionKind.setFocusable),
+    kind: z.literal(PillActionKind.SET_FOCUSABLE),
     isFocusable: z.boolean()
   }),
   z.object({
-    kind: z.literal(PillActionKind.moveBy),
+    kind: z.literal(PillActionKind.MOVE_BY),
     dx: z.number(),
     dy: z.number()
   })
@@ -188,9 +191,9 @@ export type PillAction = z.infer<typeof pillActionSchema>;
 export const VIEW_NAME = "view";
 
 export const WindowMessage = {
-  bringToFront: "bringToFront",
-  moveBy: "moveBy",
-  restorePreviousApp: "restorePreviousApp"
+  BRING_TO_FRONT: "bringToFront",
+  MOVE_BY: "moveBy",
+  RESTORE_PREVIOUS_APP: "restorePreviousApp"
 } as const;
 
 export const moveByDataSchema = z.object({
@@ -201,7 +204,7 @@ export const moveByDataSchema = z.object({
 export type MoveByData = z.infer<typeof moveByDataSchema>;
 
 export interface WindowProtocol {
-  [WindowMessage.bringToFront](): void;
-  [WindowMessage.moveBy](data: MoveByData): void;
-  [WindowMessage.restorePreviousApp](): void;
+  [WindowMessage.BRING_TO_FRONT](): void;
+  [WindowMessage.MOVE_BY](data: MoveByData): void;
+  [WindowMessage.RESTORE_PREVIOUS_APP](): void;
 }

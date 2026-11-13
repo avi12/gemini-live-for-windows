@@ -3,19 +3,13 @@
 // browser extension. Each channel declares a protocol map keyed by an enum,
 //
 //   enum GlicMessage { Capture = 'capture' }
-//   interface GlicProtocolMap { [GlicMessage.Capture](): Frame | null }
+//   interface GlicProtocolMap { [GlicMessage.CAPTURE](): Frame | null }
 //
 // and both ends call sendMessage(type, data) / onMessage(type, handler) as with the library. The
 // signatures use the library's own public types. The app's side is Messenger in
 // src/GeminiLive/Messaging.cs, speaking the same envelopes.
 
-import type {
-  GetDataType,
-  GetReturnType,
-  MaybePromise,
-  Message,
-  RemoveListenerCallback
-} from "@webext-core/messaging";
+import type { GetDataType, GetReturnType, MaybePromise, Message, RemoveListenerCallback } from "@webext-core/messaging";
 
 export type { RemoveListenerCallback };
 
@@ -35,13 +29,11 @@ export interface Messenger<TProtocolMap extends ProtocolMap> {
   ): Promise<GetReturnType<TProtocolMap[TType]>>;
   sendMessage<TType extends keyof TProtocolMap>(
     type: TType,
-    data: GetDataType<TProtocolMap[TType]>,
+    data: GetDataType<TProtocolMap[TType]>
   ): Promise<GetReturnType<TProtocolMap[TType]>>;
   onMessage<TType extends keyof TProtocolMap>(
     type: TType,
-    onReceived: (
-      message: Message<TProtocolMap, TType>
-    ) => void | MaybePromise<GetReturnType<TProtocolMap[TType]>>,
+    onReceived: (message: Message<TProtocolMap, TType>) => void | MaybePromise<GetReturnType<TProtocolMap[TType]>>
   ): RemoveListenerCallback;
   removeAllListeners(): void;
 }
@@ -82,28 +74,32 @@ function isRecord(value: unknown): value is Partial<Request> & Partial<Reply> {
 }
 
 function isRequest(value: unknown): value is Request {
-  return isRecord(value) &&
+  return (
+    isRecord(value) &&
     typeof value.id === "number" &&
     typeof value.type === "string" &&
-    typeof value.timestamp === "number";
+    typeof value.timestamp === "number"
+  );
 }
 
 function isReply(value: unknown): value is Reply {
-  return isRecord(value) &&
+  return (
+    isRecord(value) &&
     typeof value.replyTo === "number" &&
-    (value.err === undefined || value.err === null || typeof value.err === "string");
+    (value.err === undefined || value.err === null || typeof value.err === "string")
+  );
 }
 
 /** Messages to and from the other end of `transport`, typed by `TProtocolMap`. */
-export function defineMessaging<TProtocolMap extends ProtocolMap>(
-  transport: Transport,
-  config: MessagingConfig
-): Messenger<TProtocolMap> {
+export function defineMessaging<TProtocolMap extends ProtocolMap>(transport: Transport, config: MessagingConfig) {
   const handlers = new Map<string, (request: Request) => unknown>();
-  const pending = new Map<number, {
-    resolve(res: unknown): void;
-    reject(error: Error): void;
-  }>();
+  const pending = new Map<
+    number,
+    {
+      resolve(res: unknown): void;
+      reject(error: Error): void;
+    }
+  >();
   let nextId = 1;
 
   // The request is `type`'s message. Its data is the sender's word, unchecked, as in the library.
@@ -114,7 +110,7 @@ export function defineMessaging<TProtocolMap extends ProtocolMap>(
     return request.type === String(type);
   }
 
-  async function answer(request: Request): Promise<void> {
+  async function answer(request: Request) {
     const handler = handlers.get(request.type);
     if (!handler) {
       transport.post({
@@ -138,7 +134,7 @@ export function defineMessaging<TProtocolMap extends ProtocolMap>(
     }
   }
 
-  function settle(reply: Reply): void {
+  function settle(reply: Reply) {
     const waiting = pending.get(reply.replyTo);
     if (!waiting) {
       return; // timed out already, or not ours
@@ -173,10 +169,7 @@ export function defineMessaging<TProtocolMap extends ProtocolMap>(
     type: TType,
     data: GetDataType<TProtocolMap[TType]>
   ): Promise<GetReturnType<TProtocolMap[TType]>>;
-  function sendMessage<TType extends keyof TProtocolMap>(
-    type: TType,
-    data?: unknown
-  ): Promise<GetReturnType<TProtocolMap[TType]>> {
+  function sendMessage<TType extends keyof TProtocolMap>(type: TType, data?: unknown) {
     const id = nextId++;
     return new Promise((resolve, reject) => {
       // The reply's value is the other end's word, unchecked, as in the library.
@@ -216,5 +209,5 @@ export function defineMessaging<TProtocolMap extends ProtocolMap>(
       return () => handlers.delete(key);
     },
     removeAllListeners: () => handlers.clear()
-  };
+  } satisfies Messenger<TProtocolMap>;
 }

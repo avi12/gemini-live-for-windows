@@ -1,3 +1,6 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+
 import {
   DEFAULT_REFRESH_RATE_HERTZ,
   knownRefreshRate,
@@ -5,8 +8,6 @@ import {
   previewFramesPerSecond,
   refreshRateSchema
 } from "./view.ts";
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 
 const HERTZ_60 = 60;
 const HERTZ_120 = 120;
@@ -14,7 +15,8 @@ const NON_INTEGER_HERTZ = 59.94;
 
 const SLOW = {
   id: "\\\\.\\DISPLAY1",
-  name: "Display 1",
+  index: 1,
+  isPrimary: true,
   refreshRateHertz: HERTZ_60,
   x: 0,
   y: 0,
@@ -23,7 +25,8 @@ const SLOW = {
 };
 const FAST = {
   id: "\\\\.\\DISPLAY2",
-  name: "Display 2",
+  index: 2,
+  isPrimary: false,
   refreshRateHertz: HERTZ_120,
   x: 1920,
   y: 0,
@@ -43,10 +46,12 @@ describe("refresh rate schema", () => {
   });
 
   it("makes a display entry without a rate invalid", () => {
-    const parsed = pillViewSchema.shape.displays.safeParse([{
-      id: SLOW.id,
-      name: SLOW.name
-    }]);
+    const parsed = pillViewSchema.shape.displays.safeParse([
+      {
+        id: SLOW.id,
+        index: SLOW.index
+      }
+    ]);
     assert.equal(parsed.success, false);
   });
 });
@@ -73,7 +78,8 @@ describe("preview frames per second", () => {
       previewFramesPerSecond({
         displays: [SLOW, FAST],
         pillDisplay: SLOW.id
-      }), HERTZ_60
+      }),
+      HERTZ_60
     );
   });
 
@@ -82,7 +88,8 @@ describe("preview frames per second", () => {
       previewFramesPerSecond({
         displays: [SLOW, FAST],
         pillDisplay: FAST.id
-      }), HERTZ_120
+      }),
+      HERTZ_120
     );
   });
 
@@ -91,7 +98,8 @@ describe("preview frames per second", () => {
       previewFramesPerSecond({
         displays: [FAST],
         pillDisplay: null
-      }), DEFAULT_REFRESH_RATE_HERTZ
+      }),
+      DEFAULT_REFRESH_RATE_HERTZ
     );
   });
 });

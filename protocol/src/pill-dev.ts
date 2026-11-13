@@ -1,6 +1,7 @@
-import fs from "node:fs";
-import os from "node:os";
+import fileSystem from "node:fs";
+import operatingSystem from "node:os";
 import path from "node:path";
+
 import { z } from "zod";
 
 // The dev marker: `pnpm dev` writes it while it runs, and the installed app reads it each time it
@@ -32,7 +33,7 @@ export function isProcessRunning(processId: number) {
 }
 
 export function pillDevMarkerPath({ env = process.env }: { env?: NodeJS.ProcessEnv } = {}) {
-  const base = env["LOCALAPPDATA"] ?? path.join(os.homedir(), "AppData", "Local");
+  const base = env["LOCALAPPDATA"] ?? path.join(operatingSystem.homedir(), "AppData", "Local");
   return path.join(base, APP_DATA_FOLDER, PILL_DEV_MARKER_FILE);
 }
 
@@ -46,27 +47,30 @@ function parseMarker(text: string) {
 
 // The marker only when it is well formed, its process is alive and its entry exists
 export function readPillDevMarker({ markerPath = pillDevMarkerPath() }: { markerPath?: string } = {}) {
-  if (!fs.existsSync(markerPath)) {
+  if (!fileSystem.existsSync(markerPath)) {
     return undefined;
   }
 
-  const parsed = parseMarker(fs.readFileSync(markerPath, "utf8"));
+  const parsed = parseMarker(fileSystem.readFileSync(markerPath, "utf8"));
   if (!parsed?.success) {
     return undefined;
   }
 
-  const isUsable = isProcessRunning(parsed.data.pid) && fs.existsSync(parsed.data.pillDevEntry);
+  const isUsable = isProcessRunning(parsed.data.pid) && fileSystem.existsSync(parsed.data.pillDevEntry);
   return isUsable ? parsed.data : undefined;
 }
 
-export function writePillDevMarker({ marker, markerPath = pillDevMarkerPath() }: {
+export function writePillDevMarker({
+  marker,
+  markerPath = pillDevMarkerPath()
+}: {
   marker: PillDevMarker;
   markerPath?: string;
 }) {
-  fs.mkdirSync(path.dirname(markerPath), { recursive: true });
-  fs.writeFileSync(markerPath, JSON.stringify(pillDevMarkerSchema.parse(marker)));
+  fileSystem.mkdirSync(path.dirname(markerPath), { recursive: true });
+  fileSystem.writeFileSync(markerPath, JSON.stringify(pillDevMarkerSchema.parse(marker)));
 }
 
 export function removePillDevMarker({ markerPath = pillDevMarkerPath() }: { markerPath?: string } = {}) {
-  fs.rmSync(markerPath, { force: true });
+  fileSystem.rmSync(markerPath, { force: true });
 }
