@@ -4,7 +4,11 @@
   "overrides": [
     {
       "files": ["bridge/**/*.ts", "extension/src/**", "messaging/src/**"],
-      "env": { "browser": true, "node": false, "webextensions": true },
+      "env": {
+        "browser": true,
+        "node": false,
+        "webextensions": true
+      },
       "rules": {
         "no-restricted-globals": [
           "error",
@@ -17,6 +21,18 @@
             "message": "Do not use Reflect. Use direct property access instead."
           }
         ]
+      }
+    },
+    {
+      "files": ["extension/src/entrypoints/**"],
+      "rules": {
+        "no-restricted-exports": "off"
+      }
+    },
+    {
+      "files": ["messaging/src/index.ts"],
+      "rules": {
+        "house/positional-parameters": "off"
       }
     }
   ],
@@ -31,5 +47,19 @@
     "bridge/dist/**",
     ".claude/worktrees/**",
     "src/GeminiLive/Glic/Bridges/*.js"
-  ]
+  ],
+  "rules": {
+    "naming/convention": [
+      "error",
+      {
+        "presets": ["webextension-manifest"],
+        "allowedNames": [
+          {
+            "reason": "Gemini web app ships this key in its own settings blob",
+            "names": ["default_BardChatUi"]
+          }
+        ]
+      }
+    ]
+  }
 }

@@ -1,6 +1,6 @@
 {
   "extends": ["./node_modules/stylelint-config-avi12/stylelint.json"],
-  "plugins": ["winui-svelte/stylelint"],
+  "plugins": ["./pill/node_modules/winui-svelte/dist/css/validate/stylelint.js"],
   "rules": {
     "winui-svelte/no-unsupported-css": true,
     "property-disallowed-list": ["transform"],
