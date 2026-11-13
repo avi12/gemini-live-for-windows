@@ -1,10 +1,11 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+
 import { createCaptureFeed } from "./capture-feed.ts";
 import { createCaptureManager } from "./capture-manager.ts";
 import { timerScheduler } from "./capture-scheduler.ts";
 import { framePeriodMilliseconds } from "./capture-schema.ts";
 import type { CaptureBridge, CaptureConfig, CaptureScheduler, PreviewFrame } from "./capture-schema.ts";
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 
 const SIZE = {
   width: 4,
@@ -28,11 +29,14 @@ const FRAME: PreviewFrame = {
 function createFakes() {
   const opened: CaptureConfig[] = [];
   const closed: string[] = [];
-  const queue: Array<PreviewFrame | undefined> = [];
-  const timers = new Map<number, {
-    intervalMilliseconds: number;
-    run: () => void;
-  }>();
+  const queue: (PreviewFrame | undefined)[] = [];
+  const timers = new Map<
+    number,
+    {
+      intervalMilliseconds: number;
+      run: () => void;
+    }
+  >();
   let nextTimer = 0;
   const bridge: CaptureBridge = {
     openSource(config) {
@@ -44,7 +48,7 @@ function createFakes() {
     }
   };
   const scheduler: CaptureScheduler = {
-    every(timer) {
+    repeat(timer) {
       const id = nextTimer++;
       timers.set(id, timer);
       return () => timers.delete(id);
@@ -77,13 +81,13 @@ describe("framePeriodMilliseconds", () => {
 describe("timerScheduler", () => {
   it("holds the target rate by correcting its drift", async () => {
     let ticks = 0;
-    const cancel = timerScheduler.every({
+    const stopTimer = timerScheduler.repeat({
       intervalMilliseconds: framePeriodMilliseconds(RATE_60),
       run: () => ticks++
     });
     await new Promise(resolve => setTimeout(resolve, SCHEDULER_WINDOW_MILLISECONDS));
-    cancel();
-    const expected = RATE_60 * SCHEDULER_WINDOW_MILLISECONDS / MILLISECONDS_PER_SECOND;
+    stopTimer();
+    const expected = (RATE_60 * SCHEDULER_WINDOW_MILLISECONDS) / MILLISECONDS_PER_SECOND;
     assert.ok(Math.abs(ticks - expected) <= expected * SCHEDULER_TOLERANCE, `${ticks} ticks, expected ${expected}`);
   });
 });
@@ -117,7 +121,10 @@ describe("createCaptureFeed", () => {
       scheduler,
       onFrame: () => undefined
     });
-    assert.deepEqual([...timers.values()].map(timer => timer.intervalMilliseconds), [INTERVAL_AT_120]);
+    assert.deepEqual(
+      [...timers.values()].map(timer => timer.intervalMilliseconds),
+      [INTERVAL_AT_120]
+    );
   });
 
   it("stops idempotently, closing the source and cancelling the timer once", () => {
@@ -138,33 +145,39 @@ describe("createCaptureFeed", () => {
 
   it("rejects an invalid config before opening anything", () => {
     const { bridge, scheduler, opened } = createFakes();
-    assert.throws(() => createCaptureFeed({
-      displayId: "abc",
-      targetFramesPerSecond: 60,
-      size: SIZE,
-      bridge,
-      scheduler,
-      onFrame: () => undefined
-    }));
-    assert.throws(() => createCaptureFeed({
-      displayId: "1",
-      targetFramesPerSecond: 0,
-      size: SIZE,
-      bridge,
-      scheduler,
-      onFrame: () => undefined
-    }));
-    assert.throws(() => createCaptureFeed({
-      displayId: "1",
-      targetFramesPerSecond: 60,
-      size: {
-        width: 0,
-        height: 2
-      },
-      bridge,
-      scheduler,
-      onFrame: () => undefined
-    }));
+    assert.throws(() =>
+      createCaptureFeed({
+        displayId: "abc",
+        targetFramesPerSecond: 60,
+        size: SIZE,
+        bridge,
+        scheduler,
+        onFrame: () => undefined
+      })
+    );
+    assert.throws(() =>
+      createCaptureFeed({
+        displayId: "1",
+        targetFramesPerSecond: 0,
+        size: SIZE,
+        bridge,
+        scheduler,
+        onFrame: () => undefined
+      })
+    );
+    assert.throws(() =>
+      createCaptureFeed({
+        displayId: "1",
+        targetFramesPerSecond: 60,
+        size: {
+          width: 0,
+          height: 2
+        },
+        bridge,
+        scheduler,
+        onFrame: () => undefined
+      })
+    );
     assert.equal(opened.length, 0);
   });
 
@@ -199,14 +212,14 @@ describe("createCaptureFeed", () => {
 describe("createCaptureManager", () => {
   function setup() {
     const fakes = createFakes();
-    const frames: Array<{
+    const frames: {
       displayId: string;
       frame: PreviewFrame;
-    }> = [];
-    const errors: Array<{
+    }[] = [];
+    const errors: {
       displayId: string;
       error: unknown;
-    }> = [];
+    }[] = [];
     const manager = createCaptureManager({
       bridge: fakes.bridge,
       scheduler: fakes.scheduler,
@@ -224,27 +237,36 @@ describe("createCaptureManager", () => {
 
   it("starts nothing while closed and starts every display on open", () => {
     const { manager, opened } = setup();
-    manager.setDisplays([{
-      displayId: "1",
-      targetFramesPerSecond: 60
-    }, {
-      displayId: "2",
-      targetFramesPerSecond: 120
-    }]);
+    manager.setDisplays([
+      {
+        displayId: "1",
+        targetFramesPerSecond: 60
+      },
+      {
+        displayId: "2",
+        targetFramesPerSecond: 120
+      }
+    ]);
     assert.equal(opened.length, 0);
     manager.setOpen(true);
-    assert.deepEqual(opened.map(config => config.displayId), ["1", "2"]);
+    assert.deepEqual(
+      opened.map(config => config.displayId),
+      ["1", "2"]
+    );
   });
 
   it("stops every feed on close", () => {
     const { manager, closed } = setup();
-    manager.setDisplays([{
-      displayId: "1",
-      targetFramesPerSecond: 60
-    }, {
-      displayId: "2",
-      targetFramesPerSecond: 60
-    }]);
+    manager.setDisplays([
+      {
+        displayId: "1",
+        targetFramesPerSecond: 60
+      },
+      {
+        displayId: "2",
+        targetFramesPerSecond: 60
+      }
+    ]);
     manager.setOpen(true);
     manager.setOpen(false);
     assert.deepEqual(closed.toSorted(), ["1", "2"]);
@@ -253,45 +275,61 @@ describe("createCaptureManager", () => {
   it("leaves unchanged feeds running, adds, removes and restarts only on a rate change", () => {
     const { manager, opened, closed } = setup();
     manager.setOpen(true);
-    manager.setDisplays([{
-      displayId: "1",
-      targetFramesPerSecond: 60
-    }, {
-      displayId: "2",
-      targetFramesPerSecond: 60
-    }]);
-    manager.setDisplays([{
-      displayId: "1",
-      targetFramesPerSecond: 60
-    }, {
-      displayId: "2",
-      targetFramesPerSecond: 120
-    }, {
-      displayId: "3",
-      targetFramesPerSecond: 60
-    }]);
-    assert.deepEqual(opened.map(config => `${config.displayId}@${config.targetFramesPerSecond}`), ["1@60", "2@60", "2@120", "3@60"]);
+    manager.setDisplays([
+      {
+        displayId: "1",
+        targetFramesPerSecond: 60
+      },
+      {
+        displayId: "2",
+        targetFramesPerSecond: 60
+      }
+    ]);
+    manager.setDisplays([
+      {
+        displayId: "1",
+        targetFramesPerSecond: 60
+      },
+      {
+        displayId: "2",
+        targetFramesPerSecond: 120
+      },
+      {
+        displayId: "3",
+        targetFramesPerSecond: 60
+      }
+    ]);
+    assert.deepEqual(
+      opened.map(config => `${config.displayId}@${config.targetFramesPerSecond}`),
+      ["1@60", "2@60", "2@120", "3@60"]
+    );
     assert.deepEqual(closed, ["2"]);
-    manager.setDisplays([{
-      displayId: "3",
-      targetFramesPerSecond: 60
-    }]);
+    manager.setDisplays([
+      {
+        displayId: "3",
+        targetFramesPerSecond: 60
+      }
+    ]);
     assert.deepEqual(closed, ["2", "1", "2"]);
   });
 
   it("tags delivered frames with their display", () => {
     const { manager, queue, tickAll, frames } = setup();
     manager.setOpen(true);
-    manager.setDisplays([{
-      displayId: "7",
-      targetFramesPerSecond: 60
-    }]);
+    manager.setDisplays([
+      {
+        displayId: "7",
+        targetFramesPerSecond: 60
+      }
+    ]);
     queue.push(FRAME);
     tickAll();
-    assert.deepEqual(frames, [{
-      displayId: "7",
-      frame: FRAME
-    }]);
+    assert.deepEqual(frames, [
+      {
+        displayId: "7",
+        frame: FRAME
+      }
+    ]);
   });
 
   it("reports a display that cannot open and keeps the others", () => {
@@ -315,32 +353,44 @@ describe("createCaptureManager", () => {
       onError: event => errors.push(event.displayId)
     });
     manager.setOpen(true);
-    manager.setDisplays([{
-      displayId: "1",
-      targetFramesPerSecond: 60
-    }, {
-      displayId: "2",
-      targetFramesPerSecond: 60
-    }]);
+    manager.setDisplays([
+      {
+        displayId: "1",
+        targetFramesPerSecond: 60
+      },
+      {
+        displayId: "2",
+        targetFramesPerSecond: 60
+      }
+    ]);
     assert.deepEqual(errors, ["1"]);
-    assert.deepEqual(fakes.opened.map(config => config.displayId), ["2"]);
+    assert.deepEqual(
+      fakes.opened.map(config => config.displayId),
+      ["2"]
+    );
   });
 
   it("rejects malformed display lists", () => {
     const { manager } = setup();
-    assert.throws(() => manager.setDisplays([{
-      displayId: "x",
-      targetFramesPerSecond: 60
-    }]));
+    assert.throws(() =>
+      manager.setDisplays([
+        {
+          displayId: "x",
+          targetFramesPerSecond: 60
+        }
+      ])
+    );
   });
 
   it("stop releases everything and is repeatable", () => {
     const { manager, closed, timers } = setup();
     manager.setOpen(true);
-    manager.setDisplays([{
-      displayId: "1",
-      targetFramesPerSecond: 60
-    }]);
+    manager.setDisplays([
+      {
+        displayId: "1",
+        targetFramesPerSecond: 60
+      }
+    ]);
     manager.stop();
     manager.stop();
     assert.deepEqual(closed, ["1"]);

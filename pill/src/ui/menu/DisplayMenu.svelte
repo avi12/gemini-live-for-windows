@@ -24,7 +24,7 @@
 
   function share(displayId: string) {
     sendAction({
-      kind: PillActionKind.share,
+      kind: PillActionKind.SHARE,
       displayId
     });
   }

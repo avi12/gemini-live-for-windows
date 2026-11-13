@@ -29,13 +29,13 @@ const EMPTY_VIEW: PillView = {
   isExtensionNeeded: false,
   isExtensionStepsShown: false,
   isKeyPromptShown: false,
-  engine: EngineKind.google,
+  engine: EngineKind.GOOGLE,
   microphones: [],
   microphoneId: null,
   isCameraShared: false,
   update: null,
   glow: {
-    mode: GlowMode.rest,
+    mode: GlowMode.REST,
     level: 0,
     isUser: false
   },

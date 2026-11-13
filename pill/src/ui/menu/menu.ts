@@ -1,4 +1,3 @@
-import { MENU_EXIT_STEPS, menuExitAt, Motion } from "@/ui/motion/motion.ts";
 import { elementRef } from "winui-svelte";
 import { CompositionBatchTypes } from "winui-svelte/bindings/microsoft/ui/composition/CompositionBatchTypes";
 import type { CompositionVisual } from "winui-svelte/bindings/microsoft/ui/composition/Visual";
@@ -8,6 +7,8 @@ import type { DependencyObject } from "winui-svelte/bindings/microsoft/ui/xaml/D
 import { ElementCompositionPreview } from "winui-svelte/bindings/microsoft/ui/xaml/hosting/ElementCompositionPreview";
 import { VisualTreeHelper } from "winui-svelte/bindings/microsoft/ui/xaml/media/VisualTreeHelper";
 import type { UIElement } from "winui-svelte/bindings/microsoft/ui/xaml/UIElement";
+
+import { MENU_EXIT_STEPS, menuExitAt, Motion } from "@/ui/motion/motion.ts";
 
 const TICKS_PER_MILLISECOND = 10_000;
 const FIRST_ITEM = 0;
@@ -23,11 +24,6 @@ const REST_TRANSLATION = {
   y: 0,
   z: 0
 };
-const MENU_PROPS = {
-  placement: "Top",
-  shouldConstrainToRootBounds: false
-} as const;
-
 function isCompositionTarget(node: DependencyObject): node is UIElement {
   return typeof node === "object";
 }
@@ -62,30 +58,35 @@ function progressStops() {
   return Array.from({ length: MENU_EXIT_STEPS + 1 }, (_unused, iStep) => iStep / MENU_EXIT_STEPS);
 }
 
-function startExit({ surface, onDone }: {
-  surface: UIElement;
-  onDone(): void;
-}) {
+function startExit({ surface, onDone }: { surface: UIElement; onDone(): void }) {
   const visual = ElementCompositionPreview.getElementVisual(surface);
   const { compositor, size } = visual;
   ElementCompositionPreview.setIsTranslationEnabled(surface, true);
   const linear = compositor.createLinearEasingFunction();
-  const duration = { duration: BigInt(Motion.menuExitMilliseconds * TICKS_PER_MILLISECOND) };
+  const duration = { duration: BigInt(Motion.MENU_EXIT_MILLISECONDS * TICKS_PER_MILLISECOND) };
   const fade = compositor.createScalarKeyFrameAnimation();
   const shrink = compositor.createVector3KeyFrameAnimation();
   const sink = compositor.createVector3KeyFrameAnimation();
   for (const progress of progressStops()) {
     const pose = menuExitAt(progress);
     fade.insertKeyFrame(progress, pose.opacity, linear);
-    shrink.insertKeyFrame(progress, {
-      ...REST_SCALE,
-      x: pose.scale,
-      y: pose.scale
-    }, linear);
-    sink.insertKeyFrame(progress, {
-      ...REST_TRANSLATION,
-      y: pose.sink
-    }, linear);
+    shrink.insertKeyFrame(
+      progress,
+      {
+        ...REST_SCALE,
+        x: pose.scale,
+        y: pose.scale
+      },
+      linear
+    );
+    sink.insertKeyFrame(
+      progress,
+      {
+        ...REST_TRANSLATION,
+        y: pose.sink
+      },
+      linear
+    );
   }
 
   for (const animation of [fade, shrink, sink]) {
@@ -153,7 +154,8 @@ export function menuOf() {
 
   return {
     props: {
-      ...MENU_PROPS,
+      placement: "Top" as const,
+      shouldConstrainToRootBounds: false,
       onclosing,
       onclosed
     },

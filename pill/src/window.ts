@@ -1,7 +1,9 @@
-import { mountPill } from "@/mount.ts";
 import { MessagePort, workerData } from "node:worker_threads";
+
 import { runOnUiThread } from "winui-svelte/thread";
 import { z } from "zod";
+
+import { mountPill } from "@/mount.ts";
 
 const workerDataSchema = z.object({ port: z.instanceof(MessagePort) });
 

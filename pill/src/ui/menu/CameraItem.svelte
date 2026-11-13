@@ -9,7 +9,7 @@
 <ToggleMenuFlyoutItem
   isChecked={view.isCameraShared}
   onclick={() => sendAction({
-    kind: PillActionKind.setCamera,
+    kind: PillActionKind.SET_CAMERA,
     isOn: !view.isCameraShared
   })}
   text="Camera instead of screen"

@@ -28,7 +28,7 @@ export function createCaptureFeed({
     }
 
     isStopped = true;
-    cancelTimer();
+    stopTimer();
     source.close();
   }
 
@@ -48,7 +48,7 @@ export function createCaptureFeed({
     }
   }
 
-  const cancelTimer = scheduler.every({
+  const stopTimer = scheduler.repeat({
     intervalMilliseconds: framePeriodMilliseconds(config.targetFramesPerSecond),
     run: tick
   });

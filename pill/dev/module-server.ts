@@ -1,5 +1,6 @@
 import path from "node:path";
 import type { MessagePort } from "node:worker_threads";
+
 import { startModuleServer } from "winui-svelte/vite";
 
 export const PILL_ROOT = path.resolve(import.meta.dirname, "..");

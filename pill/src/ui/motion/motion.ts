@@ -1,26 +1,27 @@
-import { emphasizedAccelerate, emphasizedDecelerate } from "@/ui/motion/easing.ts";
 import { cubicOut } from "svelte/easing";
+
+import { emphasizedAccelerate, emphasizedDecelerate } from "@/ui/motion/easing.ts";
 
 // Googlebook's pill motion (the WPF pill's Motion.cs, which matched it): it rises out of the
 // taskbar on the emphasized decelerate curve, and leaves on the accelerate curve with a fade that
 // stays linear, so it is visible the whole way down.
 export const Motion = {
-  enterMilliseconds: 400,
-  exitMilliseconds: 260,
-  standardMilliseconds: 200,
-  swapOutMilliseconds: 100,
-  followMilliseconds: 90,
-  bounceMilliseconds: 100,
-  menuExitMilliseconds: 120,
-  staggerMilliseconds: 60,
-  pillRise: 24,
-  pillSink: 40,
-  pillScale: 0.96,
-  cardRise: 12,
-  lineRise: 8,
-  menuSink: 8,
-  menuScale: 0.96,
-  bounceScale: 0.9
+  ENTER_MILLISECONDS: 400,
+  EXIT_MILLISECONDS: 260,
+  STANDARD_MILLISECONDS: 200,
+  SWAP_OUT_MILLISECONDS: 100,
+  FOLLOW_MILLISECONDS: 90,
+  BOUNCE_MILLISECONDS: 100,
+  MENU_EXIT_MILLISECONDS: 120,
+  STAGGER_MILLISECONDS: 60,
+  PILL_RISE: 24,
+  PILL_SINK: 40,
+  PILL_SCALE: 0.96,
+  CARD_RISE: 12,
+  LINE_RISE: 8,
+  MENU_SINK: 8,
+  MENU_SCALE: 0.96,
+  BOUNCE_SCALE: 0.9
 } as const;
 
 const SCALE_ORIGIN = "center bottom";
@@ -30,17 +31,14 @@ export function menuExitAt(progress: number) {
   const eased = emphasizedAccelerate(progress);
   return {
     opacity: 1 - progress,
-    sink: eased * Motion.menuSink,
-    scale: 1 + (Motion.menuScale - 1) * eased
+    sink: eased * Motion.MENU_SINK,
+    scale: 1 + (Motion.MENU_SCALE - 1) * eased
   };
 }
 
-function riseInOf({ rise, scaleFrom }: {
-  rise: number;
-  scaleFrom: number;
-}) {
+function riseInOf({ rise, scaleFrom }: { rise: number; scaleFrom: number }) {
   return (_node: Element) => ({
-    duration: Motion.enterMilliseconds,
+    duration: Motion.ENTER_MILLISECONDS,
     css(progress: number) {
       const eased = emphasizedDecelerate(progress);
       const scale = scaleFrom + (1 - scaleFrom) * eased;
@@ -49,12 +47,9 @@ function riseInOf({ rise, scaleFrom }: {
   });
 }
 
-function sinkOutOf({ drop, scaleTo }: {
-  drop: number;
-  scaleTo: number;
-}) {
+function sinkOutOf({ drop, scaleTo }: { drop: number; scaleTo: number }) {
   return (_node: Element) => ({
-    duration: Motion.exitMilliseconds,
+    duration: Motion.EXIT_MILLISECONDS,
     css(progress: number, left: number) {
       const eased = emphasizedAccelerate(left);
       const scale = 1 + (scaleTo - 1) * eased;
@@ -65,7 +60,7 @@ function sinkOutOf({ drop, scaleTo }: {
 
 function liftOf({ rise }: { rise: number }) {
   return (_node: Element) => ({
-    duration: Motion.standardMilliseconds,
+    duration: Motion.STANDARD_MILLISECONDS,
     css(progress: number) {
       const eased = cubicOut(progress);
       return `opacity: ${progress}; translate: 0 ${(1 - eased) * rise}px`;
@@ -74,15 +69,15 @@ function liftOf({ rise }: { rise: number }) {
 }
 
 export const pillEnter = riseInOf({
-  rise: Motion.pillRise,
-  scaleFrom: Motion.pillScale
+  rise: Motion.PILL_RISE,
+  scaleFrom: Motion.PILL_SCALE
 });
 
 export const pillExit = sinkOutOf({
-  drop: Motion.pillSink,
-  scaleTo: Motion.pillScale
+  drop: Motion.PILL_SINK,
+  scaleTo: Motion.PILL_SCALE
 });
 
-export const cardLift = liftOf({ rise: Motion.cardRise });
+export const cardLift = liftOf({ rise: Motion.CARD_RISE });
 
-export const lineLift = liftOf({ rise: Motion.lineRise });
+export const lineLift = liftOf({ rise: Motion.LINE_RISE });

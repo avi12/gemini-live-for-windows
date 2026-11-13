@@ -24,7 +24,7 @@
 
   const PILL_WIDTH = 504;
   const DOCK_INSET = 6;
-  const BUTTON_PARTS = [PillPart.share, PillPart.mic, PillPart.gear, PillPart.end] as const;
+  const BUTTON_PARTS = [PillPart.SHARE, PillPart.MIC, PillPart.GEAR, PillPart.END] as const;
 
   enableElementAnimation();
   holdVoiceLevel();
@@ -38,7 +38,7 @@
   const isWindowHidden = $derived(!isDocked && isExitDone);
   const isBeingCaptured = $derived(arePreviewsOpen());
 
-  const pillPlace = $derived(placeOf(PillPart.pill));
+  const pillPlace = $derived(placeOf(PillPart.PILL));
   const dragRegions = $derived([pillPlace].filter(place => place !== undefined));
 
   const passthroughRegions = $derived(
@@ -95,7 +95,7 @@
     }
 
     sendAction({
-      kind: PillActionKind.setFocusable,
+      kind: PillActionKind.SET_FOCUSABLE,
       isFocusable: false
     });
   }

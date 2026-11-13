@@ -1,6 +1,7 @@
-import { SRC_ALIAS } from "./alias.ts";
 import { defineConfig } from "vite";
 import { winuiSvelte } from "winui-svelte/vite";
+
+import { SRC_ALIAS } from "./alias.ts";
 
 export default defineConfig({
   plugins: [winuiSvelte()],

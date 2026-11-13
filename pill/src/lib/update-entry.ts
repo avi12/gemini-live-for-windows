@@ -8,13 +8,13 @@ export function describeUpdateEntry(update: NonNullable<PillView["update"]>) {
   const isNothingReady = update.readyVersion === null;
   if (isNothingReady) {
     return {
-      kind: PillActionKind.checkForUpdates,
+      kind: PillActionKind.CHECK_FOR_UPDATES,
       text: CHECK_TEXT
     };
   }
 
   return {
-    kind: PillActionKind.update,
+    kind: PillActionKind.UPDATE,
     text: `Restart to update to ${update.readyVersion}`
   };
 }

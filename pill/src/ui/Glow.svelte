@@ -28,9 +28,9 @@
     return LEVEL_FLOOR + Math.min(1, voice.level * LEVEL_BOOST) * gain;
   });
 
-  const isBreathingMode = $derived(view.glow.mode === GlowMode.breathe);
+  const isBreathingMode = $derived(view.glow.mode === GlowMode.BREATHE);
   const isBreathing = $derived(isBreathingMode && !reducedMotion.matches && view.isShown);
-  const isFollowing = $derived(view.glow.mode === GlowMode.level);
+  const isFollowing = $derived(view.glow.mode === GlowMode.LEVEL);
 
   const opacity = $derived.by(() => {
     if (!view.isShown) {
@@ -55,20 +55,20 @@
   const timing = $derived.by(() => {
     if (!view.isShown) {
       return {
-        duration: Motion.exitMilliseconds,
+        duration: Motion.EXIT_MILLISECONDS,
         easing: linear
       };
     }
 
     if (isFollowing) {
       return {
-        duration: Motion.followMilliseconds,
+        duration: Motion.FOLLOW_MILLISECONDS,
         easing: linear
       };
     }
 
     return {
-      duration: Motion.enterMilliseconds,
+      duration: Motion.ENTER_MILLISECONDS,
       easing: emphasizedDecelerate
     };
   });

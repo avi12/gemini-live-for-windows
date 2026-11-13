@@ -18,7 +18,7 @@
 
   $effect(() => {
     sendAction({
-      kind: PillActionKind.setFocusable,
+      kind: PillActionKind.SET_FOCUSABLE,
       isFocusable: true
     });
   });
@@ -48,7 +48,7 @@
     if (isEscape) {
       event.handled = true;
       key = "";
-      sendAction({ kind: PillActionKind.cancelKey });
+      sendAction({ kind: PillActionKind.CANCEL_KEY });
       return;
     }
 
@@ -59,7 +59,7 @@
 
     event.handled = true;
     sendAction({
-      kind: PillActionKind.submitKey,
+      kind: PillActionKind.SUBMIT_KEY,
       key: key.trim()
     });
     key = "";
@@ -71,7 +71,7 @@
     Paste a Gemini API key (free at
     <Hyperlink
       onclick={() => sendAction({
-        kind: PillActionKind.openLink,
+        kind: PillActionKind.OPEN_LINK,
         uri: API_KEY_PAGE
       })}>aistudio.google.com/apikey</Hyperlink>), then press Enter. Esc goes back.
   </TextBlock>

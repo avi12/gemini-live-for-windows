@@ -18,7 +18,7 @@
 
 <grid class="face">
   {#if props.isMuted}
-    <border class="muted-layer" transition:fade={{ duration: Motion.standardMilliseconds }}></border>
+    <border class="muted-layer" transition:fade={{ duration: Motion.STANDARD_MILLISECONDS }}></border>
   {/if}
   <stack-panel class="glyphs">
     <GlyphIcon glyph={props.glyph} glyphSize={props.glyphSize} isBouncing isMuted={props.isMuted} kind={props.kind} />

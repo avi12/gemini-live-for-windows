@@ -2,25 +2,29 @@ import { SvelteMap } from "svelte/reactivity";
 import { control } from "winui-svelte";
 
 export const PillPart = {
-  pill: "pill",
-  share: "share",
-  mic: "mic",
-  gear: "gear",
-  end: "end"
+  PILL: "pill",
+  SHARE: "share",
+  MIC: "mic",
+  GEAR: "gear",
+  END: "end"
 } as const;
-export type PillPart = typeof PillPart[keyof typeof PillPart];
+export type PillPart = (typeof PillPart)[keyof typeof PillPart];
+
+interface TransformPointPoint {
+  x: number;
+  y: number;
+}
 
 interface MeasuredElement {
   actualWidth: number;
   actualHeight: number;
   xamlRoot: { content: object | null } | null;
-  transformToVisual(visual: object): { transformPoint(point: {
-    x: number;
-    y: number;
-  }): {
-    x: number;
-    y: number;
-  }; };
+  transformToVisual(visual: object): {
+    transformPoint(point: TransformPointPoint): {
+      x: number;
+      y: number;
+    };
+  };
   onLayoutUpdated(callback: () => void): () => void;
 }
 

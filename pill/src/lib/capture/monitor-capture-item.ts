@@ -65,7 +65,11 @@ export function monitorAt({ x, y }: ScreenPoint) {
   return isFound ? handle : undefined;
 }
 
-function createForMonitor({ factory, monitor, output }: {
+function createForMonitor({
+  factory,
+  monitor,
+  output
+}: {
   factory: WinRtValue;
   monitor: bigint;
   output: DynComRawMemory;
@@ -73,16 +77,15 @@ function createForMonitor({ factory, monitor, output }: {
   const interop = DynCom.registerIUnknownInterface("IGraphicsCaptureItemInterop", INTEROP_IID).addMethodAt(
     CREATE_FOR_MONITOR_METHOD,
     "CreateForMonitor",
-    new DynComMethodSig()
-      .addIn(DynCom.u64Type())
-      .addIn(DynCom.guidType())
-      .addIn(DynCom.pointerType())
+    new DynComMethodSig().addIn(DynCom.u64Type()).addIn(DynCom.guidType()).addIn(DynCom.pointerType())
   );
-  interop.method(CREATE_FOR_MONITOR_METHOD).invoke(factory, [
-    DynWinRtValue.u64(monitor),
-    DynWinRtValue.guid(ITEM_IID),
-    DynComUnsafe.pointer(output.pointer().address)
-  ]);
+  interop
+    .method(CREATE_FOR_MONITOR_METHOD)
+    .invoke(factory, [
+      DynWinRtValue.u64(monitor),
+      DynWinRtValue.guid(ITEM_IID),
+      DynComUnsafe.pointer(output.pointer().address)
+    ]);
 }
 
 export function captureItemOfMonitor(monitor: bigint) {

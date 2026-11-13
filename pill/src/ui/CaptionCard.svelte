@@ -22,7 +22,7 @@
     <border
       class="live-card"
       {@attach glideHeight({
-        duration: Motion.standardMilliseconds,
+        duration: Motion.STANDARD_MILLISECONDS,
         easing: "ease-out"
       })}
     >

@@ -1,9 +1,9 @@
 import { z } from "zod";
 
 const CaptureLimit = {
-  minFramesPerSecond: 1,
-  maxFramesPerSecond: 240,
-  maxEdgePixels: 1024
+  MIN_FRAMES_PER_SECOND: 1,
+  MAX_FRAMES_PER_SECOND: 240,
+  MAX_EDGE_PIXELS: 1024
 } as const;
 
 const MILLISECONDS_PER_SECOND = 1000;
@@ -12,12 +12,12 @@ const displayIdSchema = z.string().regex(/^\d+$/u, "a display id is a decimal nu
 
 const framesPerSecondSchema = z
   .number()
-  .min(CaptureLimit.minFramesPerSecond)
-  .max(CaptureLimit.maxFramesPerSecond);
+  .min(CaptureLimit.MIN_FRAMES_PER_SECOND)
+  .max(CaptureLimit.MAX_FRAMES_PER_SECOND);
 
 const previewSizeSchema = z.object({
-  width: z.number().int().positive().max(CaptureLimit.maxEdgePixels),
-  height: z.number().int().positive().max(CaptureLimit.maxEdgePixels)
+  width: z.number().int().positive().max(CaptureLimit.MAX_EDGE_PIXELS),
+  height: z.number().int().positive().max(CaptureLimit.MAX_EDGE_PIXELS)
 });
 
 export const captureConfigSchema = z.object({
@@ -65,11 +65,13 @@ export interface PreviewSource {
   bridge: CaptureBridge;
 }
 
+interface RepeatOptions {
+  intervalMilliseconds: number;
+  run: () => void;
+}
+
 export interface CaptureScheduler {
-  every(options: {
-    intervalMilliseconds: number;
-    run: () => void;
-  }): () => void;
+  repeat(options: RepeatOptions): () => void;
 }
 
 export function framePeriodMilliseconds(targetFramesPerSecond: number) {

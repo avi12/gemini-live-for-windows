@@ -1,9 +1,11 @@
-import { readHostProcessId, watchHostProcess } from "./host-process.ts";
 import { MessageChannel } from "node:worker_threads";
 import type { MessagePort, Worker } from "node:worker_threads";
+
 import { initWindowsAppSdk } from "winui-svelte/bootstrap";
 import type { Json } from "winui-svelte/state/host";
 import { createMessagePortTransport, createStdioTransport, reserveStdout } from "winui-svelte/state/host";
+
+import { readHostProcessId, watchHostProcess } from "./host-process.ts";
 
 const WINDOWS_APP_SDK_MAJOR = 2;
 const WINDOWS_APP_SDK_MINOR = 2;
@@ -62,9 +64,7 @@ function pipeHostToWindow(link: MessagePort) {
 
 // The sidecar's one job: carry the host's lines on stdio to the window the worker runs, and back.
 // `startWindow` gets the window's end of the link and returns the worker that owns the window.
-export async function startRelay({ startWindow }: {
-  startWindow: (port: MessagePort) => Worker | Promise<Worker>;
-}) {
+export async function startRelay({ startWindow }: { startWindow: (port: MessagePort) => Worker | Promise<Worker> }) {
   reserveStdout();
   startWindowsAppSdk();
 

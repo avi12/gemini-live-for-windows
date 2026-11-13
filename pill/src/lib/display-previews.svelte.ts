@@ -1,17 +1,18 @@
-import { createCaptureManager } from "@/lib/capture/capture-manager.ts";
-import type { CaptureManager } from "@/lib/capture/capture-manager.ts";
-import type { PreviewFrame, PreviewSource } from "@/lib/capture/capture-schema.ts";
 import type { PillView } from "@gemini-live/protocol/view";
 import { untrack } from "svelte";
 import { SvelteMap, SvelteSet } from "svelte/reactivity";
 import { setBitmapPixels, writeableBitmapOf } from "winui-svelte/media";
+
+import { createCaptureManager } from "@/lib/capture/capture-manager.ts";
+import type { CaptureManager } from "@/lib/capture/capture-manager.ts";
+import type { PreviewFrame, PreviewSource } from "@/lib/capture/capture-schema.ts";
 
 type PreviewImage = ReturnType<typeof writeableBitmapOf>;
 
 const PREVIEW_SIZE = {
   width: 192,
   height: 108
-} as const;
+};
 const STATS_VARIABLE = "GEMINI_LIVE_PREVIEW_STATS";
 const STATS_ENABLED_VALUE = "1";
 const STATS_INTERVAL_MILLISECONDS = 1000;
@@ -55,10 +56,7 @@ function stopStats() {
   frameCounts.clear();
 }
 
-function showFrame({ displayId, frame }: {
-  displayId: string;
-  frame: PreviewFrame;
-}) {
+function showFrame({ displayId, frame }: { displayId: string; frame: PreviewFrame }) {
   const current = images.get(displayId);
   countFrame(displayId);
 
@@ -126,7 +124,10 @@ export function setPreviewsOpen(isOpen: boolean) {
   images.clear();
 }
 
-function captureIdOf({ source: previewSource, display }: {
+function captureIdOf({
+  source: previewSource,
+  display
+}: {
   source: PreviewSource;
   display: PillView["displays"][number];
 }) {
@@ -138,7 +139,11 @@ function captureIdOf({ source: previewSource, display }: {
   }
 }
 
-function targetsOf({ source: previewSource, displays, framesPerSecond }: {
+function targetsOf({
+  source: previewSource,
+  displays,
+  framesPerSecond
+}: {
   source: PreviewSource;
   displays: PillView["displays"];
   framesPerSecond: number;
@@ -153,11 +158,13 @@ function targetsOf({ source: previewSource, displays, framesPerSecond }: {
       return [];
     }
 
-    return [{
-      captureId,
-      displayId: display.id,
-      targetFramesPerSecond: Math.min(framesPerSecond, display.refreshRateHertz)
-    }];
+    return [
+      {
+        captureId,
+        displayId: display.id,
+        targetFramesPerSecond: Math.min(framesPerSecond, display.refreshRateHertz)
+      }
+    ];
   });
 }
 
@@ -172,7 +179,10 @@ function dropImagesOutside(displays: PillView["displays"]) {
   });
 }
 
-export function syncPreviews({ displays, framesPerSecond }: {
+export function syncPreviews({
+  displays,
+  framesPerSecond
+}: {
   displays: PillView["displays"];
   framesPerSecond: number;
 }) {

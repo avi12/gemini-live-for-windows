@@ -1,6 +1,7 @@
-import { describeDisplay, findSharedDisplayName, nameDisplay } from "./display-labels.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+
+import { describeDisplay, findSharedDisplayName, nameDisplay } from "./display-labels.ts";
 
 const PRIMARY = {
   id: "d1",

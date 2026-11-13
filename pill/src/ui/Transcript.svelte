@@ -31,7 +31,7 @@
     }
 
     sendAction({
-      kind: PillActionKind.setFocusable,
+      kind: PillActionKind.SET_FOCUSABLE,
       isFocusable: true
     });
   }

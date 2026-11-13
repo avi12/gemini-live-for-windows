@@ -1,6 +1,8 @@
-import { PILL_ROOT } from "./module-server.ts";
-import { removePillDevMarker, writePillDevMarker } from "@gemini-live/protocol/pill-dev";
 import path from "node:path";
+
+import { removePillDevMarker, writePillDevMarker } from "@gemini-live/protocol/pill-dev";
+
+import { PILL_ROOT } from "./module-server.ts";
 
 const ATTACH_MODULE = path.join(import.meta.dirname, "attach.ts");
 const STOP_SIGNALS = ["SIGINT", "SIGTERM", "SIGBREAK"] as const;

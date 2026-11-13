@@ -24,7 +24,7 @@
   const props: Props = $props();
 
   const buttonClass = $derived.by(() => {
-    const isAccent = props.kind === GlyphButtonKind.accent;
+    const isAccent = props.kind === GlyphButtonKind.ACCENT;
     if (isAccent) {
       return "live-round-button live-accent-round";
     }

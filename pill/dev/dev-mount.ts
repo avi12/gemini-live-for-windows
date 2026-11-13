@@ -1,8 +1,10 @@
-import { PILL_ENTRY } from "./module-server.ts";
-import type * as MountModule from "@gemini-live/pill/mount";
 import path from "node:path";
 import { MessageChannel, Worker } from "node:worker_threads";
+
+import type * as MountModule from "@gemini-live/pill/mount";
 import { createWindowModuleRunner } from "winui-svelte/runner";
+
+import { PILL_ENTRY } from "./module-server.ts";
 
 const SERVER_MODULE = path.join(import.meta.dirname, "module-server-worker.ts");
 

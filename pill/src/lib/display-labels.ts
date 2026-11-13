@@ -11,7 +11,10 @@ export function describeDisplay(display: DisplayFacts) {
   return `${nameDisplay(display)}${primary} · ${display.width}×${display.height}`;
 }
 
-export function findSharedDisplayName({ displays, sharedDisplayId }: {
+export function findSharedDisplayName({
+  displays,
+  sharedDisplayId
+}: {
   displays: readonly DisplayFacts[];
   sharedDisplayId: string | null;
 }) {

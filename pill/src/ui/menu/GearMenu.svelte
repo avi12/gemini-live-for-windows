@@ -9,7 +9,7 @@
   import { MenuFlyout, MenuFlyoutItem, MenuFlyoutSeparator } from "winui-svelte/components";
 
   const menu = menuOf();
-  const isCameraShown = $derived(view.engine === EngineKind.google);
+  const isCameraShown = $derived(view.engine === EngineKind.GOOGLE);
 
   let isOpen = $state(false);
 
@@ -17,7 +17,7 @@
     isOpen = isNowOpen;
 
     if (isNowOpen) {
-      sendAction({ kind: PillActionKind.refreshMicrophones });
+      sendAction({ kind: PillActionKind.REFRESH_MICROPHONES });
     }
   }
 </script>
@@ -32,5 +32,5 @@
   <EnginePicker />
   <MenuFlyoutSeparator />
   <UpdateItems />
-  <MenuFlyoutItem onclick={() => sendAction({ kind: PillActionKind.quit })} text="Quit Gemini Live" />
+  <MenuFlyoutItem onclick={() => sendAction({ kind: PillActionKind.QUIT })} text="Quit Gemini Live" />
 </MenuFlyout>

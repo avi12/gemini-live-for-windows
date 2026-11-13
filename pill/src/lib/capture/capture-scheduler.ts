@@ -1,7 +1,7 @@
 import type { CaptureScheduler } from "./capture-schema.ts";
 
 export const timerScheduler: CaptureScheduler = {
-  every({ intervalMilliseconds, run }) {
+  repeat({ intervalMilliseconds, run }) {
     let deadline = performance.now() + intervalMilliseconds;
     let timer: NodeJS.Timeout | undefined;
 

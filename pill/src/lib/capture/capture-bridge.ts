@@ -1,6 +1,3 @@
-import { framePeriodMilliseconds } from "./capture-schema.ts";
-import type { CaptureConfig } from "./capture-schema.ts";
-import { captureItemOfMonitor } from "./monitor-capture-item.ts";
 import { CanvasAlphaMode } from "winui-svelte/bindings/microsoft/graphics/canvas/CanvasAlphaMode";
 import { CanvasBitmap } from "winui-svelte/bindings/microsoft/graphics/canvas/CanvasBitmap";
 import { CanvasDevice } from "winui-svelte/bindings/microsoft/graphics/canvas/CanvasDevice";
@@ -11,6 +8,10 @@ import { Direct3D11CaptureFramePool } from "winui-svelte/bindings/windows/graphi
 import type { GraphicsCaptureSession } from "winui-svelte/bindings/windows/graphics/capture/GraphicsCaptureSession";
 import { IDirect3DDevice } from "winui-svelte/bindings/windows/graphics/direct-x/direct3-d11/IDirect3DDevice";
 import { DirectXPixelFormat } from "winui-svelte/bindings/windows/graphics/direct-x/DirectXPixelFormat";
+
+import { framePeriodMilliseconds } from "./capture-schema.ts";
+import type { CaptureConfig } from "./capture-schema.ts";
+import { captureItemOfMonitor } from "./monitor-capture-item.ts";
 
 const POOL_BUFFER_COUNT = 2;
 const TARGET_DPI = 96;
@@ -28,7 +29,10 @@ function direct3DDeviceOf(device: CanvasDevice) {
   return IDirect3DDevice.from(Object.getOwnPropertyDescriptor(device, NATIVE_HANDLE_KEY)?.value);
 }
 
-function configureSession({ session, targetFramesPerSecond }: {
+function configureSession({
+  session,
+  targetFramesPerSecond
+}: {
   session: GraphicsCaptureSession;
   targetFramesPerSecond: number;
 }) {
@@ -52,7 +56,11 @@ function lastFrameOf(pool: Direct3D11CaptureFramePool) {
   return latest;
 }
 
-function drawScaled({ device, target, frame }: {
+function drawScaled({
+  device,
+  target,
+  frame
+}: {
   device: CanvasDevice;
   target: CanvasRenderTarget;
   frame: Direct3D11CaptureFrame;
@@ -85,10 +93,7 @@ function drawScaled({ device, target, frame }: {
   }
 }
 
-function openSource({ device, config }: {
-  device: CanvasDevice;
-  config: CaptureConfig;
-}) {
+function openSource({ device, config }: { device: CanvasDevice; config: CaptureConfig }) {
   const item = captureItemOfMonitor(BigInt(config.displayId));
 
   const pool = Direct3D11CaptureFramePool.createFreeThreaded(

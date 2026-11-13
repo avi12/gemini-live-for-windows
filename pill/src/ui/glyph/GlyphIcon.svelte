@@ -22,7 +22,7 @@
       return "live-icon live-glyph-muted";
     }
 
-    const isAccent = props.kind === GlyphButtonKind.accent;
+    const isAccent = props.kind === GlyphButtonKind.ACCENT;
     if (isAccent) {
       return "live-icon live-glyph-accent";
     }
@@ -41,8 +41,8 @@
     }
 
     const animation = node.animate(
-      [{ scale: 1 }, { scale: Motion.bounceScale }, { scale: 1 }],
-      { duration: Motion.bounceMilliseconds * 2 }
+      [{ scale: 1 }, { scale: Motion.BOUNCE_SCALE }, { scale: 1 }],
+      { duration: Motion.BOUNCE_MILLISECONDS * 2 }
     );
     return () => animation.cancel();
   }

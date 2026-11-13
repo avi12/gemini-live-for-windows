@@ -32,15 +32,15 @@
 
   function glyphOf(isSearch: boolean) {
     if (isSearch) {
-      return Glyph.search;
+      return Glyph.SEARCH;
     }
 
-    return Glyph.link;
+    return Glyph.LINK;
   }
 
   function open(uri: string) {
     sendAction({
-      kind: PillActionKind.openLink,
+      kind: PillActionKind.OPEN_LINK,
       uri
     });
   }
@@ -54,8 +54,8 @@
           class="slot"
           in:scale={{
             start: CHIP_SCALE_FROM,
-            delay: iLink * Motion.staggerMilliseconds,
-            duration: Motion.standardMilliseconds
+            delay: iLink * Motion.STAGGER_MILLISECONDS,
+            duration: Motion.STANDARD_MILLISECONDS
           }}
         >
           <Button

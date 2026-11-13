@@ -16,7 +16,7 @@
 <MenuFlyout {...menu.props} {@attach menu.attach}>
   <MenuFlyoutItem
     onclick={() => sendAction({
-      kind: PillActionKind.openLink,
+      kind: PillActionKind.OPEN_LINK,
       uri: props.uri
     })}
     text="Open link"

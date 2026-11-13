@@ -1,25 +1,23 @@
 import { createCaptureFeed } from "./capture-feed.ts";
 import type { CaptureFeed } from "./capture-feed.ts";
 import { captureTargetsSchema } from "./capture-schema.ts";
-import type {
-  CaptureBridge,
-  CaptureScheduler,
-  CaptureTarget,
-  PreviewFrame,
-  PreviewSize
-} from "./capture-schema.ts";
+import type { CaptureBridge, CaptureScheduler, CaptureTarget, PreviewFrame, PreviewSize } from "./capture-schema.ts";
+
+interface OnErrorEvent {
+  displayId: string;
+  error: unknown;
+}
+
+interface OnFrameEvent {
+  displayId: string;
+  frame: PreviewFrame;
+}
 
 export interface CaptureManagerOptions {
   bridge: CaptureBridge;
   size: PreviewSize;
-  onFrame: (event: {
-    displayId: string;
-    frame: PreviewFrame;
-  }) => void;
-  onError?: (event: {
-    displayId: string;
-    error: unknown;
-  }) => void;
+  onFrame: (event: OnFrameEvent) => void;
+  onError?: (event: OnErrorEvent) => void;
   scheduler?: CaptureScheduler;
 }
 
@@ -42,13 +40,14 @@ export function createCaptureManager({ bridge, size, onFrame, onError, scheduler
         targetFramesPerSecond,
         size,
         bridge,
-        ...scheduler && {
+        ...(scheduler && {
           scheduler
-        },
-        onFrame: frame => onFrame({
-          displayId,
-          frame
         }),
+        onFrame: frame =>
+          onFrame({
+            displayId,
+            frame
+          }),
         onError(error) {
           running.delete(displayId);
           onError?.({

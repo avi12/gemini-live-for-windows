@@ -2,11 +2,20 @@
   "name": "@gemini-live/pill",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
   "description": "The Gemini Live pill: a Svelte window on winui-svelte, run as a sidecar of the C# app.",
   "license": "Apache-2.0",
   "author": "Avi (https://avi12.com)",
+  "type": "module",
   "sideEffects": false,
+  "exports": {
+    "./theme.css": "./src/ui/theme.css",
+    "./dev-mount": "./dev/dev-mount.ts",
+    "./relay": "./src/lib/relay.ts",
+    "./mount": {
+      "types": "./mount.d.ts",
+      "default": "./src/mount.ts"
+    }
+  },
   "scripts": {
     "dev": "node dev/main.ts",
     "svelte:check": "svelte-check --tsconfig ./tsconfig.json",
@@ -31,14 +40,5 @@
   "engines": {
     "node": ">=24"
   },
-  "packageManager": "pnpm@11.13.1",
-  "exports": {
-    "./theme.css": "./src/ui/theme.css",
-    "./dev-mount": "./dev/dev-mount.ts",
-    "./relay": "./src/lib/relay.ts",
-    "./mount": {
-      "types": "./mount.d.ts",
-      "default": "./src/mount.ts"
-    }
-  }
+  "packageManager": "pnpm@11.13.1"
 }

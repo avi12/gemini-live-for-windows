@@ -1,9 +1,10 @@
-import { ScenarioName, scenarioView } from "./scenarios.ts";
 import { pillActionSchema, VIEW_NAME } from "@gemini-live/protocol/view";
 import type { PillAction, PillView, WindowProtocol } from "@gemini-live/protocol/view";
 import { defineMessaging } from "winui-svelte/messaging";
 import { diff, MessageType } from "winui-svelte/state/host";
 import type { StateProtocol, Transport } from "winui-svelte/state/host";
+
+import { ScenarioName, scenarioView } from "./scenarios.ts";
 
 type MockProtocol = StateProtocol<PillAction> & WindowProtocol;
 
@@ -28,10 +29,7 @@ function levelAt(tick: number) {
   return LEVEL_BASE + LEVEL_SWING * Math.sin(tick * LEVEL_WAVE_STEP);
 }
 
-export function serveMockView({ transport, scenario }: {
-  transport: Transport;
-  scenario: ScenarioName;
-}) {
+export function serveMockView({ transport, scenario }: { transport: Transport; scenario: ScenarioName }) {
   const messaging = defineMessaging<MockProtocol>({
     transport,
     onError: error => report(error.message)
@@ -85,7 +83,7 @@ export function serveMockView({ transport, scenario }: {
   function show(name: ScenarioName) {
     clearInterval(levelTimer);
     const next = scenarioView(name);
-    const isAnimated = name === ScenarioName.listening;
+    const isAnimated = name === ScenarioName.LISTENING;
     publish(next);
 
     if (isAnimated) {

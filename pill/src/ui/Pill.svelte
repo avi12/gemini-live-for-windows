@@ -15,11 +15,11 @@
 
   const MIN_DISPLAYS_TO_PICK = 2;
   const PillColumn = {
-    share: 0,
-    middle: 1,
-    mic: 2,
-    gear: 3,
-    end: 4
+    SHARE: 0,
+    MIDDLE: 1,
+    MIC: 2,
+    GEAR: 3,
+    END: 4
   } as const;
   const GLYPH_SIZE = 24;
 
@@ -28,18 +28,18 @@
   const mic = $derived.by(() => {
     if (view.isMuted) {
       return {
-        glyph: Glyph.micOff,
+        glyph: Glyph.MIC_OFF,
         label: "Unmute microphone"
       };
     }
 
     return {
-      glyph: Glyph.mic,
+      glyph: Glyph.MIC,
       label: "Mute microphone"
     };
   });
 
-  const isListening = $derived(view.status === LiveStatus.listening);
+  const isListening = $derived(view.status === LiveStatus.LISTENING);
   const middleKey = $derived(isListening ? "waveform" : view.status);
   const isDetailEmpty = $derived(view.statusDetail === "");
 
@@ -84,24 +84,24 @@
   <GearMenu />
 {/snippet}
 
-<grid class="live-pill pill" {@attach trackPart(PillPart.pill)}>
+<grid class="live-pill pill" {@attach trackPart(PillPart.PILL)}>
   <GlyphButton
-    column={PillColumn.share}
+    column={PillColumn.SHARE}
     flyout={shareFlyout}
-    glyph={Glyph.display}
+    glyph={Glyph.DISPLAY}
     glyphSize={GLYPH_SIZE}
     isHitTestVisible={hasDisplayPicker}
-    kind={GlyphButtonKind.round}
+    kind={GlyphButtonKind.ROUND}
     label="Share"
-    part={PillPart.share}
+    part={PillPart.SHARE}
     toolTip={shareToolTip}
   />
 
   <grid class="middle" toolTip={statusDetail}>
     {#key middleKey}
       <border
-        in:fade={{ duration: Motion.standardMilliseconds }}
-        out:fade={{ duration: Motion.swapOutMilliseconds }}
+        in:fade={{ duration: Motion.STANDARD_MILLISECONDS }}
+        out:fade={{ duration: Motion.SWAP_OUT_MILLISECONDS }}
       >
         {#if isListening}
           <Waveform />
@@ -113,34 +113,34 @@
   </grid>
 
   <GlyphButton
-    column={PillColumn.mic}
+    column={PillColumn.MIC}
     glyph={mic.glyph}
     glyphSize={GLYPH_SIZE}
     isMuted={view.isMuted}
-    kind={GlyphButtonKind.accent}
+    kind={GlyphButtonKind.ACCENT}
     label={mic.label}
-    onpress={() => sendAction({ kind: PillActionKind.mute })}
-    part={PillPart.mic}
+    onpress={() => sendAction({ kind: PillActionKind.MUTE })}
+    part={PillPart.MIC}
     toolTip={mic.label}
   />
   <GlyphButton
-    column={PillColumn.gear}
+    column={PillColumn.GEAR}
     flyout={gearFlyout}
-    glyph={Glyph.gear}
+    glyph={Glyph.GEAR}
     glyphSize={GLYPH_SIZE}
-    kind={GlyphButtonKind.round}
+    kind={GlyphButtonKind.ROUND}
     label="Settings"
-    part={PillPart.gear}
+    part={PillPart.GEAR}
     toolTip="Settings"
   />
   <GlyphButton
-    column={PillColumn.end}
-    glyph={Glyph.close}
+    column={PillColumn.END}
+    glyph={Glyph.CLOSE}
     glyphSize={GLYPH_SIZE}
-    kind={GlyphButtonKind.round}
+    kind={GlyphButtonKind.ROUND}
     label="End (Win+C)"
-    onpress={() => sendAction({ kind: PillActionKind.end })}
-    part={PillPart.end}
+    onpress={() => sendAction({ kind: PillActionKind.END })}
+    part={PillPart.END}
     toolTip="End (Win+C)"
   />
 </grid>

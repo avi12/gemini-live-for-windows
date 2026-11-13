@@ -1,5 +1,6 @@
-import { view } from "@/lib/view.svelte.ts";
 import { GlowMode } from "@gemini-live/protocol/view";
+
+import { view } from "@/lib/view.svelte.ts";
 
 const QUIET_LEVEL = 0.02;
 
@@ -10,7 +11,7 @@ const held = $state({
 
 export const voice = {
   get level() {
-    const isFollowing = view.glow.mode === GlowMode.level;
+    const isFollowing = view.glow.mode === GlowMode.LEVEL;
     if (!isFollowing) {
       return 0;
     }
@@ -25,7 +26,7 @@ export const voice = {
 export function holdVoiceLevel() {
   $effect(() => {
     const { mode, level, isUser } = view.glow;
-    const isFollowing = mode === GlowMode.level;
+    const isFollowing = mode === GlowMode.LEVEL;
     const isUserQuiet = isUser && level < QUIET_LEVEL;
     const isSkipped = !isFollowing || isUserQuiet;
     if (isSkipped) {

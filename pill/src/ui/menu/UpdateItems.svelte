@@ -13,7 +13,7 @@
   <ToggleMenuFlyoutItem
     isChecked={update.isAutoUpdateOn}
     onclick={() => sendAction({
-      kind: PillActionKind.setAutoUpdate,
+      kind: PillActionKind.SET_AUTO_UPDATE,
       isOn: !update.isAutoUpdateOn
     })}
     text="Check for updates automatically"

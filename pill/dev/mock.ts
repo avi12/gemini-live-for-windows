@@ -1,12 +1,14 @@
+import fileSystem from "node:fs";
+import operatingSystem from "node:os";
+import path from "node:path";
+import { MessageChannel } from "node:worker_threads";
+
+import { initWindowsAppSdk } from "winui-svelte/bootstrap";
+import { createMessagePortTransport } from "winui-svelte/state/host";
+
 import { startDevWindow } from "./dev-window.ts";
 import { serveMockView } from "./mock-host.ts";
 import { isScenarioName, nextScenario, SCENARIO_ORDER, ScenarioName } from "./scenarios.ts";
-import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
-import { MessageChannel } from "node:worker_threads";
-import { initWindowsAppSdk } from "winui-svelte/bootstrap";
-import { createMessagePortTransport } from "winui-svelte/state/host";
 
 const WINDOWS_APP_SDK_MAJOR = 2;
 const WINDOWS_APP_SDK_MINOR = 2;
@@ -14,8 +16,8 @@ const SCENARIO_ARGUMENT = "--scenario";
 const THEME_ARGUMENT = "--theme";
 const FAKE_SETTINGS_VARIABLE = "WINUI_SVELTE_FAKE_SETTINGS";
 const ThemeName = {
-  light: "light",
-  dark: "dark"
+  LIGHT: "light",
+  DARK: "dark"
 } as const;
 const KEY_NEXT = "n";
 const KEY_PREVIOUS = "p";
@@ -27,7 +29,7 @@ function readScenarioArgument() {
   const value = process.argv[index + 1];
   const isOmitted = index < 0;
   if (isOmitted) {
-    return ScenarioName.captions;
+    return ScenarioName.CAPTIONS;
   }
 
   if (!isScenarioName(value)) {
@@ -51,10 +53,7 @@ function readKeyStep(key: string) {
   return 0;
 }
 
-function watchKeys({ onPick, onQuit }: {
-  onPick(name: ScenarioName): void;
-  onQuit(): void;
-}) {
+function watchKeys({ onPick, onQuit }: { onPick(name: ScenarioName): void; onQuit(): void }) {
   const isInteractive = process.stdin.isTTY;
   if (!isInteractive) {
     return;
@@ -72,10 +71,12 @@ function watchKeys({ onPick, onQuit }: {
 
     const picked = SCENARIO_ORDER[Number(key) - FIRST_DIGIT];
     const step = readKeyStep(key);
-    current = picked ?? nextScenario({
-      current,
-      step
-    });
+    current =
+      picked ??
+      nextScenario({
+        current,
+        step
+      });
     onPick(current);
   });
 }
@@ -88,16 +89,16 @@ function applyThemeArgument() {
   }
 
   const value = process.argv[index + 1];
-  const isKnown = value === ThemeName.light || value === ThemeName.dark;
+  const isKnown = value === ThemeName.LIGHT || value === ThemeName.DARK;
   if (!isKnown) {
     throw new Error(`${THEME_ARGUMENT} takes one of: ${Object.values(ThemeName).join(", ")}`);
   }
 
-  const file = path.join(os.tmpdir(), `gemini-live-pill-theme-${process.pid}.json`);
-  fs.writeFileSync(
+  const file = path.join(operatingSystem.tmpdir(), `gemini-live-pill-theme-${process.pid}.json`);
+  fileSystem.writeFileSync(
     file,
     JSON.stringify({
-      isDark: value === ThemeName.dark
+      isDark: value === ThemeName.DARK
     })
   );
   process.env[FAKE_SETTINGS_VARIABLE] = file;

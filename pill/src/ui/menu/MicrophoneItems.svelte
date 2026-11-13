@@ -22,7 +22,7 @@
     groupName={MICROPHONE_GROUP}
     isChecked={view.microphoneId === choice.id}
     onclick={() => sendAction({
-      kind: PillActionKind.setMicrophone,
+      kind: PillActionKind.SET_MICROPHONE,
       microphoneId: choice.id
     })}
     text={choice.name}

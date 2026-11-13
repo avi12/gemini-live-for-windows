@@ -9,10 +9,7 @@ const HUE_STEP = 70;
 const COLOR_RANGE = 256;
 const DEVICE_DIGITS = /\D/gu;
 
-function drawFrame({ config, frameIndex }: {
-  config: CaptureConfig;
-  frameIndex: number;
-}) {
+function drawFrame({ config, frameIndex }: { config: CaptureConfig; frameIndex: number }) {
   const { width, height } = config.size;
   const pixels = new Uint8Array(width * height * CHANNELS);
   const seed = Number(config.displayId) * HUE_STEP;
@@ -22,7 +19,7 @@ function drawFrame({ config, frameIndex }: {
       const start = (y * width + x) * CHANNELS;
       pixels[start] = (seed + band * HUE_STEP) % COLOR_RANGE;
       pixels[start + 1] = (seed + y * 2) % COLOR_RANGE;
-      pixels[start + 2] = (COLOR_RANGE - 1 - (seed + band * HUE_STEP) % COLOR_RANGE);
+      pixels[start + 2] = COLOR_RANGE - 1 - ((seed + band * HUE_STEP) % COLOR_RANGE);
       pixels[start + ALPHA_OFFSET] = OPAQUE;
     }
   }
@@ -41,10 +38,11 @@ export function createFakePreviewSource() {
       openSource(config) {
         let frameIndex = 0;
         return {
-          readNextFrame: () => drawFrame({
-            config,
-            frameIndex: frameIndex++
-          }),
+          readNextFrame: () =>
+            drawFrame({
+              config,
+              frameIndex: frameIndex++
+            }),
           close: () => undefined
         };
       }

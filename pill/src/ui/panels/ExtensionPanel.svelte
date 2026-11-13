@@ -11,7 +11,7 @@
   <Button
     class="live-accent-button"
     horizontalAlignment="Left"
-    onclick={() => sendAction({ kind: PillActionKind.connectExtension })}
+    onclick={() => sendAction({ kind: PillActionKind.CONNECT_EXTENSION })}
   >
     Add the browser extension
   </Button>

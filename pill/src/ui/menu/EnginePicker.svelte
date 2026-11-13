@@ -8,18 +8,18 @@
 
   const CHOICES = [
     {
-      kind: EngineKind.google,
+      kind: EngineKind.GOOGLE,
       name: "Your Gemini subscription",
       detail: "Your Gemini subscription, through Google's own web client and the browser extension. Unofficial: Google may suspend an account that uses it."
     },
     {
-      kind: EngineKind.apiKey,
+      kind: EngineKind.API_KEY,
       name: "Your API key",
       detail: "The public Gemini Live API, billed to your key. No extension, and your Google account isn't involved."
     }
   ] as const;
 
-  const isChangeKeyShown = $derived(view.engine === EngineKind.apiKey);
+  const isChangeKeyShown = $derived(view.engine === EngineKind.API_KEY);
 </script>
 
 <MenuHeader title="Gemini runs on" />
@@ -28,7 +28,7 @@
     groupName={ENGINE_GROUP}
     isChecked={view.engine === choice.kind}
     onclick={() => sendAction({
-      kind: PillActionKind.setEngine,
+      kind: PillActionKind.SET_ENGINE,
       engine: choice.kind
     })}
     text={choice.name}
@@ -36,5 +36,5 @@
   />
 {/each}
 {#if isChangeKeyShown}
-  <MenuFlyoutItem onclick={() => sendAction({ kind: PillActionKind.askForKey })} text="Change API key…" />
+  <MenuFlyoutItem onclick={() => sendAction({ kind: PillActionKind.ASK_FOR_KEY })} text="Change API key…" />
 {/if}

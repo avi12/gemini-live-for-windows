@@ -1,6 +1,7 @@
-import { startDevWindow } from "./dev-window.ts";
 import { startRelay } from "@gemini-live/pill/relay";
 import { readPillDevMarker } from "@gemini-live/protocol/pill-dev";
+
+import { startDevWindow } from "./dev-window.ts";
 
 const MARKER_POLL_MILLISECONDS = 1000;
 

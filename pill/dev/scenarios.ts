@@ -2,15 +2,15 @@ import { EngineKind, GlowMode, pillViewSchema } from "@gemini-live/protocol/view
 import type { PillView } from "@gemini-live/protocol/view";
 
 export const ScenarioName = {
-  idle: "idle",
-  listening: "listening",
-  captions: "captions",
-  longCaptions: "longCaptions",
-  gearMenu: "gearMenu",
-  displayMenu: "displayMenu",
-  keyPrompt: "keyPrompt",
-  updateAvailable: "updateAvailable",
-  cameraShared: "cameraShared"
+  IDLE: "idle",
+  LISTENING: "listening",
+  CAPTIONS: "captions",
+  LONG_CAPTIONS: "longCaptions",
+  GEAR_MENU: "gearMenu",
+  DISPLAY_MENU: "displayMenu",
+  KEY_PROMPT: "keyPrompt",
+  UPDATE_AVAILABLE: "updateAvailable",
+  CAMERA_SHARED: "cameraShared"
 } as const;
 
 export type ScenarioName = (typeof ScenarioName)[keyof typeof ScenarioName];
@@ -63,13 +63,13 @@ const IDLE: PillView = {
   isExtensionNeeded: false,
   isExtensionStepsShown: false,
   isKeyPromptShown: false,
-  engine: EngineKind.google,
+  engine: EngineKind.GOOGLE,
   microphones: MICROPHONES,
   microphoneId: "mic-headset",
   isCameraShared: false,
   update: null,
   glow: {
-    mode: GlowMode.breathe,
+    mode: GlowMode.BREATHE,
     level: 0,
     isUser: false
   },
@@ -110,7 +110,7 @@ const CAPTIONS: PillView = {
     }
   ],
   glow: {
-    mode: GlowMode.level,
+    mode: GlowMode.LEVEL,
     level: 0.6,
     isUser: false
   }
@@ -152,7 +152,7 @@ const SCENARIOS: Record<ScenarioName, PillView> = {
   listening: {
     ...IDLE,
     glow: {
-      mode: GlowMode.level,
+      mode: GlowMode.LEVEL,
       level: 0,
       isUser: true
     }
@@ -187,7 +187,7 @@ const SCENARIOS: Record<ScenarioName, PillView> = {
   keyPrompt: {
     ...IDLE,
     status: "Setup: Gemini needs an API key",
-    engine: EngineKind.apiKey,
+    engine: EngineKind.API_KEY,
     isKeyPromptShown: true,
     isFocusable: true
   },
@@ -213,10 +213,7 @@ export function scenarioView(name: ScenarioName) {
   return pillViewSchema.parse(SCENARIOS[name]);
 }
 
-export function nextScenario({ current, step }: {
-  current: ScenarioName;
-  step: number;
-}) {
+export function nextScenario({ current, step }: { current: ScenarioName; step: number }) {
   const count = SCENARIO_ORDER.length;
   const index = SCENARIO_ORDER.indexOf(current);
   const next = SCENARIO_ORDER[(index + step + count) % count];

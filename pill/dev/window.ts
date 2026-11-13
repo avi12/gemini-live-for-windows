@@ -1,10 +1,12 @@
-import type * as FakeCaptureModule from "./fake-capture-bridge.ts";
-import { PILL_ENTRY } from "./module-server.ts";
-import type * as MountModule from "@gemini-live/pill/mount";
 import { MessagePort, workerData } from "node:worker_threads";
+
+import type * as MountModule from "@gemini-live/pill/mount";
 import { createWindowModuleRunner } from "winui-svelte/runner";
 import { runOnUiThread } from "winui-svelte/thread";
 import { z } from "zod";
+
+import type * as FakeCaptureModule from "./fake-capture-bridge.ts";
+import { PILL_ENTRY } from "./module-server.ts";
 
 const FAKE_CAPTURE_ENTRY = "/dev/fake-capture-bridge.ts";
 
@@ -25,8 +27,8 @@ await runOnUiThread(async () => {
   const { createFakePreviewSource } = await runner.import<typeof FakeCaptureModule>(FAKE_CAPTURE_ENTRY);
   await mountPill({
     port: parsedData.data.port,
-    ...parsedData.data.isFakeCapture && {
+    ...(parsedData.data.isFakeCapture && {
       previewSource: createFakePreviewSource()
-    }
+    })
   });
 });

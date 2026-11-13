@@ -14,10 +14,7 @@ export function readHostProcessId(rawValue: string | undefined) {
   return parsed.data;
 }
 
-export function watchHostProcess({ processId, onGone }: {
-  processId: number;
-  onGone: () => void;
-}) {
+export function watchHostProcess({ processId, onGone }: { processId: number; onGone: () => void }) {
   const timer = setInterval(() => {
     if (!isProcessRunning(processId)) {
       onGone();

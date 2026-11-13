@@ -1,8 +1,10 @@
+import type { MessagePort } from "node:worker_threads";
+
+import type { PillAction, WindowProtocol } from "@gemini-live/protocol/view";
+import type { HostChannel } from "winui-svelte/state";
+
 import type { PreviewSource } from "@/lib/capture/capture-schema.ts";
 import { pillWindow } from "@/lib/pill-window.ts";
-import type { PillAction, WindowProtocol } from "@gemini-live/protocol/view";
-import type { MessagePort } from "node:worker_threads";
-import type { HostChannel } from "winui-svelte/state";
 
 // What the host gets once the pill is up: the typed link to answer its own messages on, and the
 // pill's window
@@ -14,7 +16,11 @@ export interface MountedPill {
 // Mounts the pill on the UI thread, over the port that carries the host's state protocol: the
 // sidecar's window.ts and the app's UI worker both call it from inside `runOnUiThread`. `onStart`
 // runs once the window thread's message pump has started.
-export async function mountPill({ port, previewSource, onStart }: {
+export async function mountPill({
+  port,
+  previewSource,
+  onStart
+}: {
   port: MessagePort;
   previewSource?: PreviewSource;
   onStart?: (pill: MountedPill) => void;

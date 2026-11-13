@@ -38,7 +38,7 @@
 
   $effect(() => {
     void smoothLevel.set(Math.min(1, voice.level * LEVEL_BOOST), {
-      duration: Motion.followMilliseconds,
+      duration: Motion.FOLLOW_MILLISECONDS,
       easing: linear
     });
   });
