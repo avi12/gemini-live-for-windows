@@ -20,10 +20,7 @@ function partsOrThrow(text: string) {
   return parts;
 }
 
-export function compareVersions({ left, right }: {
-  left: string;
-  right: string;
-}) {
+export function compareVersions({ left, right }: { left: string; right: string }) {
   const leftParts = partsOrThrow(left);
   const rightParts = partsOrThrow(right);
   for (const [iPart, leftPart] of leftParts.entries()) {

@@ -1,9 +1,10 @@
-import { claimInstance, isInstanceRunning } from "./instance.ts";
-import { KeyTrigger, parseKeyTrigger } from "./key-trigger.ts";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import net from "node:net";
 import { describe, it } from "node:test";
+
+import { claimInstance, isInstanceRunning } from "./instance.ts";
+import { KeyTrigger, parseKeyTrigger } from "./key-trigger.ts";
 
 const SETTLE_MS = 50;
 const WAIT_LIMIT_MS = 2000;
@@ -22,7 +23,7 @@ async function until(condition: () => boolean) {
 
 describe("key trigger", () => {
   it("knows exactly the three names", () => {
-    assert.equal(parseKeyTrigger("HoldStart"), KeyTrigger.holdStart);
+    assert.equal(parseKeyTrigger("HoldStart"), KeyTrigger.HOLD_START);
     assert.equal(parseKeyTrigger("holdstart"), undefined);
     assert.equal(parseKeyTrigger(""), undefined);
   });
@@ -40,7 +41,7 @@ describe("claimInstance", () => {
 
     const second = await claimInstance({
       pipePath,
-      trigger: KeyTrigger.holdStart,
+      trigger: KeyTrigger.HOLD_START,
       onTrigger: () => assert.fail("a second process is never primary")
     });
     assert.deepEqual(second, {
@@ -48,7 +49,7 @@ describe("claimInstance", () => {
       isForwarded: true
     });
     await until(() => received.length === 1);
-    assert.deepEqual(received, [KeyTrigger.holdStart]);
+    assert.deepEqual(received, [KeyTrigger.HOLD_START]);
 
     if (first.isPrimary) {
       await first.close();
@@ -67,7 +68,7 @@ describe("claimInstance", () => {
       onTrigger: () => undefined
     });
     await until(() => received.length === 1);
-    assert.deepEqual(received, [KeyTrigger.tap]);
+    assert.deepEqual(received, [KeyTrigger.TAP]);
 
     if (first.isPrimary) {
       await first.close();

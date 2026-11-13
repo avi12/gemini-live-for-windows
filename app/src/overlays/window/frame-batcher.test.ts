@@ -1,12 +1,13 @@
-import { createFrameBatcher } from "@/overlays/window/frame-batcher.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+
+import { createFrameBatcher } from "@/overlays/window/frame-batcher.ts";
 
 const LATEST = 3;
 
 describe("createFrameBatcher", () => {
   function setup() {
-    const frames: Array<() => void> = [];
+    const frames: (() => void)[] = [];
     const applied: number[] = [];
     const batcher = createFrameBatcher<number>({
       requestFrame: callback => frames.push(callback),

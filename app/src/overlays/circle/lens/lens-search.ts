@@ -1,16 +1,11 @@
+import { randomUUID } from "node:crypto";
+import { mkdir, readdir, rm, stat, writeFile } from "node:fs/promises";
+import operatingSystem from "node:os";
+import path from "node:path";
+
 import { errorMessage } from "@/lib/error-message.ts";
 import { lensUploadPage } from "@/overlays/circle/lens/lens-page.ts";
 import type { CropFrame, FileOpener, OverlayLog } from "@/overlays/ports.ts";
-import { randomUUID } from "node:crypto";
-import {
-  mkdir,
-  readdir,
-  rm,
-  stat,
-  writeFile
-} from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
 
 // Where the one-shot upload pages go, so stale ones can be swept
 export const LENS_PAGE_FOLDER = "GeminiLive-lens";
@@ -24,16 +19,12 @@ export const LENS_PAGE_LIFETIME_MS = LENS_PAGE_LIFETIME_MINUTES * MILLISECONDS_P
 const LENS_PAGE_EXTENSION = ".html";
 
 export function lensPageDirectory() {
-  return path.join(os.tmpdir(), LENS_PAGE_FOLDER);
+  return path.join(operatingSystem.tmpdir(), LENS_PAGE_FOLDER);
 }
 
 // Deletes upload pages from earlier searches, which each hold a screenshot. One stuck page
 // mustn't stop the search, so a failed delete is only logged
-async function sweepOldPages({ directory, now, log }: {
-  directory: string;
-  now: () => number;
-  log: OverlayLog;
-}) {
+async function sweepOldPages({ directory, now, log }: { directory: string; now: () => number; log: OverlayLog }) {
   const names = await readdir(directory).catch(() => []);
   for (const name of names) {
     const isPage = name.endsWith(LENS_PAGE_EXTENSION);
@@ -56,7 +47,12 @@ async function sweepOldPages({ directory, now, log }: {
 
 // Opens Google Lens results for the crop in the default browser. A page that can't be written or
 // opened is only logged; never throws, since a search is best-effort
-export function createLensSearch({ opener, log, now = Date.now, directory = lensPageDirectory() }: {
+export function createLensSearch({
+  opener,
+  log,
+  now = Date.now,
+  directory = lensPageDirectory()
+}: {
   opener: FileOpener;
   log: OverlayLog;
   now?: () => number;
@@ -72,10 +68,12 @@ export function createLensSearch({ opener, log, now = Date.now, directory = lens
       await mkdir(directory, { recursive: true });
       const page = path.join(directory, `${randomUUID().replaceAll("-", "")}${LENS_PAGE_EXTENSION}`);
       await writeFile(
-        page, lensUploadPage({
+        page,
+        lensUploadPage({
           crop,
           sentAtMs: now()
-        }), "utf8"
+        }),
+        "utf8"
       );
       opener.openFile({ filePath: page });
     } catch (error) {

@@ -17,10 +17,7 @@ const ORIGIN: Point = {
   y: 0
 };
 
-export function rectFromPoints({ first, second }: {
-  first: Point;
-  second: Point;
-}) {
+export function rectFromPoints({ first, second }: { first: Point; second: Point }) {
   return {
     x: Math.min(first.x, second.x),
     y: Math.min(first.y, second.y),
@@ -67,10 +64,7 @@ export function rectCorners(rect: Rect) {
   ] as const;
 }
 
-export function inflateRect({ rect, amount }: {
-  rect: Rect;
-  amount: number;
-}) {
+export function inflateRect({ rect, amount }: { rect: Rect; amount: number }) {
   return {
     x: rect.x - amount,
     y: rect.y - amount,
@@ -80,10 +74,7 @@ export function inflateRect({ rect, amount }: {
 }
 
 // Edges touching count as an overlap (a zero-size result), as WPF's Rect.Intersect does
-export function intersectRects({ first, second }: {
-  first: Rect;
-  second: Rect;
-}) {
+export function intersectRects({ first, second }: { first: Rect; second: Rect }) {
   const left = Math.max(first.x, second.x);
   const top = Math.max(first.y, second.y);
   const right = Math.min(rectRight(first), rectRight(second));
@@ -126,46 +117,33 @@ export function boundsOf(points: Iterable<Point>) {
   };
 }
 
-export function rectContains({ rect, point }: {
-  rect: Rect;
-  point: Point;
-}) {
+export function rectContains({ rect, point }: { rect: Rect; point: Point }) {
   const isInsideX = point.x >= rect.x && point.x <= rectRight(rect);
   const isInsideY = point.y >= rect.y && point.y <= rectBottom(rect);
   return isInsideX && isInsideY;
 }
 
-export function rectsTouch({ first, second }: {
-  first: Rect;
-  second: Rect;
-}) {
-  return intersectRects({
-    first,
-    second
-  }) !== undefined;
+export function rectsTouch({ first, second }: { first: Rect; second: Rect }) {
+  return (
+    intersectRects({
+      first,
+      second
+    }) !== undefined
+  );
 }
 
-export function distanceBetween({ first, second }: {
-  first: Point;
-  second: Point;
-}) {
+export function distanceBetween({ first, second }: { first: Point; second: Point }) {
   return Math.hypot(first.x - second.x, first.y - second.y);
 }
 
-export function subtractPoints({ first, second }: {
-  first: Point;
-  second: Point;
-}) {
+export function subtractPoints({ first, second }: { first: Point; second: Point }) {
   return {
     x: first.x - second.x,
     y: first.y - second.y
   };
 }
 
-export function addPoints({ first, second }: {
-  first: Point;
-  second: Point;
-}) {
+export function addPoints({ first, second }: { first: Point; second: Point }) {
   return {
     x: first.x + second.x,
     y: first.y + second.y

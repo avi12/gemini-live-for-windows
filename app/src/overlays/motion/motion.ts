@@ -2,12 +2,12 @@
 // durations and easing curves, and the moves every overlay surface is built from.
 
 export const OverlayMotion = {
-  enterMilliseconds: 400,
-  exitMilliseconds: 260,
-  standardMilliseconds: 200,
-  travelMilliseconds: 350,
+  ENTER_MILLISECONDS: 400,
+  EXIT_MILLISECONDS: 260,
+  STANDARD_MILLISECONDS: 200,
+  TRAVEL_MILLISECONDS: 350,
   // Material 3 Expressive's spatial spring overshoots by this much and settles
-  springOvershoot: 0.15
+  SPRING_OVERSHOOT: 0.15
 } as const;
 
 interface BezierPoints {
@@ -24,83 +24,75 @@ const NEWTON_STEPS = 8;
 const NEWTON_TOLERANCE = 1e-6;
 const BISECT_STEPS = 24;
 
-function coordinate({ first, second, t }: {
-  first: number;
-  second: number;
-  t: number;
-}) {
-  const inverse = 1 - t;
-  return CUBIC_WEIGHT * inverse * inverse * t * first + CUBIC_WEIGHT * inverse * t * t * second + t * t * t;
+function coordinate({ first, second, progress }: { first: number; second: number; progress: number }) {
+  const inverse = 1 - progress;
+  return (
+    CUBIC_WEIGHT * inverse * inverse * progress * first +
+    CUBIC_WEIGHT * inverse * progress * progress * second +
+    progress * progress * progress
+  );
 }
 
-function slope({ first, second, t }: {
-  first: number;
-  second: number;
-  t: number;
-}) {
-  const inverse = 1 - t;
-  return CUBIC_WEIGHT * inverse * inverse * first
-    + SLOPE_WEIGHT * inverse * t * (second - first)
-    + CUBIC_WEIGHT * t * t * (1 - second);
+function slope({ first, second, progress }: { first: number; second: number; progress: number }) {
+  const inverse = 1 - progress;
+  return (
+    CUBIC_WEIGHT * inverse * inverse * first +
+    SLOPE_WEIGHT * inverse * progress * (second - first) +
+    CUBIC_WEIGHT * progress * progress * (1 - second)
+  );
 }
 
-function newtonSolve({ x, first, second }: {
-  x: number;
-  first: number;
-  second: number;
-}) {
-  let t = x;
+function newtonSolve({ x, first, second }: { x: number; first: number; second: number }) {
+  let progress = x;
   for (let iStep = 0; iStep < NEWTON_STEPS; iStep += 1) {
-    const error = coordinate({
-      first,
-      second,
-      t
-    }) - x;
+    const error =
+      coordinate({
+        first,
+        second,
+        progress
+      }) - x;
     const isSolved = Math.abs(error) < NEWTON_TOLERANCE;
     if (isSolved) {
-      return t;
+      return progress;
     }
 
     const derivative = slope({
       first,
       second,
-      t
+      progress
     });
     const isFlat = derivative === 0;
     if (isFlat) {
       return undefined;
     }
 
-    t -= error / derivative;
+    progress -= error / derivative;
   }
 
   return undefined;
 }
 
-function bisectSolve({ x, first, second }: {
-  x: number;
-  first: number;
-  second: number;
-}) {
+function bisectSolve({ x, first, second }: { x: number; first: number; second: number }) {
   let low = 0;
   let high = 1;
-  let t = x;
+  let progress = x;
   for (let iStep = 0; iStep < BISECT_STEPS; iStep += 1) {
-    const isBelow = coordinate({
-      first,
-      second,
-      t
-    }) < x;
+    const isBelow =
+      coordinate({
+        first,
+        second,
+        progress
+      }) < x;
     if (isBelow) {
-      low = t;
+      low = progress;
     } else {
-      high = t;
+      high = progress;
     }
 
-    t = (low + high) / 2;
+    progress = (low + high) / 2;
   }
 
-  return t;
+  return progress;
 }
 
 // A CSS cubic-bezier easing from its two control points: progress in, eased progress out
@@ -128,7 +120,7 @@ export function cubicBezier({ firstControlX, firstControlY, secondControlX, seco
     return coordinate({
       first: firstControlY,
       second: secondControlY,
-      t: solveT(progress)
+      progress: solveT(progress)
     });
   };
 }
@@ -161,5 +153,5 @@ export const linearEase = cubicBezier({
 // EaseOut, amplitude 0.15)
 export function springEase(progress: number) {
   const inverse = 1 - progress;
-  return 1 - (inverse * inverse * inverse - OverlayMotion.springOvershoot * inverse * Math.sin(inverse * Math.PI));
+  return 1 - (inverse * inverse * inverse - OverlayMotion.SPRING_OVERSHOOT * inverse * Math.sin(inverse * Math.PI));
 }

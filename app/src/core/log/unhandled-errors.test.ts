@@ -1,7 +1,8 @@
-import { keepRunningOnUnhandledErrors } from "./unhandled-errors.ts";
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
 import { describe, it } from "node:test";
+
+import { keepRunningOnUnhandledErrors } from "./unhandled-errors.ts";
 
 describe("keepRunningOnUnhandledErrors", () => {
   it("logs an uncaught exception and a rejection", () => {

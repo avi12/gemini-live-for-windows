@@ -2,11 +2,11 @@
 // copilotkeyprovider extension in package\AppxManifest.xml, and the text a second process sends
 // the first over the activation pipe.
 export const KeyTrigger = {
-  tap: "Tap",
-  holdStart: "HoldStart",
-  holdStop: "HoldStop"
+  TAP: "Tap",
+  HOLD_START: "HoldStart",
+  HOLD_STOP: "HoldStop"
 } as const;
-export type KeyTrigger = typeof KeyTrigger[keyof typeof KeyTrigger];
+export type KeyTrigger = (typeof KeyTrigger)[keyof typeof KeyTrigger];
 
 const TRIGGERS: readonly string[] = Object.values(KeyTrigger);
 

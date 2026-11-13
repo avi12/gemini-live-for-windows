@@ -21,13 +21,13 @@ import type { Point, Rect, Size, Vector } from "@/overlays/shapes.ts";
 // goes, and how the selection maps onto the frozen still's pixels. Ported from CircleGeometry.cs.
 
 export const BarSide = {
-  below: "below",
-  right: "right",
-  left: "left",
-  above: "above",
-  inside: "inside"
+  BELOW: "below",
+  RIGHT: "right",
+  LEFT: "left",
+  ABOVE: "above",
+  INSIDE: "inside"
 } as const;
-type BarSide = typeof BarSide[keyof typeof BarSide];
+type BarSide = (typeof BarSide)[keyof typeof BarSide];
 
 export interface CornerGrip {
   readonly anchor: Point;
@@ -78,10 +78,7 @@ export function cornerRadius(area: Rect) {
 
 // The selection a finished loop makes: its padded bounding box, kept on the screen; undefined
 // when the loop was too small to be a circle
-export function loopSelection({ loop, screen }: {
-  loop: Iterable<Point>;
-  screen: Size;
-}) {
+export function loopSelection({ loop, screen }: { loop: Iterable<Point>; screen: Size }) {
   const drawn = boundsOf(loop);
   const isLoopEmpty = drawn === undefined;
   if (isLoopEmpty) {
@@ -104,7 +101,12 @@ export function loopSelection({ loop, screen }: {
 
 // The selection dragged so `grip` (where in it the drag took hold) sits under `pointer`, its size
 // unchanged and never past the screen's edge
-export function moved({ selection, grip, pointer, screen }: {
+export function moved({
+  selection,
+  grip,
+  pointer,
+  screen
+}: {
   selection: Rect;
   grip: Vector;
   pointer: Point;
@@ -125,10 +127,7 @@ export function moved({ selection, grip, pointer, screen }: {
 }
 
 // The corner of the selection within reach of the point, if any
-export function nearestCorner({ selection, point }: {
-  selection: Rect;
-  point: Point;
-}) {
+export function nearestCorner({ selection, point }: { selection: Rect; point: Point }) {
   let nearest: Point | undefined;
   let nearestDistance = Infinity;
   for (const corner of rectCorners(selection)) {
@@ -153,19 +152,13 @@ export function nearestCorner({ selection, point }: {
 
 // Whether the corner resizes along the falling diagonal (top-left and bottom-right) rather than
 // the rising one, for the cursor to match
-export function isFallingCorner({ selection, corner }: {
-  selection: Rect;
-  corner: Point;
-}) {
+export function isFallingCorner({ selection, corner }: { selection: Rect; corner: Point }) {
   const isLeft = corner.x === selection.x;
   const isTop = corner.y === selection.y;
   return isLeft === isTop;
 }
 
-export function grabCorner({ selection, corner }: {
-  selection: Rect;
-  corner: Point;
-}) {
+export function grabCorner({ selection, corner }: { selection: Rect; corner: Point }) {
   const anchor = {
     x: selection.x + rectRight(selection) - corner.x,
     y: selection.y + rectBottom(selection) - corner.y
@@ -181,7 +174,12 @@ export function grabCorner({ selection, corner }: {
 
 // Where the grabbed edge lands on one axis: at least the minimum size away from the anchor on its
 // own side, and on screen
-function reach({ anchor, pointer, direction, limit }: {
+function reach({
+  anchor,
+  pointer,
+  direction,
+  limit
+}: {
   anchor: number;
   pointer: number;
   direction: number;
@@ -193,11 +191,7 @@ function reach({ anchor, pointer, direction, limit }: {
 
 // The selection with the grabbed corner at the pointer, never past the minimum size and never off
 // the screen
-export function followCorner({ grip, pointer, screen }: {
-  grip: CornerGrip;
-  pointer: Point;
-  screen: Size;
-}) {
+export function followCorner({ grip, pointer, screen }: { grip: CornerGrip; pointer: Point; screen: Size }) {
   const left = reach({
     anchor: grip.anchor.x,
     pointer: pointer.x,
@@ -263,11 +257,7 @@ const BRACKET_DIRECTIONS = [
   }
 ] as const;
 
-function offsetAlong({ corner, direction, distance }: {
-  corner: Point;
-  direction: Point;
-  distance: number;
-}) {
+function offsetAlong({ corner, direction, distance }: { corner: Point; direction: Point; distance: number }) {
   return addPoints({
     first: corner,
     second: {
@@ -277,7 +267,13 @@ function offsetAlong({ corner, direction, distance }: {
   });
 }
 
-function bracketFigure({ corner, across, down, arm, radius }: {
+function bracketFigure({
+  corner,
+  across,
+  down,
+  arm,
+  radius
+}: {
   corner: Point;
   across: Point;
   down: Point;
@@ -338,22 +334,21 @@ export function brackets(area: Rect) {
       ...bottomLeftWay
     }
   ];
-  const figures = placed.map(({ corner, across, down }) => bracketFigure({
-    corner,
-    across,
-    down,
-    arm,
-    radius
-  }));
+  const figures = placed.map(({ corner, across, down }) =>
+    bracketFigure({
+      corner,
+      across,
+      down,
+      arm,
+      radius
+    })
+  );
   return figures.join(" ");
 }
 
 // The cutout as XAML path data: the whole screen with the selection (rounded) cut out of it,
 // even-odd, so the selection always stays clear. Without a selection, just the screen
-export function scrimPath({ screen, selection }: {
-  screen: Size;
-  selection: Rect | undefined;
-}) {
+export function scrimPath({ screen, selection }: { screen: Size; selection: Rect | undefined }) {
   const full = `M0,0 H${formatNumber(screen.width)} V${formatNumber(screen.height)} H0 Z`;
   const isBarePath = selection === undefined;
   if (isBarePath) {
@@ -381,11 +376,7 @@ export function scrimPath({ screen, selection }: {
   return `F0 ${full} ${hole}`;
 }
 
-function besidePlacement({ selection, bar, screen }: {
-  selection: Rect;
-  bar: Size;
-  screen: Size;
-}) {
+function besidePlacement({ selection, bar, screen }: { selection: Rect; bar: Size; screen: Size }) {
   const centredY = selection.y + (selection.height - bar.height) / 2;
   const rightX = rectRight(selection) + BAR_GAP;
   const leftX = selection.x - BAR_GAP - bar.width;
@@ -395,7 +386,7 @@ function besidePlacement({ selection, bar, screen }: {
   const isRightChosen = isRoomRight && (isInLeftHalf || !isRoomLeft);
   if (isRightChosen) {
     return {
-      side: BarSide.right,
+      side: BarSide.RIGHT,
       origin: {
         x: rightX,
         y: centredY
@@ -405,7 +396,7 @@ function besidePlacement({ selection, bar, screen }: {
 
   if (isRoomLeft) {
     return {
-      side: BarSide.left,
+      side: BarSide.LEFT,
       origin: {
         x: leftX,
         y: centredY
@@ -417,17 +408,13 @@ function besidePlacement({ selection, bar, screen }: {
 }
 
 // The first spot barPlacement tries that has room, before clamping
-function unclampedBarPlacement({ selection, bar, screen }: {
-  selection: Rect;
-  bar: Size;
-  screen: Size;
-}) {
+function unclampedBarPlacement({ selection, bar, screen }: { selection: Rect; bar: Size; screen: Size }) {
   const centredX = selection.x + (selection.width - bar.width) / 2;
   const belowY = rectBottom(selection) + BAR_GAP;
   const isRoomBelow = belowY + bar.height <= screen.height - BAR_SCREEN_MARGIN;
   if (isRoomBelow) {
     return {
-      side: BarSide.below,
+      side: BarSide.BELOW,
       origin: {
         x: centredX,
         y: belowY
@@ -449,7 +436,7 @@ function unclampedBarPlacement({ selection, bar, screen }: {
   const isRoomAbove = aboveY >= BAR_SCREEN_MARGIN;
   if (isRoomAbove) {
     return {
-      side: BarSide.above,
+      side: BarSide.ABOVE,
       origin: {
         x: centredX,
         y: aboveY
@@ -458,7 +445,7 @@ function unclampedBarPlacement({ selection, bar, screen }: {
   }
 
   return {
-    side: BarSide.inside,
+    side: BarSide.INSIDE,
     origin: {
       x: centredX,
       y: rectBottom(selection) - BAR_GAP - bar.height
@@ -468,11 +455,7 @@ function unclampedBarPlacement({ selection, bar, screen }: {
 
 // Keeps a span of `length` starting at `start` inside the screen's margin on one axis; one too
 // long to fit hugs the near margin
-function onScreen({ start, length, limit }: {
-  start: number;
-  length: number;
-  limit: number;
-}) {
+function onScreen({ start, length, limit }: { start: number; length: number; limit: number }) {
   const farthest = limit - BAR_SCREEN_MARGIN - length;
   return Math.max(BAR_SCREEN_MARGIN, Math.min(start, farthest));
 }
@@ -481,11 +464,7 @@ function onScreen({ start, length, limit }: {
 // centred just below; beside it, vertically centred (on the right when the selection's centre is
 // in the screen's left half, else on the left, then the other side); above it; and finally inside
 // its bottom edge. Whatever wins is clamped fully on screen
-export function barPlacement({ selection, bar, screen }: {
-  selection: Rect;
-  bar: Size;
-  screen: Size;
-}) {
+export function barPlacement({ selection, bar, screen }: { selection: Rect; bar: Size; screen: Size }) {
   const { side, origin } = unclampedBarPlacement({
     selection,
     bar,
@@ -510,11 +489,7 @@ export function barPlacement({ selection, bar, screen }: {
 
 // The selection in the still's physical pixels, kept inside the still. The window spans the
 // monitor in DIPs and the still in pixels, so their ratio is the monitor's DPI scale
-export function pixelRegion({ selection, window, still }: {
-  selection: Rect;
-  window: Size;
-  still: Size;
-}) {
+export function pixelRegion({ selection, window, still }: { selection: Rect; window: Size; still: Size }) {
   const scaleX = still.width / window.width;
   const scaleY = still.height / window.height;
   const left = Math.floor(selection.x * scaleX);
@@ -534,11 +509,7 @@ export function pixelRegion({ selection, window, still }: {
 
 // Every word in reading order (line by line), mapped from the still's pixels to the window's DIPs:
 // the inverse of pixelRegion's scale
-export function textWords({ lines, still, window }: {
-  lines: readonly OcrLine[];
-  still: Size;
-  window: Size;
-}) {
+export function textWords({ lines, still, window }: { lines: readonly OcrLine[]; still: Size; window: Size }) {
   const scaleX = window.width / still.width;
   const scaleY = window.height / still.height;
   const words: TextWord[] = [];
@@ -561,10 +532,7 @@ export function textWords({ lines, still, window }: {
 }
 
 // The index of the word under the point, or -1 when it is over none
-export function wordAt({ words, point }: {
-  words: readonly TextWord[];
-  point: Point;
-}) {
+export function wordAt({ words, point }: { words: readonly TextWord[]; point: Point }) {
   for (const [iWord, word] of words.entries()) {
     const isOnWord = rectContains({
       rect: inflateRect({
@@ -583,20 +551,14 @@ export function wordAt({ words, point }: {
 
 // The words from `first` to `second` inclusive, whichever comes first in reading order: what
 // dragging from one word to another selects
-export function wordsBetween({ first, second }: {
-  first: number;
-  second: number;
-}) {
+export function wordsBetween({ first, second }: { first: number; second: number }) {
   const start = Math.min(first, second);
   const count = Math.abs(second - first) + 1;
   return Array.from({ length: count }, (_, offset) => start + offset);
 }
 
 // Every word touching the area: what a rubber band selects
-export function wordsIn({ words, area }: {
-  words: readonly TextWord[];
-  area: Rect;
-}) {
+export function wordsIn({ words, area }: { words: readonly TextWord[]; area: Rect }) {
   const indexes: number[] = [];
   for (const [iWord, word] of words.entries()) {
     const isTouched = rectsTouch({
@@ -612,10 +574,7 @@ export function wordsIn({ words, area }: {
 }
 
 // All the words on the same line as the word at `index`
-export function wordsOnLine({ words, index }: {
-  words: readonly TextWord[];
-  index: number;
-}) {
+export function wordsOnLine({ words, index }: { words: readonly TextWord[]; index: number }) {
   const line = words[index]?.line;
   const indexes: number[] = [];
   for (const [iWord, word] of words.entries()) {
@@ -630,10 +589,7 @@ export function wordsOnLine({ words, index }: {
 
 // The picked words as text: spaces between words, a newline wherever the line changes. The words
 // are already in reading order, right-to-left lines included
-export function joinWords({ words, picked }: {
-  words: readonly TextWord[];
-  picked: readonly number[];
-}) {
+export function joinWords({ words, picked }: { words: readonly TextWord[]; picked: readonly number[] }) {
   const textByLine = new Map<number, string[]>();
   for (const index of picked) {
     const word = words[index];
@@ -654,10 +610,7 @@ export function joinWords({ words, picked }: {
 export const WORD_RADIUS = 3;
 
 // Rounded boxes for the rectangles as one path to fill: every word's tint is a single shape
-export function roundedRectsPath({ rects, radius }: {
-  rects: readonly Rect[];
-  radius: number;
-}) {
+export function roundedRectsPath({ rects, radius }: { rects: readonly Rect[]; radius: number }) {
   const figures: string[] = [];
   for (const rect of rects) {
     const reach = Math.min(radius, rect.width / 2, rect.height / 2);

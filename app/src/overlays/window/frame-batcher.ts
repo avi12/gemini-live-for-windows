@@ -1,7 +1,10 @@
 // Applies only the latest value once per frame. A mouse reports far more often than a frame is
 // drawn, and every update of the window crosses dynwinrt call by call, so the pointer's moves are
 // folded into one update per frame; the reducer still sees every move.
-export function createFrameBatcher<T>({ requestFrame, apply }: {
+export function createFrameBatcher<T>({
+  requestFrame,
+  apply
+}: {
   requestFrame: (callback: () => void) => void;
   apply: (value: T) => void;
 }) {

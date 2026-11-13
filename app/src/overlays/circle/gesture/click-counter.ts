@@ -12,15 +12,14 @@ export function createClickCounter() {
   let lastPoint: Point | undefined;
 
   // The number of presses in a row this one makes: 1 for a lone press, 2 for a double, 3 a triple
-  function press({ point, time }: {
-    point: Point;
-    time: number;
-  }) {
+  function press({ point, time }: { point: Point; time: number }) {
     const isQuick = time - lastTime <= MULTI_CLICK_MILLISECONDS;
-    const isNear = lastPoint !== undefined && distanceBetween({
-      first: lastPoint,
-      second: point
-    }) <= MULTI_CLICK_DISTANCE;
+    const isNear =
+      lastPoint !== undefined &&
+      distanceBetween({
+        first: lastPoint,
+        second: point
+      }) <= MULTI_CLICK_DISTANCE;
     const isContinuing = isQuick && isNear;
     count = isContinuing ? count + 1 : 1;
     lastTime = time;

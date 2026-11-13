@@ -1,10 +1,11 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+
 import type { Monitor } from "@/contracts/monitor.ts";
 import { createCircleSession } from "@/overlays/circle/session.ts";
 import type { CircleScreen, FrozenScreen } from "@/overlays/ports.ts";
 import { CircleAction } from "@/overlays/protocol.ts";
 import type { CircleOutcome, OpenCircle } from "@/overlays/protocol.ts";
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 
 const MONITOR: Monitor = {
   deviceName: "\\.DISPLAY1",
@@ -38,10 +39,7 @@ const CROP = {
   height: 200
 };
 
-function setup({ outcome, isFreezeFailing = false }: {
-  outcome: CircleOutcome | Error;
-  isFreezeFailing?: boolean;
-}) {
+function setup({ outcome, isFreezeFailing = false }: { outcome: CircleOutcome | Error; isFreezeFailing?: boolean }) {
   const steps: string[] = [];
   const opened: OpenCircle[] = [];
   const lines: string[] = [];
@@ -98,7 +96,7 @@ describe("createCircleSession", () => {
     const { session, steps, opened, release } = setup({
       outcome: {
         isCancelled: false,
-        action: CircleAction.lens,
+        action: CircleAction.LENS,
         region: REGION
       }
     });
@@ -110,7 +108,7 @@ describe("createCircleSession", () => {
     const selection = await pending;
     assert.deepEqual(steps, ["freeze", "circling:true", "open", "circling:false", "crop"]);
     assert.deepEqual(selection, {
-      action: CircleAction.lens,
+      action: CircleAction.LENS,
       crop: CROP,
       region: REGION,
       monitor: MONITOR
@@ -128,7 +126,7 @@ describe("createCircleSession", () => {
     const { session, opened, release } = setup({
       outcome: {
         isCancelled: false,
-        action: CircleAction.askGemini,
+        action: CircleAction.ASK_GEMINI,
         region: REGION
       }
     });
@@ -218,7 +216,8 @@ describe("createCircleSession", () => {
       await session.select({
         monitor: MONITOR,
         isAskOnRelease: false
-      }), undefined
+      }),
+      undefined
     );
     assert.deepEqual(lines, ["circle: no capture"]);
     assert.equal(steps.includes("open"), false);

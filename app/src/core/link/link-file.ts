@@ -1,9 +1,11 @@
+import fileSystem from "node:fs/promises";
+import path from "node:path";
+
+import { type LinkInfo, linkInfoSchema } from "@gemini-live/protocol/link";
+
 import { isInstanceRunning } from "@/core/instance/instance.ts";
 import { writeFileAtomic } from "@/lib/atomic-file.ts";
 import { dataDir } from "@/lib/paths.ts";
-import { type LinkInfo, linkInfoSchema } from "@gemini-live/protocol/link";
-import fs from "node:fs/promises";
-import path from "node:path";
 
 const LINK_FILE = "link.json";
 
@@ -12,10 +14,7 @@ function linkFilePath() {
 }
 
 // Where this run of the app publishes its session link for the native host to hand the extension
-export function writeLinkFile({ link, filePath = linkFilePath() }: {
-  link: LinkInfo;
-  filePath?: string;
-}) {
+export function writeLinkFile({ link, filePath = linkFilePath() }: { link: LinkInfo; filePath?: string }) {
   return writeFileAtomic({
     filePath,
     content: JSON.stringify(link)
@@ -24,7 +23,7 @@ export function writeLinkFile({ link, filePath = linkFilePath() }: {
 
 async function readLinkText(filePath: string) {
   try {
-    return await fs.readFile(filePath, "utf8");
+    return await fileSystem.readFile(filePath, "utf8");
   } catch {
     return undefined;
   }
@@ -38,7 +37,7 @@ export async function readLinkFile({
   filePath?: string;
   isRunning?: () => Promise<boolean>;
 } = {}) {
-  if (!await isRunning()) {
+  if (!(await isRunning())) {
     return undefined;
   }
 

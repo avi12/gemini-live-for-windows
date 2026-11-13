@@ -12,7 +12,11 @@ export interface CircleSelection {
   readonly monitor: Monitor;
 }
 
-function openOptions({ monitor, frozen, isAskOnRelease }: {
+function openOptions({
+  monitor,
+  frozen,
+  isAskOnRelease
+}: {
   monitor: Monitor;
   frozen: FrozenScreen;
   isAskOnRelease: boolean;
@@ -26,7 +30,14 @@ function openOptions({ monitor, frozen, isAskOnRelease }: {
   } satisfies OpenCircle;
 }
 
-async function circleMonitor({ screen, openOverlay, setCircling, monitor, isAskOnRelease, onFrozen }: {
+async function circleMonitor({
+  screen,
+  openOverlay,
+  setCircling,
+  monitor,
+  isAskOnRelease,
+  onFrozen
+}: {
   screen: CircleScreen;
   openOverlay: (options: OpenCircle) => Promise<CircleOutcome>;
   setCircling: (isCircling: boolean) => void;
@@ -61,7 +72,11 @@ async function circleMonitor({ screen, openOverlay, setCircling, monitor, isAskO
   } satisfies CircleSelection;
 }
 
-async function readFrozen({ screen, frozen, region }: {
+async function readFrozen({
+  screen,
+  frozen,
+  region
+}: {
   screen: CircleScreen;
   frozen: FrozenScreen | undefined;
   region: Region | null;
@@ -80,7 +95,12 @@ async function readFrozen({ screen, frozen, region }: {
 // Circle to Search from the controller's side (main thread): freezes the display, shows the
 // overlay on the UI worker, and turns the answer into a crop. The Esc the screen focus holds is
 // let go of first (`setCircling`), since the overlay needs Esc for its own cancel
-export function createCircleSession({ screen, openOverlay, setCircling, log }: {
+export function createCircleSession({
+  screen,
+  openOverlay,
+  setCircling,
+  log
+}: {
   screen: CircleScreen;
   openOverlay: (options: OpenCircle) => Promise<CircleOutcome>;
   setCircling: (isCircling: boolean) => void;
@@ -93,10 +113,7 @@ export function createCircleSession({ screen, openOverlay, setCircling, log }: {
   // cancel. The overlay is gone before this resolves, so whatever runs next sees the real screen
   // again. With `isAskOnRelease` (Gemini Live is already running) there are no buttons: the first
   // loop the user finishes is the answer, as askGemini
-  async function select({ monitor, isAskOnRelease }: {
-    monitor: Monitor;
-    isAskOnRelease: boolean;
-  }) {
+  async function select({ monitor, isAskOnRelease }: { monitor: Monitor; isAskOnRelease: boolean }) {
     if (isOpen) {
       return undefined;
     }

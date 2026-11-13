@@ -1,9 +1,10 @@
-import { readInstalledVersion } from "./installed-version.ts";
 import assert from "node:assert/strict";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
-import os from "node:os";
+import operatingSystem from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
+
+import { readInstalledVersion } from "./installed-version.ts";
 
 const MANIFEST = `<?xml version="1.0" encoding="utf-8"?>
 <Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10">
@@ -17,7 +18,7 @@ describe("the installed version", () => {
   let directory = "";
 
   beforeEach(async () => {
-    directory = await mkdtemp(path.join(os.tmpdir(), "installed-version-"));
+    directory = await mkdtemp(path.join(operatingSystem.tmpdir(), "installed-version-"));
   });
 
   afterEach(async () => {

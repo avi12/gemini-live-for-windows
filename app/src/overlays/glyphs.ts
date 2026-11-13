@@ -1,9 +1,9 @@
 // Material Symbols Rounded code points of the icons the overlays draw; the font is cut down to
 // these and the pill's by scripts\subset-icons.py
-const COPY_CODE_POINT = 0xE14D;
-const CLOSE_CODE_POINT = 0xE5CD;
-const SEARCH_CODE_POINT = 0xEF7A;
-const TEXT_SELECT_CODE_POINT = 0xF735;
+const COPY_CODE_POINT = 0xe14d;
+const CLOSE_CODE_POINT = 0xe5cd;
+const SEARCH_CODE_POINT = 0xef7a;
+const TEXT_SELECT_CODE_POINT = 0xf735;
 
 export const OverlayGlyph = {
   // content_copy

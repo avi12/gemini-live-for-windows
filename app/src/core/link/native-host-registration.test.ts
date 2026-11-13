@@ -1,17 +1,18 @@
-import { BROWSER_KEYS, hostKey, ORIGINS_KEY, registerNativeHost } from "./native-host-registration.ts";
 import assert from "node:assert/strict";
-import fs from "node:fs/promises";
-import os from "node:os";
+import fileSystem from "node:fs/promises";
+import operatingSystem from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
+
+import { BROWSER_KEYS, hostKey, ORIGINS_KEY, registerNativeHost } from "./native-host-registration.ts";
 
 describe("registerNativeHost", () => {
   let dir = "";
   beforeEach(async () => {
-    dir = await fs.mkdtemp(path.join(os.tmpdir(), "gl-host-"));
+    dir = await fileSystem.mkdtemp(path.join(operatingSystem.tmpdir(), "gl-host-"));
   });
   afterEach(async () => {
-    await fs.rm(dir, {
+    await fileSystem.rm(dir, {
       recursive: true,
       force: true
     });
@@ -23,7 +24,7 @@ describe("registerNativeHost", () => {
       dir,
       setDefaultValue: async () => undefined
     });
-    const manifest = JSON.parse(await fs.readFile(path.join(dir, "com.avi12.gemini_live.json"), "utf8"));
+    const manifest = JSON.parse(await fileSystem.readFile(path.join(dir, "com.avi12.gemini_live.json"), "utf8"));
     assert.deepEqual(manifest, {
       name: "com.avi12.gemini_live",
       description: "Tells the Gemini Live extension where the running app listens",
@@ -34,10 +35,10 @@ describe("registerNativeHost", () => {
   });
 
   it("points Chrome, Edge, Brave and Chromium at the manifest", async () => {
-    const written: Array<{
+    const written: {
       key: string;
       value: string;
-    }> = [];
+    }[] = [];
     await registerNativeHost({
       hostPath: "host.exe",
       dir,

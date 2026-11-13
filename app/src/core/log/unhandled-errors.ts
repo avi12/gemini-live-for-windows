@@ -12,7 +12,10 @@ function describeError(error: unknown) {
 }
 
 // Mirrors App.xaml.cs: an exception nobody caught is written to the log and the app keeps running
-export function keepRunningOnUnhandledErrors({ write = log.write, target = process }: {
+export function keepRunningOnUnhandledErrors({
+  write = log.write,
+  target = process
+}: {
   write?: (message: string) => void;
   target?: ErrorTarget;
 } = {}) {

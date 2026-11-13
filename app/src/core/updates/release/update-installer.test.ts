@@ -1,11 +1,13 @@
-import { downloadRelease } from "./update-installer.ts";
-import type { AppRelease } from "@/core/updates/app-release.ts";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import fs from "node:fs/promises";
-import os from "node:os";
+import fileSystem from "node:fs/promises";
+import operatingSystem from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
+
+import type { AppRelease } from "@/core/updates/app-release.ts";
+
+import { downloadRelease } from "./update-installer.ts";
 
 const HTTP_ERROR = 500;
 const PACKAGE = Buffer.from("pretend this is an msix");
@@ -34,10 +36,10 @@ function serving(bytes: Buffer) {
 describe("downloadRelease", () => {
   let folder = "";
   beforeEach(async () => {
-    folder = await fs.mkdtemp(path.join(os.tmpdir(), "gl-update-"));
+    folder = await fileSystem.mkdtemp(path.join(operatingSystem.tmpdir(), "gl-update-"));
   });
   afterEach(async () => {
-    await fs.rm(folder, {
+    await fileSystem.rm(folder, {
       recursive: true,
       force: true
     });
@@ -51,7 +53,7 @@ describe("downloadRelease", () => {
       fetchPackage
     });
     assert.equal(filePath, path.join(folder, "GeminiLive-0.2.0.0.msix"));
-    assert.deepEqual(await fs.readFile(String(filePath)), PACKAGE);
+    assert.deepEqual(await fileSystem.readFile(String(filePath)), PACKAGE);
   });
 
   it("deletes a download that fails its hash", async () => {
@@ -62,7 +64,7 @@ describe("downloadRelease", () => {
       fetchPackage
     });
     assert.equal(filePath, undefined);
-    assert.deepEqual(await fs.readdir(folder), []);
+    assert.deepEqual(await fileSystem.readdir(folder), []);
   });
 
   it("reuses a copy that already matches", async () => {
@@ -83,7 +85,7 @@ describe("downloadRelease", () => {
 
   it("downloads again over a damaged copy", async () => {
     const release = releaseFor(PACKAGE);
-    await fs.writeFile(path.join(folder, "GeminiLive-0.2.0.0.msix"), "damaged");
+    await fileSystem.writeFile(path.join(folder, "GeminiLive-0.2.0.0.msix"), "damaged");
     const { fetchPackage, count } = serving(PACKAGE);
     assert.ok(
       await downloadRelease({

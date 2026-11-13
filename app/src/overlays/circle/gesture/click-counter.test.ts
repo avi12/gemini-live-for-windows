@@ -1,10 +1,11 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+
 import {
   createClickCounter,
   MULTI_CLICK_DISTANCE,
   MULTI_CLICK_MILLISECONDS
 } from "@/overlays/circle/gesture/click-counter.ts";
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 
 const TRIPLE_CLICK = 3;
 
@@ -19,7 +20,8 @@ describe("createClickCounter", () => {
       createClickCounter().press({
         point: HERE,
         time: 0
-      }), 1
+      }),
+      1
     );
   });
 
@@ -29,19 +31,22 @@ describe("createClickCounter", () => {
       counter.press({
         point: HERE,
         time: 0
-      }), 1
+      }),
+      1
     );
     assert.equal(
       counter.press({
         point: HERE,
         time: 200
-      }), 2
+      }),
+      2
     );
     assert.equal(
       counter.press({
         point: HERE,
         time: 400
-      }), TRIPLE_CLICK
+      }),
+      TRIPLE_CLICK
     );
   });
 
@@ -55,7 +60,8 @@ describe("createClickCounter", () => {
       counter.press({
         point: HERE,
         time: MULTI_CLICK_MILLISECONDS + 1
-      }), 1
+      }),
+      1
     );
   });
 
@@ -69,7 +75,8 @@ describe("createClickCounter", () => {
       counter.press({
         point: HERE,
         time: MULTI_CLICK_MILLISECONDS
-      }), 2
+      }),
+      2
     );
   });
 
@@ -87,7 +94,8 @@ describe("createClickCounter", () => {
       counter.press({
         point: far,
         time: 100
-      }), 1
+      }),
+      1
     );
   });
 
@@ -105,7 +113,8 @@ describe("createClickCounter", () => {
       counter.press({
         point: near,
         time: 100
-      }), 2
+      }),
+      2
     );
   });
 });

@@ -1,7 +1,10 @@
-import { encodeFrame, readFrames } from "./frame.ts";
-import { noop } from "@/lib/noop.ts";
-import type { Transport } from "@gemini-live/messaging";
 import type { Readable, Writable } from "node:stream";
+
+import type { Transport } from "@gemini-live/messaging";
+
+import { noop } from "@/lib/noop.ts";
+
+import { encodeFrame, readFrames } from "./frame.ts";
 
 function parseFrame(json: string) {
   try {
@@ -14,10 +17,7 @@ function parseFrame(json: string) {
 
 // Envelopes as a browser's native messaging frames; `closed` settles once the browser lets go of
 // our input, with the reason when the input was not a valid stream of frames
-export function stdioTransport({ input, output }: {
-  input: Readable;
-  output: Writable;
-}) {
+export function stdioTransport({ input, output }: { input: Readable; output: Writable }) {
   let finish: (reason: unknown) => void = noop;
   const closed = new Promise<unknown>(resolve => {
     finish = resolve;

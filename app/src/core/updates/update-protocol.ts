@@ -1,9 +1,9 @@
 import type { AppRelease } from "./app-release.ts";
 
 // Every message the update checker sends its listeners
-export const UpdateMessage = { readyChanged: "readyChanged" } as const;
+export const UpdateMessage = { READY_CHANGED: "readyChanged" } as const;
 
 export interface UpdateProtocolMap {
   // A newer release is downloaded and checked, or null once none is
-  [UpdateMessage.readyChanged](release: AppRelease | null): void;
+  [UpdateMessage.READY_CHANGED](release: AppRelease | null): void;
 }

@@ -1,6 +1,8 @@
-import { monitorSchema, regionSchema } from "@/contracts/monitor.ts";
+import { regionSchema } from "@gemini-live/protocol/view";
 import type { ProtocolWithReturn } from "winui-svelte/messaging";
 import { z } from "zod";
+
+import { monitorSchema } from "@/contracts/monitor.ts";
 
 // The overlay boundary: the controller on the main thread (engine, screen capture, OCR, Lens) and
 // the windows on the UI worker (the share border, the focus chip, the circle overlay and every
@@ -8,26 +10,26 @@ import { z } from "zod";
 
 export const OverlayMessage = {
   // Controller to windows
-  coverBorder: "overlay/coverBorder",
-  hideBorder: "overlay/hideBorder",
-  attachChip: "overlay/attachChip",
-  hideChip: "overlay/hideChip",
-  holdFocusEscape: "overlay/holdFocusEscape",
-  openCircle: "overlay/openCircle",
+  COVER_BORDER: "overlay/coverBorder",
+  HIDE_BORDER: "overlay/hideBorder",
+  ATTACH_CHIP: "overlay/attachChip",
+  HIDE_CHIP: "overlay/hideChip",
+  HOLD_FOCUS_ESCAPE: "overlay/holdFocusEscape",
+  OPEN_CIRCLE: "overlay/openCircle",
   // Windows to controller
-  focusEscapePressed: "overlay/focusEscapePressed",
-  chipDismissed: "overlay/chipDismissed",
-  chipDragStarted: "overlay/chipDragStarted",
-  chipDragged: "overlay/chipDragged",
-  circleKeyPressed: "overlay/circleKeyPressed",
-  readCircleText: "overlay/readCircleText"
+  FOCUS_ESCAPE_PRESSED: "overlay/focusEscapePressed",
+  CHIP_DISMISSED: "overlay/chipDismissed",
+  CHIP_DRAG_STARTED: "overlay/chipDragStarted",
+  CHIP_DRAGGED: "overlay/chipDragged",
+  CIRCLE_KEY_PRESSED: "overlay/circleKeyPressed",
+  READ_CIRCLE_TEXT: "overlay/readCircleText"
 } as const;
 
 export const CircleAction = {
-  askGemini: "askGemini",
-  lens: "lens"
+  ASK_GEMINI: "askGemini",
+  LENS: "lens"
 } as const;
-export type CircleAction = typeof CircleAction[keyof typeof CircleAction];
+export type CircleAction = (typeof CircleAction)[keyof typeof CircleAction];
 
 export const coverBorderSchema = z.object({
   monitor: monitorSchema,
@@ -94,17 +96,17 @@ export const ocrLinesSchema = z.array(
 export type OcrLines = z.infer<typeof ocrLinesSchema>;
 
 export interface OverlayProtocol {
-  [OverlayMessage.coverBorder]: ProtocolWithReturn<CoverBorder, void>;
-  [OverlayMessage.hideBorder]: ProtocolWithReturn<void, void>;
-  [OverlayMessage.attachChip]: ProtocolWithReturn<AttachChip, void>;
-  [OverlayMessage.hideChip]: ProtocolWithReturn<void, void>;
-  [OverlayMessage.holdFocusEscape]: ProtocolWithReturn<HoldFocusEscape, void>;
+  [OverlayMessage.COVER_BORDER]: ProtocolWithReturn<CoverBorder, void>;
+  [OverlayMessage.HIDE_BORDER]: ProtocolWithReturn<void, void>;
+  [OverlayMessage.ATTACH_CHIP]: ProtocolWithReturn<AttachChip, void>;
+  [OverlayMessage.HIDE_CHIP]: ProtocolWithReturn<void, void>;
+  [OverlayMessage.HOLD_FOCUS_ESCAPE]: ProtocolWithReturn<HoldFocusEscape, void>;
   // Answered when the overlay is gone: the action and region, or that it was cancelled
-  [OverlayMessage.openCircle]: ProtocolWithReturn<OpenCircle, CircleOutcome>;
-  [OverlayMessage.focusEscapePressed]: ProtocolWithReturn<void, void>;
-  [OverlayMessage.chipDismissed]: ProtocolWithReturn<void, void>;
-  [OverlayMessage.chipDragStarted]: ProtocolWithReturn<void, void>;
-  [OverlayMessage.chipDragged]: ProtocolWithReturn<ChipDragged, void>;
-  [OverlayMessage.circleKeyPressed]: ProtocolWithReturn<void, void>;
-  [OverlayMessage.readCircleText]: ProtocolWithReturn<ReadCircleText, OcrLines>;
+  [OverlayMessage.OPEN_CIRCLE]: ProtocolWithReturn<OpenCircle, CircleOutcome>;
+  [OverlayMessage.FOCUS_ESCAPE_PRESSED]: ProtocolWithReturn<void, void>;
+  [OverlayMessage.CHIP_DISMISSED]: ProtocolWithReturn<void, void>;
+  [OverlayMessage.CHIP_DRAG_STARTED]: ProtocolWithReturn<void, void>;
+  [OverlayMessage.CHIP_DRAGGED]: ProtocolWithReturn<ChipDragged, void>;
+  [OverlayMessage.CIRCLE_KEY_PRESSED]: ProtocolWithReturn<void, void>;
+  [OverlayMessage.READ_CIRCLE_TEXT]: ProtocolWithReturn<ReadCircleText, OcrLines>;
 }

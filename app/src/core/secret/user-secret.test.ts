@@ -1,13 +1,14 @@
-import { DataProtectionError, userSecret } from "./user-secret.ts";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { describe, it } from "node:test";
+
+import { DataProtectionError, userSecret } from "./user-secret.ts";
 
 const SMALL = 37;
 const ONE_MEBIBYTE = 1_048_576;
 const SIZES = [0, 1, SMALL, ONE_MEBIBYTE];
 const FILL = 7;
-const FLIP_ALL_BITS = 0xFF;
+const FLIP_ALL_BITS = 0xff;
 const PLAIN = "gemini-live dpapi test";
 
 function powerShell(script: string) {
@@ -19,25 +20,19 @@ function powerShell(script: string) {
 
 const LOAD_ASSEMBLY = "Add-Type -AssemblyName System.Security;";
 
-function sealWithDotNet({ text, entropyBase64 }: {
-  text: string;
-  entropyBase64?: string;
-}) {
+function sealWithDotNet({ text, entropyBase64 }: { text: string; entropyBase64?: string }) {
   const entropy = entropyBase64 ? `[Convert]::FromBase64String('${entropyBase64}')` : "$null";
   return powerShell(
-    `${LOAD_ASSEMBLY}[Convert]::ToBase64String([System.Security.Cryptography.ProtectedData]::Protect(`
-    + `[Text.Encoding]::UTF8.GetBytes('${text}'), ${entropy}, 'CurrentUser'))`
+    `${LOAD_ASSEMBLY}[Convert]::ToBase64String([System.Security.Cryptography.ProtectedData]::Protect(` +
+      `[Text.Encoding]::UTF8.GetBytes('${text}'), ${entropy}, 'CurrentUser'))`
   );
 }
 
-function unsealWithDotNet({ sealedBase64, entropyBase64 }: {
-  sealedBase64: string;
-  entropyBase64?: string;
-}) {
+function unsealWithDotNet({ sealedBase64, entropyBase64 }: { sealedBase64: string; entropyBase64?: string }) {
   const entropy = entropyBase64 ? `[Convert]::FromBase64String('${entropyBase64}')` : "$null";
   return powerShell(
-    `${LOAD_ASSEMBLY}[Text.Encoding]::UTF8.GetString([System.Security.Cryptography.ProtectedData]::Unprotect(`
-    + `[Convert]::FromBase64String('${sealedBase64}'), ${entropy}, 'CurrentUser'))`
+    `${LOAD_ASSEMBLY}[Text.Encoding]::UTF8.GetString([System.Security.Cryptography.ProtectedData]::Unprotect(` +
+      `[Convert]::FromBase64String('${sealedBase64}'), ${entropy}, 'CurrentUser'))`
   );
 }
 
@@ -63,12 +58,17 @@ describe("userSecret", () => {
           sealed,
           entropy
         })
-      ).toString(), PLAIN
+      ).toString(),
+      PLAIN
     );
-    assert.throws(() => userSecret.unseal({
-      sealed,
-      entropy: Buffer.from("other")
-    }), DataProtectionError);
+    assert.throws(
+      () =>
+        userSecret.unseal({
+          sealed,
+          entropy: Buffer.from("other")
+        }),
+      DataProtectionError
+    );
     assert.throws(() => userSecret.unseal({ sealed }), DataProtectionError);
   });
 
@@ -89,7 +89,8 @@ describe("userSecret", () => {
       sealWithDotNet({
         text: PLAIN,
         entropyBase64: entropy.toString("base64")
-      }), "base64"
+      }),
+      "base64"
     );
     assert.equal(
       Buffer.from(
@@ -97,7 +98,8 @@ describe("userSecret", () => {
           sealed,
           entropy
         })
-      ).toString(), PLAIN
+      ).toString(),
+      PLAIN
     );
   });
 

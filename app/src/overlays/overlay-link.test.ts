@@ -1,3 +1,6 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+
 import type { Monitor } from "@/contracts/monitor.ts";
 import { linkedTransports } from "@/lib/transport/linked-transports.ts";
 import { connectOverlayWindows } from "@/overlays/controller-link.ts";
@@ -5,8 +8,6 @@ import { CircleAction } from "@/overlays/protocol.ts";
 import type { CircleOutcome, OpenCircle } from "@/overlays/protocol.ts";
 import { serveOverlayWindows } from "@/overlays/window/window-link.ts";
 import type { OverlayWindowEvents, OverlayWindowHost } from "@/overlays/window/window-link.ts";
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 
 const MONITOR: Monitor = {
   deviceName: "\\\\.\\DISPLAY1",
@@ -80,17 +81,21 @@ function setup({ outcome = CANCELLED }: { outcome?: CircleOutcome } = {}) {
       circleKeyPressed: () => heard.push("circleKey"),
       async readCircleText({ region }) {
         heard.push(`read:${region === null ? "all" : region.width}`);
-        return [{
-          words: [{
-            text: "hi",
-            bounds: {
-              x: 1,
-              y: 2,
-              width: 3,
-              height: 4
-            }
-          }]
-        }];
+        return [
+          {
+            words: [
+              {
+                text: "hi",
+                bounds: {
+                  x: 1,
+                  y: 2,
+                  width: 3,
+                  height: 4
+                }
+              }
+            ]
+          }
+        ];
       }
     }
   });
@@ -142,7 +147,7 @@ describe("the overlay link", () => {
   it("answers the circle request with the outcome", async () => {
     const outcome: CircleOutcome = {
       isCancelled: false,
-      action: CircleAction.lens,
+      action: CircleAction.LENS,
       region: REGION
     };
     const { link, calls } = setup({ outcome });
@@ -158,17 +163,21 @@ describe("the overlay link", () => {
   it("reads text for the window and gets the lines back", async () => {
     const { events, heard } = setup();
     const lines = await events()?.readCircleText({ region: REGION });
-    assert.deepEqual(lines, [{
-      words: [{
-        text: "hi",
-        bounds: {
-          x: 1,
-          y: 2,
-          width: 3,
-          height: 4
-        }
-      }]
-    }]);
+    assert.deepEqual(lines, [
+      {
+        words: [
+          {
+            text: "hi",
+            bounds: {
+              x: 1,
+              y: 2,
+              width: 3,
+              height: 4
+            }
+          }
+        ]
+      }
+    ]);
     assert.deepEqual(heard, ["read:300"]);
   });
 

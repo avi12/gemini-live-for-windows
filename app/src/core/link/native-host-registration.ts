@@ -1,17 +1,25 @@
-import { writeLinkFile } from "./link-file.ts";
+import { execFile } from "node:child_process";
+import path from "node:path";
+import { promisify } from "node:util";
+
+import { EXTENSION_ORIGIN, type LinkInfo, NATIVE_HOST_NAME } from "@gemini-live/protocol/link";
+
 import { log } from "@/core/log/log.ts";
 import { writeFileAtomic } from "@/lib/atomic-file.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 import { browserDir } from "@/lib/paths.ts";
-import { EXTENSION_ORIGIN, type LinkInfo, NATIVE_HOST_NAME } from "@gemini-live/protocol/link";
-import { execFile } from "node:child_process";
-import path from "node:path";
-import { promisify } from "node:util";
+
+import { writeLinkFile } from "./link-file.ts";
 
 const execFileAsync = promisify(execFile);
 
 // The browsers' manifest key, snake_case on the wire
 export const ORIGINS_KEY = "allowed_origins";
+
+interface SetDefaultValueCommand {
+  key: string;
+  value: string;
+}
 
 // Each Chromium browser looks for its hosts under its own key; the default value names the manifest
 export const BROWSER_KEYS = [
@@ -21,10 +29,7 @@ export const BROWSER_KEYS = [
   String.raw`Software\Chromium`
 ] as const;
 
-export type SetDefaultValue = (command: {
-  key: string;
-  value: string;
-}) => Promise<void>;
+export type SetDefaultValue = (command: SetDefaultValueCommand) => Promise<void>;
 
 async function setDefaultValueWithRegExe({ key, value }: Parameters<SetDefaultValue>[0]) {
   await execFileAsync("reg.exe", ["add", key, "/ve", "/t", "REG_SZ", "/d", value, "/f"], { windowsHide: true });
@@ -73,17 +78,16 @@ export async function registerNativeHost({
     content: JSON.stringify(hostManifest(hostPath), null, 2)
   });
   await Promise.all(
-    BROWSER_KEYS.map(browserKey => setDefaultValue({
-      key: hostKey(browserKey),
-      value: filePath
-    }))
+    BROWSER_KEYS.map(browserKey =>
+      setDefaultValue({
+        key: hostKey(browserKey),
+        value: filePath
+      })
+    )
   );
 }
 
-async function attempt({ what, work }: {
-  what: string;
-  work: () => Promise<void>;
-}) {
+async function attempt({ what, work }: { what: string; work: () => Promise<void> }) {
   try {
     await work();
   } catch (error) {
@@ -92,10 +96,7 @@ async function attempt({ what, work }: {
 }
 
 // Publishes where this run listens and (re)registers the host that hands it out
-export async function publishNativeHost({ link, hostPath }: {
-  link: LinkInfo;
-  hostPath: string;
-}) {
+export async function publishNativeHost({ link, hostPath }: { link: LinkInfo; hostPath: string }) {
   await attempt({
     what: "link file",
     work: () => writeLinkFile({ link })

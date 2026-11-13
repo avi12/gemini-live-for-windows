@@ -1,13 +1,15 @@
-import { defaultSettings, serializeSettings, settingsFileSchema } from "./settings-file.ts";
-import type { Settings } from "./settings-file.ts";
+import fileSystem from "node:fs/promises";
+import path from "node:path";
+
 import { log } from "@/core/log/log.ts";
 import { userSecret } from "@/core/secret/user-secret.ts";
 import type { UserSecret } from "@/core/secret/user-secret.ts";
 import { writeFileAtomic } from "@/lib/atomic-file.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 import { dataDir } from "@/lib/paths.ts";
-import fs from "node:fs/promises";
-import path from "node:path";
+
+import { defaultSettings, serializeSettings, settingsFileSchema } from "./settings-file.ts";
+import type { Settings } from "./settings-file.ts";
 
 const SETTINGS_FILE = "settings.json";
 const API_KEY_VARIABLE = "GEMINI_API_KEY";
@@ -19,12 +21,9 @@ interface SettingsDependencies {
   writeLog(message: string): void;
 }
 
-async function readText({ filePath, writeLog }: {
-  filePath: string;
-  writeLog: (message: string) => void;
-}) {
+async function readText({ filePath, writeLog }: { filePath: string; writeLog: (message: string) => void }) {
   try {
-    return await fs.readFile(filePath, "utf8");
+    return await fileSystem.readFile(filePath, "utf8");
   } catch (error) {
     const isMissing = error instanceof Error && "code" in error && error.code === "ENOENT";
     if (!isMissing) {
@@ -35,10 +34,7 @@ async function readText({ filePath, writeLog }: {
   }
 }
 
-async function loadFrom({ filePath, writeLog }: {
-  filePath: string;
-  writeLog: (message: string) => void;
-}) {
+async function loadFrom({ filePath, writeLog }: { filePath: string; writeLog: (message: string) => void }) {
   const text = await readText({
     filePath,
     writeLog
@@ -62,7 +58,11 @@ async function loadFrom({ filePath, writeLog }: {
   return defaultSettings();
 }
 
-function unsealApiKey({ protectedKey, secret, writeLog }: {
+function unsealApiKey({
+  protectedKey,
+  secret,
+  writeLog
+}: {
   protectedKey: string;
   secret: UserSecret;
   writeLog: (message: string) => void;
@@ -114,10 +114,7 @@ export function createSettingsStore({ dir, env, secret, writeLog }: SettingsDepe
     });
   }
 
-  async function setApiKey({ settings, key }: {
-    settings: Settings;
-    key: string;
-  }) {
+  async function setApiKey({ settings, key }: { settings: Settings; key: string }) {
     const plain = Buffer.from(key.trim(), "utf8");
     try {
       settings.protectedApiKey = Buffer.from(secret.seal({ plain })).toString("base64");
@@ -164,10 +161,7 @@ export function hasApiKey(settings: Settings) {
   return apiKey(settings).length > 0;
 }
 
-export function setApiKey({ settings, key }: {
-  settings: Settings;
-  key: string;
-}) {
+export function setApiKey({ settings, key }: { settings: Settings; key: string }) {
   return sharedStore().setApiKey({
     settings,
     key

@@ -1,11 +1,12 @@
+import { defineMessaging } from "winui-svelte/messaging";
+import type { Transport } from "winui-svelte/state/host";
+
 import { errorMessage } from "@/lib/error-message.ts";
 import type { FocusWindows } from "@/overlays/focus/screen-focus.ts";
 import type { OverlayLog } from "@/overlays/ports.ts";
 import { chipDraggedSchema, circleOutcomeSchema, OverlayMessage, readCircleTextSchema } from "@/overlays/protocol.ts";
 import type { OcrLines, OpenCircle, OverlayProtocol, ReadCircleText } from "@/overlays/protocol.ts";
 import type { Point } from "@/overlays/shapes.ts";
-import { defineMessaging } from "winui-svelte/messaging";
-import type { Transport } from "winui-svelte/state/host";
 
 // What the windows tell the controller
 export interface OverlayControllerEvents {
@@ -18,23 +19,26 @@ export interface OverlayControllerEvents {
   readCircleText(options: ReadCircleText): Promise<OcrLines>;
 }
 
-function listenForEvents({ messaging, events }: {
+function listenForEvents({
+  messaging,
+  events
+}: {
   messaging: ReturnType<typeof defineMessaging<OverlayProtocol>>;
   events: OverlayControllerEvents;
 }) {
-  messaging.onMessage(OverlayMessage.focusEscapePressed, () => {
+  messaging.onMessage(OverlayMessage.FOCUS_ESCAPE_PRESSED, () => {
     events.focusEscapePressed();
   });
-  messaging.onMessage(OverlayMessage.chipDismissed, () => {
+  messaging.onMessage(OverlayMessage.CHIP_DISMISSED, () => {
     events.chipDismissed();
   });
-  messaging.onMessage(OverlayMessage.chipDragStarted, () => {
+  messaging.onMessage(OverlayMessage.CHIP_DRAG_STARTED, () => {
     events.chipDragStarted();
   });
-  messaging.onMessage(OverlayMessage.circleKeyPressed, () => {
+  messaging.onMessage(OverlayMessage.CIRCLE_KEY_PRESSED, () => {
     events.circleKeyPressed();
   });
-  messaging.onMessage(OverlayMessage.chipDragged, message => {
+  messaging.onMessage(OverlayMessage.CHIP_DRAGGED, message => {
     const parsed = chipDraggedSchema.safeParse(message.data);
     if (!parsed.success) {
       throw new Error(parsed.error.message);
@@ -45,7 +49,7 @@ function listenForEvents({ messaging, events }: {
       y: parsed.data.dy
     });
   });
-  messaging.onMessage(OverlayMessage.readCircleText, async message => {
+  messaging.onMessage(OverlayMessage.READ_CIRCLE_TEXT, async message => {
     const parsed = readCircleTextSchema.safeParse(message.data);
     if (!parsed.success) {
       throw new Error(parsed.error.message);
@@ -57,7 +61,11 @@ function listenForEvents({ messaging, events }: {
 
 // The controller's end of the overlay link (main thread): the windows it drives, the circle overlay
 // it opens, and the events it hears back
-export function connectOverlayWindows({ transport, events, log }: {
+export function connectOverlayWindows({
+  transport,
+  events,
+  log
+}: {
   transport: Transport;
   events: OverlayControllerEvents;
   log: OverlayLog;
@@ -76,16 +84,16 @@ export function connectOverlayWindows({ transport, events, log }: {
   }
 
   const windows: FocusWindows = {
-    coverBorder: options => messaging.notify(OverlayMessage.coverBorder, options),
-    hideBorder: () => messaging.notify(OverlayMessage.hideBorder),
-    attachChip: options => messaging.notify(OverlayMessage.attachChip, options),
-    hideChip: () => messaging.notify(OverlayMessage.hideChip),
-    holdEscape: options => messaging.notify(OverlayMessage.holdFocusEscape, options)
+    coverBorder: options => messaging.notify(OverlayMessage.COVER_BORDER, options),
+    hideBorder: () => messaging.notify(OverlayMessage.HIDE_BORDER),
+    attachChip: options => messaging.notify(OverlayMessage.ATTACH_CHIP, options),
+    hideChip: () => messaging.notify(OverlayMessage.HIDE_CHIP),
+    holdEscape: options => messaging.notify(OverlayMessage.HOLD_FOCUS_ESCAPE, options)
   };
 
   // Resolves when the overlay is gone: the action and region the user chose, or that they backed out
   async function openCircle(options: OpenCircle) {
-    const answer = await messaging.sendMessage(OverlayMessage.openCircle, options).catch((error: unknown) => {
+    const answer = await messaging.sendMessage(OverlayMessage.OPEN_CIRCLE, options).catch((error: unknown) => {
       notifyFailure(error);
       return { isCancelled: true } as const;
     });

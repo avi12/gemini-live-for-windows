@@ -1,10 +1,11 @@
-import { defaultBrowser } from "./default-browser.ts";
-import { connectExtension, refreshInstalledExtension } from "./extension-setup.ts";
 import assert from "node:assert/strict";
-import fs from "node:fs/promises";
-import os from "node:os";
+import fileSystem from "node:fs/promises";
+import operatingSystem from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
+
+import { defaultBrowser } from "./default-browser.ts";
+import { connectExtension, refreshInstalledExtension } from "./extension-setup.ts";
 
 describe("default browser", () => {
   it("follows the https handler's ProgId", async () => {
@@ -29,15 +30,15 @@ describe("extension setup", () => {
   let shippedDir = "";
   let targetDir = "";
   beforeEach(async () => {
-    root = await fs.mkdtemp(path.join(os.tmpdir(), "gl-ext-"));
+    root = await fileSystem.mkdtemp(path.join(operatingSystem.tmpdir(), "gl-ext-"));
     shippedDir = path.join(root, "shipped");
     targetDir = path.join(root, "installed");
-    await fs.mkdir(path.join(shippedDir, "assets"), { recursive: true });
-    await fs.writeFile(path.join(shippedDir, "manifest.json"), "{\"v\":2}");
-    await fs.writeFile(path.join(shippedDir, "assets", "a.js"), "a");
+    await fileSystem.mkdir(path.join(shippedDir, "assets"), { recursive: true });
+    await fileSystem.writeFile(path.join(shippedDir, "manifest.json"), '{"v":2}');
+    await fileSystem.writeFile(path.join(shippedDir, "assets", "a.js"), "a");
   });
   afterEach(async () => {
-    await fs.rm(root, {
+    await fileSystem.rm(root, {
       recursive: true,
       force: true
     });
@@ -45,10 +46,10 @@ describe("extension setup", () => {
 
   it("copies the files, puts the folder on the clipboard and opens the extensions page", async () => {
     const copied: string[] = [];
-    const launched: Array<{
+    const launched: {
       file: string;
       args: readonly string[];
-    }> = [];
+    }[] = [];
     await connectExtension({
       shippedDir,
       targetDir,
@@ -61,12 +62,14 @@ describe("extension setup", () => {
         extensionsPage: "chrome://extensions"
       })
     });
-    assert.equal(await fs.readFile(path.join(targetDir, "assets", "a.js"), "utf8"), "a");
+    assert.equal(await fileSystem.readFile(path.join(targetDir, "assets", "a.js"), "utf8"), "a");
     assert.deepEqual(copied, [targetDir]);
-    assert.deepEqual(launched, [{
-      file: "cmd.exe",
-      args: ["/c", "start", "", "chrome", "chrome://extensions"]
-    }]);
+    assert.deepEqual(launched, [
+      {
+        file: "cmd.exe",
+        args: ["/c", "start", "", "chrome", "chrome://extensions"]
+      }
+    ]);
   });
 
   it("still opens the page when the clipboard is busy", async () => {
@@ -91,12 +94,12 @@ describe("extension setup", () => {
       shippedDir,
       targetDir
     });
-    await assert.rejects(fs.access(targetDir));
-    await fs.mkdir(targetDir);
+    await assert.rejects(fileSystem.access(targetDir));
+    await fileSystem.mkdir(targetDir);
     await refreshInstalledExtension({
       shippedDir,
       targetDir
     });
-    assert.equal(await fs.readFile(path.join(targetDir, "manifest.json"), "utf8"), "{\"v\":2}");
+    assert.equal(await fileSystem.readFile(path.join(targetDir, "manifest.json"), "utf8"), '{"v":2}');
   });
 });

@@ -1,9 +1,12 @@
+import net from "node:net";
+
+import { defineMessaging } from "@gemini-live/messaging";
+
+import { socketTransport } from "@/lib/transport/socket-transport.ts";
+
 import { ActivationMessage, keyTriggerSchema } from "./activation-protocol.ts";
 import type { ActivationProtocolMap } from "./activation-protocol.ts";
 import { KeyTrigger } from "./key-trigger.ts";
-import { socketTransport } from "@/lib/transport/socket-transport.ts";
-import { defineMessaging } from "@gemini-live/messaging";
-import net from "node:net";
 
 const ACTIVATE_PIPE = String.raw`\\.\pipe\GeminiLive.Activate`;
 const CONNECT_TIMEOUT_MS = 150;
@@ -33,7 +36,10 @@ function connectToInstance(pipePath: string) {
   });
 }
 
-async function askInstance({ pipePath, ask }: {
+async function askInstance({
+  pipePath,
+  ask
+}: {
   pipePath: string;
   ask: (messaging: ReturnType<typeof messagingOver>) => Promise<unknown>;
 }) {
@@ -56,24 +62,18 @@ async function askInstance({ pipePath, ask }: {
 export function isInstanceRunning({ pipePath = ACTIVATE_PIPE }: { pipePath?: string } = {}) {
   return askInstance({
     pipePath,
-    ask: messaging => messaging.sendMessage(ActivationMessage.ping)
+    ask: messaging => messaging.sendMessage(ActivationMessage.PING)
   });
 }
 
-function forwardTrigger({ pipePath = ACTIVATE_PIPE, trigger }: {
-  pipePath?: string;
-  trigger: KeyTrigger;
-}) {
+function forwardTrigger({ pipePath = ACTIVATE_PIPE, trigger }: { pipePath?: string; trigger: KeyTrigger }) {
   return askInstance({
     pipePath,
-    ask: messaging => messaging.sendMessage(ActivationMessage.trigger, trigger)
+    ask: messaging => messaging.sendMessage(ActivationMessage.TRIGGER, trigger)
   });
 }
 
-function listen({ server, pipePath }: {
-  server: net.Server;
-  pipePath: string;
-}) {
+function listen({ server, pipePath }: { server: net.Server; pipePath: string }) {
   return new Promise<boolean>((resolve, reject) => {
     server.once("error", error => {
       const isTaken = "code" in error && error.code === "EADDRINUSE";
@@ -88,14 +88,11 @@ function listen({ server, pipePath }: {
   });
 }
 
-function serve({ pipePath, onTrigger }: {
-  pipePath: string;
-  onTrigger: (trigger: KeyTrigger) => void;
-}) {
+function serve({ pipePath, onTrigger }: { pipePath: string; onTrigger: (trigger: KeyTrigger) => void }) {
   const server = net.createServer(socket => {
     const messaging = messagingOver(socket);
-    messaging.onMessage(ActivationMessage.ping, () => undefined);
-    messaging.onMessage(ActivationMessage.trigger, message => {
+    messaging.onMessage(ActivationMessage.PING, () => undefined);
+    messaging.onMessage(ActivationMessage.TRIGGER, message => {
       onTrigger(keyTriggerSchema.parse(message.data));
     });
   });
@@ -110,17 +107,21 @@ function serve({ pipePath, onTrigger }: {
 
 export type InstanceClaim =
   | {
-    isPrimary: true;
-    close(): Promise<void>;
-  }
+      isPrimary: true;
+      close(): Promise<void>;
+    }
   | {
-    isPrimary: false;
-    isForwarded: boolean;
-  };
+      isPrimary: false;
+      isForwarded: boolean;
+    };
 
 // The pipe is the lock: the first process to serve it is the app. A later launch hands its trigger
 // to that one and is told to exit.
-export async function claimInstance({ trigger = KeyTrigger.tap, onTrigger, pipePath = ACTIVATE_PIPE }: {
+export async function claimInstance({
+  trigger = KeyTrigger.TAP,
+  onTrigger,
+  pipePath = ACTIVATE_PIPE
+}: {
   trigger?: KeyTrigger;
   onTrigger: (trigger: KeyTrigger) => void;
   pipePath?: string;
@@ -133,9 +134,10 @@ export async function claimInstance({ trigger = KeyTrigger.tap, onTrigger, pipeP
     server.on("error", () => undefined);
     return {
       isPrimary: true as const,
-      close: () => new Promise<void>(resolve => {
-        server.close(() => resolve());
-      })
+      close: () =>
+        new Promise<void>(resolve => {
+          server.close(() => resolve());
+        })
     };
   }
 

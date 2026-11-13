@@ -1,3 +1,6 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+
 import type { TextWord } from "@/overlays/circle/gesture/geometry.ts";
 import {
   CircleAction,
@@ -13,8 +16,6 @@ import {
 } from "@/overlays/circle/gesture/gesture.ts";
 import type { GestureEffect, GestureEvent, GestureState } from "@/overlays/circle/gesture/gesture.ts";
 import type { Point } from "@/overlays/shapes.ts";
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 
 const SCREEN = {
   width: 1920,
@@ -87,10 +88,7 @@ function start(isAskOnRelease = false) {
   });
 }
 
-function run({ state, events }: {
-  state: GestureState;
-  events: readonly GestureEvent[];
-}) {
+function run({ state, events }: { state: GestureState; events: readonly GestureEvent[] }) {
   let current = state;
   const effects: GestureEffect[] = [];
   for (const event of events) {
@@ -108,12 +106,9 @@ function run({ state, events }: {
   };
 }
 
-function pressWith({ point, clickCount }: {
-  point: Point;
-  clickCount: number;
-}) {
+function pressWith({ point, clickCount }: { point: Point; clickCount: number }) {
   return {
-    kind: GestureEventKind.pointerDown,
+    kind: GestureEventKind.POINTER_DOWN,
     point,
     clickCount
   } satisfies GestureEvent;
@@ -128,14 +123,14 @@ function down(point: Point) {
 
 function move(point: Point) {
   return {
-    kind: GestureEventKind.pointerMove,
+    kind: GestureEventKind.POINTER_MOVE,
     point
   } satisfies GestureEvent;
 }
 
 const LAST_TWO = 2;
-const RELEASE: GestureEvent = { kind: GestureEventKind.pointerUp };
-const ESCAPE: GestureEvent = { kind: GestureEventKind.escape };
+const RELEASE: GestureEvent = { kind: GestureEventKind.POINTER_UP };
+const ESCAPE: GestureEvent = { kind: GestureEventKind.ESCAPE };
 
 function drawLoop() {
   const [first, ...rest] = LOOP;
@@ -158,9 +153,9 @@ function inTextMode() {
   return run({
     state: selected(),
     events: [
-      { kind: GestureEventKind.selectText },
+      { kind: GestureEventKind.SELECT_TEXT },
       {
-        kind: GestureEventKind.textRead,
+        kind: GestureEventKind.TEXT_READ,
         words: WORDS
       }
     ]
@@ -171,52 +166,66 @@ describe("a loop", () => {
   it("starts a stroke and hides the hint on press", () => {
     const { state, effects } = run({
       state: start(),
-      events: [down({
+      events: [
+        down({
+          x: 10,
+          y: 10
+        })
+      ]
+    });
+    assert.equal(state.phase, GesturePhase.STROKE);
+    assert.deepEqual(state.stroke, [
+      {
         x: 10,
         y: 10
-      })]
-    });
-    assert.equal(state.phase, GesturePhase.stroke);
-    assert.deepEqual(state.stroke, [{
-      x: 10,
-      y: 10
-    }]);
-    assert.deepEqual(effects, [{ kind: GestureEffectKind.hideHint }]);
+      }
+    ]);
+    assert.deepEqual(effects, [{ kind: GestureEffectKind.HIDE_HINT }]);
   });
 
   it("adds points once the pointer moved far enough", () => {
     const { state } = run({
       state: start(),
-      events: [down({
+      events: [
+        down({
+          x: 0,
+          y: 0
+        }),
+        move({
+          x: 1,
+          y: 1
+        }),
+        move({
+          x: 3,
+          y: 0
+        })
+      ]
+    });
+    assert.deepEqual(state.stroke, [
+      {
         x: 0,
         y: 0
-      }), move({
-        x: 1,
-        y: 1
-      }), move({
+      },
+      {
         x: 3,
         y: 0
-      })]
-    });
-    assert.deepEqual(state.stroke, [{
-      x: 0,
-      y: 0
-    }, {
-      x: 3,
-      y: 0
-    }]);
+      }
+    ]);
   });
 
   it("keeps a move of exactly the minimum step", () => {
     const { state } = run({
       state: start(),
-      events: [down({
-        x: 0,
-        y: 0
-      }), move({
-        x: 1.5,
-        y: 0
-      })]
+      events: [
+        down({
+          x: 0,
+          y: 0
+        }),
+        move({
+          x: 1.5,
+          y: 0
+        })
+      ]
     });
     assert.equal(state.stroke.length, 2);
   });
@@ -226,12 +235,12 @@ describe("a loop", () => {
       state: start(),
       events: drawLoop()
     });
-    assert.equal(state.phase, GesturePhase.idle);
+    assert.equal(state.phase, GesturePhase.IDLE);
     assert.deepEqual(state.selection, LOOP_SELECTION);
     assert.deepEqual(effects, [
-      { kind: GestureEffectKind.hideHint },
+      { kind: GestureEffectKind.HIDE_HINT },
       {
-        kind: GestureEffectKind.snapIn,
+        kind: GestureEffectKind.SNAP_IN,
         area: LOOP_SELECTION
       }
     ]);
@@ -244,14 +253,17 @@ describe("a loop", () => {
   it("ignores a click that is too small to be a circle", () => {
     const { state, effects } = run({
       state: start(),
-      events: [down({
-        x: 50,
-        y: 50
-      }), RELEASE]
+      events: [
+        down({
+          x: 50,
+          y: 50
+        }),
+        RELEASE
+      ]
     });
     assert.equal(state.selection, undefined);
-    assert.equal(state.phase, GesturePhase.idle);
-    assert.deepEqual(effects, [{ kind: GestureEffectKind.hideHint }]);
+    assert.equal(state.phase, GesturePhase.IDLE);
+    assert.deepEqual(effects, [{ kind: GestureEffectKind.HIDE_HINT }]);
   });
 
   it("asks Gemini at once when the loop itself is the request", () => {
@@ -261,23 +273,28 @@ describe("a loop", () => {
     });
     assert.equal(state.isFinished, true);
     assert.deepEqual(effects.at(-1), {
-      kind: GestureEffectKind.finish,
-      action: CircleAction.askGemini,
+      kind: GestureEffectKind.FINISH,
+      action: CircleAction.ASK_GEMINI,
       selection: LOOP_SELECTION
     });
-    assert.equal(effects.some(effect => effect.kind === GestureEffectKind.snapIn), false);
+    assert.equal(
+      effects.some(effect => effect.kind === GestureEffectKind.SNAP_IN),
+      false
+    );
   });
 
   it("drops the earlier selection when a new loop starts", () => {
     const { state } = run({
       state: selected(),
-      events: [down({
-        x: 900,
-        y: 900
-      })]
+      events: [
+        down({
+          x: 900,
+          y: 900
+        })
+      ]
     });
     assert.equal(state.selection, undefined);
-    assert.equal(state.phase, GesturePhase.stroke);
+    assert.equal(state.phase, GesturePhase.STROKE);
   });
 
   it("ends the loop when the pointer is lost without a release", () => {
@@ -313,15 +330,18 @@ describe("resizing", () => {
   it("grabs a corner and follows the pointer", () => {
     const { state } = run({
       state: selected(),
-      events: [down({
-        x: 516,
-        y: 466
-      }), move({
-        x: 700,
-        y: 600
-      })]
+      events: [
+        down({
+          x: 516,
+          y: 466
+        }),
+        move({
+          x: 700,
+          y: 600
+        })
+      ]
     });
-    assert.equal(state.phase, GesturePhase.resize);
+    assert.equal(state.phase, GesturePhase.RESIZE);
     assert.deepEqual(state.selection, {
       x: 284,
       y: 284,
@@ -333,13 +353,16 @@ describe("resizing", () => {
   it("stops at the minimum size", () => {
     const { state } = run({
       state: selected(),
-      events: [down({
-        x: 516,
-        y: 466
-      }), move({
-        x: 0,
-        y: 0
-      })]
+      events: [
+        down({
+          x: 516,
+          y: 466
+        }),
+        move({
+          x: 0,
+          y: 0
+        })
+      ]
     });
     assert.deepEqual(state.selection, {
       x: 284,
@@ -352,15 +375,19 @@ describe("resizing", () => {
   it("releases the grip when the press ends", () => {
     const { state } = run({
       state: selected(),
-      events: [down({
-        x: 516,
-        y: 466
-      }), move({
-        x: 700,
-        y: 600
-      }), RELEASE]
+      events: [
+        down({
+          x: 516,
+          y: 466
+        }),
+        move({
+          x: 700,
+          y: 600
+        }),
+        RELEASE
+      ]
     });
-    assert.equal(state.phase, GesturePhase.idle);
+    assert.equal(state.phase, GesturePhase.IDLE);
     assert.equal(state.resizeGrip, undefined);
     assert.deepEqual(state.selection, {
       x: 284,
@@ -373,13 +400,17 @@ describe("resizing", () => {
   it("emits no landing effect for a resize", () => {
     const { effects } = run({
       state: selected(),
-      events: [down({
-        x: 516,
-        y: 466
-      }), move({
-        x: 700,
-        y: 600
-      }), RELEASE]
+      events: [
+        down({
+          x: 516,
+          y: 466
+        }),
+        move({
+          x: 700,
+          y: 600
+        }),
+        RELEASE
+      ]
     });
     assert.deepEqual(effects, []);
   });
@@ -389,15 +420,18 @@ describe("moving", () => {
   it("drags the whole selection by its interior", () => {
     const { state } = run({
       state: selected(),
-      events: [down({
-        x: 400,
-        y: 380
-      }), move({
-        x: 450,
-        y: 400
-      })]
+      events: [
+        down({
+          x: 400,
+          y: 380
+        }),
+        move({
+          x: 450,
+          y: 400
+        })
+      ]
     });
-    assert.equal(state.phase, GesturePhase.move);
+    assert.equal(state.phase, GesturePhase.MOVE);
     assert.deepEqual(state.selection, {
       x: 334,
       y: 304,
@@ -409,10 +443,13 @@ describe("moving", () => {
   it("does not throw away the selection on a stray click inside it", () => {
     const { state } = run({
       state: selected(),
-      events: [down({
-        x: 400,
-        y: 380
-      }), RELEASE]
+      events: [
+        down({
+          x: 400,
+          y: 380
+        }),
+        RELEASE
+      ]
     });
     assert.deepEqual(state.selection, LOOP_SELECTION);
   });
@@ -420,13 +457,16 @@ describe("moving", () => {
   it("stops at the screen edge", () => {
     const { state } = run({
       state: selected(),
-      events: [down({
-        x: 400,
-        y: 380
-      }), move({
-        x: -500,
-        y: -500
-      })]
+      events: [
+        down({
+          x: 400,
+          y: 380
+        }),
+        move({
+          x: -500,
+          y: -500
+        })
+      ]
     });
     assert.deepEqual(state.selection, {
       x: 0,
@@ -441,25 +481,29 @@ describe("finishing", () => {
   it("answers with the chosen action and the selection", () => {
     const { state, effects } = run({
       state: selected(),
-      events: [{
-        kind: GestureEventKind.finish,
-        action: CircleAction.lens
-      }]
+      events: [
+        {
+          kind: GestureEventKind.FINISH,
+          action: CircleAction.LENS
+        }
+      ]
     });
     assert.equal(state.isFinished, true);
-    assert.deepEqual(effects, [{
-      kind: GestureEffectKind.finish,
-      action: CircleAction.lens,
-      selection: LOOP_SELECTION
-    }]);
+    assert.deepEqual(effects, [
+      {
+        kind: GestureEffectKind.FINISH,
+        action: CircleAction.LENS,
+        selection: LOOP_SELECTION
+      }
+    ]);
   });
 
   it("does nothing without a selection", () => {
     const step = reduceGesture({
       state: start(),
       event: {
-        kind: GestureEventKind.finish,
-        action: CircleAction.askGemini
+        kind: GestureEventKind.FINISH,
+        action: CircleAction.ASK_GEMINI
       }
     });
     assert.deepEqual(step.effects, []);
@@ -471,12 +515,12 @@ describe("finishing", () => {
       state: selected(),
       events: [
         {
-          kind: GestureEventKind.finish,
-          action: CircleAction.lens
+          kind: GestureEventKind.FINISH,
+          action: CircleAction.LENS
         },
         {
-          kind: GestureEventKind.finish,
-          action: CircleAction.askGemini
+          kind: GestureEventKind.FINISH,
+          action: CircleAction.ASK_GEMINI
         }
       ]
     });
@@ -486,10 +530,12 @@ describe("finishing", () => {
   it("ignores presses once finished", () => {
     const finished = run({
       state: selected(),
-      events: [{
-        kind: GestureEventKind.finish,
-        action: CircleAction.lens
-      }]
+      events: [
+        {
+          kind: GestureEventKind.FINISH,
+          action: CircleAction.LENS
+        }
+      ]
     }).state;
     const step = reduceGesture({
       state: finished,
@@ -509,7 +555,7 @@ describe("escape", () => {
       events: [ESCAPE]
     });
     assert.equal(state.isFinished, true);
-    assert.deepEqual(effects, [{ kind: GestureEffectKind.cancel }]);
+    assert.deepEqual(effects, [{ kind: GestureEffectKind.CANCEL }]);
   });
 
   it("cancels only once", () => {
@@ -523,21 +569,27 @@ describe("escape", () => {
   it("cancels outright, even from text mode, when switching away", () => {
     const { state, effects } = run({
       state: inTextMode(),
-      events: [{ kind: GestureEventKind.cancel }, { kind: GestureEventKind.cancel }]
+      events: [{ kind: GestureEventKind.CANCEL }, { kind: GestureEventKind.CANCEL }]
     });
     assert.equal(state.isFinished, true);
-    assert.deepEqual(effects, [{ kind: GestureEffectKind.cancel }]);
+    assert.deepEqual(effects, [{ kind: GestureEffectKind.CANCEL }]);
   });
 
   it("does not cancel after an answer", () => {
     const { effects } = run({
       state: selected(),
-      events: [{
-        kind: GestureEventKind.finish,
-        action: CircleAction.lens
-      }, ESCAPE]
+      events: [
+        {
+          kind: GestureEventKind.FINISH,
+          action: CircleAction.LENS
+        },
+        ESCAPE
+      ]
     });
-    assert.equal(effects.some(effect => effect.kind === GestureEffectKind.cancel), false);
+    assert.equal(
+      effects.some(effect => effect.kind === GestureEffectKind.CANCEL),
+      false
+    );
   });
 });
 
@@ -545,17 +597,17 @@ describe("reading text", () => {
   it("starts reading the selection and says so", () => {
     const { state, effects } = run({
       state: selected(),
-      events: [{ kind: GestureEventKind.selectText }]
+      events: [{ kind: GestureEventKind.SELECT_TEXT }]
     });
     assert.equal(state.isReading, true);
     assert.deepEqual(effects, [
       {
-        kind: GestureEffectKind.say,
-        message: CircleHint.readingText,
+        kind: GestureEffectKind.SAY,
+        message: CircleHint.READING_TEXT,
         isLasting: true
       },
       {
-        kind: GestureEffectKind.readText,
+        kind: GestureEffectKind.READ_TEXT,
         selection: LOOP_SELECTION
       }
     ]);
@@ -564,10 +616,10 @@ describe("reading text", () => {
   it("reads the whole screen when there is no selection", () => {
     const { effects } = run({
       state: start(),
-      events: [{ kind: GestureEventKind.selectText }]
+      events: [{ kind: GestureEventKind.SELECT_TEXT }]
     });
     assert.deepEqual(effects.at(-1), {
-      kind: GestureEffectKind.readText,
+      kind: GestureEffectKind.READ_TEXT,
       selection: undefined
     });
   });
@@ -575,7 +627,7 @@ describe("reading text", () => {
   it("is ignored where there are no buttons", () => {
     const { effects } = run({
       state: selected(true),
-      events: [{ kind: GestureEventKind.selectText }]
+      events: [{ kind: GestureEventKind.SELECT_TEXT }]
     });
     assert.deepEqual(effects, []);
   });
@@ -583,16 +635,16 @@ describe("reading text", () => {
   it("is ignored while already reading", () => {
     const { effects } = run({
       state: start(),
-      events: [{ kind: GestureEventKind.selectText }, { kind: GestureEventKind.selectText }]
+      events: [{ kind: GestureEventKind.SELECT_TEXT }, { kind: GestureEventKind.SELECT_TEXT }]
     });
-    assert.equal(effects.filter(effect => effect.kind === GestureEffectKind.readText).length, 1);
+    assert.equal(effects.filter(effect => effect.kind === GestureEffectKind.READ_TEXT).length, 1);
   });
 
   it("is ignored once in text mode", () => {
     const step = reduceGesture({
       state: inTextMode(),
       event: {
-        kind: GestureEventKind.selectText
+        kind: GestureEventKind.SELECT_TEXT
       }
     });
     assert.deepEqual(step.effects, []);
@@ -601,7 +653,7 @@ describe("reading text", () => {
   it("ignores presses while reading", () => {
     const reading = run({
       state: start(),
-      events: [{ kind: GestureEventKind.selectText }]
+      events: [{ kind: GestureEventKind.SELECT_TEXT }]
     }).state;
     const step = reduceGesture({
       state: reading,
@@ -610,16 +662,16 @@ describe("reading text", () => {
         y: 5
       })
     });
-    assert.equal(step.state.phase, GesturePhase.idle);
+    assert.equal(step.state.phase, GesturePhase.IDLE);
   });
 
   it("enters text mode when words were found", () => {
     const { state, effects } = run({
       state: start(),
       events: [
-        { kind: GestureEventKind.selectText },
+        { kind: GestureEventKind.SELECT_TEXT },
         {
-          kind: GestureEventKind.textRead,
+          kind: GestureEventKind.TEXT_READ,
           words: WORDS
         }
       ]
@@ -628,10 +680,10 @@ describe("reading text", () => {
     assert.equal(state.isTextMode, true);
     assert.deepEqual(state.words, WORDS);
     assert.deepEqual(effects.slice(-LAST_TWO), [
-      { kind: GestureEffectKind.hideHint },
+      { kind: GestureEffectKind.HIDE_HINT },
       {
-        kind: GestureEffectKind.say,
-        message: CircleHint.selectText,
+        kind: GestureEffectKind.SAY,
+        message: CircleHint.SELECT_TEXT,
         isLasting: false
       }
     ]);
@@ -641,19 +693,19 @@ describe("reading text", () => {
     const { state, effects } = run({
       state: start(),
       events: [
-        { kind: GestureEventKind.selectText },
+        { kind: GestureEventKind.SELECT_TEXT },
         {
-          kind: GestureEventKind.textRead,
+          kind: GestureEventKind.TEXT_READ,
           words: []
         }
       ]
     });
     assert.equal(state.isTextMode, false);
     assert.deepEqual(effects.slice(-LAST_TWO), [
-      { kind: GestureEffectKind.hideHint },
+      { kind: GestureEffectKind.HIDE_HINT },
       {
-        kind: GestureEffectKind.say,
-        message: CircleHint.noText,
+        kind: GestureEffectKind.SAY,
+        message: CircleHint.NO_TEXT,
         isLasting: false
       }
     ]);
@@ -663,10 +715,10 @@ describe("reading text", () => {
     const { state } = run({
       state: start(),
       events: [
-        { kind: GestureEventKind.selectText },
+        { kind: GestureEventKind.SELECT_TEXT },
         ESCAPE,
         {
-          kind: GestureEventKind.textRead,
+          kind: GestureEventKind.TEXT_READ,
           words: WORDS
         }
       ]
@@ -680,15 +732,17 @@ describe("selecting words", () => {
   it("selects the word pressed", () => {
     const { state, effects } = run({
       state: inTextMode(),
-      events: [down({
-        x: 120,
-        y: 110
-      })]
+      events: [
+        down({
+          x: 120,
+          y: 110
+        })
+      ]
     });
-    assert.equal(state.phase, GesturePhase.textSelect);
+    assert.equal(state.phase, GesturePhase.TEXT_SELECT);
     assert.deepEqual(state.picked, [0]);
     assert.deepEqual(effects.at(-1), {
-      kind: GestureEffectKind.setCopyKey,
+      kind: GestureEffectKind.SET_COPY_KEY,
       isRegistered: true
     });
   });
@@ -696,13 +750,16 @@ describe("selecting words", () => {
   it("extends from the word to the one under the drag", () => {
     const { state } = run({
       state: inTextMode(),
-      events: [down({
-        x: 120,
-        y: 110
-      }), move({
-        x: 120,
-        y: 150
-      })]
+      events: [
+        down({
+          x: 120,
+          y: 110
+        }),
+        move({
+          x: 120,
+          y: 150
+        })
+      ]
     });
     assert.deepEqual(state.picked, [0, 1, 2]);
   });
@@ -710,13 +767,16 @@ describe("selecting words", () => {
   it("extends backward in reading order", () => {
     const { state } = run({
       state: inTextMode(),
-      events: [down({
-        x: 120,
-        y: 150
-      }), move({
-        x: 120,
-        y: 110
-      })]
+      events: [
+        down({
+          x: 120,
+          y: 150
+        }),
+        move({
+          x: 120,
+          y: 110
+        })
+      ]
     });
     assert.deepEqual(state.picked, [0, 1, 2]);
   });
@@ -724,13 +784,16 @@ describe("selecting words", () => {
   it("keeps the picked words while the drag is over empty space", () => {
     const { state } = run({
       state: inTextMode(),
-      events: [down({
-        x: 120,
-        y: 110
-      }), move({
-        x: 800,
-        y: 800
-      })]
+      events: [
+        down({
+          x: 120,
+          y: 110
+        }),
+        move({
+          x: 800,
+          y: 800
+        })
+      ]
     });
     assert.deepEqual(state.picked, [0]);
   });
@@ -738,13 +801,15 @@ describe("selecting words", () => {
   it("selects the whole line on a triple click", () => {
     const { state } = run({
       state: inTextMode(),
-      events: [pressWith({
-        point: {
-          x: 120,
-          y: 110
-        },
-        clickCount: LINE_CLICK_COUNT
-      })]
+      events: [
+        pressWith({
+          point: {
+            x: 120,
+            y: 110
+          },
+          clickCount: LINE_CLICK_COUNT
+        })
+      ]
     });
     assert.deepEqual(state.picked, [0, 1]);
   });
@@ -752,13 +817,15 @@ describe("selecting words", () => {
   it("selects one word on a double click", () => {
     const { state } = run({
       state: inTextMode(),
-      events: [pressWith({
-        point: {
-          x: 120,
-          y: 110
-        },
-        clickCount: 2
-      })]
+      events: [
+        pressWith({
+          point: {
+            x: 120,
+            y: 110
+          },
+          clickCount: 2
+        })
+      ]
     });
     assert.deepEqual(state.picked, [0]);
   });
@@ -766,13 +833,16 @@ describe("selecting words", () => {
   it("draws a rubber band from empty space", () => {
     const { state } = run({
       state: inTextMode(),
-      events: [down({
-        x: 90,
-        y: 90
-      }), move({
-        x: 205,
-        y: 125
-      })]
+      events: [
+        down({
+          x: 90,
+          y: 90
+        }),
+        move({
+          x: 205,
+          y: 125
+        })
+      ]
     });
     assert.deepEqual(state.band, {
       x: 90,
@@ -786,13 +856,17 @@ describe("selecting words", () => {
   it("puts the rubber band away on release", () => {
     const { state } = run({
       state: inTextMode(),
-      events: [down({
-        x: 90,
-        y: 90
-      }), move({
-        x: 205,
-        y: 125
-      }), RELEASE]
+      events: [
+        down({
+          x: 90,
+          y: 90
+        }),
+        move({
+          x: 205,
+          y: 125
+        }),
+        RELEASE
+      ]
     });
     assert.equal(state.band, undefined);
     assert.deepEqual(state.picked, [0, 1]);
@@ -801,17 +875,21 @@ describe("selecting words", () => {
   it("clears the picked words on a press in empty space", () => {
     const { state, effects } = run({
       state: inTextMode(),
-      events: [down({
-        x: 120,
-        y: 110
-      }), RELEASE, down({
-        x: 1000,
-        y: 1000
-      })]
+      events: [
+        down({
+          x: 120,
+          y: 110
+        }),
+        RELEASE,
+        down({
+          x: 1000,
+          y: 1000
+        })
+      ]
     });
     assert.deepEqual(state.picked, []);
     assert.deepEqual(effects.at(-1), {
-      kind: GestureEffectKind.setCopyKey,
+      kind: GestureEffectKind.SET_COPY_KEY,
       isRegistered: false
     });
   });
@@ -821,16 +899,21 @@ describe("copying", () => {
   it("copies the picked words as text", () => {
     const { effects } = run({
       state: inTextMode(),
-      events: [down({
-        x: 120,
-        y: 110
-      }), move({
-        x: 120,
-        y: 150
-      }), RELEASE, { kind: GestureEventKind.copy }]
+      events: [
+        down({
+          x: 120,
+          y: 110
+        }),
+        move({
+          x: 120,
+          y: 150
+        }),
+        RELEASE,
+        { kind: GestureEventKind.COPY }
+      ]
     });
     assert.deepEqual(effects.at(-1), {
-      kind: GestureEffectKind.copyText,
+      kind: GestureEffectKind.COPY_TEXT,
       text: "alpha beta\ngamma"
     });
   });
@@ -839,7 +922,7 @@ describe("copying", () => {
     const step = reduceGesture({
       state: inTextMode(),
       event: {
-        kind: GestureEventKind.copy
+        kind: GestureEventKind.COPY
       }
     });
     assert.deepEqual(step.effects, []);
@@ -849,7 +932,7 @@ describe("copying", () => {
     const step = reduceGesture({
       state: selected(),
       event: {
-        kind: GestureEventKind.copy
+        kind: GestureEventKind.COPY
       }
     });
     assert.deepEqual(step.effects, []);
@@ -859,37 +942,44 @@ describe("copying", () => {
     const copied = reduceGesture({
       state: inTextMode(),
       event: {
-        kind: GestureEventKind.copyDone,
+        kind: GestureEventKind.COPY_DONE,
         isCopied: true
       }
     });
     const failed = reduceGesture({
       state: inTextMode(),
       event: {
-        kind: GestureEventKind.copyDone,
+        kind: GestureEventKind.COPY_DONE,
         isCopied: false
       }
     });
-    assert.deepEqual(copied.effects, [{
-      kind: GestureEffectKind.say,
-      message: CircleHint.copied,
-      isLasting: false
-    }]);
-    assert.deepEqual(failed.effects, [{
-      kind: GestureEffectKind.say,
-      message: CircleHint.copyFailed,
-      isLasting: false
-    }]);
+    assert.deepEqual(copied.effects, [
+      {
+        kind: GestureEffectKind.SAY,
+        message: CircleHint.COPIED,
+        isLasting: false
+      }
+    ]);
+    assert.deepEqual(failed.effects, [
+      {
+        kind: GestureEffectKind.SAY,
+        message: CircleHint.COPY_FAILED,
+        isLasting: false
+      }
+    ]);
   });
 });
 
 describe("escape in text mode", () => {
   const picked = run({
     state: inTextMode(),
-    events: [down({
-      x: 120,
-      y: 110
-    }), RELEASE]
+    events: [
+      down({
+        x: 120,
+        y: 110
+      }),
+      RELEASE
+    ]
   }).state;
 
   it("clears the picked words first and stays in text mode", () => {
@@ -899,10 +989,12 @@ describe("escape in text mode", () => {
     });
     assert.deepEqual(state.picked, []);
     assert.equal(state.isTextMode, true);
-    assert.deepEqual(effects, [{
-      kind: GestureEffectKind.setCopyKey,
-      isRegistered: false
-    }]);
+    assert.deepEqual(effects, [
+      {
+        kind: GestureEffectKind.SET_COPY_KEY,
+        isRegistered: false
+      }
+    ]);
   });
 
   it("leaves text mode next", () => {
@@ -912,7 +1004,7 @@ describe("escape in text mode", () => {
     });
     assert.equal(state.isTextMode, false);
     assert.deepEqual(state.words, []);
-    assert.deepEqual(effects.at(-1), { kind: GestureEffectKind.hideHint });
+    assert.deepEqual(effects.at(-1), { kind: GestureEffectKind.HIDE_HINT });
   });
 
   it("cancels once out of text mode", () => {
@@ -921,13 +1013,13 @@ describe("escape in text mode", () => {
       events: [ESCAPE, ESCAPE, ESCAPE]
     });
     assert.equal(state.isFinished, true);
-    assert.deepEqual(effects.at(-1), { kind: GestureEffectKind.cancel });
+    assert.deepEqual(effects.at(-1), { kind: GestureEffectKind.CANCEL });
   });
 
   it("leaves text mode from the Done button", () => {
     const { state } = run({
       state: picked,
-      events: [{ kind: GestureEventKind.leaveText }]
+      events: [{ kind: GestureEventKind.LEAVE_TEXT }]
     });
     assert.equal(state.isTextMode, false);
     assert.deepEqual(state.picked, []);
@@ -937,7 +1029,7 @@ describe("escape in text mode", () => {
     const step = reduceGesture({
       state: selected(),
       event: {
-        kind: GestureEventKind.leaveText
+        kind: GestureEventKind.LEAVE_TEXT
       }
     });
     assert.deepEqual(step.effects, []);
@@ -961,7 +1053,8 @@ describe("hoverCursor", () => {
           x: 5,
           y: 5
         }
-      }), CircleCursor.draw
+      }),
+      CircleCursor.DRAW
     );
   });
 
@@ -974,7 +1067,8 @@ describe("hoverCursor", () => {
           x: 284,
           y: 284
         }
-      }), CircleCursor.resizeFalling
+      }),
+      CircleCursor.RESIZE_FALLING
     );
     assert.equal(
       hoverCursor({
@@ -983,7 +1077,8 @@ describe("hoverCursor", () => {
           x: 516,
           y: 466
         }
-      }), CircleCursor.resizeFalling
+      }),
+      CircleCursor.RESIZE_FALLING
     );
     assert.equal(
       hoverCursor({
@@ -992,7 +1087,8 @@ describe("hoverCursor", () => {
           x: 516,
           y: 284
         }
-      }), CircleCursor.resizeRising
+      }),
+      CircleCursor.RESIZE_RISING
     );
     assert.equal(
       hoverCursor({
@@ -1001,7 +1097,8 @@ describe("hoverCursor", () => {
           x: 284,
           y: 466
         }
-      }), CircleCursor.resizeRising
+      }),
+      CircleCursor.RESIZE_RISING
     );
   });
 
@@ -1013,7 +1110,8 @@ describe("hoverCursor", () => {
           x: 400,
           y: 375
         }
-      }), CircleCursor.move
+      }),
+      CircleCursor.MOVE
     );
   });
 
@@ -1025,7 +1123,8 @@ describe("hoverCursor", () => {
           x: 1000,
           y: 800
         }
-      }), CircleCursor.draw
+      }),
+      CircleCursor.DRAW
     );
   });
 
@@ -1038,7 +1137,8 @@ describe("hoverCursor", () => {
           x: 120,
           y: 110
         }
-      }), CircleCursor.text
+      }),
+      CircleCursor.TEXT
     );
     assert.equal(
       hoverCursor({
@@ -1047,7 +1147,8 @@ describe("hoverCursor", () => {
           x: 1000,
           y: 800
         }
-      }), CircleCursor.arrow
+      }),
+      CircleCursor.ARROW
     );
   });
 });

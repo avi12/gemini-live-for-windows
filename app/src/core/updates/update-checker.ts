@@ -1,29 +1,36 @@
+import { defineMessaging } from "@gemini-live/messaging";
+
+import { log } from "@/core/log/log.ts";
+import { errorMessage } from "@/lib/error-message.ts";
+import { createLoopback } from "@/lib/transport/loopback-transport.ts";
+
 import type { AppRelease } from "./app-release.ts";
 import { latestRelease } from "./release/release-feed.ts";
 import { downloadRelease, installRelease } from "./release/update-installer.ts";
 import { UpdateMessage } from "./update-protocol.ts";
 import type { UpdateProtocolMap } from "./update-protocol.ts";
 import { compareVersions } from "./version/version.ts";
-import { log } from "@/core/log/log.ts";
-import { errorMessage } from "@/lib/error-message.ts";
-import { createLoopback } from "@/lib/transport/loopback-transport.ts";
-import { defineMessaging } from "@gemini-live/messaging";
 
 export const UpdateCheck = {
   // Not looked: unpackaged, or the user turned updates off
-  skipped: "Skipped",
-  upToDate: "UpToDate",
+  SKIPPED: "Skipped",
+  UP_TO_DATE: "UpToDate",
   // A newer release is downloaded and checked, ready to install
-  ready: "Ready",
+  READY: "Ready",
   // GitHub couldn't be reached, or the download was damaged
-  failed: "Failed"
+  FAILED: "Failed"
 } as const;
-export type UpdateCheck = typeof UpdateCheck[keyof typeof UpdateCheck];
+export type UpdateCheck = (typeof UpdateCheck)[keyof typeof UpdateCheck];
 
 const NOTIFY_TIMEOUT_MS = 1000;
 const HOURS_BETWEEN_CHECKS = 6;
 const MS_PER_HOUR = 3_600_000;
 export const UPDATE_INTERVAL_MS = HOURS_BETWEEN_CHECKS * MS_PER_HOUR;
+
+interface ScheduleOptions {
+  work: () => void;
+  delayMs: number;
+}
 
 interface UpdateCheckerDependencies {
   // The running package's version, or undefined when run unpackaged (nothing to update)
@@ -33,16 +40,10 @@ interface UpdateCheckerDependencies {
   download?: (release: AppRelease) => Promise<string | undefined>;
   install?: (filePath: string) => void;
   writeLog?: (message: string) => void;
-  schedule?: (options: {
-    work: () => void;
-    delayMs: number;
-  }) => () => void;
+  schedule?: (options: ScheduleOptions) => () => void;
 }
 
-function scheduleWithTimer({ work, delayMs }: {
-  work: () => void;
-  delayMs: number;
-}) {
+function scheduleWithTimer({ work, delayMs }: { work: () => void; delayMs: number }) {
   const timer = setInterval(work, delayMs);
   timer.unref();
   return () => clearInterval(timer);
@@ -52,12 +53,16 @@ function createUpdateEvents() {
   const channel = createLoopback();
   return {
     sender: defineMessaging<UpdateProtocolMap>(channel.first, { timeoutMs: NOTIFY_TIMEOUT_MS }),
-    // Listeners subscribe here: events.onMessage(UpdateMessage.readyChanged, ...)
+    // Listeners subscribe here: events.onMessage(UpdateMessage.READY_CHANGED, ...)
     events: defineMessaging<UpdateProtocolMap>(channel.second, { timeoutMs: NOTIFY_TIMEOUT_MS })
   };
 }
 
-async function findNewer({ installed, findLatest, writeLog }: {
+async function findNewer({
+  installed,
+  findLatest,
+  writeLog
+}: {
   installed: string;
   findLatest: () => Promise<AppRelease | undefined>;
   writeLog: (message: string) => void;
@@ -69,14 +74,21 @@ async function findNewer({ installed, findLatest, writeLog }: {
     return undefined;
   }
 
-  const isNewer = compareVersions({
-    left: latest.version,
-    right: installed
-  }) > 0;
+  const isNewer =
+    compareVersions({
+      left: latest.version,
+      right: installed
+    }) > 0;
   return isNewer ? latest : undefined;
 }
 
-async function runCheck({ installed, isSkipped, findLatest, writeLog, prepare }: {
+async function runCheck({
+  installed,
+  isSkipped,
+  findLatest,
+  writeLog,
+  prepare
+}: {
   installed: string | undefined;
   isSkipped: () => boolean;
   findLatest: () => Promise<AppRelease | undefined>;
@@ -86,7 +98,7 @@ async function runCheck({ installed, isSkipped, findLatest, writeLog, prepare }:
   const isUnpackaged = !installed;
   const isOff = isUnpackaged || isSkipped();
   if (isOff) {
-    return UpdateCheck.skipped;
+    return UpdateCheck.SKIPPED;
   }
 
   try {
@@ -96,13 +108,13 @@ async function runCheck({ installed, isSkipped, findLatest, writeLog, prepare }:
       writeLog
     });
     if (!newer) {
-      return UpdateCheck.upToDate;
+      return UpdateCheck.UP_TO_DATE;
     }
 
     return await prepare(newer);
   } catch (error) {
     writeLog(`update check failed: ${errorMessage(error)}`);
-    return UpdateCheck.failed;
+    return UpdateCheck.FAILED;
   }
 }
 
@@ -125,9 +137,9 @@ export function createUpdateChecker({
   async function prepare(latest: AppRelease) {
     readyPath = await download(latest);
     ready = readyPath ? latest : undefined;
-    sender.sendMessage(UpdateMessage.readyChanged, ready ?? null).catch(() => undefined);
+    sender.sendMessage(UpdateMessage.READY_CHANGED, ready ?? null).catch(() => undefined);
 
-    return ready ? UpdateCheck.ready : UpdateCheck.failed;
+    return ready ? UpdateCheck.READY : UpdateCheck.FAILED;
   }
 
   function check({ isManual }: { isManual: boolean }) {
@@ -144,7 +156,9 @@ export function createUpdateChecker({
   function watch() {
     void check({ isManual: false });
     return schedule({
-      work: () => void check({ isManual: false }),
+      work() {
+        void check({ isManual: false });
+      },
       delayMs: UPDATE_INTERVAL_MS
     });
   }

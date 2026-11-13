@@ -1,19 +1,11 @@
-import {
-  cubicBezier,
-  emphasizedDecelerate,
-  linearEase,
-  springEase,
-  standardEase
-} from "@/overlays/motion/motion.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
+import { cubicBezier, emphasizedDecelerate, linearEase, springEase, standardEase } from "@/overlays/motion/motion.ts";
+
 const CLOSE = 1e-4;
 
-function assertClose({ actual, expected }: {
-  actual: number;
-  expected: number;
-}) {
+function assertClose({ actual, expected }: { actual: number; expected: number }) {
   assert.ok(Math.abs(actual - expected) < CLOSE, `${actual} is not close to ${expected}`);
 }
 

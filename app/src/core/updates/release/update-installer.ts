@@ -1,23 +1,22 @@
-import { USER_AGENT } from "./release-feed.ts";
-import type { Fetch } from "./release-feed.ts";
+import { createWriteStream } from "node:fs";
+import fileSystem from "node:fs/promises";
+import operatingSystem from "node:os";
+import path from "node:path";
+import { pipeline } from "node:stream/promises";
+
 import { log } from "@/core/log/log.ts";
 import { openFile } from "@/core/shell/open-external.ts";
 import type { AppRelease } from "@/core/updates/app-release.ts";
 import { sha256OfFile } from "@/lib/sha256.ts";
-import { createWriteStream } from "node:fs";
-import fs from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
-import { pipeline } from "node:stream/promises";
+
+import { USER_AGENT } from "./release-feed.ts";
+import type { Fetch } from "./release-feed.ts";
 
 function defaultDownloadFolder() {
-  return path.join(os.tmpdir(), "GeminiLive-update");
+  return path.join(operatingSystem.tmpdir(), "GeminiLive-update");
 }
 
-async function matches({ filePath, release }: {
-  filePath: string;
-  release: AppRelease;
-}) {
+async function matches({ filePath, release }: { filePath: string; release: AppRelease }) {
   try {
     const actual = await sha256OfFile(filePath);
     return actual.toLowerCase() === release.sha256.toLowerCase();
@@ -26,7 +25,11 @@ async function matches({ filePath, release }: {
   }
 }
 
-async function fetchPackage({ release, filePath, fetchPackage: request }: {
+async function fetchPackage({
+  release,
+  filePath,
+  fetchPackage: request
+}: {
   release: AppRelease;
   filePath: string;
   fetchPackage: Fetch;
@@ -58,7 +61,7 @@ export async function downloadRelease({
   folder?: string;
   fetchPackage?: Fetch;
 }) {
-  await fs.mkdir(folder, { recursive: true });
+  await fileSystem.mkdir(folder, { recursive: true });
   const filePath = path.join(folder, `GeminiLive-${release.version}.msix`);
   const isCached = await matches({
     filePath,
@@ -72,14 +75,16 @@ export async function downloadRelease({
     });
   }
 
-  if (await matches({
-    filePath,
-    release
-  })) {
+  if (
+    await matches({
+      filePath,
+      release
+    })
+  ) {
     return filePath;
   }
 
-  await fs.rm(filePath, { force: true });
+  await fileSystem.rm(filePath, { force: true });
   log.write("update: the download didn't match its hash");
   return undefined;
 }

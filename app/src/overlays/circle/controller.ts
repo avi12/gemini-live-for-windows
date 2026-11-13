@@ -1,4 +1,5 @@
-import { regionSchema } from "@/contracts/monitor.ts";
+import { regionSchema } from "@gemini-live/protocol/view";
+
 import type { Region } from "@/contracts/monitor.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 import { pixelRegion, textWords } from "@/overlays/circle/gesture/geometry.ts";
@@ -31,10 +32,12 @@ export interface CircleView {
   readonly hint: CircleHintView;
   // The selection that just landed, for the sheen and the brackets' settle; the revision changes
   // for each landing so the window replays the motion
-  readonly landing: {
-    readonly area: Rect;
-    readonly revision: number;
-  } | undefined;
+  readonly landing:
+    | {
+        readonly area: Rect;
+        readonly revision: number;
+      }
+    | undefined;
 }
 
 export interface CircleWorld {
@@ -65,10 +68,7 @@ function createHint(text: string) {
     };
   }
 
-  function say({ message, isLasting }: {
-    message: string;
-    isLasting: boolean;
-  }) {
+  function say({ message, isLasting }: { message: string; isLasting: boolean }) {
     hint = {
       text: message,
       isVisible: true,
@@ -84,10 +84,7 @@ function createHint(text: string) {
   };
 }
 
-function createRegionParser({ window, still }: {
-  window: Size;
-  still: Size;
-}) {
+function createRegionParser({ window, still }: { window: Size; still: Size }) {
   return (selection: Rect) => {
     const region = pixelRegion({
       selection,
@@ -98,7 +95,12 @@ function createRegionParser({ window, still }: {
   };
 }
 
-function createCircleTasks({ window, still, world, dispatch }: {
+function createCircleTasks({
+  window,
+  still,
+  world,
+  dispatch
+}: {
   window: Size;
   still: Size;
   world: CircleWorld;
@@ -109,10 +111,7 @@ function createCircleTasks({ window, still, world, dispatch }: {
     still
   });
 
-  function finish({ action, selection }: {
-    action: CircleAction;
-    selection: Rect;
-  }) {
+  function finish({ action, selection }: { action: CircleAction; selection: Rect }) {
     const parsed = regionOf(selection);
     if (!parsed.success) {
       world.log.write("circle: the selection is off the still");
@@ -135,7 +134,7 @@ function createCircleTasks({ window, still, world, dispatch }: {
       return [];
     });
     dispatch({
-      kind: GestureEventKind.textRead,
+      kind: GestureEventKind.TEXT_READ,
       words: textWords({
         lines,
         still,
@@ -147,7 +146,7 @@ function createCircleTasks({ window, still, world, dispatch }: {
   async function copyText(text: string) {
     const isCopied = await world.copyText(text);
     dispatch({
-      kind: GestureEventKind.copyDone,
+      kind: GestureEventKind.COPY_DONE,
       isCopied
     });
   }
@@ -159,7 +158,13 @@ function createCircleTasks({ window, still, world, dispatch }: {
   };
 }
 
-function performEffect({ effect, world, tasks, hint, onSnapIn }: {
+function performEffect({
+  effect,
+  world,
+  tasks,
+  hint,
+  onSnapIn
+}: {
   effect: GestureEffect;
   world: CircleWorld;
   tasks: ReturnType<typeof createCircleTasks>;
@@ -167,31 +172,31 @@ function performEffect({ effect, world, tasks, hint, onSnapIn }: {
   onSnapIn: (area: Rect) => void;
 }) {
   switch (effect.kind) {
-    case GestureEffectKind.cancel:
+    case GestureEffectKind.CANCEL:
       world.close({ isCancelled: true });
       return;
-    case GestureEffectKind.finish:
+    case GestureEffectKind.FINISH:
       tasks.finish({
         action: effect.action,
         selection: effect.selection
       });
       return;
-    case GestureEffectKind.readText:
+    case GestureEffectKind.READ_TEXT:
       void tasks.readText(effect.selection);
       return;
-    case GestureEffectKind.copyText:
+    case GestureEffectKind.COPY_TEXT:
       void tasks.copyText(effect.text);
       return;
-    case GestureEffectKind.say:
+    case GestureEffectKind.SAY:
       hint.say(effect);
       return;
-    case GestureEffectKind.hideHint:
+    case GestureEffectKind.HIDE_HINT:
       hint.hide();
       return;
-    case GestureEffectKind.snapIn:
+    case GestureEffectKind.SNAP_IN:
       onSnapIn(effect.area);
       return;
-    case GestureEffectKind.setCopyKey:
+    case GestureEffectKind.SET_COPY_KEY:
       world.holdCopyKey(effect.isRegistered);
       return;
   }
@@ -200,7 +205,11 @@ function performEffect({ effect, world, tasks, hint, onSnapIn }: {
 // Switching away cancels: a frozen, topmost screen the user can no longer reach would otherwise
 // sit over everything. Not in the first moments, though: the hotkey's own key releases and our
 // grab of the foreground make Windows shuffle activation as the overlay opens
-function cancelOnDeactivation({ world, openedAt, dispatch }: {
+function cancelOnDeactivation({
+  world,
+  openedAt,
+  dispatch
+}: {
   world: CircleWorld;
   openedAt: number;
   dispatch: (event: GestureEvent) => void;
@@ -212,7 +221,7 @@ function cancelOnDeactivation({ world, openedAt, dispatch }: {
   }
 
   world.log.write("circle: cancelled by switching away");
-  dispatch({ kind: GestureEventKind.cancel });
+  dispatch({ kind: GestureEventKind.CANCEL });
 }
 
 function createLandings() {
@@ -292,10 +301,11 @@ export function createCircleController(options: CircleControllerOptions) {
   publish();
   return {
     dispatch,
-    deactivated: () => cancelOnDeactivation({
-      world,
-      openedAt,
-      dispatch
-    })
+    deactivated: () =>
+      cancelOnDeactivation({
+        world,
+        openedAt,
+        dispatch
+      })
   };
 }

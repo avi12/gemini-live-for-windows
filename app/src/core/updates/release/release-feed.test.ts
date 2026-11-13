@@ -1,6 +1,7 @@
-import { DEFAULT_FEED_URL, FEED_URL_VARIABLE, latestRelease } from "./release-feed.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+
+import { DEFAULT_FEED_URL, FEED_URL_VARIABLE, latestRelease } from "./release-feed.ts";
 
 const HTTP_OK = 200;
 const HASH = "CA946C8E5A623EE921B0FA84DDD755CFD9001719F5CB1BCE639082A742CE3B62";
@@ -10,10 +11,7 @@ const GOOD = {
   sha256: HASH
 };
 
-function feedReturning({ body, status = HTTP_OK }: {
-  body: unknown;
-  status?: number;
-}) {
+function feedReturning({ body, status = HTTP_OK }: { body: unknown; status?: number }) {
   const requested: string[] = [];
   async function fetchFeed(input: Parameters<typeof fetch>[0]) {
     requested.push(String(input));
@@ -60,7 +58,8 @@ describe("latestRelease", () => {
       await latestRelease({
         fetchFeed,
         env: {}
-      }), undefined
+      }),
+      undefined
     );
   });
 
@@ -107,7 +106,9 @@ describe("latestRelease", () => {
         await latestRelease({
           fetchFeed,
           env: {}
-        }), undefined, JSON.stringify(body)
+        }),
+        undefined,
+        JSON.stringify(body)
       );
     }
   });

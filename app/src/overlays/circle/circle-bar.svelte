@@ -23,11 +23,11 @@
   const BAR_SCALE_FROM = 0.94;
   const BUTTON_GAP = 8;
   const SIDE_RISE = {
-    [BarSide.below]: BAR_RISE,
-    [BarSide.inside]: BAR_RISE,
-    [BarSide.above]: -BAR_RISE,
-    [BarSide.left]: 0,
-    [BarSide.right]: 0
+    [BarSide.BELOW]: BAR_RISE,
+    [BarSide.INSIDE]: BAR_RISE,
+    [BarSide.ABOVE]: -BAR_RISE,
+    [BarSide.LEFT]: 0,
+    [BarSide.RIGHT]: 0
   } as const;
 
   const bar = elementSize();

@@ -1,3 +1,9 @@
+import assert from "node:assert/strict";
+import { mkdir, mkdtemp, readdir, readFile, rm, utimes, writeFile } from "node:fs/promises";
+import operatingSystem from "node:os";
+import path from "node:path";
+import { describe, it } from "node:test";
+
 import {
   LENS_DIMENSIONS_FIELD,
   LENS_IMAGE_FIELD,
@@ -11,19 +17,6 @@ import {
   LENS_PAGE_LIFETIME_MS,
   lensPageDirectory
 } from "@/overlays/circle/lens/lens-search.ts";
-import assert from "node:assert/strict";
-import {
-  mkdir,
-  mkdtemp,
-  readdir,
-  readFile,
-  rm,
-  utimes,
-  writeFile
-} from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
-import { describe, it } from "node:test";
 
 const JPEG_MAGIC = Buffer.from("jpeg");
 const EXPECTED_LIFETIME_MS = 300_000;
@@ -79,13 +72,13 @@ describe("lensUploadPage", () => {
   });
 
   it("writes into a folder under the temp directory", () => {
-    assert.equal(lensPageDirectory(), path.join(os.tmpdir(), LENS_PAGE_FOLDER));
+    assert.equal(lensPageDirectory(), path.join(operatingSystem.tmpdir(), LENS_PAGE_FOLDER));
   });
 });
 
 describe("createLensSearch", () => {
   async function inTempDirectory(use: (directory: string) => Promise<void>) {
-    const root = await mkdtemp(path.join(os.tmpdir(), "lens-test-"));
+    const root = await mkdtemp(path.join(operatingSystem.tmpdir(), "lens-test-"));
     const directory = path.join(root, LENS_PAGE_FOLDER);
     try {
       await use(directory);

@@ -1,6 +1,7 @@
+import { z } from "zod";
+
 import type { AppRelease } from "@/core/updates/app-release.ts";
 import { parseVersion } from "@/core/updates/version/version.ts";
-import { z } from "zod";
 
 export const DEFAULT_FEED_URL =
   "https://raw.githubusercontent.com/avi12/gemini-live-for-windows/main/docs/updates.json";
@@ -26,7 +27,10 @@ function isTrustedAddress(url: string) {
 // The release the manifest names, or undefined when there is none or it can't be trusted. Like a
 // browser extension's update URL, the app polls a small file, and nothing is offered until that
 // file names a release.
-export async function latestRelease({ fetchFeed = fetch, env = process.env }: {
+export async function latestRelease({
+  fetchFeed = fetch,
+  env = process.env
+}: {
   fetchFeed?: Fetch;
   env?: NodeJS.ProcessEnv;
 } = {}) {

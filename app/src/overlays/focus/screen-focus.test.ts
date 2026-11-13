@@ -1,3 +1,6 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+
 import type { Monitor, Region } from "@/contracts/monitor.ts";
 import {
   borderBounds,
@@ -8,8 +11,6 @@ import {
 } from "@/overlays/focus/focus-layout.ts";
 import { createScreenFocus } from "@/overlays/focus/screen-focus.ts";
 import type { FocusWindows } from "@/overlays/focus/screen-focus.ts";
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 
 const PRIMARY: Monitor = {
   deviceName: "\\\\.\\DISPLAY1",
@@ -57,7 +58,8 @@ describe("borderBounds", () => {
       borderBounds({
         monitor: SECOND,
         region: null
-      }), {
+      }),
+      {
         x: 1920,
         y: -200,
         width: 2560,
@@ -71,7 +73,8 @@ describe("borderBounds", () => {
       borderBounds({
         monitor: SECOND,
         region: REGION
-      }), {
+      }),
+      {
         x: SECOND.x + REGION.x - REGION_FRAME_GAP,
         y: SECOND.y + REGION.y - REGION_FRAME_GAP,
         width: REGION.width + REGION_FRAME_GAP * 2,
@@ -88,7 +91,8 @@ describe("chipOrigin", () => {
         monitor: SECOND,
         region: REGION,
         chipHeight: CHIP_HEIGHT
-      }), {
+      }),
+      {
         x: SECOND.x + REGION.x,
         y: SECOND.y + (REGION.y - CHIP_GAP - CHIP_HEIGHT)
       }
@@ -101,7 +105,8 @@ describe("chipOrigin", () => {
         monitor: PRIMARY,
         region: FLUSH_REGION,
         chipHeight: CHIP_HEIGHT
-      }), {
+      }),
+      {
         x: 100,
         y: FLUSH_REGION.y + FLUSH_REGION.height + CHIP_GAP
       }
@@ -120,7 +125,8 @@ describe("chipOrigin", () => {
         monitor: PRIMARY,
         region: fits,
         chipHeight: CHIP_HEIGHT
-      }).y, 0
+      }).y,
+      0
     );
   });
 });
@@ -135,7 +141,8 @@ describe("regionAfterDrag", () => {
           y: -20
         },
         monitor: PRIMARY
-      }), {
+      }),
+      {
         x: 150,
         y: 180,
         width: 300,
@@ -153,7 +160,8 @@ describe("regionAfterDrag", () => {
           y: -999
         },
         monitor: PRIMARY
-      }), {
+      }),
+      {
         x: 0,
         y: 0,
         width: 300,
@@ -168,7 +176,8 @@ describe("regionAfterDrag", () => {
           y: 9999
         },
         monitor: PRIMARY
-      }), {
+      }),
+      {
         x: 1620,
         y: 930,
         width: 300,
@@ -210,7 +219,8 @@ function setup({ hasEngine = true }: { hasEngine?: boolean } = {}) {
     }
   };
   const windows: FocusWindows = {
-    coverBorder: ({ monitor, region }) => calls.push(`border:${monitor.index}:${region === null ? "whole" : `${region.x},${region.y}`}`),
+    coverBorder: ({ monitor, region }) =>
+      calls.push(`border:${monitor.index}:${region === null ? "whole" : `${region.x},${region.y}`}`),
     hideBorder: () => calls.push("hideBorder"),
     attachChip: ({ region }) => calls.push(`chip:${region.x},${region.y}`),
     hideChip: () => calls.push("hideChip"),

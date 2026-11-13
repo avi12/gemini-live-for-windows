@@ -9,7 +9,10 @@ export const SETTLE_MILLISECONDS = 120;
 // trackForeground) and puts the last real app back in front when Windows left it on one of those,
 // the desktop or nothing; an app the user switched to meanwhile is left alone. This is the main
 // thread's end: it asks the worker.
-export function createPreviousApp({ window, delay }: {
+export function createPreviousApp({
+  window,
+  delay
+}: {
   window: Pick<PillWindowPort, "restorePreviousApp">;
   delay: (milliseconds: number) => Promise<void>;
 }) {

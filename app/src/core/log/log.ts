@@ -1,44 +1,40 @@
-import { dataDir } from "@/lib/paths.ts";
 import { appendFileSync, existsSync, mkdirSync } from "node:fs";
 import path from "node:path";
+
+import { dataDir } from "@/lib/paths.ts";
 
 const LOG_FILE = "log.txt";
 const DEBUG_FLAG_FILE = "debug.flag";
 const DEBUG_VARIABLE = "GEMINI_LIVE_DEBUG";
 const LINE_BREAK = "\r\n";
 
-function pad({ value, width }: {
-  value: number;
-  width: number;
-}) {
+const MILLISECOND_DIGITS = 3;
+
+function pad({ value, width }: { value: number; width: number }) {
   return String(value).padStart(width, "0");
 }
 
 export function formatTimestamp(date: Date) {
-  const clock = [date.getHours(), date.getMinutes(), date.getSeconds()].map(value => pad({
-    value,
-    width: 2
-  }));
+  const clock = [date.getHours(), date.getMinutes(), date.getSeconds()].map(value =>
+    pad({
+      value,
+      width: 2
+    })
+  );
   return `${clock.join(":")}.${pad({
     value: date.getMilliseconds(),
-    width: 3
+    width: MILLISECOND_DIGITS
   })}`;
 }
 
 // GEMINI_LIVE_DEBUG set to anything, or a debug.flag file in the data folder (for launches that
 // can't carry env vars)
-export function isDebugging({ dir, env }: {
-  dir: string;
-  env: NodeJS.ProcessEnv;
-}) {
+export function isDebugging({ dir, env }: { dir: string; env: NodeJS.ProcessEnv }) {
   return env[DEBUG_VARIABLE] !== undefined || existsSync(path.join(dir, DEBUG_FLAG_FILE));
 }
 
 // Logging must never take the app down
-export function createLog({ dir, now }: {
-  dir: string;
-  now: () => Date;
-}) {
+export function createLog({ dir, now }: { dir: string; now: () => Date }) {
   const file = path.join(dir, LOG_FILE);
 
   function write(message: string) {

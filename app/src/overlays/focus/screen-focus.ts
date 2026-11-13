@@ -20,10 +20,7 @@ export interface FocusWindows {
 export type FocusEngine = Pick<LiveEngine, "monitor" | "region" | "share">;
 
 function createFocusFrame(windows: FocusWindows) {
-  function show({ monitor, region }: {
-    monitor: Monitor;
-    region: Region;
-  }) {
+  function show({ monitor, region }: { monitor: Monitor; region: Region }) {
     windows.coverBorder({
       monitor,
       region
@@ -48,7 +45,10 @@ function createFocusFrame(windows: FocusWindows) {
   };
 }
 
-function createEscapeHold({ windows, currentEngine }: {
+function createEscapeHold({
+  windows,
+  currentEngine
+}: {
   windows: FocusWindows;
   currentEngine: () => FocusEngine | undefined;
 }) {
@@ -71,7 +71,10 @@ function createEscapeHold({ windows, currentEngine }: {
   };
 }
 
-function createFocusDrag({ currentEngine, show }: {
+function createFocusDrag({
+  currentEngine,
+  show
+}: {
   currentEngine: () => FocusEngine | undefined;
   show: ReturnType<typeof createFocusFrame>["show"];
 }) {
@@ -125,7 +128,14 @@ function createChangeListeners() {
   };
 }
 
-function createFocusActions({ windows, currentEngine, log, frame, escape, changed }: {
+function createFocusActions({
+  windows,
+  currentEngine,
+  log,
+  frame,
+  escape,
+  changed
+}: {
   windows: FocusWindows;
   currentEngine: () => FocusEngine | undefined;
   log: OverlayLog;
@@ -134,20 +144,19 @@ function createFocusActions({ windows, currentEngine, log, frame, escape, change
   changed: () => void;
 }) {
   // Has Gemini watch only `region` of `monitor`, live
-  function focusOn({ monitor, region }: {
-    monitor: Monitor;
-    region: Region;
-  }) {
+  function focusOn({ monitor, region }: { monitor: Monitor; region: Region }) {
     const engine = currentEngine();
     const isEngineMissing = engine === undefined;
     if (isEngineMissing) {
       return;
     }
 
-    if (!isSameDisplay({
-      first: monitor,
-      second: engine.monitor
-    })) {
+    if (
+      !isSameDisplay({
+        first: monitor,
+        second: engine.monitor
+      })
+    ) {
       engine.share(monitor);
     }
 
@@ -185,7 +194,11 @@ function createFocusActions({ windows, currentEngine, log, frame, escape, change
 // What Gemini's view looks like on screen: the frame around the shared display and, for a circled
 // region, the chip that labels it (its X and Esc hand back the whole display; dragging it moves the
 // region). It acts on whichever engine `currentEngine` returns (ScreenFocus.cs)
-export function createScreenFocus({ windows, currentEngine, log }: {
+export function createScreenFocus({
+  windows,
+  currentEngine,
+  log
+}: {
   windows: FocusWindows;
   currentEngine: () => FocusEngine | undefined;
   log: OverlayLog;

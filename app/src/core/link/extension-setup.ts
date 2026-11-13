@@ -1,5 +1,6 @@
-import { defaultBrowser } from "./default-browser.ts";
-import type { DefaultBrowser } from "./default-browser.ts";
+import fileSystem from "node:fs/promises";
+import path from "node:path";
+
 import { log } from "@/core/log/log.ts";
 import { copyTextWithPowerShell } from "@/lib/clipboard.ts";
 import type { CopyText } from "@/lib/clipboard.ts";
@@ -7,8 +8,9 @@ import { errorMessage } from "@/lib/error-message.ts";
 import { launchDetached } from "@/lib/launch.ts";
 import type { Launch } from "@/lib/launch.ts";
 import { browserDir } from "@/lib/paths.ts";
-import fs from "node:fs/promises";
-import path from "node:path";
+
+import { defaultBrowser } from "./default-browser.ts";
+import type { DefaultBrowser } from "./default-browser.ts";
 
 const EXTENSION_FOLDER = "extension";
 
@@ -17,11 +19,14 @@ function installedExtensionDir(dir = browserDir()) {
 }
 
 // Puts the extension's files somewhere a browser can load them from
-async function copyShippedExtension({ shippedDir, targetDir = installedExtensionDir() }: {
+async function copyShippedExtension({
+  shippedDir,
+  targetDir = installedExtensionDir()
+}: {
   shippedDir: string;
   targetDir?: string;
 }) {
-  await fs.cp(shippedDir, targetDir, {
+  await fileSystem.cp(shippedDir, targetDir, {
     recursive: true,
     force: true
   });
@@ -29,7 +34,7 @@ async function copyShippedExtension({ shippedDir, targetDir = installedExtension
 
 async function exists(target: string) {
   try {
-    await fs.access(target);
+    await fileSystem.access(target);
     return true;
   } catch {
     return false;
@@ -38,11 +43,14 @@ async function exists(target: string) {
 
 // Keeps an installed copy current with the build this app ships, so an update reaches the browser
 // the next time it reloads the extension. Does nothing before the first setup.
-export async function refreshInstalledExtension({ shippedDir, targetDir = installedExtensionDir() }: {
+export async function refreshInstalledExtension({
+  shippedDir,
+  targetDir = installedExtensionDir()
+}: {
   shippedDir: string;
   targetDir?: string;
 }) {
-  if (!await exists(targetDir)) {
+  if (!(await exists(targetDir))) {
     return;
   }
 
@@ -58,10 +66,7 @@ export async function refreshInstalledExtension({ shippedDir, targetDir = instal
 
 // The start command resolves "chrome", "brave" and "msedge" through the App Paths registry key,
 // the way Windows' Run box does; chrome:// pages open only through the browser itself
-function openExtensionsPage({ browser, launch = launchDetached }: {
-  browser: DefaultBrowser;
-  launch?: Launch;
-}) {
+function openExtensionsPage({ browser, launch = launchDetached }: { browser: DefaultBrowser; launch?: Launch }) {
   launch({
     file: "cmd.exe",
     args: ["/c", "start", "", browser.executable, browser.extensionsPage]

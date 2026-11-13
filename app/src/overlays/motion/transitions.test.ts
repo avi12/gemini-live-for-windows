@@ -1,17 +1,20 @@
-import { OverlayMotion } from "@/overlays/motion/motion.ts";
-import { riseIn, settleIn, sheenIn, TransformOrigin } from "@/overlays/motion/transitions.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+
+import { OverlayMotion } from "@/overlays/motion/motion.ts";
+import { riseIn, settleIn, sheenIn, TransformOrigin } from "@/overlays/motion/transitions.ts";
 
 const MIDDLE = 0.5;
 const RISE = 24;
 const SCALE_FROM = 0.94;
 const SHEEN = 0.45;
 
-function configOf(transition: (node: unknown) => {
-  duration: number;
-  css(progress: number): string;
-}) {
+function configOf(
+  transition: (node: unknown) => {
+    duration: number;
+    css(progress: number): string;
+  }
+) {
   return transition(undefined);
 }
 
@@ -23,7 +26,7 @@ describe("riseIn", () => {
   });
 
   it("lasts the enter duration", () => {
-    assert.equal(configOf(transition).duration, OverlayMotion.enterMilliseconds);
+    assert.equal(configOf(transition).duration, OverlayMotion.ENTER_MILLISECONDS);
   });
 
   it("starts transparent, low and small", () => {
@@ -41,7 +44,7 @@ describe("riseIn", () => {
   });
 
   it("scales about the bottom unless told otherwise", () => {
-    assert.ok(configOf(transition).css(MIDDLE).endsWith(TransformOrigin.bottom));
+    assert.ok(configOf(transition).css(MIDDLE).endsWith(TransformOrigin.BOTTOM));
   });
 
   it("takes no time with reduced motion", () => {
@@ -51,7 +54,8 @@ describe("riseIn", () => {
           rise: RISE,
           isReduced: true
         })
-      ).duration, 0
+      ).duration,
+      0
     );
   });
 
@@ -69,7 +73,7 @@ describe("settleIn", () => {
       })
     ).css(0);
     assert.ok(css.includes("translate: 0 0px"));
-    assert.ok(css.endsWith(TransformOrigin.center));
+    assert.ok(css.endsWith(TransformOrigin.CENTER));
   });
 });
 

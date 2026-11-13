@@ -1,6 +1,7 @@
-import { compareVersions, parseVersion } from "./version.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+
+import { compareVersions, parseVersion } from "./version.ts";
 
 describe("version", () => {
   it("pads missing parts with zero", () => {
@@ -19,26 +20,33 @@ describe("version", () => {
       compareVersions({
         left: "0.1.0.1",
         right: "0.1.0.0"
-      }), 1
+      }),
+      1
     );
     assert.equal(
       compareVersions({
         left: "0.9.0.0",
         right: "0.10.0.0"
-      }), -1
+      }),
+      -1
     );
     assert.equal(
       compareVersions({
         left: "1.0",
         right: "1.0.0.0"
-      }), 0
+      }),
+      0
     );
   });
 
   it("throws on a malformed version", () => {
-    assert.throws(() => compareVersions({
-      left: "x",
-      right: "1.0"
-    }), RangeError);
+    assert.throws(
+      () =>
+        compareVersions({
+          left: "x",
+          right: "1.0"
+        }),
+      RangeError
+    );
   });
 });

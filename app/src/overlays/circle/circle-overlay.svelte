@@ -87,14 +87,14 @@
   const reducedMotion = mediaQuery("(prefers-reduced-motion: reduce)");
   const clicks = createClickCounter();
   const windowRef: { handle: WindowHandle | undefined } = $state({ handle: undefined });
-  const pointer: { cursor: CircleCursor } = $state({ cursor: CircleCursor.draw });
+  const pointer: { cursor: CircleCursor } = $state({ cursor: CircleCursor.DRAW });
   const fadedHintRevision: { value: number | undefined } = $state({ value: undefined });
 
   const isReduced = $derived(reducedMotion.matches);
   const gesture = $derived(view?.gesture);
   const selection = $derived(gesture?.selection);
   const isTextMode = $derived(gesture?.isTextMode === true);
-  const isStroking = $derived(gesture?.phase === GesturePhase.stroke);
+  const isStroking = $derived(gesture?.phase === GesturePhase.STROKE);
   const screenSize = $derived({
     width: screen.width,
     height: screen.height
@@ -166,7 +166,7 @@
     riseIn({
       rise: HINT_DROP,
       isReduced,
-      origin: TransformOrigin.top
+      origin: TransformOrigin.TOP
     })
   );
   const hintLeave = $derived(fadeOut({ isReduced }));
@@ -244,12 +244,12 @@
     style:cursor={pointer.cursor}
     class="circle-root"
     {@attach screen.attach}
-    onpointercancel={() => dispatch({ kind: GestureEventKind.pointerUp })}
-    onpointercapturelost={() => dispatch({ kind: GestureEventKind.pointerUp })}
+    onpointercancel={() => dispatch({ kind: GestureEventKind.POINTER_UP })}
+    onpointercapturelost={() => dispatch({ kind: GestureEventKind.POINTER_UP })}
     onpointerdown={(event: PointerEvent) => {
       const isSecondary = event.button === SECONDARY_BUTTON;
       if (isSecondary) {
-        dispatch({ kind: GestureEventKind.escape });
+        dispatch({ kind: GestureEventKind.ESCAPE });
         return;
       }
 
@@ -267,7 +267,7 @@
         pointerId: event.pointerId
       });
       dispatch({
-        kind: GestureEventKind.pointerDown,
+        kind: GestureEventKind.POINTER_DOWN,
         point,
         clickCount: clicks.press({
           point,
@@ -280,7 +280,7 @@
       const reports = coalesced.length > 0 ? coalesced : [event];
       for (const report of reports) {
         dispatch({
-          kind: GestureEventKind.pointerMove,
+          kind: GestureEventKind.POINTER_MOVE,
           point: {
             x: report.x,
             y: report.y
@@ -288,7 +288,7 @@
         });
       }
 
-      const isIdle = gesture?.phase === GesturePhase.idle;
+      const isIdle = gesture?.phase === GesturePhase.IDLE;
       if (isIdle) {
         pointer.cursor = hoverCursor({
           state: gesture,
@@ -304,7 +304,7 @@
         control: event.currentTarget,
         pointerId: event.pointerId
       });
-      dispatch({ kind: GestureEventKind.pointerUp });
+      dispatch({ kind: GestureEventKind.POINTER_UP });
     }}
     role="presentation"
   >
@@ -383,7 +383,7 @@
               isDisabled={gesture?.picked.length === 0}
               isPrimary
               label="Copy"
-              onpress={() => dispatch({ kind: GestureEventKind.copy })}
+              onpress={() => dispatch({ kind: GestureEventKind.COPY })}
               shortcut="Ctrl+C"
             >
               {#snippet icon()}
@@ -393,7 +393,7 @@
             <CircleAction
               isPrimary={false}
               label="Done"
-              onpress={() => dispatch({ kind: GestureEventKind.leaveText })}
+              onpress={() => dispatch({ kind: GestureEventKind.LEAVE_TEXT })}
               shortcut="Esc"
             >
               {#snippet icon()}
@@ -407,8 +407,8 @@
               isPrimary
               label="Ask Gemini"
               onpress={() => dispatch({
-                kind: GestureEventKind.finish,
-                action: CircleActionName.askGemini
+                kind: GestureEventKind.FINISH,
+                action: CircleActionName.ASK_GEMINI
               })}
               shortcut="Enter"
             >
@@ -420,8 +420,8 @@
               isPrimary={false}
               label="Google Lens"
               onpress={() => dispatch({
-                kind: GestureEventKind.finish,
-                action: CircleActionName.lens
+                kind: GestureEventKind.FINISH,
+                action: CircleActionName.LENS
               })}
               shortcut="L"
             >
@@ -433,7 +433,7 @@
               isDisabled={view.gesture.isReading}
               isPrimary={false}
               label="Select text"
-              onpress={() => dispatch({ kind: GestureEventKind.selectText })}
+              onpress={() => dispatch({ kind: GestureEventKind.SELECT_TEXT })}
               shortcut="T"
             >
               {#snippet icon()}

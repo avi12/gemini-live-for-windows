@@ -1,3 +1,5 @@
+import { DynComRawMemory } from "@microsoft/dynwinrt/com/unsafe/raw";
+
 import {
   argHandle,
   argNull,
@@ -9,7 +11,6 @@ import {
   withMemory,
   zeroMemory
 } from "@/win32/bind.ts";
-import { DynComRawMemory } from "@microsoft/dynwinrt/com/unsafe/raw";
 
 // DPAPI scoped to this Windows user: anything secret we keep on disk (the API key, the Google
 // session) is sealed here, so only this account on this machine can read it back. The blobs are
@@ -18,16 +19,24 @@ import { DynComRawMemory } from "@microsoft/dynwinrt/com/unsafe/raw";
 const CRYPTPROTECT_UI_FORBIDDEN = 0x1;
 const POINTER_BYTES = 8;
 const BLOB_BYTES = 16;
+
+interface UnsealOptions {
+  sealed: Uint8Array;
+  entropy?: Uint8Array;
+}
+
+interface SealOptions {
+  plain: Uint8Array;
+  entropy?: Uint8Array;
+}
+
 const BLOB_POINTER_OFFSET = 8;
 const BYTE_ALIGNMENT = 1;
 
 export class DataProtectionError extends Error {
   readonly code: number;
 
-  constructor({ operation, code }: {
-    operation: string;
-    code: number;
-  }) {
+  constructor({ operation, code }: { operation: string; code: number }) {
     super(`${operation} failed with Windows error ${code}`);
     this.name = "DataProtectionError";
     this.code = code;
@@ -35,14 +44,8 @@ export class DataProtectionError extends Error {
 }
 
 export interface UserSecret {
-  seal(options: {
-    plain: Uint8Array;
-    entropy?: Uint8Array;
-  }): Uint8Array;
-  unseal(options: {
-    sealed: Uint8Array;
-    entropy?: Uint8Array;
-  }): Uint8Array;
+  seal(options: SealOptions): Uint8Array;
+  unseal(options: UnsealOptions): Uint8Array;
 }
 
 function bindCrypt(entryPoint: string) {
@@ -50,24 +53,26 @@ function bindCrypt(entryPoint: string) {
     library: "crypt32.dll",
     entryPoint,
     parameters: [
-      Win32Type.pointer,
-      Win32Type.pointer,
-      Win32Type.pointer,
-      Win32Type.pointer,
-      Win32Type.pointer,
-      Win32Type.u32,
-      Win32Type.pointer
+      Win32Type.POINTER,
+      Win32Type.POINTER,
+      Win32Type.POINTER,
+      Win32Type.POINTER,
+      Win32Type.POINTER,
+      Win32Type.U32,
+      Win32Type.POINTER
     ],
-    returns: Win32Type.bool32,
+    returns: Win32Type.BOOL32,
     shouldCaptureLastError: true
   });
 }
 
-let bound: {
-  protect: ReturnType<typeof bindCrypt>;
-  unprotect: ReturnType<typeof bindCrypt>;
-  localFree: ReturnType<typeof bindFunction>;
-} | undefined;
+let bound:
+  | {
+      protect: ReturnType<typeof bindCrypt>;
+      unprotect: ReturnType<typeof bindCrypt>;
+      localFree: ReturnType<typeof bindFunction>;
+    }
+  | undefined;
 
 function functions() {
   bound ??= {
@@ -76,18 +81,15 @@ function functions() {
     localFree: bindFunction({
       library: "kernel32.dll",
       entryPoint: "LocalFree",
-      parameters: [Win32Type.handle],
-      returns: Win32Type.handle
+      parameters: [Win32Type.HANDLE],
+      returns: Win32Type.HANDLE
     })
   };
   return bound;
 }
 
 // A DATA_BLOB (u32 length, 4 bytes of padding, pointer) over a copy of the bytes, zeroed after
-function withBlob<T>({ bytes, use }: {
-  bytes: Uint8Array;
-  use: (blob: DynComRawMemory) => T;
-}) {
+function withBlob<T>({ bytes, use }: { bytes: Uint8Array; use: (blob: DynComRawMemory) => T }) {
   return withMemory({
     size: Math.max(bytes.length, 1),
     alignment: BYTE_ALIGNMENT,
@@ -111,7 +113,10 @@ function withBlob<T>({ bytes, use }: {
   });
 }
 
-function withOptionalBlob<T>({ bytes, use }: {
+function withOptionalBlob<T>({
+  bytes,
+  use
+}: {
   bytes: Uint8Array | undefined;
   use: (blob: DynComRawMemory | null) => T;
 }) {
@@ -136,7 +141,12 @@ function takeOutput(out: DynComRawMemory) {
   return bytes;
 }
 
-function transform({ operation, call, input, entropy }: {
+function transform({
+  operation,
+  call,
+  input,
+  entropy
+}: {
   operation: string;
   call: ReturnType<typeof bindCrypt>;
   input: Uint8Array;
@@ -144,47 +154,51 @@ function transform({ operation, call, input, entropy }: {
 }) {
   return withBlob({
     bytes: input,
-    use: inBlob => withOptionalBlob({
-      bytes: entropy,
-      use: entropyBlob => withMemory({
-        size: BLOB_BYTES,
-        alignment: POINTER_BYTES,
-        use(out) {
-          const result = call([
-            argPointer(inBlob),
-            argNull(),
-            entropyBlob ? argPointer(entropyBlob) : argNull(),
-            argNull(),
-            argNull(),
-            argU32(CRYPTPROTECT_UI_FORBIDDEN),
-            argPointer(out)
-          ]);
-          const isFailure = result.number === 0;
-          if (isFailure) {
-            throw new DataProtectionError({
-              operation,
-              code: result.lastError ?? 0
-            });
-          }
+    use: inBlob =>
+      withOptionalBlob({
+        bytes: entropy,
+        use: entropyBlob =>
+          withMemory({
+            size: BLOB_BYTES,
+            alignment: POINTER_BYTES,
+            use(out) {
+              const result = call([
+                argPointer(inBlob),
+                argNull(),
+                entropyBlob ? argPointer(entropyBlob) : argNull(),
+                argNull(),
+                argNull(),
+                argU32(CRYPTPROTECT_UI_FORBIDDEN),
+                argPointer(out)
+              ]);
+              const isFailure = result.number === 0;
+              if (isFailure) {
+                throw new DataProtectionError({
+                  operation,
+                  code: result.lastError ?? 0
+                });
+              }
 
-          return takeOutput(out);
-        }
+              return takeOutput(out);
+            }
+          })
       })
-    })
   });
 }
 
 export const userSecret: UserSecret = {
-  seal: ({ plain, entropy }) => transform({
-    operation: "CryptProtectData",
-    call: functions().protect,
-    input: plain,
-    entropy
-  }),
-  unseal: ({ sealed, entropy }) => transform({
-    operation: "CryptUnprotectData",
-    call: functions().unprotect,
-    input: sealed,
-    entropy
-  })
+  seal: ({ plain, entropy }) =>
+    transform({
+      operation: "CryptProtectData",
+      call: functions().protect,
+      input: plain,
+      entropy
+    }),
+  unseal: ({ sealed, entropy }) =>
+    transform({
+      operation: "CryptUnprotectData",
+      call: functions().unprotect,
+      input: sealed,
+      entropy
+    })
 };

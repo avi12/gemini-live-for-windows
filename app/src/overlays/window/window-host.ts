@@ -1,3 +1,6 @@
+import type { ComponentProps } from "svelte";
+import { mountControl } from "winui-svelte";
+
 import CircleOverlay from "@/overlays/circle/circle-overlay.svelte";
 import { createCircleController } from "@/overlays/circle/controller.ts";
 import type { CircleView } from "@/overlays/circle/controller.ts";
@@ -14,8 +17,6 @@ import { createFrameBatcher } from "@/overlays/window/frame-batcher.ts";
 import { createCopyKey, createFocusEscapeKey, createOverlayKeys, holdCircleKey } from "@/overlays/window/hotkeys.ts";
 import type { RegisterHotkey } from "@/overlays/window/hotkeys.ts";
 import type { OverlayWindowEvents, OverlayWindowHost } from "@/overlays/window/window-link.ts";
-import type { ComponentProps } from "svelte";
-import { mountControl } from "winui-svelte";
 
 export interface OverlayWindowDeps {
   register: RegisterHotkey;
@@ -41,7 +42,11 @@ function mountShareBorder(isExcludedFromCapture: boolean) {
   });
 }
 
-function mountFocusChip({ isExcludedFromCapture, cursor, events }: {
+function mountFocusChip({
+  isExcludedFromCapture,
+  cursor,
+  events
+}: {
   isExcludedFromCapture: boolean;
   cursor: CursorApi;
   events: OverlayWindowEvents;
@@ -60,7 +65,11 @@ function mountFocusChip({ isExcludedFromCapture, cursor, events }: {
   });
 }
 
-function createCircleKeys({ register, log, dispatch }: {
+function createCircleKeys({
+  register,
+  log,
+  dispatch
+}: {
   register: RegisterHotkey;
   log: OverlayLog;
   dispatch: (event: GestureEvent) => void;
@@ -68,16 +77,17 @@ function createCircleKeys({ register, log, dispatch }: {
   const keys = createOverlayKeys({
     register,
     log,
-    onEscape: () => dispatch({ kind: GestureEventKind.escape }),
-    onFinish: action => dispatch({
-      kind: GestureEventKind.finish,
-      action
-    }),
-    onSelectText: () => dispatch({ kind: GestureEventKind.selectText })
+    onEscape: () => dispatch({ kind: GestureEventKind.ESCAPE }),
+    onFinish: action =>
+      dispatch({
+        kind: GestureEventKind.FINISH,
+        action
+      }),
+    onSelectText: () => dispatch({ kind: GestureEventKind.SELECT_TEXT })
   });
   const copyKey = createCopyKey({
     register,
-    onPressed: () => dispatch({ kind: GestureEventKind.copy }),
+    onPressed: () => dispatch({ kind: GestureEventKind.COPY }),
     log
   });
   return {
@@ -86,7 +96,15 @@ function createCircleKeys({ register, log, dispatch }: {
   };
 }
 
-function startCircleController({ size, options, deps, events, copyKey, close, onView }: {
+function startCircleController({
+  size,
+  options,
+  deps,
+  events,
+  copyKey,
+  close,
+  onView
+}: {
   size: Size;
   options: OpenCircle;
   deps: OverlayWindowDeps;
@@ -102,7 +120,7 @@ function startCircleController({ size, options, deps, events, copyKey, close, on
       height: options.stillHeight
     },
     isAskOnRelease: options.isAskOnRelease,
-    hintText: options.isAskOnRelease ? CircleHint.circleToAsk : CircleHint.circle,
+    hintText: options.isAskOnRelease ? CircleHint.CIRCLE_TO_ASK : CircleHint.CIRCLE,
     world: {
       readText: region => events.readCircleText({ region }),
       copyText: text => deps.clipboard.writeText(text),
@@ -124,7 +142,13 @@ function monitorBounds({ x, y, width, height }: OpenCircle["monitor"]) {
   };
 }
 
-function circleOverlayProps({ options, deps, dispatch, onsized, ondeactivated }: {
+function circleOverlayProps({
+  options,
+  deps,
+  dispatch,
+  onsized,
+  ondeactivated
+}: {
   options: OpenCircle;
   deps: OverlayWindowDeps;
   dispatch: (event: GestureEvent) => void;
@@ -139,15 +163,20 @@ function circleOverlayProps({ options, deps, dispatch, onsized, ondeactivated }:
     dispatch,
     onsized,
     ondeactivated,
-    onready: (handle: bigint) => bringToFront({
-      api: deps.foreground,
-      hwnd: handle
-    })
+    onready: (handle: bigint) =>
+      bringToFront({
+        api: deps.foreground,
+        hwnd: handle
+      })
   };
   return props;
 }
 
-function openCircleWindow({ options, events, deps }: {
+function openCircleWindow({
+  options,
+  events,
+  deps
+}: {
   options: OpenCircle;
   events: OverlayWindowEvents;
   deps: OverlayWindowDeps;
@@ -210,10 +239,7 @@ function openCircleWindow({ options, events, deps }: {
 // The windows themselves, on the UI worker after the message pump started: the share border, the
 // focus chip and the circle overlay, their global hotkeys, and the glue between them and the pure
 // logic. The controller reaches it over the overlay link (window-link.ts)
-export function createOverlayWindowHost({ events, deps }: {
-  events: OverlayWindowEvents;
-  deps: OverlayWindowDeps;
-}) {
+export function createOverlayWindowHost({ events, deps }: { events: OverlayWindowEvents; deps: OverlayWindowDeps }) {
   const { register, cursor, log, isDebugging } = deps;
   const isExcludedFromCapture = !isDebugging;
 
@@ -252,10 +278,11 @@ export function createOverlayWindowHost({ events, deps }: {
     attachChip,
     hideChip: () => chip.set({ attached: undefined }),
     holdFocusEscape: isHeld => focusEscape.hold(isHeld),
-    openCircle: options => openCircleWindow({
-      options,
-      events,
-      deps
-    })
+    openCircle: options =>
+      openCircleWindow({
+        options,
+        events,
+        deps
+      })
   } satisfies OverlayWindowHost;
 }

@@ -1,17 +1,18 @@
-import { createLog, formatTimestamp, isDebugging } from "./log.ts";
 import assert from "node:assert/strict";
-import fs from "node:fs/promises";
-import os from "node:os";
+import fileSystem from "node:fs/promises";
+import operatingSystem from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
+
+import { createLog, formatTimestamp, isDebugging } from "./log.ts";
 
 describe("log", () => {
   let dir = "";
   beforeEach(async () => {
-    dir = await fs.mkdtemp(path.join(os.tmpdir(), "gl-log-"));
+    dir = await fileSystem.mkdtemp(path.join(operatingSystem.tmpdir(), "gl-log-"));
   });
   afterEach(async () => {
-    await fs.rm(dir, {
+    await fileSystem.rm(dir, {
       recursive: true,
       force: true
     });
@@ -29,12 +30,15 @@ describe("log", () => {
     });
     log.write("first");
     log.write("second");
-    assert.equal(await fs.readFile(path.join(nested, "log.txt"), "utf8"), "13:04:05.678 first\r\n13:04:05.678 second\r\n");
+    assert.equal(
+      await fileSystem.readFile(path.join(nested, "log.txt"), "utf8"),
+      "13:04:05.678 first\r\n13:04:05.678 second\r\n"
+    );
   });
 
   it("never throws when the file can't be written", async () => {
     const blocker = path.join(dir, "file");
-    await fs.writeFile(blocker, "");
+    await fileSystem.writeFile(blocker, "");
     const log = createLog({
       dir: blocker,
       now: () => new Date()
@@ -47,7 +51,8 @@ describe("log", () => {
       isDebugging({
         dir,
         env: {}
-      }), false
+      }),
+      false
     );
     assert.equal(
       isDebugging({
@@ -55,14 +60,16 @@ describe("log", () => {
         env: {
           GEMINI_LIVE_DEBUG: ""
         }
-      }), true
+      }),
+      true
     );
-    await fs.writeFile(path.join(dir, "debug.flag"), "");
+    await fileSystem.writeFile(path.join(dir, "debug.flag"), "");
     assert.equal(
       isDebugging({
         dir,
         env: {}
-      }), true
+      }),
+      true
     );
   });
 });

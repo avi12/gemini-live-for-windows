@@ -1,18 +1,16 @@
-import { openExternal, openFile } from "./open-external.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
+import { openExternal, openFile } from "./open-external.ts";
+
 function recorder() {
-  const launched: Array<{
+  const launched: {
     file: string;
     args: readonly string[];
-  }> = [];
+  }[] = [];
   return {
     launched,
-    launch: (command: {
-      file: string;
-      args: readonly string[];
-    }) => launched.push(command)
+    launch: (command: { file: string; args: readonly string[] }) => launched.push(command)
   };
 }
 
@@ -23,25 +21,39 @@ describe("openExternal", () => {
       openExternal({
         uri: "https://example.com/a b",
         launch
-      }), true
+      }),
+      true
     );
     assert.equal(
       openExternal({
         uri: "http://example.com",
         launch
-      }), true
+      }),
+      true
     );
-    assert.deepEqual(launched.map(command => command.args), [["https://example.com/a%20b"], ["http://example.com/"]]);
+    assert.deepEqual(
+      launched.map(command => command.args),
+      [["https://example.com/a%20b"], ["http://example.com/"]]
+    );
   });
 
   it("refuses everything else without launching", () => {
     const { launched, launch } = recorder();
-    for (const uri of ["file:///C:/Windows/notepad.exe", "ms-settings:", "javascript:alert(1)", "calc.exe", "C:\\a.exe", ""]) {
+    for (const uri of [
+      "file:///C:/Windows/notepad.exe",
+      "ms-settings:",
+      "javascript:alert(1)",
+      "calc.exe",
+      "C:\\a.exe",
+      ""
+    ]) {
       assert.equal(
         openExternal({
           uri,
           launch
-        }), false, uri
+        }),
+        false,
+        uri
       );
     }
 
@@ -56,9 +68,11 @@ describe("openFile", () => {
       filePath: "C:\\Temp\\a b.msix",
       launch
     });
-    assert.deepEqual(launched, [{
-      file: "explorer.exe",
-      args: ["C:\\Temp\\a b.msix"]
-    }]);
+    assert.deepEqual(launched, [
+      {
+        file: "explorer.exe",
+        args: ["C:\\Temp\\a b.msix"]
+      }
+    ]);
   });
 });

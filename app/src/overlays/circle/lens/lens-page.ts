@@ -17,14 +17,11 @@ export const LENS_IMAGE_MIME_TYPE = "image/jpeg";
 // A page that rebuilds the JPEG as a file input and submits it to Lens on load. A top-level form
 // post needs no CORS, and the 303 it gets lands the tab on the results. The browser itself has to
 // make the upload: Lens binds the results to the cookies of whoever uploaded
-export function lensUploadPage({ crop, sentAtMs }: {
-  crop: CropFrame;
-  sentAtMs: number;
-}) {
+export function lensUploadPage({ crop, sentAtMs }: { crop: CropFrame; sentAtMs: number }) {
   const jpeg = Buffer.from(crop.jpeg).toString("base64");
   return [
     "<!doctype html>",
-    "<meta charset=\"utf-8\">",
+    '<meta charset="utf-8">',
     "<title>Google Lens</title>",
     `<form id="lens" method="post" enctype="multipart/form-data" action="${LENS_UPLOAD_URL}&stcs=${sentAtMs}">`,
     `  <input type="file" name="${LENS_IMAGE_FIELD}" id="image" hidden>`,
@@ -35,8 +32,8 @@ export function lensUploadPage({ crop, sentAtMs }: {
     `  const bytes = Uint8Array.from(atob("${jpeg}"), (glyph) => glyph.charCodeAt(0));`,
     "  const files = new DataTransfer();",
     `  files.items.add(new File([bytes], "image.jpg", { type: "${LENS_IMAGE_MIME_TYPE}" }));`,
-    "  document.getElementById(\"image\").files = files.files;",
-    "  const form = document.getElementById(\"lens\");",
+    '  document.getElementById("image").files = files.files;',
+    '  const form = document.getElementById("lens");',
     "  form.action += `&vpw=${innerWidth}&vph=${innerHeight}`;",
     "  form.submit();",
     "</script>",

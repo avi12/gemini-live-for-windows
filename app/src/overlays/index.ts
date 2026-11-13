@@ -9,12 +9,5 @@ export type { OverlayControllerEvents } from "@/overlays/controller-link.ts";
 export { createPreviousApp } from "@/overlays/focus/previous-app.ts";
 export { createScreenFocus } from "@/overlays/focus/screen-focus.ts";
 export type { FocusEngine, FocusWindows } from "@/overlays/focus/screen-focus.ts";
-export type {
-  CircleScreen,
-  Clipboard,
-  CropFrame,
-  FrozenScreen,
-  OcrLine,
-  OcrWord
-} from "@/overlays/ports.ts";
+export type { CircleScreen, Clipboard, CropFrame, FrozenScreen, OcrLine, OcrWord } from "@/overlays/ports.ts";
 export { CircleAction } from "@/overlays/protocol.ts";

@@ -5,21 +5,23 @@ import { emphasizedDecelerate, linearEase, OverlayMotion, standardEase } from "@
 // duration is zero, so every move lands on its final value at once.
 
 export const TransformOrigin = {
-  bottom: "center bottom",
-  top: "center top",
-  center: "center center"
+  BOTTOM: "center bottom",
+  TOP: "center top",
+  CENTER: "center center"
 } as const;
-export type TransformOrigin = typeof TransformOrigin[keyof typeof TransformOrigin];
+export type TransformOrigin = (typeof TransformOrigin)[keyof typeof TransformOrigin];
 
-function duration({ milliseconds, isReduced }: {
-  milliseconds: number;
-  isReduced: boolean;
-}) {
+function duration({ milliseconds, isReduced }: { milliseconds: number; isReduced: boolean }) {
   return isReduced ? 0 : milliseconds;
 }
 
 // Fades in while rising `rise` px into place and growing from `scaleFrom`, about `origin`
-export function riseIn({ rise, scaleFrom = 1, isReduced, origin = TransformOrigin.bottom }: {
+export function riseIn({
+  rise,
+  scaleFrom = 1,
+  isReduced,
+  origin = TransformOrigin.BOTTOM
+}: {
   rise: number;
   scaleFrom?: number;
   isReduced: boolean;
@@ -27,7 +29,7 @@ export function riseIn({ rise, scaleFrom = 1, isReduced, origin = TransformOrigi
 }) {
   return (_node: unknown) => ({
     duration: duration({
-      milliseconds: OverlayMotion.enterMilliseconds,
+      milliseconds: OverlayMotion.ENTER_MILLISECONDS,
       isReduced
     }),
     css(progress: number) {
@@ -39,26 +41,20 @@ export function riseIn({ rise, scaleFrom = 1, isReduced, origin = TransformOrigi
 }
 
 // The selection's brackets settle in from slightly larger, about the selection's centre
-export function settleIn({ scaleFrom, isReduced }: {
-  scaleFrom: number;
-  isReduced: boolean;
-}) {
+export function settleIn({ scaleFrom, isReduced }: { scaleFrom: number; isReduced: boolean }) {
   return riseIn({
     rise: 0,
     scaleFrom,
     isReduced,
-    origin: TransformOrigin.center
+    origin: TransformOrigin.CENTER
   });
 }
 
 // A white sheen that starts at `from` and fades to nothing
-export function sheenIn({ from, isReduced }: {
-  from: number;
-  isReduced: boolean;
-}) {
+export function sheenIn({ from, isReduced }: { from: number; isReduced: boolean }) {
   return (_node: unknown) => ({
     duration: duration({
-      milliseconds: OverlayMotion.enterMilliseconds,
+      milliseconds: OverlayMotion.ENTER_MILLISECONDS,
       isReduced
     }),
     css(progress: number) {
@@ -70,7 +66,7 @@ export function sheenIn({ from, isReduced }: {
 export function fadeOut({ isReduced }: { isReduced: boolean }) {
   return (_node: unknown) => ({
     duration: duration({
-      milliseconds: OverlayMotion.exitMilliseconds,
+      milliseconds: OverlayMotion.EXIT_MILLISECONDS,
       isReduced
     }),
     css(progress: number) {

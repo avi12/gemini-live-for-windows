@@ -23,33 +23,33 @@ import type { Point, Rect, Size, Vector } from "@/overlays/shapes.ts";
 export { CircleAction };
 
 export const GesturePhase = {
-  idle: "idle",
-  stroke: "stroke",
-  resize: "resize",
-  move: "move",
-  textSelect: "textSelect"
+  IDLE: "idle",
+  STROKE: "stroke",
+  RESIZE: "resize",
+  MOVE: "move",
+  TEXT_SELECT: "textSelect"
 } as const;
-export type GesturePhase = typeof GesturePhase[keyof typeof GesturePhase];
+export type GesturePhase = (typeof GesturePhase)[keyof typeof GesturePhase];
 
 export const CircleHint = {
-  readingText: "Reading text…",
-  noText: "No text found",
-  selectText: "Drag across the text to select it  ·  Esc to go back",
-  copied: "Copied",
-  copyFailed: "Couldn't copy",
-  circle: "Circle anything to search  ·  Esc to cancel",
-  circleToAsk: "Circle what Gemini should look at  ·  Esc to cancel"
+  READING_TEXT: "Reading text…",
+  NO_TEXT: "No text found",
+  SELECT_TEXT: "Drag across the text to select it  ·  Esc to go back",
+  COPIED: "Copied",
+  COPY_FAILED: "Couldn't copy",
+  CIRCLE: "Circle anything to search  ·  Esc to cancel",
+  CIRCLE_TO_ASK: "Circle what Gemini should look at  ·  Esc to cancel"
 } as const;
 
 export const CircleCursor = {
-  draw: "crosshair",
-  move: "move",
-  resizeFalling: "nwse-resize",
-  resizeRising: "nesw-resize",
-  text: "text",
-  arrow: "default"
+  DRAW: "crosshair",
+  MOVE: "move",
+  RESIZE_FALLING: "nwse-resize",
+  RESIZE_RISING: "nesw-resize",
+  TEXT: "text",
+  ARROW: "default"
 } as const;
-export type CircleCursor = typeof CircleCursor[keyof typeof CircleCursor];
+export type CircleCursor = (typeof CircleCursor)[keyof typeof CircleCursor];
 
 // Pointer moves shorter than this add no point, so a slow hand doesn't pile up thousands
 const MIN_POINT_STEP = 1.5;
@@ -80,101 +80,98 @@ export interface GestureState {
 }
 
 export const GestureEventKind = {
-  pointerDown: "pointerDown",
-  pointerMove: "pointerMove",
-  pointerUp: "pointerUp",
-  escape: "escape",
-  cancel: "cancel",
-  finish: "finish",
-  selectText: "selectText",
-  textRead: "textRead",
-  leaveText: "leaveText",
-  copy: "copy",
-  copyDone: "copyDone"
+  POINTER_DOWN: "pointerDown",
+  POINTER_MOVE: "pointerMove",
+  POINTER_UP: "pointerUp",
+  ESCAPE: "escape",
+  CANCEL: "cancel",
+  FINISH: "finish",
+  SELECT_TEXT: "selectText",
+  TEXT_READ: "textRead",
+  LEAVE_TEXT: "leaveText",
+  COPY: "copy",
+  COPY_DONE: "copyDone"
 } as const;
 
 export type GestureEvent =
   | {
-    readonly kind: typeof GestureEventKind.pointerDown;
-    readonly point: Point;
-    readonly clickCount: number;
-  }
+      readonly kind: typeof GestureEventKind.POINTER_DOWN;
+      readonly point: Point;
+      readonly clickCount: number;
+    }
   | {
-    readonly kind: typeof GestureEventKind.pointerMove;
-    readonly point: Point;
-  }
+      readonly kind: typeof GestureEventKind.POINTER_MOVE;
+      readonly point: Point;
+    }
   // The press ended or the pointer capture was lost, either way the gesture is over
-  | { readonly kind: typeof GestureEventKind.pointerUp }
+  | { readonly kind: typeof GestureEventKind.POINTER_UP }
   // Esc and the right mouse button
-  | { readonly kind: typeof GestureEventKind.escape }
+  | { readonly kind: typeof GestureEventKind.ESCAPE }
   // Switching away: no stepping back out of text mode first
-  | { readonly kind: typeof GestureEventKind.cancel }
+  | { readonly kind: typeof GestureEventKind.CANCEL }
   | {
-    readonly kind: typeof GestureEventKind.finish;
-    readonly action: CircleAction;
-  }
-  | { readonly kind: typeof GestureEventKind.selectText }
+      readonly kind: typeof GestureEventKind.FINISH;
+      readonly action: CircleAction;
+    }
+  | { readonly kind: typeof GestureEventKind.SELECT_TEXT }
   | {
-    readonly kind: typeof GestureEventKind.textRead;
-    readonly words: readonly TextWord[];
-  }
-  | { readonly kind: typeof GestureEventKind.leaveText }
-  | { readonly kind: typeof GestureEventKind.copy }
+      readonly kind: typeof GestureEventKind.TEXT_READ;
+      readonly words: readonly TextWord[];
+    }
+  | { readonly kind: typeof GestureEventKind.LEAVE_TEXT }
+  | { readonly kind: typeof GestureEventKind.COPY }
   | {
-    readonly kind: typeof GestureEventKind.copyDone;
-    readonly isCopied: boolean;
-  };
+      readonly kind: typeof GestureEventKind.COPY_DONE;
+      readonly isCopied: boolean;
+    };
 
 export const GestureEffectKind = {
-  cancel: "cancel",
-  finish: "finish",
-  readText: "readText",
-  copyText: "copyText",
-  say: "say",
-  hideHint: "hideHint",
-  snapIn: "snapIn",
-  setCopyKey: "setCopyKey"
+  CANCEL: "cancel",
+  FINISH: "finish",
+  READ_TEXT: "readText",
+  COPY_TEXT: "copyText",
+  SAY: "say",
+  HIDE_HINT: "hideHint",
+  SNAP_IN: "snapIn",
+  SET_COPY_KEY: "setCopyKey"
 } as const;
 
 export type GestureEffect =
-  | { readonly kind: typeof GestureEffectKind.cancel }
+  | { readonly kind: typeof GestureEffectKind.CANCEL }
   | {
-    readonly kind: typeof GestureEffectKind.finish;
-    readonly action: CircleAction;
-    readonly selection: Rect;
-  }
+      readonly kind: typeof GestureEffectKind.FINISH;
+      readonly action: CircleAction;
+      readonly selection: Rect;
+    }
   // OCR the still inside the selection, or all of it when there is none
   | {
-    readonly kind: typeof GestureEffectKind.readText;
-    readonly selection: Rect | undefined;
-  }
+      readonly kind: typeof GestureEffectKind.READ_TEXT;
+      readonly selection: Rect | undefined;
+    }
   | {
-    readonly kind: typeof GestureEffectKind.copyText;
-    readonly text: string;
-  }
+      readonly kind: typeof GestureEffectKind.COPY_TEXT;
+      readonly text: string;
+    }
   | {
-    readonly kind: typeof GestureEffectKind.say;
-    readonly message: string;
-    readonly isLasting: boolean;
-  }
-  | { readonly kind: typeof GestureEffectKind.hideHint }
+      readonly kind: typeof GestureEffectKind.SAY;
+      readonly message: string;
+      readonly isLasting: boolean;
+    }
+  | { readonly kind: typeof GestureEffectKind.HIDE_HINT }
   // The new selection lands: the sheen and the brackets' settle
   | {
-    readonly kind: typeof GestureEffectKind.snapIn;
-    readonly area: Rect;
-  }
+      readonly kind: typeof GestureEffectKind.SNAP_IN;
+      readonly area: Rect;
+    }
   // Ctrl+C is held only while words are picked
   | {
-    readonly kind: typeof GestureEffectKind.setCopyKey;
-    readonly isRegistered: boolean;
-  };
+      readonly kind: typeof GestureEffectKind.SET_COPY_KEY;
+      readonly isRegistered: boolean;
+    };
 
-export function initialGesture({ screen, isAskOnRelease }: {
-  screen: Size;
-  isAskOnRelease: boolean;
-}) {
+export function initialGesture({ screen, isAskOnRelease }: { screen: Size; isAskOnRelease: boolean }) {
   return {
-    phase: GesturePhase.idle,
+    phase: GesturePhase.IDLE,
     screen,
     isAskOnRelease,
     isFinished: false,
@@ -199,34 +196,29 @@ function stay(state: GestureState) {
   };
 }
 
-function pick({ state, picked }: {
-  state: GestureState;
-  picked: readonly number[];
-}) {
+function pick({ state, picked }: { state: GestureState; picked: readonly number[] }) {
   return {
     state: {
       ...state,
       picked
     },
-    effects: [{
-      kind: GestureEffectKind.setCopyKey,
-      isRegistered: picked.length > 0
-    }]
+    effects: [
+      {
+        kind: GestureEffectKind.SET_COPY_KEY,
+        isRegistered: picked.length > 0
+      }
+    ]
   };
 }
 
-function beginTextSelect({ state, point, clickCount }: {
-  state: GestureState;
-  point: Point;
-  clickCount: number;
-}) {
+function beginTextSelect({ state, point, clickCount }: { state: GestureState; point: Point; clickCount: number }) {
   const textAnchor = wordAt({
     words: state.words,
     point
   });
   const begun = {
     ...state,
-    phase: GesturePhase.textSelect,
+    phase: GesturePhase.TEXT_SELECT,
     textOrigin: point,
     textAnchor
   };
@@ -258,10 +250,7 @@ function beginTextSelect({ state, point, clickCount }: {
   });
 }
 
-function extendTextSelect({ state, point }: {
-  state: GestureState;
-  point: Point;
-}) {
+function extendTextSelect({ state, point }: { state: GestureState; point: Point }) {
   const isBand = state.textAnchor === NO_WORD;
   const isBandDrag = isBand && state.textOrigin !== undefined;
   if (isBandDrag) {
@@ -299,21 +288,19 @@ function extendTextSelect({ state, point }: {
   });
 }
 
-function grabSelection({ state, point }: {
-  state: GestureState;
-  point: Point;
-}) {
-  const corner = state.selection === undefined
-    ? undefined
-    : nearestCorner({
-      selection: state.selection,
-      point
-    });
+function grabSelection({ state, point }: { state: GestureState; point: Point }) {
+  const corner =
+    state.selection === undefined
+      ? undefined
+      : nearestCorner({
+          selection: state.selection,
+          point
+        });
   const isOnCorner = state.selection !== undefined && corner !== undefined;
   if (isOnCorner) {
     return stay({
       ...state,
-      phase: GesturePhase.resize,
+      phase: GesturePhase.RESIZE,
       resizeGrip: grabCorner({
         selection: state.selection,
         corner
@@ -322,14 +309,16 @@ function grabSelection({ state, point }: {
   }
 
   const selected = state.selection;
-  const isOnSelection = selected !== undefined && rectContains({
-    rect: selected,
-    point
-  });
+  const isOnSelection =
+    selected !== undefined &&
+    rectContains({
+      rect: selected,
+      point
+    });
   if (isOnSelection) {
     return stay({
       ...state,
-      phase: GesturePhase.move,
+      phase: GesturePhase.MOVE,
       moveGrip: subtractPoints({
         first: point,
         second: selected
@@ -340,11 +329,7 @@ function grabSelection({ state, point }: {
   return undefined;
 }
 
-function pressDown({ state, point, clickCount }: {
-  state: GestureState;
-  point: Point;
-  clickCount: number;
-}) {
+function pressDown({ state, point, clickCount }: { state: GestureState; point: Point; clickCount: number }) {
   const isIgnored = state.isFinished || state.isReading;
   if (isIgnored) {
     return stay(state);
@@ -370,23 +355,22 @@ function pressDown({ state, point, clickCount }: {
   return {
     state: {
       ...state,
-      phase: GesturePhase.stroke,
+      phase: GesturePhase.STROKE,
       selection: undefined,
       stroke: [point]
     },
-    effects: [{ kind: GestureEffectKind.hideHint }]
+    effects: [{ kind: GestureEffectKind.HIDE_HINT }]
   };
 }
 
-function extendStroke({ state, point }: {
-  state: GestureState;
-  point: Point;
-}) {
+function extendStroke({ state, point }: { state: GestureState; point: Point }) {
   const last = state.stroke.at(-1);
-  const isTooClose = last !== undefined && distanceBetween({
-    first: point,
-    second: last
-  }) < MIN_POINT_STEP;
+  const isTooClose =
+    last !== undefined &&
+    distanceBetween({
+      first: point,
+      second: last
+    }) < MIN_POINT_STEP;
   if (isTooClose) {
     return stay(state);
   }
@@ -397,11 +381,8 @@ function extendStroke({ state, point }: {
   });
 }
 
-function pointerMoved({ state, point }: {
-  state: GestureState;
-  point: Point;
-}) {
-  const isStroking = state.phase === GesturePhase.stroke;
+function pointerMoved({ state, point }: { state: GestureState; point: Point }) {
+  const isStroking = state.phase === GesturePhase.STROKE;
   if (isStroking) {
     return extendStroke({
       state,
@@ -409,7 +390,7 @@ function pointerMoved({ state, point }: {
     });
   }
 
-  const isResizing = state.phase === GesturePhase.resize && state.resizeGrip !== undefined;
+  const isResizing = state.phase === GesturePhase.RESIZE && state.resizeGrip !== undefined;
   if (isResizing) {
     return stay({
       ...state,
@@ -421,7 +402,7 @@ function pointerMoved({ state, point }: {
     });
   }
 
-  const isMoving = state.phase === GesturePhase.move && state.selection !== undefined && state.moveGrip !== undefined;
+  const isMoving = state.phase === GesturePhase.MOVE && state.selection !== undefined && state.moveGrip !== undefined;
   if (isMoving) {
     return stay({
       ...state,
@@ -434,7 +415,7 @@ function pointerMoved({ state, point }: {
     });
   }
 
-  const isSelectingText = state.phase === GesturePhase.textSelect;
+  const isSelectingText = state.phase === GesturePhase.TEXT_SELECT;
   if (isSelectingText) {
     return extendTextSelect({
       state,
@@ -463,7 +444,7 @@ function endStroke(state: GestureState) {
         ...state,
         selection: drawn
       },
-      action: CircleAction.askGemini
+      action: CircleAction.ASK_GEMINI
     });
   }
 
@@ -472,10 +453,12 @@ function endStroke(state: GestureState) {
       ...state,
       selection: drawn
     },
-    effects: [{
-      kind: GestureEffectKind.snapIn,
-      area: drawn
-    }]
+    effects: [
+      {
+        kind: GestureEffectKind.SNAP_IN,
+        area: drawn
+      }
+    ]
   };
 }
 
@@ -483,16 +466,16 @@ function pressEnded(state: GestureState) {
   const ended = state.phase;
   const idle = {
     ...state,
-    phase: GesturePhase.idle,
+    phase: GesturePhase.IDLE,
     resizeGrip: undefined,
     moveGrip: undefined
   };
-  const isEndingStroke = ended === GesturePhase.stroke;
+  const isEndingStroke = ended === GesturePhase.STROKE;
   if (isEndingStroke) {
     return endStroke(idle);
   }
 
-  const isEndingTextSelect = ended === GesturePhase.textSelect;
+  const isEndingTextSelect = ended === GesturePhase.TEXT_SELECT;
   if (isEndingTextSelect) {
     return stay({
       ...idle,
@@ -503,10 +486,7 @@ function pressEnded(state: GestureState) {
   return stay(idle);
 }
 
-function finish({ state, action }: {
-  state: GestureState;
-  action: CircleAction;
-}) {
+function finish({ state, action }: { state: GestureState; action: CircleAction }) {
   const isUnanswerable = state.isFinished || state.selection === undefined;
   if (isUnanswerable) {
     return stay(state);
@@ -517,11 +497,13 @@ function finish({ state, action }: {
       ...state,
       isFinished: true
     },
-    effects: [{
-      kind: GestureEffectKind.finish,
-      action,
-      selection: state.selection
-    }]
+    effects: [
+      {
+        kind: GestureEffectKind.FINISH,
+        action,
+        selection: state.selection
+      }
+    ]
   };
 }
 
@@ -541,7 +523,7 @@ function leaveText(state: GestureState) {
   });
   return {
     state: cleared.state,
-    effects: [...cleared.effects, { kind: GestureEffectKind.hideHint }]
+    effects: [...cleared.effects, { kind: GestureEffectKind.HIDE_HINT }]
   };
 }
 
@@ -555,7 +537,7 @@ function cancel(state: GestureState) {
       ...state,
       isFinished: true
     },
-    effects: [{ kind: GestureEffectKind.cancel }]
+    effects: [{ kind: GestureEffectKind.CANCEL }]
   };
 }
 
@@ -590,22 +572,19 @@ function requestText(state: GestureState) {
     },
     effects: [
       {
-        kind: GestureEffectKind.say,
-        message: CircleHint.readingText,
+        kind: GestureEffectKind.SAY,
+        message: CircleHint.READING_TEXT,
         isLasting: true
       },
       {
-        kind: GestureEffectKind.readText,
+        kind: GestureEffectKind.READ_TEXT,
         selection: state.selection
       }
     ]
   };
 }
 
-function textWasRead({ state, words }: {
-  state: GestureState;
-  words: readonly TextWord[];
-}) {
+function textWasRead({ state, words }: { state: GestureState; words: readonly TextWord[] }) {
   const reading = {
     ...state,
     isReading: false
@@ -619,10 +598,10 @@ function textWasRead({ state, words }: {
     return {
       state: reading,
       effects: [
-        { kind: GestureEffectKind.hideHint },
+        { kind: GestureEffectKind.HIDE_HINT },
         {
-          kind: GestureEffectKind.say,
-          message: CircleHint.noText,
+          kind: GestureEffectKind.SAY,
+          message: CircleHint.NO_TEXT,
           isLasting: false
         }
       ]
@@ -637,10 +616,10 @@ function textWasRead({ state, words }: {
       picked: []
     },
     effects: [
-      { kind: GestureEffectKind.hideHint },
+      { kind: GestureEffectKind.HIDE_HINT },
       {
-        kind: GestureEffectKind.say,
-        message: CircleHint.selectText,
+        kind: GestureEffectKind.SAY,
+        message: CircleHint.SELECT_TEXT,
         isLasting: false
       }
     ]
@@ -655,83 +634,82 @@ function copyPicked(state: GestureState) {
 
   return {
     state,
-    effects: [{
-      kind: GestureEffectKind.copyText,
-      text: joinWords({
-        words: state.words,
-        picked: state.picked
-      })
-    }]
+    effects: [
+      {
+        kind: GestureEffectKind.COPY_TEXT,
+        text: joinWords({
+          words: state.words,
+          picked: state.picked
+        })
+      }
+    ]
   };
 }
 
-export function reduceGesture({ state, event }: {
-  state: GestureState;
-  event: GestureEvent;
-}) {
+export function reduceGesture({ state, event }: { state: GestureState; event: GestureEvent }) {
   switch (event.kind) {
-    case GestureEventKind.pointerDown:
+    case GestureEventKind.POINTER_DOWN:
       return pressDown({
         state,
         point: event.point,
         clickCount: event.clickCount
       });
-    case GestureEventKind.pointerMove:
+    case GestureEventKind.POINTER_MOVE:
       return pointerMoved({
         state,
         point: event.point
       });
-    case GestureEventKind.pointerUp:
+    case GestureEventKind.POINTER_UP:
       return pressEnded(state);
-    case GestureEventKind.escape:
+    case GestureEventKind.ESCAPE:
       return escape(state);
-    case GestureEventKind.cancel:
+    case GestureEventKind.CANCEL:
       return cancel(state);
-    case GestureEventKind.finish:
+    case GestureEventKind.FINISH:
       return finish({
         state,
         action: event.action
       });
-    case GestureEventKind.selectText:
+    case GestureEventKind.SELECT_TEXT:
       return requestText(state);
-    case GestureEventKind.textRead:
+    case GestureEventKind.TEXT_READ:
       return textWasRead({
         state,
         words: event.words
       });
-    case GestureEventKind.leaveText:
+    case GestureEventKind.LEAVE_TEXT:
       return leaveText(state);
-    case GestureEventKind.copy:
+    case GestureEventKind.COPY:
       return copyPicked(state);
-    case GestureEventKind.copyDone:
+    case GestureEventKind.COPY_DONE:
       return {
         state,
-        effects: [{
-          kind: GestureEffectKind.say,
-          message: event.isCopied ? CircleHint.copied : CircleHint.copyFailed,
-          isLasting: false
-        }]
+        effects: [
+          {
+            kind: GestureEffectKind.SAY,
+            message: event.isCopied ? CircleHint.COPIED : CircleHint.COPY_FAILED,
+            isLasting: false
+          }
+        ]
       };
   }
 }
 
 // A diagonal resize arrow over a corner, the four-way move arrow over the rest of the selection,
 // the drawing cross everywhere else; in text mode an I-beam over a word
-export function hoverCursor({ state, point }: {
-  state: GestureState;
-  point: Point;
-}) {
+export function hoverCursor({ state, point }: { state: GestureState; point: Point }) {
   if (state.isTextMode) {
-    const isOnWord = wordAt({
-      words: state.words,
-      point
-    }) !== NO_WORD;
-    return isOnWord ? CircleCursor.text : CircleCursor.arrow;
+    const isOnWord =
+      wordAt({
+        words: state.words,
+        point
+      }) !== NO_WORD;
+    return isOnWord ? CircleCursor.TEXT : CircleCursor.ARROW;
   }
 
   const isUnselected = state.selection === undefined;
   if (isUnselected) {
-    return CircleCursor.draw;
+    return CircleCursor.DRAW;
   }
 
   const corner = nearestCorner({
@@ -744,12 +722,12 @@ export function hoverCursor({ state, point }: {
       rect: state.selection,
       point
     });
-    return isInside ? CircleCursor.move : CircleCursor.draw;
+    return isInside ? CircleCursor.MOVE : CircleCursor.DRAW;
   }
 
   const isFalling = isFallingCorner({
     selection: state.selection,
     corner
   });
-  return isFalling ? CircleCursor.resizeFalling : CircleCursor.resizeRising;
+  return isFalling ? CircleCursor.RESIZE_FALLING : CircleCursor.RESIZE_RISING;
 }

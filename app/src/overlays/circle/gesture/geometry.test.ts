@@ -1,3 +1,6 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+
 import {
   barPlacement,
   BarSide,
@@ -20,8 +23,6 @@ import {
   wordsOnLine
 } from "@/overlays/circle/gesture/geometry.ts";
 import type { TextWord } from "@/overlays/circle/gesture/geometry.ts";
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 
 const SCREEN = {
   width: 1920,
@@ -89,16 +90,20 @@ const WORDS: readonly TextWord[] = [
 describe("loopSelection", () => {
   it("pads the bounding box of the loop", () => {
     const selection = loopSelection({
-      loop: [{
-        x: 100,
-        y: 100
-      }, {
-        x: 300,
-        y: 200
-      }, {
-        x: 150,
-        y: 120
-      }],
+      loop: [
+        {
+          x: 100,
+          y: 100
+        },
+        {
+          x: 300,
+          y: 200
+        },
+        {
+          x: 150,
+          y: 120
+        }
+      ],
       screen: SCREEN
     });
     assert.deepEqual(selection, {
@@ -111,13 +116,16 @@ describe("loopSelection", () => {
 
   it("keeps the selection on the screen", () => {
     const selection = loopSelection({
-      loop: [{
-        x: 0,
-        y: 0
-      }, {
-        x: 50,
-        y: 50
-      }],
+      loop: [
+        {
+          x: 0,
+          y: 0
+        },
+        {
+          x: 50,
+          y: 50
+        }
+      ],
       screen: SCREEN
     });
     assert.deepEqual(selection, {
@@ -133,83 +141,103 @@ describe("loopSelection", () => {
       loopSelection({
         loop: [],
         screen: SCREEN
-      }), undefined
+      }),
+      undefined
     );
   });
 
   it("ignores a click", () => {
     assert.equal(
       loopSelection({
-        loop: [{
-          x: 5,
-          y: 5
-        }],
+        loop: [
+          {
+            x: 5,
+            y: 5
+          }
+        ],
         screen: SCREEN
-      }), undefined
+      }),
+      undefined
     );
   });
 
   it("ignores a stroke narrower than the minimum", () => {
-    const loop = [{
-      x: 0,
-      y: 0
-    }, {
-      x: 9.9,
-      y: 200
-    }];
+    const loop = [
+      {
+        x: 0,
+        y: 0
+      },
+      {
+        x: 9.9,
+        y: 200
+      }
+    ];
     assert.equal(
       loopSelection({
         loop,
         screen: SCREEN
-      }), undefined
+      }),
+      undefined
     );
   });
 
   it("ignores a stroke shorter than the minimum", () => {
-    const loop = [{
-      x: 0,
-      y: 0
-    }, {
-      x: 200,
-      y: 9.9
-    }];
+    const loop = [
+      {
+        x: 0,
+        y: 0
+      },
+      {
+        x: 200,
+        y: 9.9
+      }
+    ];
     assert.equal(
       loopSelection({
         loop,
         screen: SCREEN
-      }), undefined
+      }),
+      undefined
     );
   });
 
   it("accepts a stroke exactly the minimum size", () => {
-    const loop = [{
-      x: 100,
-      y: 100
-    }, {
-      x: 110,
-      y: 110
-    }];
+    const loop = [
+      {
+        x: 100,
+        y: 100
+      },
+      {
+        x: 110,
+        y: 110
+      }
+    ];
     assert.notEqual(
       loopSelection({
         loop,
         screen: SCREEN
-      }), undefined
+      }),
+      undefined
     );
   });
 
   it("ignores a loop wholly off the screen", () => {
-    const loop = [{
-      x: 5000,
-      y: 5000
-    }, {
-      x: 5100,
-      y: 5100
-    }];
+    const loop = [
+      {
+        x: 5000,
+        y: 5000
+      },
+      {
+        x: 5100,
+        y: 5100
+      }
+    ];
     assert.equal(
       loopSelection({
         loop,
         screen: SCREEN
-      }), undefined
+      }),
+      undefined
     );
   });
 });
@@ -355,7 +383,8 @@ describe("nearestCorner", () => {
           x: 110,
           y: 110
         }
-      }), {
+      }),
+      {
         x: 100,
         y: 100
       }
@@ -367,7 +396,8 @@ describe("nearestCorner", () => {
           x: 295,
           y: 105
         }
-      }), {
+      }),
+      {
         x: 300,
         y: 100
       }
@@ -379,7 +409,8 @@ describe("nearestCorner", () => {
           x: 295,
           y: 195
         }
-      }), {
+      }),
+      {
         x: 300,
         y: 200
       }
@@ -391,7 +422,8 @@ describe("nearestCorner", () => {
           x: 105,
           y: 195
         }
-      }), {
+      }),
+      {
         x: 100,
         y: 200
       }
@@ -406,7 +438,8 @@ describe("nearestCorner", () => {
           x: 128,
           y: 100
         }
-      }), {
+      }),
+      {
         x: 100,
         y: 100
       }
@@ -418,7 +451,8 @@ describe("nearestCorner", () => {
           x: 129,
           y: 100
         }
-      }), undefined
+      }),
+      undefined
     );
   });
 
@@ -430,7 +464,8 @@ describe("nearestCorner", () => {
           x: 200,
           y: 150
         }
-      }), undefined
+      }),
+      undefined
     );
   });
 
@@ -448,7 +483,8 @@ describe("nearestCorner", () => {
           x: 5,
           y: 5
         }
-      }), {
+      }),
+      {
         x: 0,
         y: 0
       }
@@ -472,7 +508,8 @@ describe("isFallingCorner", () => {
           x: 100,
           y: 100
         }
-      }), true
+      }),
+      true
     );
     assert.equal(
       isFallingCorner({
@@ -481,7 +518,8 @@ describe("isFallingCorner", () => {
           x: 300,
           y: 200
         }
-      }), true
+      }),
+      true
     );
   });
 
@@ -493,7 +531,8 @@ describe("isFallingCorner", () => {
           x: 300,
           y: 100
         }
-      }), false
+      }),
+      false
     );
     assert.equal(
       isFallingCorner({
@@ -502,7 +541,8 @@ describe("isFallingCorner", () => {
           x: 100,
           y: 200
         }
-      }), false
+      }),
+      false
     );
   });
 });
@@ -515,7 +555,8 @@ describe("cornerRadius", () => {
         y: 0,
         width: 400,
         height: 300
-      }), SELECTION_RADIUS_EXPECTED
+      }),
+      SELECTION_RADIUS_EXPECTED
     );
   });
 
@@ -526,7 +567,8 @@ describe("cornerRadius", () => {
         y: 0,
         width: 30,
         height: 100
-      }), SHRUNK_RADIUS_EXPECTED
+      }),
+      SHRUNK_RADIUS_EXPECTED
     );
   });
 });
@@ -587,7 +629,8 @@ describe("corner grip", () => {
           x: 300,
           y: 100
         }
-      }), {
+      }),
+      {
         anchor: {
           x: 100,
           y: 200
@@ -605,7 +648,8 @@ describe("corner grip", () => {
           x: 100,
           y: 200
         }
-      }), {
+      }),
+      {
         anchor: {
           x: 300,
           y: 100
@@ -748,7 +792,8 @@ describe("brackets", () => {
       height: 100
     });
     assert.equal(
-      path, [
+      path,
+      [
         "M44,0 L24,0 A24,24 0 0 0 0,24 L0,44",
         "M56,0 L76,0 A24,24 0 0 1 100,24 L100,44",
         "M56,100 L76,100 A24,24 0 0 0 100,76 L100,56",
@@ -797,7 +842,8 @@ describe("scrimPath", () => {
           height: 600
         },
         selection: undefined
-      }), "F0 M0,0 H800 V600 H0 Z"
+      }),
+      "F0 M0,0 H800 V600 H0 Z"
     );
   });
 
@@ -815,7 +861,8 @@ describe("scrimPath", () => {
       }
     });
     assert.equal(
-      path, [
+      path,
+      [
         "F0 M0,0 H800 V600 H0 Z",
         "M124,100 H276 A24,24 0 0 1 300,124 V176 A24,24 0 0 1 276,200 H124",
         "A24,24 0 0 1 100,176 V124 A24,24 0 0 1 124,100 Z"
@@ -837,7 +884,7 @@ describe("barPlacement", () => {
       screen: SCREEN
     });
     assert.deepEqual(result, {
-      side: BarSide.below,
+      side: BarSide.BELOW,
       origin: {
         x: 750,
         y: 512
@@ -857,7 +904,7 @@ describe("barPlacement", () => {
       screen: SCREEN
     });
     assert.deepEqual(result, {
-      side: BarSide.right,
+      side: BarSide.RIGHT,
       origin: {
         x: 1012,
         y: 943
@@ -877,7 +924,7 @@ describe("barPlacement", () => {
       screen: SCREEN
     });
     assert.deepEqual(result, {
-      side: BarSide.left,
+      side: BarSide.LEFT,
       origin: {
         x: 788,
         y: 943
@@ -896,7 +943,7 @@ describe("barPlacement", () => {
       bar: BAR,
       screen: SCREEN
     });
-    assert.equal(result.side, BarSide.right);
+    assert.equal(result.side, BarSide.RIGHT);
   });
 
   it("falls back to the left side when the right has no room", () => {
@@ -910,7 +957,7 @@ describe("barPlacement", () => {
       bar: BAR,
       screen: SCREEN
     });
-    assert.equal(result.side, BarSide.left);
+    assert.equal(result.side, BarSide.LEFT);
   });
 
   it("goes above when neither side has room, clamped on screen", () => {
@@ -928,7 +975,7 @@ describe("barPlacement", () => {
       }
     });
     assert.deepEqual(result, {
-      side: BarSide.above,
+      side: BarSide.ABOVE,
       origin: {
         x: 16,
         y: 824
@@ -948,7 +995,7 @@ describe("barPlacement", () => {
       screen: SCREEN
     });
     assert.deepEqual(result, {
-      side: BarSide.inside,
+      side: BarSide.INSIDE,
       origin: {
         x: 810,
         y: 1000
@@ -1049,7 +1096,8 @@ describe("pixelRegion", () => {
         },
         window,
         still
-      }), undefined
+      }),
+      undefined
     );
   });
 });
@@ -1059,34 +1107,39 @@ describe("textWords", () => {
     const result = textWords({
       lines: [
         {
-          words: [{
-            text: "a",
-            bounds: {
-              x: 20,
-              y: 40,
-              width: 100,
-              height: 60
+          words: [
+            {
+              text: "a",
+              bounds: {
+                x: 20,
+                y: 40,
+                width: 100,
+                height: 60
+              }
             }
-          }]
+          ]
         },
         {
-          words: [{
-            text: "b",
-            bounds: {
-              x: 0,
-              y: 200,
-              width: 10,
-              height: 10
+          words: [
+            {
+              text: "b",
+              bounds: {
+                x: 0,
+                y: 200,
+                width: 10,
+                height: 10
+              }
+            },
+            {
+              text: "c",
+              bounds: {
+                x: 10,
+                y: 200,
+                width: 10,
+                height: 10
+              }
             }
-          }, {
-            text: "c",
-            bounds: {
-              x: 10,
-              y: 200,
-              width: 10,
-              height: 10
-            }
-          }]
+          ]
         }
       ],
       still: {
@@ -1144,7 +1197,8 @@ describe("textWords", () => {
           width: 5,
           height: 5
         }
-      }), []
+      }),
+      []
     );
   });
 });
@@ -1158,7 +1212,8 @@ describe("wordAt", () => {
           x: 30,
           y: 20
         }
-      }), 0
+      }),
+      0
     );
     assert.equal(
       wordAt({
@@ -1167,7 +1222,8 @@ describe("wordAt", () => {
           x: 100,
           y: 60
         }
-      }), FOURTH_WORD
+      }),
+      FOURTH_WORD
     );
   });
 
@@ -1179,7 +1235,8 @@ describe("wordAt", () => {
           x: 7,
           y: 10
         }
-      }), 0
+      }),
+      0
     );
     assert.equal(
       wordAt({
@@ -1188,7 +1245,8 @@ describe("wordAt", () => {
           x: 6.9,
           y: 10
         }
-      }), -1
+      }),
+      -1
     );
   });
 
@@ -1200,7 +1258,8 @@ describe("wordAt", () => {
           x: 500,
           y: 500
         }
-      }), -1
+      }),
+      -1
     );
     assert.equal(
       wordAt({
@@ -1209,7 +1268,8 @@ describe("wordAt", () => {
           x: 0,
           y: 0
         }
-      }), -1
+      }),
+      -1
     );
   });
 });
@@ -1220,7 +1280,8 @@ describe("wordsBetween", () => {
       wordsBetween({
         first: 2,
         second: 5
-      }), TWO_TO_FIVE
+      }),
+      TWO_TO_FIVE
     );
   });
 
@@ -1229,7 +1290,8 @@ describe("wordsBetween", () => {
       wordsBetween({
         first: 5,
         second: 2
-      }), TWO_TO_FIVE
+      }),
+      TWO_TO_FIVE
     );
   });
 
@@ -1238,7 +1300,8 @@ describe("wordsBetween", () => {
       wordsBetween({
         first: 3,
         second: 3
-      }), [FOURTH_WORD]
+      }),
+      [FOURTH_WORD]
     );
   });
 });
@@ -1254,7 +1317,8 @@ describe("wordsIn", () => {
           width: 65,
           height: 40
         }
-      }), [0]
+      }),
+      [0]
     );
     assert.deepEqual(
       wordsIn({
@@ -1265,7 +1329,8 @@ describe("wordsIn", () => {
           width: 200,
           height: 200
         }
-      }), ALL_WORDS
+      }),
+      ALL_WORDS
     );
   });
 
@@ -1279,7 +1344,8 @@ describe("wordsIn", () => {
           width: 10,
           height: 10
         }
-      }), [0, 1]
+      }),
+      [0, 1]
     );
   });
 
@@ -1293,7 +1359,8 @@ describe("wordsIn", () => {
           width: 10,
           height: 10
         }
-      }), []
+      }),
+      []
     );
   });
 });
@@ -1304,13 +1371,15 @@ describe("wordsOnLine", () => {
       wordsOnLine({
         words: WORDS,
         index: 1
-      }), [0, 1]
+      }),
+      [0, 1]
     );
     assert.deepEqual(
       wordsOnLine({
         words: WORDS,
         index: 2
-      }), SECOND_LINE_WORDS
+      }),
+      SECOND_LINE_WORDS
     );
   });
 });
@@ -1321,7 +1390,8 @@ describe("joinWords", () => {
       joinWords({
         words: WORDS,
         picked: [0, 1, 2]
-      }), "alpha beta\ngamma"
+      }),
+      "alpha beta\ngamma"
     );
   });
 
@@ -1330,7 +1400,8 @@ describe("joinWords", () => {
       joinWords({
         words: WORDS,
         picked: SECOND_LINE_WORDS
-      }), "gamma delta"
+      }),
+      "gamma delta"
     );
   });
 
@@ -1339,7 +1410,8 @@ describe("joinWords", () => {
       joinWords({
         words: WORDS,
         picked: []
-      }), ""
+      }),
+      ""
     );
   });
 
@@ -1348,7 +1420,8 @@ describe("joinWords", () => {
       joinWords({
         words: WORDS,
         picked: [0, NOT_A_WORD]
-      }), "alpha"
+      }),
+      "alpha"
     );
   });
 });
@@ -1356,30 +1429,37 @@ describe("joinWords", () => {
 describe("roundedRectsPath", () => {
   it("draws every box as one nonzero path", () => {
     const path = roundedRectsPath({
-      rects: [{
-        x: 0,
-        y: 0,
-        width: 10,
-        height: 10
-      }, {
-        x: 20,
-        y: 0,
-        width: 10,
-        height: 10
-      }],
+      rects: [
+        {
+          x: 0,
+          y: 0,
+          width: 10,
+          height: 10
+        },
+        {
+          x: 20,
+          y: 0,
+          width: 10,
+          height: 10
+        }
+      ],
       radius: 3
     });
-    assert.ok(path.startsWith("F1 M3,0 H7 A3,3 0 0 1 10,3 V7 A3,3 0 0 1 7,10 H3 A3,3 0 0 1 0,7 V3 A3,3 0 0 1 3,0 Z M23,0"));
+    assert.ok(
+      path.startsWith("F1 M3,0 H7 A3,3 0 0 1 10,3 V7 A3,3 0 0 1 7,10 H3 A3,3 0 0 1 0,7 V3 A3,3 0 0 1 3,0 Z M23,0")
+    );
   });
 
   it("shrinks the radius for a tiny box", () => {
     const path = roundedRectsPath({
-      rects: [{
-        x: 0,
-        y: 0,
-        width: 4,
-        height: 4
-      }],
+      rects: [
+        {
+          x: 0,
+          y: 0,
+          width: 4,
+          height: 4
+        }
+      ],
       radius: 3
     });
     assert.ok(path.startsWith("F1 M2,0 H2 A2,2"));
@@ -1390,7 +1470,8 @@ describe("roundedRectsPath", () => {
       roundedRectsPath({
         rects: [],
         radius: 3
-      }), "F1 "
+      }),
+      "F1 "
     );
   });
 });

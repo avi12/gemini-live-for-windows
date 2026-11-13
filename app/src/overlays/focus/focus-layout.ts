@@ -11,10 +11,7 @@ export const CHIP_GAP = 10;
 
 // Where the share border's window goes, in physical screen pixels: exactly the display, or the
 // circled region (of that display's pixels) inflated by the gap
-export function borderBounds({ monitor, region }: {
-  monitor: Monitor;
-  region: Region | null;
-}) {
+export function borderBounds({ monitor, region }: { monitor: Monitor; region: Region | null }) {
   const isWholeDisplay = region === null;
   if (isWholeDisplay) {
     return {
@@ -38,11 +35,7 @@ export function borderBounds({ monitor, region }: {
 
 // The chip's top-left corner, in physical screen pixels: just above the region's frame, or below
 // it when the region touches the top of the display
-export function chipOrigin({ monitor, region, chipHeight }: {
-  monitor: Monitor;
-  region: Region;
-  chipHeight: number;
-}) {
+export function chipOrigin({ monitor, region, chipHeight }: { monitor: Monitor; region: Region; chipHeight: number }) {
   const above = region.y - CHIP_GAP - chipHeight;
   const isRoomAbove = above >= 0;
   const top = isRoomAbove ? above : region.y + region.height + CHIP_GAP;
@@ -54,11 +47,7 @@ export function chipOrigin({ monitor, region, chipHeight }: {
 
 // The watched region moved with the chip by how far the pointer has travelled, never off the
 // display. Gemini follows live, as the engine reads the region on every frame
-export function regionAfterDrag({ start, travelled, monitor }: {
-  start: Region;
-  travelled: Point;
-  monitor: Monitor;
-}) {
+export function regionAfterDrag({ start, travelled, monitor }: { start: Region; travelled: Point; monitor: Monitor }) {
   const origin = moved({
     selection: start,
     grip: {

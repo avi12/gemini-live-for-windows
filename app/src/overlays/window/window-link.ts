@@ -1,3 +1,6 @@
+import { defineMessaging } from "winui-svelte/messaging";
+import type { Transport } from "winui-svelte/state/host";
+
 import type { OverlayLog } from "@/overlays/ports.ts";
 import {
   attachChipSchema,
@@ -17,8 +20,6 @@ import type {
   ReadCircleText
 } from "@/overlays/protocol.ts";
 import type { Point } from "@/overlays/shapes.ts";
-import { defineMessaging } from "winui-svelte/messaging";
-import type { Transport } from "winui-svelte/state/host";
 
 // What the controller can ask of the windows (UI worker)
 export interface OverlayWindowHost {
@@ -40,13 +41,17 @@ export interface OverlayWindowEvents {
   readCircleText(options: ReadCircleText): Promise<OcrLines>;
 }
 
-function parsed<T>(result: {
-  success: true;
-  data: T;
-} | {
-  success: false;
-  error: Error;
-}) {
+function parsed<T>(
+  result:
+    | {
+        success: true;
+        data: T;
+      }
+    | {
+        success: false;
+        error: Error;
+      }
+) {
   if (!result.success) {
     throw new Error(result.error.message);
   }
@@ -56,7 +61,11 @@ function parsed<T>(result: {
 
 // The windows' end of the overlay link (UI worker): serves the controller's requests with `host`
 // and returns the events the windows raise, which go to the controller
-export function serveOverlayWindows({ transport, createHost, log }: {
+export function serveOverlayWindows({
+  transport,
+  createHost,
+  log
+}: {
   transport: Transport;
   createHost: (events: OverlayWindowEvents) => OverlayWindowHost;
   log: OverlayLog;
@@ -66,38 +75,38 @@ export function serveOverlayWindows({ transport, createHost, log }: {
     onError: error => log.write(`overlays: ${error.message}`)
   });
   const host = createHost({
-    focusEscapePressed: () => messaging.notify(OverlayMessage.focusEscapePressed),
-    chipDismissed: () => messaging.notify(OverlayMessage.chipDismissed),
-    chipDragStarted: () => messaging.notify(OverlayMessage.chipDragStarted),
-    chipDragged: travelled => messaging.notify(OverlayMessage.chipDragged, {
-      dx: travelled.x,
-      dy: travelled.y
-    }),
-    circleKeyPressed: () => messaging.notify(OverlayMessage.circleKeyPressed),
+    focusEscapePressed: () => messaging.notify(OverlayMessage.FOCUS_ESCAPE_PRESSED),
+    chipDismissed: () => messaging.notify(OverlayMessage.CHIP_DISMISSED),
+    chipDragStarted: () => messaging.notify(OverlayMessage.CHIP_DRAG_STARTED),
+    chipDragged: travelled =>
+      messaging.notify(OverlayMessage.CHIP_DRAGGED, {
+        dx: travelled.x,
+        dy: travelled.y
+      }),
+    circleKeyPressed: () => messaging.notify(OverlayMessage.CIRCLE_KEY_PRESSED),
     async readCircleText(options) {
-      const lines = await messaging.sendMessage(OverlayMessage.readCircleText, options);
+      const lines = await messaging.sendMessage(OverlayMessage.READ_CIRCLE_TEXT, options);
       return ocrLinesSchema.parse(lines);
     }
   });
 
-  messaging.onMessage(OverlayMessage.coverBorder, message => {
+  messaging.onMessage(OverlayMessage.COVER_BORDER, message => {
     host.coverBorder(parsed(coverBorderSchema.safeParse(message.data)));
   });
-  messaging.onMessage(OverlayMessage.hideBorder, () => {
+  messaging.onMessage(OverlayMessage.HIDE_BORDER, () => {
     host.hideBorder();
   });
-  messaging.onMessage(OverlayMessage.attachChip, message => {
+  messaging.onMessage(OverlayMessage.ATTACH_CHIP, message => {
     host.attachChip(parsed(attachChipSchema.safeParse(message.data)));
   });
-  messaging.onMessage(OverlayMessage.hideChip, () => {
+  messaging.onMessage(OverlayMessage.HIDE_CHIP, () => {
     host.hideChip();
   });
-  messaging.onMessage(OverlayMessage.holdFocusEscape, message => {
+  messaging.onMessage(OverlayMessage.HOLD_FOCUS_ESCAPE, message => {
     host.holdFocusEscape(parsed(holdFocusEscapeSchema.safeParse(message.data)).isHeld);
   });
-  messaging.onMessage(
-    OverlayMessage.openCircle,
-    message => host.openCircle(parsed(openCircleSchema.safeParse(message.data)))
+  messaging.onMessage(OverlayMessage.OPEN_CIRCLE, message =>
+    host.openCircle(parsed(openCircleSchema.safeParse(message.data)))
   );
 
   return () => messaging.close();
