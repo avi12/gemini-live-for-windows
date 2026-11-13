@@ -8,20 +8,21 @@ export interface Utterance {
   text: string;
 }
 
-export interface TranscriptRelay {
+interface TranscriptRelay {
   /** Sends the utterance at `index` unless it is empty or unchanged since it was last sent. */
   relay(index: number, utterance: Utterance): void;
   /** Forgets what was sent; indices restart at 0. */
   reset(): void;
 }
 
-export function transcriptRelay(send: (line: TranscriptLine) => void): TranscriptRelay {
+export function transcriptRelay(send: (line: TranscriptLine) => void) {
   /** Last text relayed per index, to send only changes. */
   let relayed: string[] = [];
   return {
     relay(index, { direction, text }) {
       const trimmed = collapseWhitespace(text);
-      if (!trimmed || relayed[index] === trimmed) {
+      const isUnchangedLine = !trimmed || relayed[index] === trimmed;
+      if (isUnchangedLine) {
         return;
       }
 
@@ -35,5 +36,5 @@ export function transcriptRelay(send: (line: TranscriptLine) => void): Transcrip
     reset() {
       relayed = [];
     }
-  };
+  } satisfies TranscriptRelay;
 }

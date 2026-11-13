@@ -31,11 +31,11 @@ function isClientFlag(value: unknown): value is ClientFlag {
   return typeof value === "object" && value !== null;
 }
 
-let timeoutsPatched = false;
+let hasPatchedTimeouts = false;
 
 /** Rewrites Glic's Live timeout flags; true once all were found. */
-export function patchLiveTimeouts(): boolean {
-  if (timeoutsPatched) {
+export function patchLiveTimeouts() {
+  if (hasPatchedTimeouts) {
     return true;
   }
 
@@ -46,7 +46,11 @@ export function patchLiveTimeouts(): boolean {
 
   let found = 0;
   for (const flag of Object.values(namespace)) {
-    if (!isClientFlag(flag) || !flag.key) {
+    if (!isClientFlag(flag)) {
+      continue;
+    }
+
+    if (!flag.key) {
       continue;
     }
 
@@ -60,6 +64,6 @@ export function patchLiveTimeouts(): boolean {
     flag.ctor = () => value;
     found++;
   }
-  timeoutsPatched = found === Object.keys(LIVE_TIMEOUT_FLAGS).length;
-  return timeoutsPatched;
+  hasPatchedTimeouts = found === Object.keys(LIVE_TIMEOUT_FLAGS).length;
+  return hasPatchedTimeouts;
 }

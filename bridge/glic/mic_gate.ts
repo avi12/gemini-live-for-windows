@@ -14,7 +14,7 @@ export interface MicGate {
 }
 
 /** One second of faint white noise, looped. */
-function comfortNoise(context: AudioContext): AudioBufferSourceNode {
+function comfortNoise(context: AudioContext) {
   const buffer = context.createBuffer(1, context.sampleRate, context.sampleRate);
   const samples = buffer.getChannelData(0);
   for (let i = 0; i < samples.length; i++) {
@@ -28,7 +28,7 @@ function comfortNoise(context: AudioContext): AudioBufferSourceNode {
 }
 
 /** Without audio to run a gate on, muting falls back to disabling the tracks. */
-function trackGate(microphone: MediaStream): MicGate {
+function trackGate(microphone: MediaStream) {
   return {
     stream: microphone,
     setOpen(open) {
@@ -36,19 +36,19 @@ function trackGate(microphone: MediaStream): MicGate {
         track.enabled = open;
       }
     }
-  };
+  } satisfies MicGate;
 }
 
 /**
  * Routes the microphone through a gate, or falls back to {@link trackGate} when audio can't run
  * here. Never throws: a mute that can't be built must not cost Live its microphone.
  */
-export async function gateMicrophone(microphone: MediaStream): Promise<MicGate> {
+export async function gateMicrophone(microphone: MediaStream) {
   return (await audioGate(microphone).catch(() => null)) ?? trackGate(microphone);
 }
 
 /** The gain gate with comfort noise; null when this page can't run audio. */
-async function audioGate(microphone: MediaStream): Promise<MicGate | null> {
+async function audioGate(microphone: MediaStream) {
   const context = new AudioContext();
   const running = await Promise.race([
     context.resume().then(() => context.state === "running"),
@@ -82,5 +82,5 @@ async function audioGate(microphone: MediaStream): Promise<MicGate | null> {
     setOpen(open) {
       gate.gain.setTargetAtTime(open ? 1 : 0, context.currentTime, GATE_RAMP_SECONDS);
     }
-  };
+  } satisfies MicGate;
 }

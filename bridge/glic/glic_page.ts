@@ -4,58 +4,58 @@ import { labelAndText } from "../shared/text";
 
 /** Fragments of Glic's button aria-labels. */
 export enum Button {
-  AddEvent = "Add event",
-  AddEventTitleCase = "Add Event",
-  Confirm = "Confirm",
-  ConfirmsActions = "Button that confirms actions",
-  Copy = "Copy",
-  Create = "Create",
-  Delete = "Delete",
-  End = "End",
-  GoBack = "Go back",
-  GoLive = "Go Live",
-  GoodResponse = "Good response",
-  NoThanks = "No thanks",
-  Okay = "OK",
-  PauseLive = "Pause live mode",
-  Regenerate = "Regenerate",
-  Remove = "Remove",
-  Save = "Save",
-  Send = "Send",
-  SendMessage = "Send message",
-  Skip = "Skip",
-  StartLive = "Start live mode",
-  StopResponse = "Stop response",
-  Submit = "Submit",
-  TextMode = "Switch to text mode",
-  TryAgain = "Try again",
-  TurnOnCaptions = "Turn on live captions",
-  Update = "Update"
+  ADD_EVENT = "Add event",
+  ADD_EVENT_TITLE_CASE = "Add Event",
+  CONFIRM = "Confirm",
+  CONFIRMS_ACTIONS = "Button that confirms actions",
+  COPY = "Copy",
+  CREATE = "Create",
+  DELETE = "Delete",
+  END = "End",
+  GO_BACK = "Go back",
+  GO_LIVE = "Go Live",
+  GOOD_RESPONSE = "Good response",
+  NO_THANKS = "No thanks",
+  OKAY = "OK",
+  PAUSE_LIVE = "Pause live mode",
+  REGENERATE = "Regenerate",
+  REMOVE = "Remove",
+  SAVE = "Save",
+  SEND = "Send",
+  SEND_MESSAGE = "Send message",
+  SKIP = "Skip",
+  START_LIVE = "Start live mode",
+  STOP_RESPONSE = "Stop response",
+  SUBMIT = "Submit",
+  TEXT_MODE = "Switch to text mode",
+  TRY_AGAIN = "Try again",
+  TURN_ON_CAPTIONS = "Turn on live captions",
+  UPDATE = "Update"
 }
 
 /** Either one shows while Live is paused; clicking it resumes. */
-export const RESUME_BUTTONS = [Button.StartLive, Button.GoLive];
+export const RESUME_BUTTONS = [Button.START_LIVE, Button.GO_LIVE];
 
 /** Phrases in Glic's visible text. */
 export enum Phrase {
-  MicConsent = "Live will use your microphone",
-  Unavailable = "isn't available right now",
-  WentWrong = "Something went wrong"
+  MIC_CONSENT = "Live will use your microphone",
+  UNAVAILABLE = "isn't available right now",
+  WENT_WRONG = "Something went wrong"
 }
 
 const SIGN_IN_PATTERN = /\bSign in\b/;
 const SIGN_IN_HOST = "accounts.google.com";
 
-function pageText(): string {
+function pageText() {
   return document.body?.innerText || "";
 }
 
-export function pageSays(phrase: Phrase): boolean {
+export function pageSays(phrase: Phrase) {
   return pageText().includes(phrase);
 }
 
 /** Finds the first button whose aria-label contains one of the fragments, trying them in order. */
-export function findButton(...fragments: Button[]): HTMLButtonElement | null {
+export function findButton(...fragments: Button[]) {
   const buttons = [...document.querySelectorAll("button")];
   for (const fragment of fragments) {
     const match = buttons.find(button => (button.getAttribute("aria-label") || "").includes(fragment));
@@ -67,12 +67,12 @@ export function findButton(...fragments: Button[]): HTMLButtonElement | null {
 }
 
 /** Like {@link findButton}, but matching the visible text too, for buttons Glic leaves unlabelled. */
-export function findButtonByText(fragment: Button): HTMLButtonElement | undefined {
+export function findButtonByText(fragment: Button) {
   return [...document.querySelectorAll("button")].find(button => labelAndText(button).includes(fragment));
 }
 
 /** Clicks the first button {@link findButton} finds; whether one was clicked. */
-export function clickButton(...fragments: Button[]): boolean {
+export function clickButton(...fragments: Button[]) {
   const button = findButton(...fragments);
   if (!button) {
     return false;
@@ -82,13 +82,12 @@ export function clickButton(...fragments: Button[]): boolean {
   return true;
 }
 
-export function isSignedOut(): boolean {
-  return location.hostname === SIGN_IN_HOST ||
-    (SIGN_IN_PATTERN.test(pageText()) && !findButton(Button.GoLive));
+export function isSignedOut() {
+  return location.hostname === SIGN_IN_HOST || (SIGN_IN_PATTERN.test(pageText()) && !findButton(Button.GO_LIVE));
 }
 
 /** Never lets Glic see its hidden WebView as hidden, or it pauses Live. */
-export function keepPageVisible(): void {
+export function keepPageVisible() {
   try {
     Object.defineProperty(document, "visibilityState", {
       configurable: true,
@@ -98,7 +97,7 @@ export function keepPageVisible(): void {
       configurable: true,
       get: () => false
     });
-    document.addEventListener("visibilitychange", e => e.stopImmediatePropagation(), true);
+    document.addEventListener("visibilitychange", event => event.stopImmediatePropagation(), true);
   } catch {
     // Best effort: a page that froze these keeps its own visibility.
   }

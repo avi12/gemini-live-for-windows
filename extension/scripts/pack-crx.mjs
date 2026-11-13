@@ -2,9 +2,10 @@
 // keys/chrome.pem at the repo root, is the one whose public half is the manifest's "key"
 // (wxt.config.ts), so the .crx keeps the extension's pinned ID.
 
-import crx3 from "crx3";
 import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+
+import crx3 from "crx3";
 
 const KEY_PATH = fileURLToPath(new URL("../../keys/chrome.pem", import.meta.url));
 const BUILD_DIR = fileURLToPath(new URL("../.output/chrome-mv3", import.meta.url));

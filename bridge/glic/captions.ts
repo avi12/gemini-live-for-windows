@@ -9,11 +9,11 @@ import type { Utterance } from "./transcript";
 // Only a bold node that is exactly a speaker label starts an utterance. Gemini bolds words in its
 // own answers too ("**your** schedule"), and those are part of the sentence, not a new speaker.
 const SPEAKER_LABELS: Record<string, Direction> = {
-  you: Direction.User,
-  gemini: Direction.Assistant
+  you: Direction.USER,
+  gemini: Direction.ASSISTANT
 };
 
-function captionsRoot(): Element | null {
+function captionsRoot() {
   const scroller = document.querySelector("captions-scroller");
   if (!scroller) {
     return null;
@@ -27,8 +27,9 @@ function captionsRoot(): Element | null {
 }
 
 /** The transcript direction a bold node stands for, or null for bold text. */
-function directionOf(node: Node): Direction | null {
-  if (!(node instanceof Element) || node.tagName !== "B") {
+function directionOf(node: Node) {
+  const isNotBoldElement = !(node instanceof Element) || node.tagName !== "B";
+  if (isNotBoldElement) {
     return null;
   }
 
@@ -37,7 +38,7 @@ function directionOf(node: Node): Direction | null {
 }
 
 /** The utterances Glic's captions show, in order; none when there are no captions. */
-export function readCaptions(): Utterance[] {
+export function readCaptions() {
   const root = captionsRoot();
   if (!root) {
     return [];

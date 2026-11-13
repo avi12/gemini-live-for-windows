@@ -1,3 +1,5 @@
+import { defineMessaging } from "@gemini-live/messaging";
+
 import { collapseWhitespace, labelAndText } from "../shared/text";
 import { webViewTransport } from "../shared/webview_transport";
 // Injected at document-start into home.google.com inside our hidden WebView2 (bundled to
@@ -7,8 +9,7 @@ import { webViewTransport } from "../shared/webview_transport";
 // (HomeProtocolMap in home_protocol.ts) and does the click itself as a trusted CDP mouse event,
 // because the tiles ignore synthetic DOM clicks (same reason glic types with trusted keys).
 // Scoped to the PC lights for now.
-import { HomeMessage, type HomeProtocolMap, type PcLightsState } from "./home_protocol";
-import { defineMessaging } from "@gemini-live/messaging";
+import { HomeMessage, type HomeProtocolMap } from "./home_protocol";
 
 const DEVICE = "PC Lights";
 const CARD_MIN_W = 300;
@@ -20,19 +21,20 @@ const MESSAGE_TIMEOUT_MS = 1000;
 
 declare global {
   interface Window {
-    __homeBridgeInstalled?: boolean;
+    homeBridgeInstalled?: boolean;
   }
 }
 
 // Top frame only, install once.
-if (!window.__homeBridgeInstalled && window.top === window) {
-  window.__homeBridgeInstalled = true;
+const IS_FIRST_INSTALL_IN_TOP_WINDOW = !window.homeBridgeInstalled && window.top === window;
+if (IS_FIRST_INSTALL_IN_TOP_WINDOW) {
+  window.homeBridgeInstalled = true;
   const app = defineMessaging<HomeProtocolMap>(webViewTransport(), { timeoutMs: MESSAGE_TIMEOUT_MS });
 
   // Walk open shadow roots as well as the light DOM - the Home app is deep web components.
-  function deepQuery(root: Document | ShadowRoot | Element, selector: string): Element[] {
+  function deepQuery({ root, selector }: { root: Document | ShadowRoot | Element; selector: string }) {
     const out: Element[] = [];
-    function walk(node: Document | ShadowRoot | Element): void {
+    function walk(node: Document | ShadowRoot | Element) {
       try {
         out.push(...node.querySelectorAll(selector));
       } catch {
@@ -50,10 +52,15 @@ if (!window.__homeBridgeInstalled && window.top === window) {
 
   // Close any onboarding or survey card covering the grid. Scoped to dialog roots, so a normal
   // "Done"/"OK" button elsewhere on the page is left alone.
-  function dismissCards(): void {
-    for (const overlay of deepQuery(document, "[role=\"dialog\"],[role=\"alertdialog\"]")) {
-      for (const button of overlay.querySelectorAll<HTMLElement>("button,[role=\"button\"]")) {
-        if (DISMISS_TEXT.test((button.textContent ?? "").trim()) || DISMISS_LABEL.test(labelAndText(button))) {
+  function dismissCards() {
+    for (const overlay of deepQuery({
+      root: document,
+      selector: '[role="dialog"],[role="alertdialog"]'
+    })) {
+      for (const button of overlay.querySelectorAll<HTMLElement>('button,[role="button"]')) {
+        const isDismissButton =
+          DISMISS_TEXT.test((button.textContent ?? "").trim()) || DISMISS_LABEL.test(labelAndText(button));
+        if (isDismissButton) {
           button.click();
         }
       }
@@ -61,13 +68,15 @@ if (!window.__homeBridgeInstalled && window.top === window) {
   }
 
   // The tile card: the sizeable clickable ancestor of the device-name label.
-  function deviceCard(name: string): HTMLElement | null {
-    const label = deepQuery(document, "*").find(
-      element => element.children.length === 0 && (element.textContent ?? "").trim() === name
-    );
+  function deviceCard(name: string) {
+    const label = deepQuery({
+      root: document,
+      selector: "*"
+    }).find(element => element.children.length === 0 && (element.textContent ?? "").trim() === name);
     for (let node = label?.parentElement ?? null; node; node = node.parentElement) {
       const rect = node.getBoundingClientRect();
-      if (rect.width > CARD_MIN_W && rect.height > CARD_MIN_H) {
+      const isCardSized = rect.width > CARD_MIN_W && rect.height > CARD_MIN_H;
+      if (isCardSized) {
         return node;
       }
     }
@@ -79,10 +88,10 @@ if (!window.__homeBridgeInstalled && window.top === window) {
   // it via innerText, where the lines are space-separated; textContent glues them ("PC LightsOff"),
   // where a word boundary never matches. Off wins over On, since an "on" tile may also read "On •
   // 100%" but only an off one says "Off". null until the state word has loaded in.
-  function cardText(card: HTMLElement): string {
+  function cardText(card: HTMLElement) {
     return collapseWhitespace(card.innerText);
   }
-  function stateOf(text: string): boolean | null {
+  function stateOf(text: string) {
     if (/\boff\b/i.test(text)) {
       return false;
     }
@@ -95,7 +104,7 @@ if (!window.__homeBridgeInstalled && window.top === window) {
   }
 
   /** A whole pixel of the view; a layout that yields none fails the request rather than a click. */
-  function pixel(value: number): number {
+  function pixel(value: number) {
     const rounded = Math.round(value);
     if (!Number.isInteger(rounded)) {
       throw new Error(`Not a pixel position: ${value}`);
@@ -104,11 +113,11 @@ if (!window.__homeBridgeInstalled && window.top === window) {
     return rounded;
   }
 
-  function measure(): PcLightsState {
+  function measure() {
     dismissCards();
     const card = deviceCard(DEVICE);
     if (!card) {
-      return { found: false };
+      return { found: false } as const;
     }
 
     card.scrollIntoView({ block: "center" }); // bring it into the hidden view so the click lands
@@ -121,13 +130,13 @@ if (!window.__homeBridgeInstalled && window.top === window) {
       text,
       x: pixel(rect.x + rect.width / 2),
       y: pixel(rect.y + rect.height / 2)
-    };
+    } as const;
   }
 
-  app.onMessage(HomeMessage.Ready, (): boolean => {
+  app.onMessage(HomeMessage.READY, () => {
     dismissCards(); // an onboarding overlay mustn't hold the readiness gate false
     const card = deviceCard(DEVICE);
     return card !== null && stateOf(cardText(card)) !== null; // wait for the device state to load
   });
-  app.onMessage(HomeMessage.PcLights, (): PcLightsState => measure());
+  app.onMessage(HomeMessage.PC_LIGHTS, () => measure());
 }

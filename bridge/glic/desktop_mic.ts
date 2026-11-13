@@ -5,8 +5,8 @@ import { gateMicrophone, type MicGate } from "./mic_gate";
 
 /** Aliases Chromium adds for Windows' default devices. */
 enum MicAlias {
-  Default = "default",
-  Communications = "communications"
+  DEFAULT = "default",
+  COMMUNICATIONS = "communications"
 }
 
 const MIC_ALIAS_IDS = new Set<string>(Object.values(MicAlias));
@@ -16,7 +16,7 @@ interface DesktopAudioConstraints extends MediaTrackConstraints {
   voiceIsolation?: boolean;
 }
 
-export interface DesktopMic {
+interface DesktopMic {
   setMuted(muted: boolean): void;
   /** A running session holds its stream, so a new pick reopens the mic. */
   setMic(id: string | null): void;
@@ -25,23 +25,23 @@ export interface DesktopMic {
 }
 
 /** Which device "default" currently names, or '' if unknown. */
-async function defaultMicLabel(): Promise<string> {
+async function defaultMicLabel() {
   const devices = await navigator.mediaDevices.enumerateDevices();
-  return devices.find(d => d.kind === "audioinput" && d.deviceId === MicAlias.Default)?.label ?? "";
+  return devices.find(device => device.kind === "audioinput" && device.deviceId === MicAlias.DEFAULT)?.label ?? "";
 }
 
 /**
  * Takes over Glic's microphone: getUserMedia gets our processing, the app's mic pick and a mute
  * gate. `reopen` restarts a running Live so it reopens the microphone.
  */
-export function installDesktopMic(reopen: () => void): DesktopMic {
+export function installDesktopMic(reopen: () => void) {
   const micGates = new Set<MicGate>();
-  let muted = false;
+  let isMuted = false;
   /** The microphone picked in the app's menu (null = Windows' default), applied to every capture. */
   let micId: string | null = null;
 
   /** Rewrites Glic's getUserMedia constraints: audio gets our processing and mic pick, video never goes through. */
-  function withDesktopConstraints(constraints?: MediaStreamConstraints): MediaStreamConstraints | undefined {
+  function withDesktopConstraints(constraints?: MediaStreamConstraints) {
     if (!constraints) {
       return constraints;
     }
@@ -65,11 +65,13 @@ export function installDesktopMic(reopen: () => void): DesktopMic {
       autoGainControl: true,
       voiceIsolation: true,
       // ideal, not exact: an unplugged pick falls back to the default instead of failing Live.
-      ...(micId ? {
-        deviceId: {
-          ideal: micId
-        }
-      } : {})
+      ...(micId
+        ? {
+            deviceId: {
+              ideal: micId
+            }
+          }
+        : {})
     };
     return {
       ...rest,
@@ -87,7 +89,7 @@ export function installDesktopMic(reopen: () => void): DesktopMic {
       }
 
       const gate = await gateMicrophone(stream);
-      gate.setOpen(!muted);
+      gate.setOpen(!isMuted);
       micGates.add(gate);
       return gate.stream;
     };
@@ -121,7 +123,7 @@ export function installDesktopMic(reopen: () => void): DesktopMic {
 
   return {
     setMuted(value) {
-      muted = value;
+      isMuted = value;
       for (const gate of micGates) {
         if (gate.stream.getAudioTracks().some(track => track.readyState === "live")) {
           gate.setOpen(!value);
@@ -142,11 +144,11 @@ export function installDesktopMic(reopen: () => void): DesktopMic {
     async listMics() {
       const devices = await navigator.mediaDevices.enumerateDevices();
       return devices
-        .filter(d => d.kind === "audioinput" && d.deviceId && !MIC_ALIAS_IDS.has(d.deviceId))
-        .map(d => ({
-          id: d.deviceId,
-          label: d.label || "Microphone"
+        .filter(device => device.kind === "audioinput" && device.deviceId && !MIC_ALIAS_IDS.has(device.deviceId))
+        .map(device => ({
+          id: device.deviceId,
+          label: device.label || "Microphone"
         }));
     }
-  };
+  } satisfies DesktopMic;
 }

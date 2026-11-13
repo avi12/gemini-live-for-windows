@@ -16,6 +16,8 @@
 // in a fixed order, before Glic's own scripts run: page visibility, the microphone, the host and
 // its bootstrap, then the Live wire tap.
 
+import { defineMessaging } from "@gemini-live/messaging";
+
 import { webViewTransport } from "../shared/webview_transport";
 import { readCaptions } from "./captions";
 import { installDesktopMic } from "./desktop_mic";
@@ -36,7 +38,6 @@ import { patchLiveTimeouts } from "./live_timeouts";
 import { tapLiveTranscript } from "./live_wire";
 import { openTextEditor, submitAndRead } from "./text_action";
 import { transcriptRelay } from "./transcript";
-import { defineMessaging } from "@gemini-live/messaging";
 
 const REQUEST_TIMEOUT_MS = 3000;
 const UNAVAILABLE_POLL_MS = 500;
@@ -58,13 +59,14 @@ const NO_REPLY_MS = 12_000;
 
 declare global {
   interface Window {
-    __glicBridgeInstalled?: boolean;
+    glicBridgeInstalled?: boolean;
   }
 }
 
 // Top frame only, install once.
-if (!window.__glicBridgeInstalled && window.top === window) {
-  window.__glicBridgeInstalled = true;
+const IS_FIRST_INSTALL_IN_TOP_WINDOW = !window.glicBridgeInstalled && window.top === window;
+if (IS_FIRST_INSTALL_IN_TOP_WINDOW) {
+  window.glicBridgeInstalled = true;
   const app = defineMessaging<GlicProtocolMap>(webViewTransport(), { timeoutMs: REQUEST_TIMEOUT_MS });
 
   // ===========================================================================
@@ -72,33 +74,33 @@ if (!window.__glicBridgeInstalled && window.top === window) {
   // ===========================================================================
 
   /** The user wants Live running; screen frames flow only while it does. */
-  let active = false;
+  let isSessionActive = false;
   /** The stale-session page was seen and reported; nothing will start until a reload. */
-  let unavailableReported = false;
+  let isUnavailableReported = false;
   /** Last state sent to C#, to send only changes. */
   let lastState: State | null = null;
 
   /** Sends a report to C#, which may be gone (no WebView2, or the app is closing): drops a failure. */
-  function report(sent: Promise<void>): void {
+  function report(sent: Promise<void>) {
     sent.catch(() => {});
   }
 
-  function reportError(message: ErrorMessage): void {
-    report(app.sendMessage(GlicMessage.Error, message));
+  function reportError(message: ErrorMessage) {
+    report(app.sendMessage(GlicMessage.ERROR, message));
   }
 
   /** Reports a failed start, preferring "signed-out" so the host can wait for a session. */
-  function reportStartFailure(fallback: ErrorMessage): void {
-    reportError(isSignedOut() ? ErrorMessage.SignedOut : fallback);
+  function reportStartFailure(fallback: ErrorMessage) {
+    reportError(isSignedOut() ? ErrorMessage.SIGNED_OUT : fallback);
   }
 
-  function setState(state: State): void {
+  function setState(state: State) {
     if (lastState === state) {
       return;
     }
 
     lastState = state;
-    report(app.sendMessage(GlicMessage.State, state));
+    report(app.sendMessage(GlicMessage.STATE, state));
   }
 
   // ===========================================================================
@@ -108,8 +110,8 @@ if (!window.__glicBridgeInstalled && window.top === window) {
   keepPageVisible();
 
   /** Restarts a running Live, which reopens the microphone. */
-  function reopenMic(): void {
-    if (!active) {
+  function reopenMic() {
+    if (!isSessionActive) {
       return;
     }
 
@@ -120,43 +122,48 @@ if (!window.__glicBridgeInstalled && window.top === window) {
   const mic = installDesktopMic(reopenMic);
 
   const glic = createGlicHost({
-    isActive: () => active,
-    capture: () => app.sendMessage(GlicMessage.Capture).catch(() => null),
-    read: () => app.sendMessage(GlicMessage.Read).catch(() => null),
-    onClosePanel: () => setState(State.Idle)
+    isActive: () => isSessionActive,
+    capture: () => app.sendMessage(GlicMessage.CAPTURE).catch(() => null),
+    read: () => app.sendMessage(GlicMessage.READ).catch(() => null),
+    onClosePanel: () => setState(State.IDLE)
   });
 
-  const tryBootstrap = installBootstrap(glic.host, {
-    onBooted: () => report(app.sendMessage(GlicMessage.Booted)),
-    onFailed: () => reportStartFailure(ErrorMessage.PageDidNotStart)
+  const tryBootstrap = installBootstrap({
+    host: glic.host,
+    events: {
+      onBooted: () => report(app.sendMessage(GlicMessage.BOOTED)),
+      onFailed: () => reportStartFailure(ErrorMessage.PAGE_DID_NOT_START)
+    }
   });
 
   // A stale Google session still loads /glic and even adopts our host, but then shows "Gemini isn't
   // available right now" (its cookie rotation 401s). Report it so the host can offer a fresh sign-in.
   const unavailableTimer = setInterval(() => {
-    if (!pageSays(Phrase.Unavailable)) {
+    if (!pageSays(Phrase.UNAVAILABLE)) {
       return;
     }
 
     clearInterval(unavailableTimer);
-    unavailableReported = true;
-    reportError(ErrorMessage.Unavailable);
+    isUnavailableReported = true;
+    reportError(ErrorMessage.UNAVAILABLE);
   }, UNAVAILABLE_POLL_MS);
 
-  const transcript = transcriptRelay(line => report(app.sendMessage(GlicMessage.Transcript, line)));
+  const transcript = transcriptRelay(line => report(app.sendMessage(GlicMessage.TRANSCRIPT, line)));
   const wire = tapLiveTranscript((index, utterance) => {
-    if (active) {
+    if (isSessionActive) {
       transcript.relay(index, utterance);
     }
   });
 
   /** The caption scrape, only while the wire has carried no transcript. */
-  function pumpCaptions(): void {
+  function pumpCaptions() {
     if (wire.seen()) {
       return;
     }
 
-    readCaptions().forEach((utterance, index) => transcript.relay(index, utterance));
+    for (const [index, utterance] of readCaptions().entries()) {
+      transcript.relay(index, utterance);
+    }
   }
 
   // ===========================================================================
@@ -171,12 +178,12 @@ if (!window.__glicBridgeInstalled && window.top === window) {
   /** The unanswered words Live was last restarted for, so each restarts it once. */
   let restartedFor: number | null = null;
   /** Live breaking was reported; the host reloads us, so say it once. */
-  let brokenReported = false;
-  let consentAccepted = false;
+  let isBrokenReported = false;
+  let isConsentAccepted = false;
   let monitorTimer: ReturnType<typeof setInterval> | undefined;
   let startTimer: ReturnType<typeof setInterval> | undefined;
 
-  function resume(now: number): void {
+  function resume(now: number) {
     if (now - lastResume < RESUME_GAP_MS * Math.min(resumeTries + 1, MAX_RESUME_BACKOFF)) {
       return;
     }
@@ -187,26 +194,27 @@ if (!window.__glicBridgeInstalled && window.top === window) {
   }
 
   /** Live is running: forget any pause or breakage. */
-  function markLive(now: number): void {
+  function markLive(now: number) {
     lastLive = now;
     resumeTries = 0;
-    brokenReported = false;
-    setState(State.Listening);
+    isBrokenReported = false;
+    setState(State.LISTENING);
   }
 
   /** Gemini left the user's words unanswered too long: pause Live, which the monitor resumes. */
-  function restartIfUnanswered(now: number): boolean {
+  function restartIfUnanswered(now: number) {
     const since = wire.unansweredSince();
-    if (since === null || since === restartedFor || now - since < NO_REPLY_MS) {
+    const isRestartUnneeded = since === null || since === restartedFor || now - since < NO_REPLY_MS;
+    if (isRestartUnneeded) {
       return false;
     }
 
     restartedFor = since;
-    return clickButton(Button.PauseLive);
+    return clickButton(Button.PAUSE_LIVE);
   }
 
-  function monitorTick(): void {
-    if (!active) {
+  function monitorTick() {
+    if (!isSessionActive) {
       return;
     }
 
@@ -216,33 +224,37 @@ if (!window.__glicBridgeInstalled && window.top === window) {
     // "Your audio couldn't be heard" is Glic's own transient notice while the mic is silent - which
     // it is whenever the user mutes or just isn't talking. Glic recovers on its own when sound
     // returns, so this is never fatal; ending the session here is what made muting un-undoable.
-    const wentWrong = pageSays(Phrase.WentWrong);
-    if (findButton(Button.PauseLive) && !wentWrong && !restartIfUnanswered(now)) {
+    const wentWrong = pageSays(Phrase.WENT_WRONG);
+    const isLiveRunningNormally = findButton(Button.PAUSE_LIVE) && !wentWrong && !restartIfUnanswered(now);
+    if (isLiveRunningNormally) {
       markLive(now);
       return;
     }
 
-    setState(State.Resuming);
+    setState(State.RESUMING);
 
-    if (!wentWrong && findButton(...RESUME_BUTTONS)) {
+    const isResumable = !wentWrong && findButton(...RESUME_BUTTONS);
+    if (isResumable) {
       resume(now);
       return;
     }
 
     // Glic's Try again is not always labelled, so match its visible text too.
-    const retry = findButtonByText(Button.TryAgain);
-    if (retry && now - lastTryAgain > TRY_AGAIN_GAP_MS) {
+    const retry = findButtonByText(Button.TRY_AGAIN);
+    const isRetryDue = retry && now - lastTryAgain > TRY_AGAIN_GAP_MS;
+    if (isRetryDue) {
       lastTryAgain = now;
       retry.click();
     }
 
-    if (wentWrong && now - lastLive > BROKEN_AFTER_MS && !brokenReported) {
-      brokenReported = true;
-      reportError(ErrorMessage.LiveBroke);
+    const shouldReportBroken = wentWrong && now - lastLive > BROKEN_AFTER_MS && !isBrokenReported;
+    if (shouldReportBroken) {
+      isBrokenReported = true;
+      reportError(ErrorMessage.LIVE_BROKE);
     }
   }
 
-  function beginMonitor(): void {
+  function beginMonitor() {
     if (monitorTimer !== undefined) {
       return;
     }
@@ -252,54 +264,59 @@ if (!window.__glicBridgeInstalled && window.top === window) {
 
   // First-run surfaces: consent ("Live will use your microphone") and the volume onboarding card.
   // Pressing Win+C for Gemini Live is the user's decision to start it, so clear them.
-  function advanceToLive(): void {
-    const ok = findButton(Button.Okay);
-    if (ok && findButton(Button.NoThanks) && pageSays(Phrase.MicConsent)) {
+  function advanceToLive() {
+    const ok = findButton(Button.OKAY);
+    const isMicConsentPrompt = ok && findButton(Button.NO_THANKS) && pageSays(Phrase.MIC_CONSENT);
+    if (isMicConsentPrompt) {
       ok.click();
-      consentAccepted = true;
+      isConsentAccepted = true;
       return;
     }
 
-    const skip = findButton(Button.Skip);
-    if (skip && findButton(Button.GoBack) && findButton(Button.TurnOnCaptions)) {
+    const skip = findButton(Button.SKIP);
+    const isCaptionsPromptSkippable = skip && findButton(Button.GO_BACK) && findButton(Button.TURN_ON_CAPTIONS);
+    if (isCaptionsPromptSkippable) {
       skip.click();
       return;
     }
 
-    if (clickButton(Button.StartLive) || consentAccepted) {
+    const hasStartedLive = clickButton(Button.START_LIVE) || isConsentAccepted;
+    if (hasStartedLive) {
       return;
     }
 
-    clickButton(Button.GoLive);
+    clickButton(Button.GO_LIVE);
   }
 
-  function start(): void {
-    active = true;
+  function start() {
+    isSessionActive = true;
     wire.reset();
     transcript.reset();
     lastState = null;
-    consentAccepted = false;
+    isConsentAccepted = false;
     resumeTries = 0;
     clearInterval(startTimer);
     let tries = 0;
     startTimer = setInterval(() => {
       // No usable session: stop quietly. The host waits for the browser's session and reloads us.
-      if (!active || unavailableReported) {
+      if (!isSessionActive || isUnavailableReported) {
         clearInterval(startTimer);
         return;
       }
+
+      const shouldRetryPatching = !patchLiveTimeouts() && tries < MAX_START_TRIES / 2;
 
       tryBootstrap();
 
       // Live must not start before its timeouts are rewritten, or it reads the defaults.
-      if (!patchLiveTimeouts() && tries < MAX_START_TRIES / 2) {
+      if (shouldRetryPatching) {
         tries++;
         return;
       }
 
-      if (findButton(Button.PauseLive)) {
+      if (findButton(Button.PAUSE_LIVE)) {
         clearInterval(startTimer);
-        report(app.sendMessage(GlicMessage.Ready));
+        report(app.sendMessage(GlicMessage.READY));
         markLive(Date.now());
         beginMonitor();
         return;
@@ -312,20 +329,20 @@ if (!window.__glicBridgeInstalled && window.top === window) {
       }
 
       clearInterval(startTimer);
-      reportStartFailure(ErrorMessage.LiveDidNotStart);
+      reportStartFailure(ErrorMessage.LIVE_DID_NOT_START);
     }, START_POLL_MS);
   }
 
-  function stop(): void {
-    active = false;
+  function stop() {
+    isSessionActive = false;
     clearInterval(startTimer);
-    clickButton(Button.TextMode, Button.PauseLive, Button.End);
-    setState(State.Idle);
+    clickButton(Button.TEXT_MODE, Button.PAUSE_LIVE, Button.END);
+    setState(State.IDLE);
   }
 
   /** Pauses Live for a Google-apps text turn (text_action.ts); C# resumes it with Start. */
-  function beginAction(): Promise<boolean> {
-    active = false;
+  function beginAction() {
+    isSessionActive = false;
     clearInterval(startTimer);
     clearInterval(monitorTimer);
     monitorTimer = undefined;
@@ -336,13 +353,11 @@ if (!window.__glicBridgeInstalled && window.top === window) {
   // Commands from GlicHost.
   // ===========================================================================
 
-  app.onMessage(GlicMessage.Start, () => start());
-  app.onMessage(GlicMessage.Stop, () => stop());
-  app.onMessage(GlicMessage.SetMuted, ({ data }) => mic.setMuted(data));
-  app.onMessage(GlicMessage.ListMics, () => mic.listMics());
-  app.onMessage(GlicMessage.SetMic, ({ data }) => mic.setMic(data));
-  app.onMessage(GlicMessage.BeginAction, () => beginAction());
-  app.onMessage(GlicMessage.SubmitAndRead, () => submitAndRead());
+  app.onMessage(GlicMessage.START, () => start());
+  app.onMessage(GlicMessage.STOP, () => stop());
+  app.onMessage(GlicMessage.SET_MUTED, ({ data }) => mic.setMuted(data));
+  app.onMessage(GlicMessage.LIST_MICS, () => mic.listMics());
+  app.onMessage(GlicMessage.SET_MIC, ({ data }) => mic.setMic(data));
+  app.onMessage(GlicMessage.BEGIN_ACTION, () => beginAction());
+  app.onMessage(GlicMessage.SUBMIT_AND_READ, () => submitAndRead());
 }
-
-export {};

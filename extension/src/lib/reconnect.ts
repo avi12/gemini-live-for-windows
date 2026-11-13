@@ -23,13 +23,14 @@ export class ReconnectController<Connection> {
   ) {}
 
   /** The live (or connecting) connection, if any. */
-  get current(): Connection | undefined {
+  get current() {
     return this.currentConnection;
   }
 
   /** Connects unless the current connection is still active. Never stacks connections. */
-  ensure(): void {
-    if (this.currentConnection !== undefined && this.isActive(this.currentConnection)) {
+  ensure() {
+    const isConnectionActive = this.currentConnection !== undefined && this.isActive(this.currentConnection);
+    if (isConnectionActive) {
       return;
     }
 
@@ -38,7 +39,7 @@ export class ReconnectController<Connection> {
   }
 
   /** Reports that `connection` closed; schedules one retry if it was the current one. */
-  disconnected(connection: Connection): void {
+  disconnected(connection: Connection) {
     if (this.currentConnection !== connection) {
       return;
     }
@@ -55,7 +56,7 @@ export class ReconnectController<Connection> {
     }, this.delayMs);
   }
 
-  private cancelRetry(): void {
+  private cancelRetry() {
     if (this.retry === undefined) {
       return;
     }

@@ -1,9 +1,10 @@
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
 // Bundles the TypeScript page bridges to the plain JS the app embeds and injects at document-start.
 // Each bridge is one self-contained IIFE: its modules and the messaging package are bundled in. Run
 // via `pnpm build` (type-checks first) or directly with `node build.mjs`.
 import { build } from "esbuild";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const outDir = resolve(here, "dist");

@@ -7,24 +7,24 @@ import { annotatedPageContent, byteStream } from "./page_content";
 
 // Glic host API enums we answer with, values from Chromium's glic_api_generated.ts.
 enum PanelStateKind {
-  Attached = 2
+  ATTACHED = 2
 }
 /** LINUX is what the original port reported; kept as is. */
 enum Platform {
-  Linux = 3
+  LINUX = 3
 }
 enum FormFactor {
-  Desktop = 1
+  DESKTOP = 1
 }
 enum HostCapability {
-  MultiInstance = 3,
-  PdfZeroState = 7,
-  Invoke = 8
+  MULTI_INSTANCE = 3,
+  PDF_ZERO_STATE = 7,
+  INVOKE = 8
 }
 
 const TAB_ID = "desktop";
 const PANEL_STATE = {
-  kind: PanelStateKind.Attached,
+  kind: PanelStateKind.ATTACHED,
   windowId: TAB_ID
 };
 // Glic sends Live one screenshot per focused tab id, so a fixed id gives one picture per turn. A
@@ -88,7 +88,7 @@ export interface HostSession {
   onClosePanel(): void;
 }
 
-export interface GlicHost {
+interface GlicHost {
   /** The object Glic's web client is initialized with. */
   host: object;
   /** Re-reads the screen and announces it as a new tab when the last nudge is old enough. */
@@ -96,7 +96,7 @@ export interface GlicHost {
 }
 
 /** Calls a subscriber, isolating us from its errors. */
-function notify<T>(subscriber: (value: T) => unknown, value: T): void {
+function notify<T>({ subscriber, value }: { subscriber: (value: T) => unknown; value: T }) {
   try {
     subscriber(value);
   } catch {
@@ -105,13 +105,16 @@ function notify<T>(subscriber: (value: T) => unknown, value: T): void {
 }
 
 /** An observable that never changes. */
-function observable<T>(value: T): Observable<T> {
+function observable<T>(value: T) {
   return {
-    subscribe(change) {
-      notify(change, value);
+    subscribe(change: Subscriber<T>) {
+      notify({
+        subscriber: change,
+        value
+      });
       return { unsubscribe() {} };
     }
-  };
+  } satisfies Observable<T>;
 }
 
 function settableObservable<T>(initial: T) {
@@ -122,12 +125,18 @@ function settableObservable<T>(initial: T) {
     set(next: T) {
       value = next;
       for (const subscriber of subscribers) {
-        notify(subscriber, next);
+        notify({
+          subscriber,
+          value: next
+        });
       }
     },
-    subscribe(change: Subscriber<T>): Subscription {
+    subscribe(change: Subscriber<T>) {
       subscribers.push(change);
-      notify(change, value);
+      notify({
+        subscriber: change,
+        value
+      });
       return {
         unsubscribe() {
           const i = subscribers.indexOf(change);
@@ -140,11 +149,11 @@ function settableObservable<T>(initial: T) {
   };
 }
 
-function resolved<T>(value: T): () => Promise<T> {
+function resolved<T>(value: T) {
   return () => Promise.resolve(value);
 }
 
-function toScreenshot(picture: Picture): Screenshot {
+function toScreenshot(picture: Picture) {
   const bytes = Uint8Array.from(atob(picture.data), char => char.charCodeAt(0));
   return {
     data: bytes.buffer,
@@ -154,8 +163,8 @@ function toScreenshot(picture: Picture): Screenshot {
   };
 }
 
-export function createGlicHost(session: HostSession): GlicHost {
-  async function captureFrame(): Promise<Screenshot | null> {
+export function createGlicHost(session: HostSession) {
+  async function captureFrame() {
     if (!session.isActive()) {
       return null;
     }
@@ -194,24 +203,24 @@ export function createGlicHost(session: HostSession): GlicHost {
   const focusedTabSetting = settableObservable(focusedTabState());
 
   /** Announces the screen under a new tab id, so Glic pulls a fresh frame of it. */
-  function nudgeScreen(now: number): void {
+  function nudgeScreen(now: number) {
     lastNudge = now;
     nudges++;
     focusedTabSetting.set(focusedTabState());
   }
 
-  let reading = false;
+  let isReading = false;
 
   /** Reads the screen's text first, so the next picture and its text reach Gemini together. */
-  async function readThenNudge(now: number): Promise<void> {
-    if (reading) {
+  async function readThenNudge(now: number) {
+    if (isReading) {
       return;
     }
 
-    reading = true;
+    isReading = true;
     lastNudge = now;
     latestView = await session.read();
-    reading = false;
+    isReading = false;
 
     if (session.isActive()) {
       nudgeScreen(Date.now());
@@ -219,19 +228,25 @@ export function createGlicHost(session: HostSession): GlicHost {
   }
 
   /** The shared screen's context: the tab, plus its text when Glic asks for it and there is some. */
-  function tabContext(options?: ContextOptions): TabContext {
+  function tabContext(options?: ContextOptions) {
     const tabData = focusedTab();
     if (!options?.annotatedPageContent || !latestView) {
-      return { tabData };
+      const bare: TabContext = { tabData };
+      return bare;
     }
 
-    const content = annotatedPageContent(tabData.title, tabData.url, latestView.blocks);
-    return {
+    const content = annotatedPageContent({
+      title: tabData.title,
+      url: tabData.url,
+      blocks: latestView.blocks
+    });
+    const withContent: TabContext = {
       tabData,
       annotatedPageData: {
         annotatedPageContent: byteStream(content)
       }
     };
+    return withContent;
   }
 
   const host = {
@@ -241,10 +256,10 @@ export function createGlicHost(session: HostSession): GlicHost {
       build: 0,
       patch: 0
     }),
-    getPlatform: () => Platform.Linux,
-    getFormFactor: () => FormFactor.Desktop,
+    getPlatform: () => Platform.LINUX,
+    getFormFactor: () => FormFactor.DESKTOP,
     getHostCapabilities: () =>
-      new Set([HostCapability.MultiInstance, HostCapability.PdfZeroState, HostCapability.Invoke]),
+      new Set([HostCapability.MULTI_INSTANCE, HostCapability.PDF_ZERO_STATE, HostCapability.INVOKE]),
     getUserProfileInfo: resolved({
       displayName: "You",
       email: "",
@@ -295,7 +310,7 @@ export function createGlicHost(session: HostSession): GlicHost {
     setClosedCaptioningSetting: resolved(undefined), // keep captions on: they are our text tap
     attachPanel: resolved(undefined),
     detachPanel: resolved(undefined),
-    closePanel(): Promise<void> {
+    closePanel() {
       session.onClosePanel();
       return Promise.resolve();
     }
@@ -308,7 +323,7 @@ export function createGlicHost(session: HostSession): GlicHost {
         void readThenNudge(now);
       }
     }
-  };
+  } satisfies GlicHost;
 }
 
 export interface BootEvents {
@@ -322,19 +337,22 @@ export interface BootEvents {
  * Offers `host` to Glic until it adopts it, polling for a while from now; the returned function
  * offers it once more (a no-op once booted).
  */
-export function installBootstrap(host: object, events: BootEvents): () => void {
-  let booted = false;
+export function installBootstrap({ host, events }: { host: object; events: BootEvents }) {
+  let isBooted = false;
 
   const registry = {
-    registerWebClient(webClient: WebClient): Promise<void> {
+    registerWebClient(webClient: WebClient) {
       return Promise.resolve()
         .then(() => webClient.initialize(host))
         .then(() => {
-          booted = true;
+          isBooted = true;
           events.onBooted();
           setTimeout(() => {
             if (webClient.notifyPanelWillOpen) {
-              notify(state => webClient.notifyPanelWillOpen?.(state), PANEL_STATE);
+              notify({
+                subscriber: state => webClient.notifyPanelWillOpen?.(state),
+                value: PANEL_STATE
+              });
             }
           }, 0);
         });
@@ -364,27 +382,30 @@ export function installBootstrap(host: object, events: BootEvents): () => void {
     }
   });
 
-  function tryBootstrap(): void {
-    if (booted) {
+  function tryBootstrap() {
+    if (isBooted) {
       return;
     }
 
     for (const handler of bootstrapHandlers) {
-      notify(handler, bootstrapEvent);
+      notify({
+        subscriber: handler,
+        value: bootstrapEvent
+      });
     }
   }
 
   let bootTries = 0;
   const bootTimer = setInterval(() => {
     tryBootstrap();
-
-    if (!booted && ++bootTries <= MAX_BOOT_TRIES) {
+    const shouldRetryBoot = !isBooted && ++bootTries <= MAX_BOOT_TRIES;
+    if (shouldRetryBoot) {
       return;
     }
 
     clearInterval(bootTimer);
 
-    if (!booted) {
+    if (!isBooted) {
       events.onFailed();
     }
   }, BOOT_POLL_MS);

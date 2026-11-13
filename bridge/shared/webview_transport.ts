@@ -4,7 +4,7 @@ import type { Transport } from "@gemini-live/messaging";
 
 interface WebViewChannel {
   postMessage(message: unknown): void;
-  addEventListener(type: "message", listener: (e: MessageEvent<unknown>) => void): void;
+  addEventListener(type: "message", listener: (event: MessageEvent<unknown>) => void): void;
 }
 
 declare global {
@@ -14,7 +14,7 @@ declare global {
 }
 
 /** The transport to the app; one that goes nowhere outside a WebView2 (a page opened directly). */
-export function webViewTransport(): Transport {
+export function webViewTransport() {
   const channel = window.chrome?.webview;
   return {
     post(envelope) {
@@ -25,7 +25,7 @@ export function webViewTransport(): Transport {
       }
     },
     listen(receive) {
-      channel?.addEventListener("message", e => receive(e.data));
+      channel?.addEventListener("message", event => receive(event.data));
     }
-  };
+  } satisfies Transport;
 }

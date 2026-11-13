@@ -1,11 +1,11 @@
 {
   "name": "gemini-live-session",
   "version": "0.1.0",
-  "type": "module",
+  "private": true,
   "description": "Companion extension that hands the browser's Google session to the Gemini Live desktop app",
   "license": "Apache-2.0",
   "author": "Avi (https://avi12.com)",
-  "private": true,
+  "type": "module",
   "scripts": {
     "dev": "wxt",
     "build": "wxt build",

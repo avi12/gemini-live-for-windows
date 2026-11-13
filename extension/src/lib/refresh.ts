@@ -17,7 +17,7 @@ const REFRESH_COOLDOWN_MS = 2 * 60_000;
 let lastRefreshAt = 0;
 
 /** Loads Gemini out of sight so Google refreshes the session, then closes it. */
-export async function refreshGoogleSession(): Promise<void> {
+export async function refreshGoogleSession() {
   if (Date.now() - lastRefreshAt < REFRESH_COOLDOWN_MS) {
     return;
   }

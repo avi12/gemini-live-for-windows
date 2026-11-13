@@ -11,42 +11,30 @@ const LIVE_CHANNEL_PATH = "/v1/processSession";
 
 /** Field indexes in a server message, MSG. */
 enum MsgField {
-  Seq = 0,
-  ServerContent = 1,
-  Status = 3,
-  InputTranscription = 7
+  SEQ = 0,
+  SERVER_CONTENT = 1,
+  STATUS = 3,
+  INPUT_TRANSCRIPTION = 7
 }
 
 /** Field indexes in MSG[ServerContent]. */
 enum ContentField {
-  GenerationComplete = 2,
-  Interrupted = 3,
-  OutputTranscription = 5
-}
-
-export interface WireTranscript {
-  /** Forgets the previous session's utterances; indices restart at 0. */
-  reset(): void;
-  /** Whether the wire has carried a transcript, so the caption scrape is not needed. */
-  seen(): boolean;
-  /** When the user last spoke with nothing from Gemini since (no voice, transcript or tool call), or null. */
-  unansweredSince(): number | null;
+  GENERATION_COMPLETE = 2,
+  INTERRUPTED = 3,
+  OUTPUT_TRANSCRIPTION = 5
 }
 
 /** The first string anywhere in a nested array, depth first. */
-function firstString(value: unknown): string | null {
-  if (typeof value === "string") {
-    return value;
-  }
+function firstString(value: unknown) {
+  const pending: unknown[] = [value];
+  while (pending.length > 0) {
+    const current = pending.pop();
+    if (typeof current === "string") {
+      return current;
+    }
 
-  if (!Array.isArray(value)) {
-    return null;
-  }
-
-  for (const item of value) {
-    const found = firstString(item);
-    if (found !== null) {
-      return found;
+    if (Array.isArray(current)) {
+      pending.push(...[...current].reverse());
     }
   }
   return null;
@@ -56,7 +44,7 @@ function firstString(value: unknown): string | null {
  * Follows every Live downlink Glic opens and hands `relay` each utterance as it grows, keyed by
  * its index in the session.
  */
-export function tapLiveTranscript(relay: (index: number, utterance: Utterance) => void): WireTranscript {
+export function tapLiveTranscript(relay: (index: number, utterance: Utterance) => void) {
   /** Utterances in the order the wire opened them; the array index is the transcript index. */
   let utterances: Utterance[] = [];
   /** Index of the user utterance still being transcribed, or -1. */
@@ -65,40 +53,52 @@ export function tapLiveTranscript(relay: (index: number, utterance: Utterance) =
   let unfinishedUser = -1;
   /** Index of the Gemini utterance still being spoken, or -1. */
   let openAssistant = -1;
-  let wireSeen = false;
+  let hasWireSeen = false;
   let unansweredSince: number | null = null;
 
-  function relayUtterance(index: number): void {
-    relay(index, utterances[index]!);
+  function utteranceAt(index: number) {
+    const utterance = utterances[index];
+    if (utterance === undefined) {
+      throw new Error(`No utterance at index ${index}`);
+    }
+
+    return utterance;
+  }
+
+  function relayUtterance(index: number) {
+    relay(index, utteranceAt(index));
   }
 
   /** Opens a new utterance; its index. */
-  function openUtterance(direction: Direction): number {
-    return utterances.push({
-      direction,
-      text: ""
-    }) - 1;
+  function openUtterance(direction: Direction) {
+    return (
+      utterances.push({
+        direction,
+        text: ""
+      }) - 1
+    );
   }
 
   /** The user utterance an input transcript belongs to: the open one, or else a new one. */
-  function inputUtterance(isFinal: boolean): number {
+  function inputUtterance(isFinal: boolean) {
     if (openUser >= 0) {
       return openUser;
     }
 
+    const isClosingUserUtterance = isFinal && unfinishedUser >= 0;
     // A late final belongs to the utterance Gemini's reply closed, not to a new one.
-    if (isFinal && unfinishedUser >= 0) {
+    if (isClosingUserUtterance) {
       return unfinishedUser;
     }
 
-    return openUtterance(Direction.User);
+    return openUtterance(Direction.USER);
   }
 
   /**
    * Input transcription, MSG[7]: the user's whole utterance so far, `[[text]]` while partial and
    * `[null, [text]]` once final. Cumulative, so it replaces; the final one closes the utterance.
    */
-  function onInputTranscript(field: unknown[]): void {
+  function onInputTranscript(field: unknown[]) {
     const text = firstString(field);
     if (text === null) {
       return;
@@ -106,7 +106,7 @@ export function tapLiveTranscript(relay: (index: number, utterance: Utterance) =
 
     const isFinal = field[0] === null;
     const index = inputUtterance(isFinal);
-    utterances[index]!.text = text;
+    utteranceAt(index).text = text;
     openUser = isFinal ? -1 : index;
     unfinishedUser = -1;
     unansweredSince = Date.now();
@@ -117,20 +117,21 @@ export function tapLiveTranscript(relay: (index: number, utterance: Utterance) =
    * Output transcription, MSG[1][5] = [fragment, startTime, endTime, first]: one piece of what
    * Gemini is saying, `first` = 1 on a generation's opening fragment. Appended.
    */
-  function onOutputTranscript(field: unknown[]): void {
+  function onOutputTranscript(field: unknown[]) {
     const [fragment, , , first] = field;
     if (typeof fragment !== "string") {
       return;
     }
 
-    if (openAssistant < 0 || first === 1) {
-      openAssistant = openUtterance(Direction.Assistant);
+    const isNewAssistantUtterance = openAssistant < 0 || first === 1;
+    if (isNewAssistantUtterance) {
+      openAssistant = openUtterance(Direction.ASSISTANT);
       // Gemini answering means the user's turn is over, even if its final transcript never came.
       unfinishedUser = openUser;
       openUser = -1;
     }
 
-    utterances[openAssistant]!.text += fragment;
+    utteranceAt(openAssistant).text += fragment;
     relayUtterance(openAssistant);
   }
 
@@ -140,35 +141,37 @@ export function tapLiveTranscript(relay: (index: number, utterance: Utterance) =
    * end Gemini's utterance. Audio ([0] config, [1] mp3) and acks are ignored, but any
    * serverContent or tool status means Gemini is answering.
    */
-  function onServerMessage(msg: unknown): void {
-    if (!Array.isArray(msg) || typeof msg[MsgField.Seq] !== "string") {
+  function onServerMessage(msg: unknown) {
+    const isNotSequencedMessage = !Array.isArray(msg) || typeof msg[MsgField.SEQ] !== "string";
+    if (isNotSequencedMessage) {
       return;
     }
 
-    const input: unknown = msg[MsgField.InputTranscription];
+    const input: unknown = msg[MsgField.INPUT_TRANSCRIPTION];
     if (Array.isArray(input)) {
-      wireSeen = true;
+      hasWireSeen = true;
       onInputTranscript(input);
     }
 
-    if (Array.isArray(msg[MsgField.Status])) {
+    if (Array.isArray(msg[MsgField.STATUS])) {
       unansweredSince = null;
     }
 
-    const content: unknown = msg[MsgField.ServerContent];
+    const content: unknown = msg[MsgField.SERVER_CONTENT];
     if (!Array.isArray(content)) {
       return;
     }
 
     unansweredSince = null;
 
-    const output: unknown = content[ContentField.OutputTranscription];
+    const output: unknown = content[ContentField.OUTPUT_TRANSCRIPTION];
     if (Array.isArray(output)) {
-      wireSeen = true;
+      hasWireSeen = true;
       onOutputTranscript(output);
     }
 
-    if (content[ContentField.GenerationComplete] != null || content[ContentField.Interrupted] != null) {
+    const isTurnEnded = content[ContentField.GENERATION_COMPLETE] != null || content[ContentField.INTERRUPTED] != null;
+    if (isTurnEnded) {
       openAssistant = -1;
     }
   }
@@ -177,7 +180,7 @@ export function tapLiveTranscript(relay: (index: number, utterance: Utterance) =
    * One WebChannel chunk: [[arrayId, payload], ...], where a content payload is
    * [[null, MSG], ...] and the rest are ["noop"], acks and status.
    */
-  function onChannelChunk(chunk: string): void {
+  function onChannelChunk(chunk: string) {
     let frames: unknown;
     try {
       frames = JSON.parse(chunk);
@@ -196,7 +199,8 @@ export function tapLiveTranscript(relay: (index: number, utterance: Utterance) =
       }
 
       for (const entry of payload) {
-        if (Array.isArray(entry) && entry[0] === null) {
+        const isNullKeyedEntry = Array.isArray(entry) && entry[0] === null;
+        if (isNullKeyedEntry) {
           onServerMessage(entry[1]);
         }
       }
@@ -204,7 +208,7 @@ export function tapLiveTranscript(relay: (index: number, utterance: Utterance) =
   }
 
   /** Parses one completed chunk; a frame we misread costs a caption, never Glic's own processing. */
-  function readChunk(chunk: string): void {
+  function readChunk(chunk: string) {
     try {
       onChannelChunk(chunk);
     } catch {
@@ -217,9 +221,9 @@ export function tapLiveTranscript(relay: (index: number, utterance: Utterance) =
    * UTF-16 units, so each read parses only the chunks completed since the last one. Reading
    * responseText takes nothing from Glic, whose own handler sees the same text.
    */
-  function tapDownlink(xhr: XMLHttpRequest): void {
+  function tapDownlink(xhr: XMLHttpRequest) {
     let offset = 0;
-    function read(): void {
+    function read() {
       let text: string;
       try {
         text = xhr.responseText;
@@ -234,7 +238,8 @@ export function tapLiveTranscript(relay: (index: number, utterance: Utterance) =
 
         const length = Number(text.slice(offset, newline));
         const end = newline + 1 + length;
-        if (!Number.isInteger(length) || text.length < end) {
+        const isTruncatedFrame = !Number.isInteger(length) || text.length < end;
+        if (isTruncatedFrame) {
           return;
         }
 
@@ -263,7 +268,9 @@ export function tapLiveTranscript(relay: (index: number, utterance: Utterance) =
       url: string | URL,
       ...rest: OpenRest
     ) {
-      if (String(method).toUpperCase() === "GET" && String(url).includes(LIVE_CHANNEL_PATH)) {
+      const isToUpperCaseGETAndIncludes =
+        String(method).toUpperCase() === "GET" && String(url).includes(LIVE_CHANNEL_PATH);
+      if (isToUpperCaseGETAndIncludes) {
         downlinks.add(this);
       } else {
         downlinks.delete(this);
@@ -293,7 +300,7 @@ export function tapLiveTranscript(relay: (index: number, utterance: Utterance) =
       openAssistant = -1;
       unansweredSince = null;
     },
-    seen: () => wireSeen,
+    seen: () => hasWireSeen,
     unansweredSince: () => unansweredSince
   };
 }

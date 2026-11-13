@@ -1,5 +1,9 @@
 import { defineConfig } from "wxt";
 
+const ICON_SIZE_SMALL = 16;
+const ICON_SIZE_MEDIUM = 48;
+const ICON_SIZE_LARGE = 128;
+
 // WXT loads its config from the default export.
 export default defineConfig({
   srcDir: "src",
@@ -22,9 +26,9 @@ export default defineConfig({
     // An https-only grant silently drops them and the jar signs the app in as signed-out.
     host_permissions: ["*://*.google.com/*"],
     icons: {
-      16: "icon/16.png",
-      48: "icon/48.png",
-      128: "icon/128.png"
+      [ICON_SIZE_SMALL]: "icon/16.png",
+      [ICON_SIZE_MEDIUM]: "icon/48.png",
+      [ICON_SIZE_LARGE]: "icon/128.png"
     }
   }
 });

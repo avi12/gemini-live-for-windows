@@ -15,7 +15,7 @@ const LINK_KEEPALIVE_MINUTES = 0.5;
 /** Every alarm this worker creates; onAlarm dispatches on the name. */
 enum AlarmName {
   /** Periodic keepalive that reconnects a dropped link. */
-  Link = "link"
+  LINK = "link"
 }
 
 // WXT discovers entrypoints by their default export, so this one file is exempt from the
@@ -27,9 +27,9 @@ export default defineBackground(() => {
   browser.runtime.onInstalled.addListener(() => ensureLinkConnected());
   browser.runtime.onStartup.addListener(() => ensureLinkConnected());
 
-  void browser.alarms.create(AlarmName.Link, { periodInMinutes: LINK_KEEPALIVE_MINUTES });
+  void browser.alarms.create(AlarmName.LINK, { periodInMinutes: LINK_KEEPALIVE_MINUTES });
   browser.alarms.onAlarm.addListener(alarm => {
-    if (alarm.name !== AlarmName.Link) {
+    if (alarm.name !== AlarmName.LINK) {
       return;
     }
 

@@ -1,8 +1,9 @@
+import { defineMessaging, type Messenger, type Transport } from "@gemini-live/messaging";
+import { type LinkInfo, LinkMessage, type LinkProtocolMap } from "@gemini-live/protocol/link";
+
 import { readLinkInfo } from "@/lib/native-host";
 import { ReconnectController } from "@/lib/reconnect";
 import { refreshGoogleSession } from "@/lib/refresh";
-import { defineMessaging, type Messenger, type Transport } from "@gemini-live/messaging";
-import { type BrowserCookie, type LinkInfo, LinkMessage, type LinkProtocolMap } from "@gemini-live/protocol/link";
 
 // The loopback WebSocket the desktop app hosts. It accepts only this extension's pinned ID. Its
 // port is free-picked per run, so the extension asks the app's native messaging host for it, with
@@ -42,7 +43,7 @@ const connection = new ReconnectController(connect, isLinkActive, RECONNECT_MS);
 let pendingPush: ReturnType<typeof setTimeout> | undefined;
 
 /** Whether a cookie belongs to the Google session the app mirrors. */
-export function isGoogleCookie(cookie: Browser.cookies.Cookie): boolean {
+export function isGoogleCookie(cookie: Browser.cookies.Cookie) {
   // google.com itself or a subdomain (".google.com", "accounts.google.com"), never "notgoogle.com"
   const domain = cookie.domain.replace(/^\./, "");
   return domain === GOOGLE_COOKIE_DOMAIN || domain.endsWith(`.${GOOGLE_COOKIE_DOMAIN}`);
@@ -52,28 +53,30 @@ export function isGoogleCookie(cookie: Browser.cookies.Cookie): boolean {
  * Connects to the app unless already connected. Safe to call from the alarm and the
  * close-handler retry alike: never stacks sockets.
  */
-export function ensureLinkConnected(): void {
+export function ensureLinkConnected() {
   connection.ensure();
 }
 
 /** Pushes the session once a burst of cookie changes has settled. */
-export function pushSessionSoon(): void {
+export function pushSessionSoon() {
   clearTimeout(pendingPush);
-  pendingPush = setTimeout(() => void pushSession(), ROTATION_DEBOUNCE_MS);
+  pendingPush = setTimeout(() => {
+    void pushSession();
+  }, ROTATION_DEBOUNCE_MS);
 }
 
-function isLinkActive(link: Link): boolean {
+function isLinkActive(link: Link) {
   return !link.closed;
 }
 
 /** The messenger of the trusted, open link to the app, if there is one. */
-function trustedMessenger(): Messenger<LinkProtocolMap> | undefined {
+function trustedMessenger() {
   const link = connection.current;
   return link?.trusted && link.socket?.readyState === WebSocket.OPEN ? link.messenger : undefined;
 }
 
 /** The link's socket as a messaging transport: JSON text frames both ways. */
-function socketTransport(socket: WebSocket): Transport {
+function socketTransport(socket: WebSocket) {
   return {
     post(envelope) {
       // A closing socket drops the frame; its sender's timeout reports it.
@@ -94,10 +97,10 @@ function socketTransport(socket: WebSocket): Transport {
         }
       });
     }
-  };
+  } satisfies Transport;
 }
 
-async function collectCookies(): Promise<BrowserCookie[]> {
+async function collectCookies() {
   const cookies = await browser.cookies.getAll({ domain: GOOGLE_COOKIE_DOMAIN });
   return cookies.map(cookie => ({
     name: cookie.name,
@@ -111,7 +114,7 @@ async function collectCookies(): Promise<BrowserCookie[]> {
   }));
 }
 
-async function pushSession(): Promise<void> {
+async function pushSession() {
   const messenger = trustedMessenger();
   if (!messenger) {
     return;
@@ -124,11 +127,11 @@ async function pushSession(): Promise<void> {
   }
 
   // The link may drop before the app's receipt arrives; the next connect pushes again.
-  messenger.sendMessage(LinkMessage.cookies, cookies).catch(() => undefined);
+  messenger.sendMessage(LinkMessage.COOKIES, cookies).catch(() => undefined);
 }
 
 /** Ends this attempt once, and lets the controller schedule the next. */
-function closeLink(link: Link): void {
+function closeLink(link: Link) {
   if (link.closed) {
     return;
   }
@@ -140,8 +143,9 @@ function closeLink(link: Link): void {
 }
 
 /** Refuses anything but a Hello before the app has proven itself, ending the link as before. */
-function requireTrusted(link: Link): void {
-  if (connection.current === link && link.trusted) {
+function requireTrusted(link: Link) {
+  const isCurrentTrustedLink = connection.current === link && link.trusted;
+  if (isCurrentTrustedLink) {
     return;
   }
 
@@ -149,7 +153,7 @@ function requireTrusted(link: Link): void {
   throw new Error("Not trusted: Hello first");
 }
 
-function connect(): Link {
+function connect() {
   const link: Link = {
     trusted: false,
     closed: false
@@ -164,12 +168,15 @@ function connect(): Link {
       return;
     }
 
-    open(link, info);
+    open({
+      link,
+      info
+    });
   });
   return link;
 }
 
-function open(link: Link, info: LinkInfo): void {
+function open({ link, info }: { link: Link; info: LinkInfo }) {
   const socket = new WebSocket(`ws://127.0.0.1:${info.port}${LINK_PATH}`);
   link.socket = socket;
   const helloTimer = setTimeout(() => closeLink(link), HELLO_TIMEOUT_MS);
@@ -180,8 +187,9 @@ function open(link: Link, info: LinkInfo): void {
     });
     link.messenger = messenger;
 
-    messenger.onMessage(LinkMessage.hello, ({ data: token }) => {
-      if (connection.current !== link || token !== info.token) {
+    messenger.onMessage(LinkMessage.HELLO, ({ data: token }) => {
+      const isStaleLink = connection.current !== link || token !== info.token;
+      if (isStaleLink) {
         closeLink(link);
         throw new Error("Wrong token");
       }
@@ -191,19 +199,19 @@ function open(link: Link, info: LinkInfo): void {
       void pushSession();
     });
     // The app wants the current session now (e.g. it has none yet).
-    messenger.onMessage(LinkMessage.query, () => {
+    messenger.onMessage(LinkMessage.QUERY, () => {
       requireTrusted(link);
       return collectCookies();
     });
     // The app's copy stopped working (Gemini says signed out / unavailable). Send what we have,
     // and refresh it; the refreshed cookies follow through the cookie-change push.
-    messenger.onMessage(LinkMessage.refresh, () => {
+    messenger.onMessage(LinkMessage.REFRESH, () => {
       requireTrusted(link);
       void pushSession();
       void refreshGoogleSession();
     });
     // The app pings every ~20 s; the reply is the keepalive that holds this service worker awake.
-    messenger.onMessage(LinkMessage.ping, () => requireTrusted(link));
+    messenger.onMessage(LinkMessage.PING, () => requireTrusted(link));
   });
   socket.addEventListener("close", () => {
     clearTimeout(helloTimer);

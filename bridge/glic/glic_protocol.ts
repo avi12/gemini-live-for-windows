@@ -4,47 +4,47 @@ import type { Block } from "./page_content";
 
 export enum GlicMessage {
   // app → page
-  Start = "start",
-  Stop = "stop",
-  SetMuted = "setMuted",
-  ListMics = "listMics",
-  SetMic = "setMic",
-  BeginAction = "beginAction",
-  SubmitAndRead = "submitAndRead",
+  START = "start",
+  STOP = "stop",
+  SET_MUTED = "setMuted",
+  LIST_MICS = "listMics",
+  SET_MIC = "setMic",
+  BEGIN_ACTION = "beginAction",
+  SUBMIT_AND_READ = "submitAndRead",
   // page → app
-  Booted = "booted",
-  Ready = "ready",
-  State = "state",
-  Transcript = "transcript",
-  Error = "error",
-  Capture = "capture",
-  Read = "read"
+  BOOTED = "booted",
+  READY = "ready",
+  STATE = "state",
+  TRANSCRIPT = "transcript",
+  ERROR = "error",
+  CAPTURE = "capture",
+  READ = "read"
 }
 
 /**
- * What GlicMessage.Error carries. SignedOut, Unavailable and LiveBroke are codes GlicHost matches
+ * What GlicMessage.ERROR carries. SignedOut, Unavailable and LiveBroke are codes GlicHost matches
  * on (PageError in C#) - waiting for a fresh session for the first two, reloading the page for the
  * third; the rest are shown to the user as they are.
  */
 export enum ErrorMessage {
-  SignedOut = "signed-out",
-  Unavailable = "unavailable",
-  LiveBroke = "live-broke",
-  PageDidNotStart = "Gemini page did not start",
-  LiveDidNotStart = "Gemini Live did not start (sign-in or rate limit)"
+  SIGNED_OUT = "signed-out",
+  UNAVAILABLE = "unavailable",
+  LIVE_BROKE = "live-broke",
+  PAGE_DID_NOT_START = "Gemini page did not start",
+  LIVE_DID_NOT_START = "Gemini Live did not start (sign-in or rate limit)"
 }
 
 /** The Live states the page reports. */
 export enum State {
-  Idle = "idle",
-  Listening = "listening",
-  Resuming = "resuming"
+  IDLE = "idle",
+  LISTENING = "listening",
+  RESUMING = "resuming"
 }
 
 /** Who spoke a transcript line. */
 export enum Direction {
-  Assistant = "assistant",
-  User = "user"
+  ASSISTANT = "assistant",
+  USER = "user"
 }
 
 export interface Microphone {
@@ -88,24 +88,24 @@ export interface ScreenView {
 }
 
 export interface GlicProtocolMap {
-  [GlicMessage.Start](): void;
-  [GlicMessage.Stop](): void;
-  [GlicMessage.SetMuted](muted: boolean): void;
-  [GlicMessage.ListMics](): Microphone[];
-  [GlicMessage.SetMic](id: string | null): void;
+  [GlicMessage.START](): void;
+  [GlicMessage.STOP](): void;
+  [GlicMessage.SET_MUTED](muted: boolean): void;
+  [GlicMessage.LIST_MICS](): Microphone[];
+  [GlicMessage.SET_MIC](id: string | null): void;
   /** Switches to text mode; whether a focused, empty text box is ready for typing. */
-  [GlicMessage.BeginAction](): boolean;
+  [GlicMessage.BEGIN_ACTION](): boolean;
   /** Submits the typed request; the answer and its links. */
-  [GlicMessage.SubmitAndRead](): TextAnswer;
+  [GlicMessage.SUBMIT_AND_READ](): TextAnswer;
 
-  [GlicMessage.Booted](): void;
-  [GlicMessage.Ready](): void;
-  [GlicMessage.State](state: State): void;
-  [GlicMessage.Transcript](line: TranscriptLine): void;
+  [GlicMessage.BOOTED](): void;
+  [GlicMessage.READY](): void;
+  [GlicMessage.STATE](state: State): void;
+  [GlicMessage.TRANSCRIPT](line: TranscriptLine): void;
   /** A failure: one of ErrorMessage's codes, or a message to show. */
-  [GlicMessage.Error](message: ErrorMessage): void;
+  [GlicMessage.ERROR](message: ErrorMessage): void;
   /** A picture of the shared screen or camera; null when there is none. */
-  [GlicMessage.Capture](): Picture | null;
+  [GlicMessage.CAPTURE](): Picture | null;
   /** An exact text copy of the window on the shared display; null when there is none. */
-  [GlicMessage.Read](): ScreenView | null;
+  [GlicMessage.READ](): ScreenView | null;
 }

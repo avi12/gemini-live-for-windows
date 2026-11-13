@@ -6,7 +6,7 @@ import { collapseWhitespace } from "../shared/text";
 // keeps the answer in context. C# types the request with trusted CDP key events, because synthetic
 // input never enables Submit.
 import { Button, clickButton, findButton } from "./glic_page";
-import type { AnswerLink, TextAnswer } from "./glic_protocol";
+import type { AnswerLink } from "./glic_protocol";
 
 const ACTION_READY_MS = 6000;
 const EDITOR_POLL_MS = 150;
@@ -22,27 +22,27 @@ const ACTION_SETTLE_MS = 1400;
 // specific enough not to hit an always-present composer button. A bare "Add" is deliberately
 // absent: it matched "Add tabs. Press Enter to activate" and auto-clicked it on every turn.
 const ACTION_CONFIRM = [
-  Button.ConfirmsActions,
-  Button.AddEvent,
-  Button.AddEventTitleCase,
-  Button.Create,
-  Button.Save,
-  Button.Remove,
-  Button.Delete,
-  Button.Update,
-  Button.Confirm
+  Button.CONFIRMS_ACTIONS,
+  Button.ADD_EVENT,
+  Button.ADD_EVENT_TITLE_CASE,
+  Button.CREATE,
+  Button.SAVE,
+  Button.REMOVE,
+  Button.DELETE,
+  Button.UPDATE,
+  Button.CONFIRM
 ];
-const SUBMIT = [Button.Submit, Button.SendMessage, Button.Send];
+const SUBMIT = [Button.SUBMIT, Button.SEND_MESSAGE, Button.SEND];
 /** Glic shows these under an answer only once it has finished. */
-const REPLY_DONE = [Button.Copy, Button.GoodResponse, Button.Regenerate];
+const REPLY_DONE = [Button.COPY, Button.GOOD_RESPONSE, Button.REGENERATE];
 const REPLY_PREFIX = /^Gemini said\s*/i;
 const WEB_LINK = /^https?:\/\//i;
 
-function sleep(milliseconds: number): Promise<void> {
+function sleep(milliseconds: number) {
   return new Promise(resolve => setTimeout(resolve, milliseconds));
 }
 
-async function waitFor<T>(predicate: () => T | null, timeoutMs: number): Promise<T | null> {
+async function waitFor<T>({ predicate, timeoutMs }: { predicate: () => T | null; timeoutMs: number }) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const value = predicate();
@@ -55,8 +55,8 @@ async function waitFor<T>(predicate: () => T | null, timeoutMs: number): Promise
   return null;
 }
 
-function editor(): HTMLElement | null {
-  return document.querySelector<HTMLElement>("[contenteditable=\"true\"]");
+function editor() {
+  return document.querySelector<HTMLElement>('[contenteditable="true"]');
 }
 
 /**
@@ -67,7 +67,7 @@ function editor(): HTMLElement | null {
  * themselves. Fall back to the inner nodes if that class ever changes, and strip the "Gemini said"
  * accessibility prefix the container carries.
  */
-function lastReply(): HTMLElement | undefined {
+function lastReply() {
   const containers = document.querySelectorAll<HTMLElement>(".presented-response-container");
   const last = containers[containers.length - 1];
   if (last) {
@@ -80,7 +80,7 @@ function lastReply(): HTMLElement | undefined {
   return nodes[nodes.length - 1];
 }
 
-function lastReplyText(): string {
+function lastReplyText() {
   return collapseWhitespace(lastReply()?.innerText ?? "").replace(REPLY_PREFIX, "");
 }
 
@@ -89,10 +89,12 @@ function lastReplyText(): string {
  * each. Live can only say a link, so these are what turn a spoken "it's on their site" into a
  * page to open.
  */
-function lastReplyLinks(): AnswerLink[] {
+function lastReplyLinks() {
   const links = new Map<string, AnswerLink>();
   for (const anchor of lastReply()?.querySelectorAll("a[href]") ?? []) {
-    if (!(anchor instanceof HTMLAnchorElement) || !WEB_LINK.test(anchor.href) || links.has(anchor.href)) {
+    const isNotNewWebLink =
+      !(anchor instanceof HTMLAnchorElement) || !WEB_LINK.test(anchor.href) || links.has(anchor.href);
+    if (isNotNewWebLink) {
       continue;
     }
 
@@ -106,9 +108,12 @@ function lastReplyLinks(): AnswerLink[] {
 }
 
 /** Switches to text mode; whether a focused, empty editor is ready for C# to type into. */
-export async function openTextEditor(): Promise<boolean> {
-  clickButton(Button.TextMode);
-  const box = await waitFor(editor, ACTION_READY_MS);
+export async function openTextEditor() {
+  clickButton(Button.TEXT_MODE);
+  const box = await waitFor({
+    predicate: editor,
+    timeoutMs: ACTION_READY_MS
+  });
   if (!box) {
     return false;
   }
@@ -123,7 +128,7 @@ export async function openTextEditor(): Promise<boolean> {
  * After C# has typed the request: submit it, wait for the answer to stop growing, auto-confirm a
  * card, and return the answer with its links.
  */
-export async function submitAndRead(): Promise<TextAnswer> {
+export async function submitAndRead() {
   clickButton(...SUBMIT);
   let text = "";
   let stableSince = 0;
@@ -131,7 +136,8 @@ export async function submitAndRead(): Promise<TextAnswer> {
   while (Date.now() < deadline) {
     const now = lastReplyText();
     const done = findButton(...REPLY_DONE);
-    if (now && now === text && done) {
+    const isSettledText = now && now === text && done;
+    if (isSettledText) {
       stableSince = stableSince || Date.now();
 
       if (Date.now() - stableSince > ACTION_SETTLE_MS) {
@@ -147,7 +153,7 @@ export async function submitAndRead(): Promise<TextAnswer> {
 
   // Out of time with the reply still running (a tool call that never returns): stop it. While a
   // reply runs Glic hides its Live button, so Live could never resume.
-  if (clickButton(Button.StopResponse)) {
+  if (clickButton(Button.STOP_RESPONSE)) {
     await sleep(ACTION_SETTLE_MS);
   }
 
