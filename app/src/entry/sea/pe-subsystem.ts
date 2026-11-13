@@ -9,10 +9,10 @@ const SUBSYSTEM_FIELD_BYTES = 2;
 const SUBSYSTEM_OFFSET_IN_OPTIONAL_HEADER = 68;
 
 export const PeSubsystem = {
-  windowsGui: 2,
-  windowsConsole: 3
+  WINDOWS_GUI: 2,
+  WINDOWS_CONSOLE: 3
 } as const;
-export type PeSubsystem = typeof PeSubsystem[keyof typeof PeSubsystem];
+export type PeSubsystem = (typeof PeSubsystem)[keyof typeof PeSubsystem];
 
 export function optionalHeaderOffsetOf(image: Buffer) {
   const isTooShort = image.length < PE_OFFSET_POSITION + PE_OFFSET_FIELD_BYTES;
@@ -23,8 +23,9 @@ export function optionalHeaderOffsetOf(image: Buffer) {
 
   const peOffset = image.readUInt32LE(PE_OFFSET_POSITION);
   const offset = peOffset + PE_SIGNATURE_BYTES + COFF_HEADER_BYTES;
-  const isInvalidPe = offset + SUBSYSTEM_OFFSET_IN_OPTIONAL_HEADER + SUBSYSTEM_FIELD_BYTES > image.length
-    || image.readUInt32LE(peOffset) !== PE_MAGIC;
+  const isInvalidPe =
+    offset + SUBSYSTEM_OFFSET_IN_OPTIONAL_HEADER + SUBSYSTEM_FIELD_BYTES > image.length ||
+    image.readUInt32LE(peOffset) !== PE_MAGIC;
   if (isInvalidPe) {
     throw new Error("Not a PE file: no PE signature");
   }
@@ -42,9 +43,6 @@ export function readSubsystem(image: Buffer) {
 
 // Node's exe has the console subsystem, which flashes a console window on a Start menu or
 // protocol launch. The GUI subsystem keeps stdin and stdout pipes working.
-export function setSubsystem({ image, subsystem }: {
-  image: Buffer;
-  subsystem: PeSubsystem;
-}) {
+export function setSubsystem({ image, subsystem }: { image: Buffer; subsystem: PeSubsystem }) {
   image.writeUInt16LE(subsystem, subsystemOffsetOf(image));
 }

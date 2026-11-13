@@ -1,6 +1,7 @@
-import { PeSubsystem, readSubsystem, setSubsystem } from "./pe-subsystem.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+
+import { PeSubsystem, readSubsystem, setSubsystem } from "./pe-subsystem.ts";
 
 const PE_OFFSET = 0x80;
 const PE_SIGNATURE_BYTES = 4;
@@ -25,17 +26,17 @@ function fakeImage(subsystem: number) {
 
 describe("pe subsystem", () => {
   it("reads the console subsystem of a node-like header", () => {
-    assert.equal(readSubsystem(fakeImage(PeSubsystem.windowsConsole)), PeSubsystem.windowsConsole);
+    assert.equal(readSubsystem(fakeImage(PeSubsystem.WINDOWS_CONSOLE)), PeSubsystem.WINDOWS_CONSOLE);
   });
 
   it("flips console to GUI and touches nothing else", () => {
-    const image = fakeImage(PeSubsystem.windowsConsole);
+    const image = fakeImage(PeSubsystem.WINDOWS_CONSOLE);
     const expected = Buffer.from(image);
     setSubsystem({
       image,
-      subsystem: PeSubsystem.windowsGui
+      subsystem: PeSubsystem.WINDOWS_GUI
     });
-    expected.writeUInt16LE(PeSubsystem.windowsGui, SUBSYSTEM_POSITION);
+    expected.writeUInt16LE(PeSubsystem.WINDOWS_GUI, SUBSYSTEM_POSITION);
     assert.deepEqual(image, expected);
   });
 
@@ -44,11 +45,15 @@ describe("pe subsystem", () => {
   });
 
   it("refuses an MZ file without a PE signature", () => {
-    const image = fakeImage(PeSubsystem.windowsConsole);
+    const image = fakeImage(PeSubsystem.WINDOWS_CONSOLE);
     image.writeUInt32LE(0, PE_OFFSET);
-    assert.throws(() => setSubsystem({
-      image,
-      subsystem: PeSubsystem.windowsGui
-    }), /PE signature/);
+    assert.throws(
+      () =>
+        setSubsystem({
+          image,
+          subsystem: PeSubsystem.WINDOWS_GUI
+        }),
+      /PE signature/
+    );
   });
 });

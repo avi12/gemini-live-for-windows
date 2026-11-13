@@ -1,3 +1,5 @@
+import type { Transport } from "winui-svelte/state/host";
+
 import { monitorName } from "@/contracts/monitor.ts";
 import { openFile } from "@/core/shell/open-external.ts";
 import { errorMessage } from "@/lib/error-message.ts";
@@ -9,7 +11,6 @@ import { createScreenFocus } from "@/overlays/focus/screen-focus.ts";
 import { CircleAction } from "@/overlays/protocol.ts";
 import type { PillController } from "@/pill/controller.ts";
 import type { ScreenFocusOptions, ScreenFocusPort } from "@/pill/ports.ts";
-import type { Transport } from "winui-svelte/state/host";
 
 function toCircleText(lines: Awaited<ReturnType<ReturnType<typeof createCircleSession>["readText"]>>) {
   return lines.map(line => ({
@@ -24,7 +25,13 @@ function toCircleText(lines: Awaited<ReturnType<ReturnType<typeof createCircleSe
 
 // Freezes the display under the pointer for the user to circle something, then sends the crop
 // on: to Lens, or to Gemini as what it sees, starting a conversation if none is running
-async function runCircle({ media, controller, session, lens, log }: {
+async function runCircle({
+  media,
+  controller,
+  session,
+  lens,
+  log
+}: {
   media: Pick<Media, "monitors">;
   controller: () => Pick<PillController, "focusRegion" | "isRunning">;
   session: ReturnType<typeof createCircleSession>;
@@ -44,7 +51,7 @@ async function runCircle({ media, controller, session, lens, log }: {
       return;
     }
 
-    const isLens = selection.action === CircleAction.lens;
+    const isLens = selection.action === CircleAction.LENS;
     if (isLens) {
       await lens.search(selection.crop);
       return;
@@ -61,7 +68,12 @@ async function runCircle({ media, controller, session, lens, log }: {
 
 // The main thread's side of Circle to Search and the share border: the windows and hotkeys run on
 // the UI worker, so this turns what they report into the pill controller's calls and back
-export function createOverlayControl({ transport, media, controller, log }: {
+export function createOverlayControl({
+  transport,
+  media,
+  controller,
+  log
+}: {
   transport: Transport;
   media: Pick<Media, "circleScreen" | "monitors">;
   // The controller is built over the focus this creates, so it is reached on demand
@@ -79,7 +91,9 @@ export function createOverlayControl({ transport, media, controller, log }: {
       chipDismissed: () => focus?.events.chipDismissed(),
       chipDragStarted: () => focus?.events.chipDragStarted(),
       chipDragged: travelled => focus?.events.chipDragged(travelled),
-      circleKeyPressed: () => void circle(),
+      circleKeyPressed() {
+        void circle();
+      },
       readCircleText: async ({ region }) => toCircleText(await session.readText(region))
     }
   });

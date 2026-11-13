@@ -1,3 +1,6 @@
+import type { MountedPill } from "@gemini-live/pill/mount";
+import { bringWindowToFront, trackForeground } from "winui-svelte/window/foreground";
+
 import { log } from "@/core/log/log.ts";
 import { keepRunningOnUnhandledErrors } from "@/core/log/unhandled-errors.ts";
 import { errorMessage } from "@/lib/error-message.ts";
@@ -9,8 +12,6 @@ import { startKeyTriggers } from "@/wiring/ui-thread/ui-entry.ts";
 import { startGoogle } from "@/wiring/ui-thread/ui-google.ts";
 import { startOverlayWindows } from "@/wiring/ui-thread/ui-overlays.ts";
 import type { UiWorkerData } from "@/wiring/ui-thread/ui-worker-data.ts";
-import type { MountedPill } from "@gemini-live/pill/mount";
-import { bringWindowToFront, trackForeground } from "winui-svelte/window/foreground";
 
 function writeLog(message: string) {
   log.write(message);
@@ -30,10 +31,7 @@ function surfaceOf(window: ReturnType<MountedPill["window"]>) {
   } satisfies PillWindowSurface;
 }
 
-async function attempt({ name, work }: {
-  name: string;
-  work: () => Promise<void>;
-}) {
+async function attempt({ name, work }: { name: string; work: () => Promise<void> }) {
   try {
     await work();
   } catch (error) {
@@ -43,10 +41,7 @@ async function attempt({ name, work }: {
 
 // Everything that has to live on the thread of the windows, started once the pump runs. One part
 // failing to start is logged and leaves the others up.
-function startUiServices({ pill, data }: {
-  pill: MountedPill;
-  data: UiWorkerData;
-}) {
+function startUiServices({ pill, data }: { pill: MountedPill; data: UiWorkerData }) {
   serveWindowAbilities({
     link: pill.messaging,
     surface: () => surfaceOf(pill.window()),
@@ -61,23 +56,25 @@ function startUiServices({ pill, data }: {
   });
   void attempt({
     name: "the overlays",
-    work: () => startOverlayWindows({
-      port: data.ports.overlays,
-      isDebugging: data.isDebugging,
-      log: writeLog
-    })
+    work: () =>
+      startOverlayWindows({
+        port: data.ports.overlays,
+        isDebugging: data.isDebugging,
+        log: writeLog
+      })
   });
   void attempt({
     name: "the Google pages",
-    work: () => startGoogle({
-      port: data.ports.google,
-      bridgesDirectory: data.bridgesDirectory,
-      audioWorkerUrl: new URL(data.audioWorkerUrl),
-      uiaWorkerUrl: new URL(data.uiaWorkerUrl),
-      nativeHostPath: data.nativeHostPath,
-      isDebugging: data.isDebugging,
-      log: writeLog
-    })
+    work: () =>
+      startGoogle({
+        port: data.ports.google,
+        bridgesDirectory: data.bridgesDirectory,
+        audioWorkerUrl: new URL(data.audioWorkerUrl),
+        uiaWorkerUrl: new URL(data.uiaWorkerUrl),
+        nativeHostPath: data.nativeHostPath,
+        isDebugging: data.isDebugging,
+        log: writeLog
+      })
   });
 }
 
@@ -87,9 +84,10 @@ export async function startUi(data: UiWorkerData) {
   const mountPill = await loadMountPill();
   await mountPill({
     port: data.ports.pill,
-    onStart: pill => startUiServices({
-      pill,
-      data
-    })
+    onStart: pill =>
+      startUiServices({
+        pill,
+        data
+      })
   });
 }

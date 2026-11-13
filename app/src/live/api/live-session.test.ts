@@ -1,3 +1,6 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+
 import { LiveStatus } from "@/contracts/live-engine.ts";
 import { SYSTEM_PROMPT } from "@/live/api/constants.ts";
 import { createLiveSession } from "@/live/api/live-session.ts";
@@ -11,8 +14,6 @@ import {
   setupOf,
   TEST_KEY
 } from "@/live/fakes.ts";
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 
 function setup(network = createFakeNetwork()) {
   const events: string[] = [];
@@ -25,14 +26,28 @@ function setup(network = createFakeNetwork()) {
       voice: "Kore"
     },
     connect: network.connect,
-    log: message => void logs.push(message),
+    log(message) {
+      logs.push(message);
+    },
     listeners: {
-      onAudio: pcm16 => void audio.push(pcm16),
-      onInterrupted: () => void events.push("interrupted"),
-      onUserText: text => void events.push(`user:${text}`),
-      onModelText: text => void events.push(`model:${text}`),
-      onStatus: status => void events.push(`status:${status}`),
-      onClosed: reason => void events.push(`closed:${reason}`)
+      onAudio(pcm16) {
+        audio.push(pcm16);
+      },
+      onInterrupted() {
+        events.push("interrupted");
+      },
+      onUserText(text) {
+        events.push(`user:${text}`);
+      },
+      onModelText(text) {
+        events.push(`model:${text}`);
+      },
+      onStatus(status) {
+        events.push(`status:${status}`);
+      },
+      onClosed(reason) {
+        events.push(`closed:${reason}`);
+      }
     }
   });
   return {
@@ -76,9 +91,11 @@ describe("live session setup", () => {
         systemInstruction: {
           parts: [{ text: SYSTEM_PROMPT }]
         },
-        tools: [{
-          googleSearch: {}
-        }],
+        tools: [
+          {
+            googleSearch: {}
+          }
+        ],
         inputAudioTranscription: {},
         outputAudioTranscription: {},
         contextWindowCompression: {
@@ -111,7 +128,7 @@ describe("live session setup", () => {
     const { session } = setup(network);
     const pending = session.open();
     await flush();
-    network.sockets[0]?.serverSendRaw("{\"goAway\":{}}");
+    network.sockets[0]?.serverSendRaw('{"goAway":{}}');
     await assert.rejects(pending, /Setup rejected: /);
   });
 
@@ -156,12 +173,14 @@ describe("live session downstream", () => {
       serverContent: {
         interrupted: true,
         modelTurn: {
-          parts: [{
-            inlineData: {
-              mimeType: "audio/pcm;rate=24000",
-              data: PCM_BASE64
+          parts: [
+            {
+              inlineData: {
+                mimeType: "audio/pcm;rate=24000",
+                data: PCM_BASE64
+              }
             }
-          }]
+          ]
         },
         inputTranscription: {
           text: "hi"
@@ -196,7 +215,7 @@ describe("live session downstream", () => {
     first.serverSend({
       usageMetadata: {}
     });
-    assert.deepEqual(logs, ["live api: ignoring \"usageMetadata\""]);
+    assert.deepEqual(logs, ['live api: ignoring "usageMetadata"']);
   });
 
   it("closes with the server's reason, or a default", async () => {
@@ -239,12 +258,9 @@ describe("live session reconnect", () => {
     await flush();
     const second = network.sockets[1];
     assert.ok(second);
-    assert.deepEqual(events, [`status:${LiveStatus.reconnecting}`, `status:${LiveStatus.listening}`]);
+    assert.deepEqual(events, [`status:${LiveStatus.RECONNECTING}`, `status:${LiveStatus.LISTENING}`]);
     assert.equal(first.closes.length, 1);
-    assert.deepEqual(
-      setupOf(second.sent[0])?.sessionResumption,
-      { handle: "handle-1" }
-    );
+    assert.deepEqual(setupOf(second.sent[0])?.sessionResumption, { handle: "handle-1" });
     session.sendAudio(new Uint8Array([1]));
     assert.equal(second.sent.length, 2);
     assert.equal(first.sent.length, 1);
@@ -270,10 +286,7 @@ describe("live session reconnect", () => {
       goAway: {}
     });
     await flush();
-    assert.deepEqual(
-      setupOf(network.sockets[1]?.sent[0])?.sessionResumption,
-      {}
-    );
+    assert.deepEqual(setupOf(network.sockets[1]?.sent[0])?.sessionResumption, {});
   });
 
   it("reports a failed reconnect", async () => {
@@ -284,7 +297,7 @@ describe("live session reconnect", () => {
     });
     await flush();
     assert.deepEqual(events, [
-      `status:${LiveStatus.reconnecting}`,
+      `status:${LiveStatus.RECONNECTING}`,
       "closed:Reconnect failed: Could not reach the Live API"
     ]);
   });
@@ -294,10 +307,12 @@ describe("live session dispose", () => {
   it("closes politely and stays silent afterwards", async () => {
     const { session, first, events } = await opened();
     await session.dispose();
-    assert.deepEqual(first.closes, [{
-      code: 1000,
-      reason: "bye"
-    }]);
+    assert.deepEqual(first.closes, [
+      {
+        code: 1000,
+        reason: "bye"
+      }
+    ]);
     assert.deepEqual(events, []);
     session.sendAudio(new Uint8Array([1]));
     assert.equal(first.sent.length, 1);

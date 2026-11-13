@@ -6,10 +6,7 @@ function clampPeak(peak: number) {
 }
 
 // A muted mic reads silent even though the capture still hears the room
-export function micLevel({ peak, isMuted }: {
-  peak: number;
-  isMuted: boolean;
-}) {
+export function micLevel({ peak, isMuted }: { peak: number; isMuted: boolean }) {
   return isMuted ? MIN_PEAK : clampPeak(peak);
 }
 

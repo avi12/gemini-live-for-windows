@@ -1,12 +1,14 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+
+import { WindowMessage } from "@gemini-live/protocol/view";
+import { defineMessaging } from "winui-svelte/messaging";
+
 import { linkedTransports } from "@/lib/transport/linked-transports.ts";
 import type { ForegroundApi } from "@/overlays/ports.ts";
 import type { PillProtocol } from "@/pill/host/host-link.ts";
 import { serveWindowAbilities, WINDOW_NOT_UP } from "@/pill/host/window-abilities.ts";
 import type { ForegroundMemory, PillWindowSurface } from "@/pill/host/window-abilities.ts";
-import { WindowMessage } from "@gemini-live/protocol/view";
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
-import { defineMessaging } from "winui-svelte/messaging";
 
 const PILL_WINDOW = 4242n;
 const APP_IN_FRONT = 7n;
@@ -21,7 +23,10 @@ const SHELL_IN_FRONT: ForegroundMemory = {
   }
 };
 
-function setup({ isUp = true, memory = SHELL_IN_FRONT }: {
+function setup({
+  isUp = true,
+  memory = SHELL_IN_FRONT
+}: {
   isUp?: boolean;
   memory?: ForegroundMemory;
 } = {}) {
@@ -52,7 +57,7 @@ function setup({ isUp = true, memory = SHELL_IN_FRONT }: {
   };
   serveWindowAbilities({
     link: defineMessaging<PillProtocol>({ transport: transports.second }),
-    surface: () => isUp ? surface : undefined,
+    surface: () => (isUp ? surface : undefined),
     foreground,
     memory,
     bringToFrontOf(hwnd) {
@@ -70,13 +75,13 @@ function setup({ isUp = true, memory = SHELL_IN_FRONT }: {
 describe("the pill window's abilities", () => {
   it("raises the window past the foreground lock", async () => {
     const { host, calls } = setup();
-    await host.sendMessage(WindowMessage.bringToFront);
+    await host.sendMessage(WindowMessage.BRING_TO_FRONT);
     assert.deepEqual(calls, [`top ${PILL_WINDOW}`, `foreground ${PILL_WINDOW}`]);
   });
 
   it("puts the earlier app back when the shell holds the foreground", async () => {
     const { host, calls } = setup();
-    await host.sendMessage(WindowMessage.restorePreviousApp);
+    await host.sendMessage(WindowMessage.RESTORE_PREVIOUS_APP);
     assert.deepEqual(calls, [`bring ${EARLIER_APP}`, "focus: back to the app that was in front"]);
   });
 
@@ -90,7 +95,7 @@ describe("the pill window's abilities", () => {
         }
       }
     });
-    await host.sendMessage(WindowMessage.restorePreviousApp);
+    await host.sendMessage(WindowMessage.RESTORE_PREVIOUS_APP);
     assert.deepEqual(calls, []);
   });
 
@@ -104,13 +109,13 @@ describe("the pill window's abilities", () => {
         }
       }
     });
-    await host.sendMessage(WindowMessage.restorePreviousApp);
+    await host.sendMessage(WindowMessage.RESTORE_PREVIOUS_APP);
     assert.deepEqual(calls, []);
   });
 
   it("moves the window by the distance it was dragged", async () => {
     const { host, calls } = setup();
-    await host.sendMessage(WindowMessage.moveBy, {
+    await host.sendMessage(WindowMessage.MOVE_BY, {
       deltaX: -15,
       deltaY: 8
     });
@@ -120,7 +125,7 @@ describe("the pill window's abilities", () => {
   it("refuses a move that is not whole pixels", async () => {
     const { host } = setup();
     await assert.rejects(
-      host.sendMessage(WindowMessage.moveBy, {
+      host.sendMessage(WindowMessage.MOVE_BY, {
         deltaX: 0.5,
         deltaY: 0
       })
@@ -129,9 +134,9 @@ describe("the pill window's abilities", () => {
 
   it("answers with a reason before the window exists", async () => {
     const { host } = setup({ isUp: false });
-    await assert.rejects(host.sendMessage(WindowMessage.bringToFront), new RegExp(WINDOW_NOT_UP));
+    await assert.rejects(host.sendMessage(WindowMessage.BRING_TO_FRONT), new RegExp(WINDOW_NOT_UP));
     await assert.rejects(
-      host.sendMessage(WindowMessage.moveBy, {
+      host.sendMessage(WindowMessage.MOVE_BY, {
         deltaX: 1,
         deltaY: 1
       }),

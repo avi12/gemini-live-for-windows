@@ -1,3 +1,7 @@
+import type { MessagePort } from "node:worker_threads";
+
+import { createMessagePortTransport } from "winui-svelte/state/host";
+
 import { publishNativeHost } from "@/core/link/native-host-registration.ts";
 import { userSecret } from "@/core/secret/user-secret.ts";
 import { createGoogleServices } from "@/google/google-services.ts";
@@ -5,8 +9,6 @@ import type { LinkPublisher, SecretSealer } from "@/google/ports.ts";
 import { serveGoogle } from "@/google/remote/google-server.ts";
 import { dataDir } from "@/lib/paths.ts";
 import { createMedia } from "@/media/media.ts";
-import type { MessagePort } from "node:worker_threads";
-import { createMessagePortTransport } from "winui-svelte/state/host";
 
 const sealer: SecretSealer = {
   seal: plain => Promise.resolve(userSecret.seal({ plain })),
@@ -35,10 +37,11 @@ export async function startGoogle({
 }) {
   const logger = { write: log };
   const publisher: LinkPublisher = {
-    publish: link => publishNativeHost({
-      link,
-      hostPath: nativeHostPath
-    })
+    publish: link =>
+      publishNativeHost({
+        link,
+        hostPath: nativeHostPath
+      })
   };
   const media = createMedia({
     log,

@@ -8,10 +8,7 @@ const RESTART_DELAY_MILLISECONDS = 1000;
 
 // Mirrors PillHost.cs: a window that ran long enough starts the count over, and one that keeps
 // exiting right after it starts is given up on
-export function planRestart({ rapidRestarts, ranMilliseconds }: {
-  rapidRestarts: number;
-  ranMilliseconds: number;
-}) {
+export function planRestart({ rapidRestarts, ranMilliseconds }: { rapidRestarts: number; ranMilliseconds: number }) {
   const isRapid = ranMilliseconds < STABLE_RUN_MILLISECONDS;
   const next = isRapid ? rapidRestarts + 1 : 0;
   return {
@@ -30,7 +27,12 @@ export function rapidRestartsOf(env: NodeJS.ProcessEnv) {
 // Node run needs its flags and script first. winui-svelte's relaunch builds the same command but
 // ends the application on the UI thread, which is the thread that just died, so the main thread
 // builds it here.
-export function restartCommand({ isSingleExecutable, execPath, execArgv, script }: {
+export function restartCommand({
+  isSingleExecutable,
+  execPath,
+  execArgv,
+  script
+}: {
   isSingleExecutable: boolean;
   execPath: string;
   execArgv: readonly string[];
@@ -46,7 +48,15 @@ export function restartCommand({ isSingleExecutable, execPath, execArgv, script 
 // The UI worker owns the pill, the overlays and the Google pages, so when it ends the app has
 // lost its window. Like PillHost.cs restarting a dead pill, start again after a pause, up to a
 // limit; the new copy gets the count so a window that dies at once is not restarted forever.
-export async function superviseUiWorker({ ranMilliseconds, exitCode, rapidRestarts, release, relaunch, delay, log }: {
+export async function superviseUiWorker({
+  ranMilliseconds,
+  exitCode,
+  rapidRestarts,
+  release,
+  relaunch,
+  delay,
+  log
+}: {
   ranMilliseconds: number;
   exitCode: number;
   rapidRestarts: number;

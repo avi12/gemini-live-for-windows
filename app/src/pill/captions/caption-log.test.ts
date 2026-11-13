@@ -1,6 +1,7 @@
-import { createCaptionLog, MAX_LINES } from "@/pill/captions/caption-log.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+
+import { createCaptionLog, MAX_LINES } from "@/pill/captions/caption-log.ts";
 
 function createLog() {
   const added: string[] = [];
@@ -61,11 +62,14 @@ describe("caption log lines", () => {
       text: "Hi again",
       isUser: true
     });
-    assert.deepEqual(log.lines.map(line => [line.id, line.text, line.isUser]), [
-      ["line-0", "Hi", true],
-      ["line-1", "Hello!", false],
-      ["line-2", "Hi again", true]
-    ]);
+    assert.deepEqual(
+      log.lines.map(line => [line.id, line.text, line.isUser]),
+      [
+        ["line-0", "Hi", true],
+        ["line-1", "Hello!", false],
+        ["line-2", "Hi again", true]
+      ]
+    );
   });
 
   it("keeps only the last six lines", () => {
@@ -90,10 +94,13 @@ describe("caption log lines", () => {
       text: "Back again",
       isUser: false
     });
-    assert.deepEqual(log.lines.map(line => [line.text, line.isNote]), [
-      ["The session ended", true],
-      ["Back again", false]
-    ]);
+    assert.deepEqual(
+      log.lines.map(line => [line.text, line.isNote]),
+      [
+        ["The session ended", true],
+        ["Back again", false]
+      ]
+    );
   });
 
   it("starts a user line after a note", () => {
@@ -193,10 +200,12 @@ describe("caption log links", () => {
 
   it("drops an address that is not absolute", () => {
     const { log } = createLog();
-    log.showLinks([{
-      title: "Broken",
-      uri: "not a link"
-    }]);
+    log.showLinks([
+      {
+        title: "Broken",
+        uri: "not a link"
+      }
+    ]);
     assert.deepEqual(log.links, []);
   });
 
@@ -227,7 +236,7 @@ describe("caption log links", () => {
   it("marks a quoted headline as a search", () => {
     const { log } = createLog();
     log.show({
-      text: "Search \"Giant telescope spots new galaxy\"",
+      text: 'Search "Giant telescope spots new galaxy"',
       isUser: false
     });
     assert.equal(log.links[0]?.isSearch, true);

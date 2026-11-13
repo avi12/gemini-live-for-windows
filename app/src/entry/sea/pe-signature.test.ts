@@ -1,6 +1,7 @@
-import { stripSignature } from "./pe-signature.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+
+import { stripSignature } from "./pe-signature.ts";
 
 const PE_OFFSET = 0x80;
 const PE_SIGNATURE_BYTES = 4;
@@ -10,9 +11,8 @@ const DATA_DIRECTORIES_OFFSET = 112;
 const SECURITY_DIRECTORY_INDEX = 4;
 const DIRECTORY_ENTRY_BYTES = 8;
 const SIZE_OFFSET = 4;
-const SECURITY_ENTRY = OPTIONAL_HEADER_START
-  + DATA_DIRECTORIES_OFFSET
-  + SECURITY_DIRECTORY_INDEX * DIRECTORY_ENTRY_BYTES;
+const SECURITY_ENTRY =
+  OPTIONAL_HEADER_START + DATA_DIRECTORIES_OFFSET + SECURITY_DIRECTORY_INDEX * DIRECTORY_ENTRY_BYTES;
 const SECURITY_SIZE = SECURITY_ENTRY + SIZE_OFFSET;
 const CODE_BYTES = 0x200;
 const CERTIFICATE_BYTES = 0x40;

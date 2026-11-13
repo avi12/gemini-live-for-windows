@@ -1,15 +1,13 @@
-import { DpiAwareness, ensureDpiAware, isAwareAtLeast } from "./dpi.ts";
-import type { DpiCalls } from "./dpi.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-function fakeCalls({ reads, result }: {
-  reads: DpiAwareness[];
-  result: ReturnType<DpiCalls["setPerMonitorV2"]>;
-}) {
+import { DpiAwareness, ensureDpiAware, isAwareAtLeast } from "./dpi.ts";
+import type { DpiCalls } from "./dpi.ts";
+
+function fakeCalls({ reads, result }: { reads: DpiAwareness[]; result: ReturnType<DpiCalls["setPerMonitorV2"]> }) {
   let setCount = 0;
   const calls: DpiCalls = {
-    read: () => reads.shift() ?? DpiAwareness.unaware,
+    read: () => reads.shift() ?? DpiAwareness.UNAWARE,
     setPerMonitorV2() {
       setCount += 1;
       return result;
@@ -24,42 +22,42 @@ function fakeCalls({ reads, result }: {
 describe("ensureDpiAware", () => {
   it("does nothing when the process is already per-monitor v2", () => {
     const fake = fakeCalls({
-      reads: [DpiAwareness.perMonitorV2],
+      reads: [DpiAwareness.PER_MONITOR_V2],
       result: {
         isSuccess: true,
         lastError: null
       }
     });
-    assert.equal(ensureDpiAware({ calls: fake.calls }), DpiAwareness.perMonitorV2);
+    assert.equal(ensureDpiAware({ calls: fake.calls }), DpiAwareness.PER_MONITOR_V2);
     assert.equal(fake.setCount(), 0);
   });
 
   it("sets it for an unaware process", () => {
     const fake = fakeCalls({
-      reads: [DpiAwareness.unaware, DpiAwareness.perMonitorV2],
+      reads: [DpiAwareness.UNAWARE, DpiAwareness.PER_MONITOR_V2],
       result: {
         isSuccess: true,
         lastError: null
       }
     });
-    assert.equal(ensureDpiAware({ calls: fake.calls }), DpiAwareness.perMonitorV2);
+    assert.equal(ensureDpiAware({ calls: fake.calls }), DpiAwareness.PER_MONITOR_V2);
     assert.equal(fake.setCount(), 1);
   });
 
   it("accepts an access-denied answer when the process is per-monitor aware already", () => {
     const fake = fakeCalls({
-      reads: [DpiAwareness.perMonitor, DpiAwareness.perMonitor],
+      reads: [DpiAwareness.PER_MONITOR, DpiAwareness.PER_MONITOR],
       result: {
         isSuccess: false,
         lastError: 5
       }
     });
-    assert.equal(ensureDpiAware({ calls: fake.calls }), DpiAwareness.perMonitor);
+    assert.equal(ensureDpiAware({ calls: fake.calls }), DpiAwareness.PER_MONITOR);
   });
 
   it("names both values when denied and too low", () => {
     const fake = fakeCalls({
-      reads: [DpiAwareness.system, DpiAwareness.system],
+      reads: [DpiAwareness.SYSTEM, DpiAwareness.SYSTEM],
       result: {
         isSuccess: false,
         lastError: 5
@@ -70,7 +68,7 @@ describe("ensureDpiAware", () => {
 
   it("throws on any other failure", () => {
     const fake = fakeCalls({
-      reads: [DpiAwareness.unaware],
+      reads: [DpiAwareness.UNAWARE],
       result: {
         isSuccess: false,
         lastError: 87
@@ -84,14 +82,14 @@ describe("isAwareAtLeast", () => {
   it("orders the awareness values", () => {
     assert.ok(
       isAwareAtLeast({
-        current: DpiAwareness.perMonitorV2,
-        required: DpiAwareness.perMonitor
+        current: DpiAwareness.PER_MONITOR_V2,
+        required: DpiAwareness.PER_MONITOR
       })
     );
     assert.ok(
       !isAwareAtLeast({
-        current: DpiAwareness.system,
-        required: DpiAwareness.perMonitor
+        current: DpiAwareness.SYSTEM,
+        required: DpiAwareness.PER_MONITOR
       })
     );
   });

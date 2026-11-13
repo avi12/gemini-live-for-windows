@@ -1,12 +1,7 @@
-import {
-  guidBytes,
-  numberVariantBytes,
-  propertyKeyBytes,
-  readNumberVariant,
-  VariantType
-} from "./property-store.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+
+import { guidBytes, numberVariantBytes, propertyKeyBytes, readNumberVariant, VariantType } from "./property-store.ts";
 
 const FORMAT_ID = "38652BCA-4329-4E74-86F9-39CF29345EEA";
 const FORMAT_ID_BYTES = "ca2b65382943744e86f939cf29345eea";
@@ -44,7 +39,7 @@ describe("propertyKeyBytes", () => {
 describe("numberVariantBytes", () => {
   it("is 24 bytes with the type at 0 and the value at 8", () => {
     const bytes = numberVariantBytes({
-      type: VariantType.uint,
+      type: VariantType.UINT,
       value: VALUE
     });
     assert.equal(bytes.length, VARIANT_BYTES);

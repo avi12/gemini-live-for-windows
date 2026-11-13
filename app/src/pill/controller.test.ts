@@ -1,13 +1,15 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+
+import { GlowMode, PillActionKind, pillViewSchema } from "@gemini-live/protocol/view";
+import type { PillView } from "@gemini-live/protocol/view";
+
 import { EngineKind, LiveEventKind, LiveStatus } from "@/contracts/live-engine.ts";
 import type { Monitor } from "@/contracts/monitor.ts";
 import { KeyTrigger } from "@/core/instance/key-trigger.ts";
 import { UpdateCheck } from "@/core/updates/update-checker.ts";
 import { INSTALLER_NOTE, NO_UPDATE, UNPACKAGED } from "@/pill/menus/update-menu.ts";
 import { createFakePill, PRIMARY, SECONDARY, settle } from "@/pill/test-fakes.ts";
-import { GlowMode, PillActionKind, pillViewSchema } from "@gemini-live/protocol/view";
-import type { PillView } from "@gemini-live/protocol/view";
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 
 const SECONDARY_NAME = "Display 2 · 2560×1440";
 const CHECK_UPDATE: NonNullable<PillView["update"]> = {
@@ -35,22 +37,19 @@ function expectedView(overrides: Partial<PillView> = {}) {
     isMuted: false,
     lines: [],
     links: [],
-    displays: [
-      displayEntry(PRIMARY),
-      displayEntry(SECONDARY)
-    ],
+    displays: [displayEntry(PRIMARY), displayEntry(SECONDARY)],
     pillDisplay: PRIMARY.deviceName,
     sharedDisplay: null,
     isExtensionNeeded: false,
     isExtensionStepsShown: false,
     isKeyPromptShown: false,
-    engine: EngineKind.google,
+    engine: EngineKind.GOOGLE,
     microphones: [],
     microphoneId: null,
     isCameraShared: false,
     update: CHECK_UPDATE,
     glow: {
-      mode: GlowMode.rest,
+      mode: GlowMode.REST,
       level: 0,
       isUser: false
     },
@@ -70,12 +69,12 @@ const DESK = {
   name: "Desk"
 };
 const LISTENING: Partial<PillView> = {
-  status: LiveStatus.listening,
+  status: LiveStatus.LISTENING,
   isShown: true,
   sharedDisplay: PRIMARY.deviceName,
   microphones: [HEADSET, DESK],
   glow: {
-    mode: GlowMode.breathe,
+    mode: GlowMode.BREATHE,
     level: 0,
     isUser: false
   }
@@ -83,7 +82,7 @@ const LISTENING: Partial<PillView> = {
 
 async function started(options: Parameters<typeof createFakePill>[0] = {}) {
   const pill = createFakePill(options);
-  await pill.controller.onTrigger(KeyTrigger.tap);
+  await pill.controller.onTrigger(KeyTrigger.TAP);
   await settle();
   return pill;
 }
@@ -115,15 +114,15 @@ describe("the pill view", () => {
     pill.controller.subscribe(view => seen.push(view));
     seen.length = 0;
     pill.engine.emit({
-      kind: LiveEventKind.status,
+      kind: LiveEventKind.STATUS,
       status: "one"
     });
     pill.engine.emit({
-      kind: LiveEventKind.status,
+      kind: LiveEventKind.STATUS,
       status: "two"
     });
     pill.engine.emit({
-      kind: LiveEventKind.status,
+      kind: LiveEventKind.STATUS,
       status: "three"
     });
     await settle();
@@ -152,11 +151,12 @@ describe("starting a conversation", () => {
     const pill = createFakePill();
     const gate = Promise.withResolvers<void>();
     pill.prepareNextEngine({ gate: gate.promise });
-    void pill.controller.onTrigger(KeyTrigger.tap);
+    void pill.controller.onTrigger(KeyTrigger.TAP);
     await settle();
     assert.deepEqual(
-      pill.controller.view(), expectedView({
-        status: LiveStatus.connecting,
+      pill.controller.view(),
+      expectedView({
+        status: LiveStatus.CONNECTING,
         isShown: true,
         sharedDisplay: PRIMARY.deviceName,
         microphones: [HEADSET, DESK]
@@ -164,23 +164,23 @@ describe("starting a conversation", () => {
     );
     gate.resolve();
     await settle();
-    assert.equal(pill.controller.view()?.status, LiveStatus.listening);
+    assert.equal(pill.controller.view()?.status, LiveStatus.LISTENING);
   });
 
   it("follows voice levels instead of breathing when the engine reports them", async () => {
     const pill = createFakePill();
     pill.prepareNextEngine({ reportsLevels: true });
-    await pill.controller.onTrigger(KeyTrigger.tap);
+    await pill.controller.onTrigger(KeyTrigger.TAP);
     await settle();
-    assert.equal(pill.controller.view()?.glow.mode, GlowMode.rest);
+    assert.equal(pill.controller.view()?.glow.mode, GlowMode.REST);
     pill.engine.emit({
-      kind: LiveEventKind.level,
+      kind: LiveEventKind.LEVEL,
       peak: 0.4349,
       isUser: false
     });
     await settle();
     assert.deepEqual(pill.controller.view()?.glow, {
-      mode: GlowMode.level,
+      mode: GlowMode.LEVEL,
       level: 0.43,
       isUser: false
     });
@@ -189,7 +189,7 @@ describe("starting a conversation", () => {
   it("starts on the active display", async () => {
     const pill = createFakePill();
     pill.world.active = SECONDARY;
-    await pill.controller.onTrigger(KeyTrigger.holdStart);
+    await pill.controller.onTrigger(KeyTrigger.HOLD_START);
     await settle();
     assert.equal(pill.controller.view()?.sharedDisplay, SECONDARY.deviceName);
   });
@@ -197,13 +197,13 @@ describe("starting a conversation", () => {
   it("clears the last session's captions", async () => {
     const pill = await started();
     pill.engine.emit({
-      kind: LiveEventKind.transcript,
+      kind: LiveEventKind.TRANSCRIPT,
       text: "old",
       isUser: true
     });
-    await pill.controller.apply({ kind: PillActionKind.end });
+    await pill.controller.apply({ kind: PillActionKind.END });
     await settle();
-    await pill.controller.onTrigger(KeyTrigger.tap);
+    await pill.controller.onTrigger(KeyTrigger.TAP);
     await settle();
     assert.deepEqual(pill.controller.view()?.lines, []);
   });
@@ -213,21 +213,23 @@ describe("the engine's events", () => {
   it("turns transcripts into lines and links", async () => {
     const pill = await started();
     pill.engine.emit({
-      kind: LiveEventKind.transcript,
+      kind: LiveEventKind.TRANSCRIPT,
       text: "What is the news",
       isUser: true
     });
     pill.engine.emit({
-      kind: LiveEventKind.transcript,
+      kind: LiveEventKind.TRANSCRIPT,
       text: "Try example.com",
       isUser: false
     });
     pill.engine.emit({
-      kind: LiveEventKind.links,
-      links: [{
-        title: "Weather",
-        uri: "https://weather.example.com/tlv"
-      }]
+      kind: LiveEventKind.LINKS,
+      links: [
+        {
+          title: "Weather",
+          uri: "https://weather.example.com/tlv"
+        }
+      ]
     });
     await settle();
     const view = pill.controller.view();
@@ -267,33 +269,36 @@ describe("the engine's events", () => {
   it("shows the engine's own status", async () => {
     const pill = await started();
     pill.engine.emit({
-      kind: LiveEventKind.status,
-      status: LiveStatus.reconnecting
+      kind: LiveEventKind.STATUS,
+      status: LiveStatus.RECONNECTING
     });
     await settle();
-    assert.equal(pill.controller.view()?.status, LiveStatus.reconnecting);
+    assert.equal(pill.controller.view()?.status, LiveStatus.RECONNECTING);
   });
 
   it("keeps the pill up with the reason when the session ends", async () => {
     const pill = await started();
     pill.engine.emit({
-      kind: LiveEventKind.ended,
+      kind: LiveEventKind.ENDED,
       reason: "The connection dropped"
     });
     await settle();
     assert.deepEqual(
-      pill.controller.view(), expectedView({
-        status: LiveStatus.stopped,
+      pill.controller.view(),
+      expectedView({
+        status: LiveStatus.STOPPED,
         statusDetail: "The connection dropped",
         isShown: true,
         isMuted: false,
         microphones: [HEADSET, DESK],
-        lines: [{
-          id: "line-0",
-          text: "The connection dropped",
-          isUser: false,
-          isNote: true
-        }]
+        lines: [
+          {
+            id: "line-0",
+            text: "The connection dropped",
+            isUser: false,
+            isNote: true
+          }
+        ]
       })
     );
     assert.equal(pill.engine.calls.disposed, 1);
@@ -304,16 +309,16 @@ describe("the engine's events", () => {
     const pill = await started();
     const first = pill.engine;
     await pill.controller.apply({
-      kind: PillActionKind.setEngine,
-      engine: EngineKind.apiKey
+      kind: PillActionKind.SET_ENGINE,
+      engine: EngineKind.API_KEY
     });
     await settle();
     first.emit({
-      kind: LiveEventKind.ended,
+      kind: LiveEventKind.ENDED,
       reason: "late"
     });
     await settle();
-    assert.equal(pill.controller.view()?.status, LiveStatus.listening);
+    assert.equal(pill.controller.view()?.status, LiveStatus.LISTENING);
     assert.deepEqual(pill.controller.view()?.lines, []);
   });
 });
@@ -322,20 +327,23 @@ describe("a start that fails", () => {
   it("stops with the reason as status detail and a note", async () => {
     const pill = createFakePill();
     pill.prepareNextEngine({ fail: new Error("Gemini is unreachable") });
-    await pill.controller.onTrigger(KeyTrigger.tap);
+    await pill.controller.onTrigger(KeyTrigger.TAP);
     await settle();
     assert.deepEqual(
-      pill.controller.view(), expectedView({
-        status: LiveStatus.stopped,
+      pill.controller.view(),
+      expectedView({
+        status: LiveStatus.STOPPED,
         statusDetail: "Gemini is unreachable",
         isShown: true,
         microphones: [HEADSET, DESK],
-        lines: [{
-          id: "line-0",
-          text: "Gemini is unreachable",
-          isUser: false,
-          isNote: true
-        }]
+        lines: [
+          {
+            id: "line-0",
+            text: "Gemini is unreachable",
+            isUser: false,
+            isNote: true
+          }
+        ]
       })
     );
     assert.equal(pill.engine.calls.disposed, 1);
@@ -343,25 +351,28 @@ describe("a start that fails", () => {
   });
 
   it("asks for a key when the failure is about the API key", async () => {
-    const pill = createFakePill({ engineKind: EngineKind.apiKey });
+    const pill = createFakePill({ engineKind: EngineKind.API_KEY });
     pill.prepareNextEngine({ fail: new Error("The API key was rejected") });
-    await pill.controller.onTrigger(KeyTrigger.tap);
+    await pill.controller.onTrigger(KeyTrigger.TAP);
     await settle();
     assert.deepEqual(
-      pill.controller.view(), expectedView({
-        status: LiveStatus.needsApiKey,
+      pill.controller.view(),
+      expectedView({
+        status: LiveStatus.NEEDS_API_KEY,
         statusDetail: "",
-        engine: EngineKind.apiKey,
+        engine: EngineKind.API_KEY,
         isShown: true,
         isKeyPromptShown: true,
         isFocusable: true,
         microphones: [HEADSET, DESK],
-        lines: [{
-          id: "line-0",
-          text: "The API key was rejected",
-          isUser: false,
-          isNote: true
-        }]
+        lines: [
+          {
+            id: "line-0",
+            text: "The API key was rejected",
+            isUser: false,
+            isNote: true
+          }
+        ]
       })
     );
   });
@@ -373,12 +384,12 @@ describe("a start that fails", () => {
       gate: gate.promise,
       fail: new Error("late failure")
     });
-    void pill.controller.onTrigger(KeyTrigger.tap);
+    void pill.controller.onTrigger(KeyTrigger.TAP);
     await settle();
-    await pill.controller.apply({ kind: PillActionKind.end });
+    await pill.controller.apply({ kind: PillActionKind.END });
     gate.resolve();
     await settle();
-    assert.equal(pill.controller.view()?.status, LiveStatus.connecting);
+    assert.equal(pill.controller.view()?.status, LiveStatus.CONNECTING);
     assert.equal(pill.controller.view()?.isShown, false);
     assert.deepEqual(pill.controller.view()?.lines, []);
   });
@@ -387,11 +398,12 @@ describe("a start that fails", () => {
 describe("the Copilot key", () => {
   it("ends the conversation on a tap while one runs, and hands focus back", async () => {
     const pill = await started();
-    await pill.controller.onTrigger(KeyTrigger.tap);
+    await pill.controller.onTrigger(KeyTrigger.TAP);
     await settle();
     assert.deepEqual(
-      pill.controller.view(), expectedView({
-        status: LiveStatus.listening,
+      pill.controller.view(),
+      expectedView({
+        status: LiveStatus.LISTENING,
         microphones: [HEADSET, DESK]
       })
     );
@@ -401,10 +413,10 @@ describe("the Copilot key", () => {
 
   it("unmutes on a hold while one runs", async () => {
     const pill = await started();
-    await pill.controller.apply({ kind: PillActionKind.mute });
+    await pill.controller.apply({ kind: PillActionKind.MUTE });
     assert.equal(pill.controller.view()?.isMuted, true);
     assert.equal(pill.engine.engine.isMuted, true);
-    await pill.controller.onTrigger(KeyTrigger.holdStart);
+    await pill.controller.onTrigger(KeyTrigger.HOLD_START);
     assert.equal(pill.controller.view()?.isMuted, false);
     assert.equal(pill.engine.engine.isMuted, false);
     assert.equal(pill.engines.length, 1);
@@ -412,9 +424,9 @@ describe("the Copilot key", () => {
 
   it("starts on a hold when idle, and does nothing on release", async () => {
     const pill = createFakePill();
-    await pill.controller.onTrigger(KeyTrigger.holdStop);
+    await pill.controller.onTrigger(KeyTrigger.HOLD_STOP);
     assert.equal(pill.engines.length, 0);
-    await pill.controller.onTrigger(KeyTrigger.holdStart);
+    await pill.controller.onTrigger(KeyTrigger.HOLD_START);
     assert.equal(pill.engines.length, 1);
   });
 });
@@ -422,9 +434,9 @@ describe("the Copilot key", () => {
 describe("muting", () => {
   it("toggles the tracked state", async () => {
     const pill = await started();
-    await pill.controller.apply({ kind: PillActionKind.mute });
+    await pill.controller.apply({ kind: PillActionKind.MUTE });
     assert.equal(pill.controller.view()?.isMuted, true);
-    await pill.controller.apply({ kind: PillActionKind.mute });
+    await pill.controller.apply({ kind: PillActionKind.MUTE });
     assert.equal(pill.controller.view()?.isMuted, false);
   });
 });
@@ -432,12 +444,12 @@ describe("muting", () => {
 describe("a new session after muting", () => {
   it("never shows the old mute, not even while connecting", async () => {
     const pill = await started();
-    await pill.controller.apply({ kind: PillActionKind.mute });
-    await pill.controller.onTrigger(KeyTrigger.tap);
+    await pill.controller.apply({ kind: PillActionKind.MUTE });
+    await pill.controller.onTrigger(KeyTrigger.TAP);
     const seen: boolean[] = [];
     pill.controller.subscribe(view => seen.push(view.isMuted));
     seen.length = 0;
-    await pill.controller.onTrigger(KeyTrigger.tap);
+    await pill.controller.onTrigger(KeyTrigger.TAP);
     assert.deepEqual([...new Set(seen)], [false]);
   });
 });
@@ -445,14 +457,15 @@ describe("a new session after muting", () => {
 describe("the API key prompt", () => {
   it("asks first when the engine needs a key and there is none", async () => {
     const pill = await started({
-      engineKind: EngineKind.apiKey,
+      engineKind: EngineKind.API_KEY,
       hasApiKey: false
     });
     assert.equal(pill.engines.length, 0);
     assert.deepEqual(
-      pill.controller.view(), expectedView({
-        status: LiveStatus.needsApiKey,
-        engine: EngineKind.apiKey,
+      pill.controller.view(),
+      expectedView({
+        status: LiveStatus.NEEDS_API_KEY,
+        engine: EngineKind.API_KEY,
         isShown: true,
         isKeyPromptShown: true,
         isFocusable: true,
@@ -463,54 +476,55 @@ describe("the API key prompt", () => {
 
   it("saves a submitted key, hides the prompt and starts over", async () => {
     const pill = await started({
-      engineKind: EngineKind.apiKey,
+      engineKind: EngineKind.API_KEY,
       hasApiKey: false
     });
     await pill.controller.apply({
-      kind: PillActionKind.submitKey,
+      kind: PillActionKind.SUBMIT_KEY,
       key: "AIza-secret"
     });
     await settle();
     assert.equal(pill.calls.includes("setApiKey AIza-secret"), true);
     assert.deepEqual(
-      pill.controller.view(), expectedView({
+      pill.controller.view(),
+      expectedView({
         ...LISTENING,
-        engine: EngineKind.apiKey
+        engine: EngineKind.API_KEY
       })
     );
-    assert.equal(pill.engine.engine.kind, EngineKind.apiKey);
+    assert.equal(pill.engine.engine.kind, EngineKind.API_KEY);
   });
 
   it("goes back to Google when cancelled with no key to fall back on", async () => {
     const pill = await started({
-      engineKind: EngineKind.apiKey,
+      engineKind: EngineKind.API_KEY,
       hasApiKey: false
     });
-    await pill.controller.apply({ kind: PillActionKind.cancelKey });
+    await pill.controller.apply({ kind: PillActionKind.CANCEL_KEY });
     await settle();
     assert.deepEqual(pill.controller.view(), expectedView(LISTENING));
-    assert.equal(pill.engine.engine.kind, EngineKind.google);
+    assert.equal(pill.engine.engine.kind, EngineKind.GOOGLE);
   });
 
   it("keeps the current key and engine when cancelled with a key saved", async () => {
-    const pill = await started({ engineKind: EngineKind.apiKey });
-    await pill.controller.apply({ kind: PillActionKind.askForKey });
+    const pill = await started({ engineKind: EngineKind.API_KEY });
+    await pill.controller.apply({ kind: PillActionKind.ASK_FOR_KEY });
     assert.equal(pill.controller.view()?.isKeyPromptShown, true);
-    assert.equal(pill.controller.view()?.status, LiveStatus.listening);
+    assert.equal(pill.controller.view()?.status, LiveStatus.LISTENING);
     assert.equal(pill.controller.view()?.isFocusable, true);
-    await pill.controller.apply({ kind: PillActionKind.cancelKey });
+    await pill.controller.apply({ kind: PillActionKind.CANCEL_KEY });
     await settle();
     assert.equal(pill.controller.view()?.isKeyPromptShown, false);
     assert.equal(pill.controller.view()?.isFocusable, false);
-    assert.equal(pill.controller.view()?.engine, EngineKind.apiKey);
+    assert.equal(pill.controller.view()?.engine, EngineKind.API_KEY);
     assert.equal(pill.engines.length, 1);
   });
 
   it("stays focusable while the prompt waits, whatever the window asks", async () => {
-    const pill = await started({ engineKind: EngineKind.apiKey });
-    await pill.controller.apply({ kind: PillActionKind.askForKey });
+    const pill = await started({ engineKind: EngineKind.API_KEY });
+    await pill.controller.apply({ kind: PillActionKind.ASK_FOR_KEY });
     await pill.controller.apply({
-      kind: PillActionKind.setFocusable,
+      kind: PillActionKind.SET_FOCUSABLE,
       isFocusable: false
     });
     assert.equal(pill.controller.view()?.isFocusable, true);
@@ -521,16 +535,17 @@ describe("switching engines", () => {
   it("restarts an open pill on the new engine", async () => {
     const pill = await started();
     await pill.controller.apply({
-      kind: PillActionKind.setEngine,
-      engine: EngineKind.apiKey
+      kind: PillActionKind.SET_ENGINE,
+      engine: EngineKind.API_KEY
     });
     await settle();
     assert.equal(pill.engines.length, 2);
     assert.equal(pill.engines[0]?.calls.disposed, 1);
     assert.deepEqual(
-      pill.controller.view(), expectedView({
+      pill.controller.view(),
+      expectedView({
         ...LISTENING,
-        engine: EngineKind.apiKey
+        engine: EngineKind.API_KEY
       })
     );
   });
@@ -538,20 +553,20 @@ describe("switching engines", () => {
   it("only saves the choice when the pill is closed", async () => {
     const pill = createFakePill();
     await pill.controller.apply({
-      kind: PillActionKind.setEngine,
-      engine: EngineKind.apiKey
+      kind: PillActionKind.SET_ENGINE,
+      engine: EngineKind.API_KEY
     });
     await settle();
     assert.equal(pill.engines.length, 0);
-    assert.equal(pill.controller.view()?.engine, EngineKind.apiKey);
+    assert.equal(pill.controller.view()?.engine, EngineKind.API_KEY);
     assert.equal(pill.controller.view()?.isShown, false);
   });
 
   it("does nothing for the engine already chosen", async () => {
     const pill = await started();
     await pill.controller.apply({
-      kind: PillActionKind.setEngine,
-      engine: EngineKind.google
+      kind: PillActionKind.SET_ENGINE,
+      engine: EngineKind.GOOGLE
     });
     await settle();
     assert.equal(pill.engines.length, 1);
@@ -566,8 +581,8 @@ describe("switching engines", () => {
     await settle();
     assert.equal(pill.controller.view()?.isExtensionNeeded, true);
     await pill.controller.apply({
-      kind: PillActionKind.setEngine,
-      engine: EngineKind.apiKey
+      kind: PillActionKind.SET_ENGINE,
+      engine: EngineKind.API_KEY
     });
     await settle();
     assert.equal(pill.controller.view()?.isExtensionNeeded, false);
@@ -581,7 +596,7 @@ describe("the extension steps", () => {
       listener(true);
     }
 
-    await pill.controller.apply({ kind: PillActionKind.connectExtension });
+    await pill.controller.apply({ kind: PillActionKind.CONNECT_EXTENSION });
     assert.equal(pill.calls.includes("beginExtensionSetup"), true);
     assert.equal(pill.controller.view()?.isExtensionNeeded, true);
     assert.equal(pill.controller.view()?.isExtensionStepsShown, true);
@@ -595,7 +610,7 @@ describe("the extension steps", () => {
   });
 
   it("ignores the need from a Google session winding down after a switch", async () => {
-    const pill = await started({ engineKind: EngineKind.apiKey });
+    const pill = await started({ engineKind: EngineKind.API_KEY });
     for (const listener of pill.listeners.extension) {
       listener(true);
     }
@@ -609,7 +624,7 @@ describe("the microphone menu", () => {
   it("lists the microphones on show and on refresh", async () => {
     const pill = await started();
     pill.world.microphones = [DESK];
-    await pill.controller.apply({ kind: PillActionKind.refreshMicrophones });
+    await pill.controller.apply({ kind: PillActionKind.REFRESH_MICROPHONES });
     await settle();
     assert.deepEqual(pill.controller.view()?.microphones, [DESK]);
   });
@@ -617,7 +632,7 @@ describe("the microphone menu", () => {
   it("saves a chosen microphone and tells the engine side", async () => {
     const pill = await started();
     await pill.controller.apply({
-      kind: PillActionKind.setMicrophone,
+      kind: PillActionKind.SET_MICROPHONE,
       microphoneId: "mic-2"
     });
     assert.equal(pill.controller.view()?.microphoneId, "mic-2");
@@ -629,11 +644,11 @@ describe("the microphone menu", () => {
   it("goes back to the Windows default", async () => {
     const pill = await started();
     await pill.controller.apply({
-      kind: PillActionKind.setMicrophone,
+      kind: PillActionKind.SET_MICROPHONE,
       microphoneId: "mic-2"
     });
     await pill.controller.apply({
-      kind: PillActionKind.setMicrophone,
+      kind: PillActionKind.SET_MICROPHONE,
       microphoneId: null
     });
     assert.equal(pill.controller.view()?.microphoneId, null);
@@ -644,7 +659,7 @@ describe("the microphone menu", () => {
     const pill = await started();
     await assert.rejects(
       pill.controller.apply({
-        kind: PillActionKind.setMicrophone,
+        kind: PillActionKind.SET_MICROPHONE,
         microphoneId: "ghost"
       }),
       { message: "There is no microphone 'ghost'" }
@@ -657,11 +672,12 @@ describe("displays and sharing", () => {
   it("shares another display whole, and drops any focused region", async () => {
     const pill = await started();
     await pill.controller.apply({
-      kind: PillActionKind.share,
+      kind: PillActionKind.SHARE,
       displayId: SECONDARY.deviceName
     });
     assert.deepEqual(
-      pill.controller.view(), expectedView({
+      pill.controller.view(),
+      expectedView({
         ...LISTENING,
         sharedDisplay: SECONDARY.deviceName
       })
@@ -675,7 +691,7 @@ describe("displays and sharing", () => {
     const pill = await started();
     await assert.rejects(
       pill.controller.apply({
-        kind: PillActionKind.share,
+        kind: PillActionKind.SHARE,
         displayId: "ghost"
       }),
       { message: "There is no display 'ghost'" }
@@ -685,7 +701,7 @@ describe("displays and sharing", () => {
   it("does nothing to share with no conversation", async () => {
     const pill = createFakePill();
     await pill.controller.apply({
-      kind: PillActionKind.share,
+      kind: PillActionKind.SHARE,
       displayId: SECONDARY.deviceName
     });
     assert.equal(pill.controller.view()?.sharedDisplay, null);
@@ -694,7 +710,7 @@ describe("displays and sharing", () => {
   it("moves the share to the active display when the shared one is unplugged", async () => {
     const pill = await started();
     await pill.controller.apply({
-      kind: PillActionKind.share,
+      kind: PillActionKind.SHARE,
       displayId: SECONDARY.deviceName
     });
     pill.world.displays = [PRIMARY];
@@ -704,7 +720,8 @@ describe("displays and sharing", () => {
 
     await settle();
     assert.deepEqual(
-      pill.controller.view(), expectedView({
+      pill.controller.view(),
+      expectedView({
         ...LISTENING,
         displays: [displayEntry(PRIMARY)]
       })
@@ -745,13 +762,13 @@ describe("the camera", () => {
   it("shares and unshares on the Google engine", async () => {
     const pill = await started();
     await pill.controller.apply({
-      kind: PillActionKind.setCamera,
+      kind: PillActionKind.SET_CAMERA,
       isOn: true
     });
     await settle();
     assert.equal(pill.controller.view()?.isCameraShared, true);
     await pill.controller.apply({
-      kind: PillActionKind.setCamera,
+      kind: PillActionKind.SET_CAMERA,
       isOn: false
     });
     await settle();
@@ -759,9 +776,9 @@ describe("the camera", () => {
   });
 
   it("leaves the camera alone on the API key engine, and logs why", async () => {
-    const pill = await started({ engineKind: EngineKind.apiKey });
+    const pill = await started({ engineKind: EngineKind.API_KEY });
     await pill.controller.apply({
-      kind: PillActionKind.setCamera,
+      kind: PillActionKind.SET_CAMERA,
       isOn: true
     });
     await settle();
@@ -772,7 +789,7 @@ describe("the camera", () => {
   it("leaves the camera alone with no session running, and logs why", async () => {
     const pill = createFakePill();
     await pill.controller.apply({
-      kind: PillActionKind.setCamera,
+      kind: PillActionKind.SET_CAMERA,
       isOn: true
     });
     await settle();
@@ -799,24 +816,26 @@ describe("updates", () => {
   it("opens the installer and leaves a note", async () => {
     const pill = await started();
     pill.world.readyVersion = "2.0.0";
-    await pill.controller.apply({ kind: PillActionKind.update });
-    assert.deepEqual(pill.controller.view()?.lines, [{
-      id: "line-0",
-      text: INSTALLER_NOTE,
-      isUser: false,
-      isNote: true
-    }]);
+    await pill.controller.apply({ kind: PillActionKind.UPDATE });
+    assert.deepEqual(pill.controller.view()?.lines, [
+      {
+        id: "line-0",
+        text: INSTALLER_NOTE,
+        isUser: false,
+        isNote: true
+      }
+    ]);
   });
 
   it("refuses to install when nothing is ready", async () => {
     const pill = createFakePill();
     pill.world.isInstallOk = false;
-    await assert.rejects(pill.controller.apply({ kind: PillActionKind.update }), { message: NO_UPDATE });
+    await assert.rejects(pill.controller.apply({ kind: PillActionKind.UPDATE }), { message: NO_UPDATE });
   });
 
   it("says what a manual check found", async () => {
     const pill = createFakePill();
-    await pill.controller.apply({ kind: PillActionKind.checkForUpdates });
+    await pill.controller.apply({ kind: PillActionKind.CHECK_FOR_UPDATES });
     await settle();
     assert.equal(pill.calls.includes("check true"), true);
     assert.equal(pill.controller.view()?.lines[0]?.text, "Gemini Live 1.0.0 is the latest version.");
@@ -825,9 +844,9 @@ describe("updates", () => {
 
   it("says a ready version, and a failure", async () => {
     const ready = createFakePill();
-    ready.world.checkResult = UpdateCheck.ready;
+    ready.world.checkResult = UpdateCheck.READY;
     ready.world.readyVersion = "2.0.0";
-    await ready.controller.apply({ kind: PillActionKind.checkForUpdates });
+    await ready.controller.apply({ kind: PillActionKind.CHECK_FOR_UPDATES });
     await settle();
     assert.equal(
       ready.controller.view()?.lines[0]?.text,
@@ -835,27 +854,27 @@ describe("updates", () => {
     );
 
     const failed = createFakePill();
-    failed.world.checkResult = UpdateCheck.failed;
-    await failed.controller.apply({ kind: PillActionKind.checkForUpdates });
+    failed.world.checkResult = UpdateCheck.FAILED;
+    await failed.controller.apply({ kind: PillActionKind.CHECK_FOR_UPDATES });
     await settle();
     assert.equal(failed.controller.view()?.lines[0]?.text, "Couldn't get the update from GitHub.");
   });
 
   it("refuses to check when unpackaged", async () => {
     const pill = createFakePill({ isPackaged: false });
-    await assert.rejects(pill.controller.apply({ kind: PillActionKind.checkForUpdates }), { message: UNPACKAGED });
+    await assert.rejects(pill.controller.apply({ kind: PillActionKind.CHECK_FOR_UPDATES }), { message: UNPACKAGED });
   });
 
   it("turns looking on its own off and on, looking right away when turned on", async () => {
     const pill = createFakePill();
     await pill.controller.apply({
-      kind: PillActionKind.setAutoUpdate,
+      kind: PillActionKind.SET_AUTO_UPDATE,
       isOn: false
     });
     assert.equal(pill.controller.view()?.update?.isAutoUpdateOn, false);
     assert.equal(pill.calls.includes("check false"), false);
     await pill.controller.apply({
-      kind: PillActionKind.setAutoUpdate,
+      kind: PillActionKind.SET_AUTO_UPDATE,
       isOn: true
     });
     await settle();
@@ -868,13 +887,13 @@ describe("window actions", () => {
   it("brings the window to the front when it asks to be focusable", async () => {
     const pill = await started();
     await pill.controller.apply({
-      kind: PillActionKind.setFocusable,
+      kind: PillActionKind.SET_FOCUSABLE,
       isFocusable: true
     });
     assert.equal(pill.controller.view()?.isFocusable, true);
     assert.equal(pill.calls.at(-1), "bringToFront");
     await pill.controller.apply({
-      kind: PillActionKind.setFocusable,
+      kind: PillActionKind.SET_FOCUSABLE,
       isFocusable: false
     });
     assert.equal(pill.controller.view()?.isFocusable, false);
@@ -883,7 +902,7 @@ describe("window actions", () => {
   it("moves the window by whole pixels", async () => {
     const pill = createFakePill();
     await pill.controller.apply({
-      kind: PillActionKind.moveBy,
+      kind: PillActionKind.MOVE_BY,
       dx: 10.6,
       dy: -3.2
     });
@@ -893,7 +912,7 @@ describe("window actions", () => {
   it("opens a link by its normalized address", async () => {
     const pill = createFakePill();
     await pill.controller.apply({
-      kind: PillActionKind.openLink,
+      kind: PillActionKind.OPEN_LINK,
       uri: "https://Example.com"
     });
     assert.equal(pill.calls.at(-1), "open https://example.com/");
@@ -901,7 +920,7 @@ describe("window actions", () => {
 
   it("ends the conversation and quits", async () => {
     const pill = await started();
-    await pill.controller.apply({ kind: PillActionKind.quit });
+    await pill.controller.apply({ kind: PillActionKind.QUIT });
     await settle();
     assert.equal(pill.calls.includes("quit"), true);
     assert.equal(pill.controller.view()?.isShown, false);
@@ -936,7 +955,7 @@ describe("circling a region", () => {
     pill.controller.subscribe(view => seen.push(view));
     seen.length = 0;
     pill.engine.emit({
-      kind: LiveEventKind.status,
+      kind: LiveEventKind.STATUS,
       status: "x"
     });
     for (const listener of pill.listeners.focus) {

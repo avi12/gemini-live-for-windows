@@ -1,3 +1,11 @@
+import path from "node:path";
+import { isSea } from "node:sea";
+import { Worker } from "node:worker_threads";
+
+import { roInitialize } from "@microsoft/dynwinrt";
+import { restartAfterCrash } from "winui-svelte/app";
+import { initWindowsAppSdk } from "winui-svelte/bootstrap";
+
 import { claimInstance } from "@/core/instance/instance.ts";
 import { KeyTrigger } from "@/core/instance/key-trigger.ts";
 import { refreshInstalledExtension } from "@/core/link/extension-setup.ts";
@@ -30,12 +38,6 @@ import {
   superviseUiWorker
 } from "@/wiring/main-thread/worker-supervisor.ts";
 import type { UiWorkerData } from "@/wiring/ui-thread/ui-worker-data.ts";
-import { roInitialize } from "@microsoft/dynwinrt";
-import path from "node:path";
-import { isSea } from "node:sea";
-import { Worker } from "node:worker_threads";
-import { restartAfterCrash } from "winui-svelte/app";
-import { initWindowsAppSdk } from "winui-svelte/bootstrap";
 
 const WINDOWS_APP_SDK_MAJOR = 2;
 const WINDOWS_APP_SDK_MINOR = 2;
@@ -63,6 +65,11 @@ function startWindowsAppSdk({ isPackaged }: { isPackaged: boolean }) {
 }
 
 // After a crash, a hang or an update, Windows offers to start the app again, as a recovered copy
+interface OnEndedEvent {
+  exitCode: number;
+  ranMilliseconds: number;
+}
+
 // that comes up without a conversation. Failing to register only costs that offer.
 function registerCrashRestart() {
   try {
@@ -90,13 +97,14 @@ function startAgain(rapidRestarts: number) {
   });
 }
 
-function startUiWorker({ files, data, onEnded }: {
+function startUiWorker({
+  files,
+  data,
+  onEnded
+}: {
   files: ShippedFiles;
   data: UiWorkerData;
-  onEnded: (event: {
-    exitCode: number;
-    ranMilliseconds: number;
-  }) => Promise<void>;
+  onEnded: (event: OnEndedEvent) => Promise<void>;
 }) {
   const startedAt = Date.now();
   const worker = new Worker(files.uiWorker, {
@@ -106,7 +114,11 @@ function startUiWorker({ files, data, onEnded }: {
   worker.on("error", error => {
     writeLog(`ui worker: ${errorMessage(error)}`);
   });
-  watchPillDevMarker({ onChanged: () => void worker.terminate() });
+  watchPillDevMarker({
+    onChanged() {
+      void worker.terminate();
+    }
+  });
   worker.on("exit", exitCode => {
     onEnded({
       exitCode,
@@ -125,12 +137,12 @@ function nativeHostPathOf({ isPackaged }: { isPackaged: boolean }) {
 }
 
 function triggerOf(activation: Activation) {
-  return activation.kind === ActivationKind.key ? activation.trigger : KeyTrigger.tap;
+  return activation.kind === ActivationKind.KEY ? activation.trigger : KeyTrigger.TAP;
 }
 
 // A launch at sign-in only readies the app; any other start is a press of the key
 function firstTriggerOf(activation: Activation) {
-  return activation.kind === ActivationKind.startup ? undefined : triggerOf(activation);
+  return activation.kind === ActivationKind.STARTUP ? undefined : triggerOf(activation);
 }
 
 // The whole app: the first copy claims the single-instance pipe (a later copy hands over its press
@@ -142,10 +154,11 @@ export async function startApp({ files }: { files: ShippedFiles }) {
   const relay = createTriggerRelay({ log: writeLog });
   const claim = await claimInstance({
     trigger: triggerOf(describeActivation({ args: userArguments(process.argv) })),
-    onTrigger: trigger => relay.send({
-      trigger,
-      source: KeySource.forwarded
-    })
+    onTrigger: trigger =>
+      relay.send({
+        trigger,
+        source: KeySource.FORWARDED
+      })
   });
   if (!claim.isPrimary) {
     process.exit(0);
@@ -189,7 +202,7 @@ export async function startApp({ files }: { files: ShippedFiles }) {
   if (firstTrigger) {
     relay.send({
       trigger: firstTrigger,
-      source: KeySource.coldStart
+      source: KeySource.COLD_START
     });
   }
 
@@ -211,9 +224,10 @@ export async function startApp({ files }: { files: ShippedFiles }) {
         rapidRestarts: rapidRestartsOf(process.env),
         release: () => claim.close(),
         relaunch: startAgain,
-        delay: milliseconds => new Promise(resolve => {
-          setTimeout(resolve, milliseconds);
-        }),
+        delay: milliseconds =>
+          new Promise(resolve => {
+            setTimeout(resolve, milliseconds);
+          }),
         log: writeLog
       });
       process.exit(isRestarting ? 0 : exitCode || 1);

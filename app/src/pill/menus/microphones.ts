@@ -8,10 +8,7 @@ export async function refreshMicrophones(context: PillContext) {
   context.changed();
 }
 
-export async function setMicrophone({ context, id }: {
-  context: PillContext;
-  id: string | null;
-}) {
+export async function setMicrophone({ context, id }: { context: PillContext; id: string | null }) {
   const { state, deps } = context;
   const found = state.microphones.find(microphone => microphone.id === id);
   const isUnknown = id !== null && found === undefined;

@@ -24,9 +24,11 @@ export const TEST_MONITOR: Monitor = {
 };
 
 function createChannel<T>() {
-  const listeners: Array<(value: T) => void> = [];
+  const listeners: ((value: T) => void)[] = [];
   return {
-    add: (listener: (value: T) => void) => void listeners.push(listener),
+    add(listener: (value: T) => void) {
+      listeners.push(listener);
+    },
     emit(value: T) {
       for (const listener of listeners) {
         listener(value);
@@ -73,9 +75,11 @@ function createFakeSocket(isSetupAnswered: boolean) {
         const isSetup = "setup" in message;
         const isAnswering = isSetup && isSetupAnswered;
         if (isAnswering) {
-          queueMicrotask(() => serverSend({
-            setupComplete: {}
-          }));
+          queueMicrotask(() =>
+            serverSend({
+              setupComplete: {}
+            })
+          );
         }
       },
       close(event: SocketClose) {
@@ -91,7 +95,7 @@ function createFakeSocket(isSetupAnswered: boolean) {
 }
 
 export function createFakeNetwork({ isSetupAnswered = true }: { isSetupAnswered?: boolean } = {}) {
-  const sockets: Array<ReturnType<typeof createFakeSocket>> = [];
+  const sockets: ReturnType<typeof createFakeSocket>[] = [];
   const urls: string[] = [];
   let isConnectFailing = false;
 
@@ -132,9 +136,9 @@ export async function flush() {
 export function createFakeAudio() {
   const calls: string[] = [];
   const played: Uint8Array[] = [];
-  const chunkListeners: Array<(pcm16: Uint8Array) => void> = [];
-  const micLevelListeners: Array<(peak: number) => void> = [];
-  const speakerLevelListeners: Array<(peak: number) => void> = [];
+  const chunkListeners: ((pcm16: Uint8Array) => void)[] = [];
+  const micLevelListeners: ((peak: number) => void)[] = [];
+  const speakerLevelListeners: ((peak: number) => void)[] = [];
   const audio: AudioDuplex = {
     isMuted: false,
     async start() {

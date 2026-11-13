@@ -1,13 +1,8 @@
-import {
-  argHandle,
-  argPointer,
-  argU32,
-  bindFunction,
-  Win32Type
-} from "@/win32/bind.ts";
 import { WinGuid } from "@microsoft/dynwinrt";
 import { DynComMethodSig, DynComUnsafe } from "@microsoft/dynwinrt/com/unsafe";
 import { DynComRawMemory } from "@microsoft/dynwinrt/com/unsafe/raw";
+
+import { argHandle, argPointer, argU32, bindFunction, Win32Type } from "@/win32/bind.ts";
 
 // IPropertyStore (propsys.h) and the PROPVARIANT / PROPERTYKEY it passes have no WinRT form, so the
 // store is declared by hand at its vtable slots: IUnknown has 0-2, then GetCount, GetAt, GetValue,
@@ -32,9 +27,9 @@ const GUID_GROUP_ENDS = [GUID_FIRST_GROUP_END, GUID_SECOND_GROUP_END, GUID_THIRD
 
 /** The variant types a window property can hold here (wtypes.h VARENUM). */
 export const VariantType = {
-  empty: 0,
-  uint32: 19,
-  uint: 23
+  EMPTY: 0,
+  UINT32: 19,
+  UINT: 23
 } as const;
 
 export interface PropertyKey {
@@ -67,8 +62,11 @@ export function propertyKeyBytes({ formatId, propertyId }: PropertyKey) {
 }
 
 /** A PROPVARIANT (24 bytes on x64) that holds one 32-bit unsigned number. */
-export function numberVariantBytes({ type, value }: {
-  type: typeof VariantType.uint | typeof VariantType.uint32;
+export function numberVariantBytes({
+  type,
+  value
+}: {
+  type: typeof VariantType.UINT | typeof VariantType.UINT32;
   value: number;
 }) {
   const bytes = Buffer.alloc(PROPVARIANT_BYTES);
@@ -91,8 +89,8 @@ const NOT_A_NUMBER = 0xffffffff;
 const toUint32WithDefault = bindFunction({
   library: "propsys.dll",
   entryPoint: "PropVariantToUInt32WithDefault",
-  parameters: [Win32Type.pointer, Win32Type.u32],
-  returns: Win32Type.u32
+  parameters: [Win32Type.POINTER, Win32Type.U32],
+  returns: Win32Type.U32
 });
 
 let methodsOfStore: ReturnType<typeof declareStoreMethods> | undefined;
@@ -118,15 +116,12 @@ function bindGetStoreForWindow() {
   return bindFunction({
     library: "shell32.dll",
     entryPoint: "SHGetPropertyStoreForWindow",
-    parameters: [Win32Type.handle, Win32Type.pointer, Win32Type.pointer],
-    returns: Win32Type.i32
+    parameters: [Win32Type.HANDLE, Win32Type.POINTER, Win32Type.POINTER],
+    returns: Win32Type.I32
   });
 }
 
-function withBytes<T>({ bytes, use }: {
-  bytes: Buffer;
-  use: (memory: DynComRawMemory) => T;
-}) {
+function withBytes<T>({ bytes, use }: { bytes: Buffer; use: (memory: DynComRawMemory) => T }) {
   const memory = DynComRawMemory.allocate(bytes.length, POINTER_BYTES);
   try {
     memory.writeBytes(0, bytes);
@@ -164,46 +159,56 @@ function storeHandle(store: ReturnType<typeof DynComUnsafe.adoptOwnedComPointer>
   const methods = storeMethods();
 
   return {
-    setNumber({ key, type, value }: {
+    setNumber({
+      key,
+      type,
+      value
+    }: {
       key: PropertyKey;
-      type: typeof VariantType.uint | typeof VariantType.uint32;
+      type: typeof VariantType.UINT | typeof VariantType.UINT32;
       value: number;
     }) {
       withBytes({
         bytes: propertyKeyBytes(key),
-        use: keyMemory => withBytes({
-          bytes: numberVariantBytes({
-            type,
-            value
-          }),
-          use(variantMemory) {
-            methods.method(SET_VALUE_SLOT).invoke(store, [
-              DynComUnsafe.pointer(keyMemory.pointer().address),
-              DynComUnsafe.pointer(variantMemory.pointer().address)
-            ]);
-          }
-        })
+        use: keyMemory =>
+          withBytes({
+            bytes: numberVariantBytes({
+              type,
+              value
+            }),
+            use(variantMemory) {
+              methods
+                .method(SET_VALUE_SLOT)
+                .invoke(store, [
+                  DynComUnsafe.pointer(keyMemory.pointer().address),
+                  DynComUnsafe.pointer(variantMemory.pointer().address)
+                ]);
+            }
+          })
       });
       methods.method(COMMIT_SLOT).invoke(store, []);
     },
     read(key: PropertyKey) {
       return withBytes({
         bytes: propertyKeyBytes(key),
-        use: keyMemory => withBytes({
-          bytes: Buffer.alloc(PROPVARIANT_BYTES),
-          use(variantMemory) {
-            methods.method(GET_VALUE_SLOT).invoke(store, [
-              DynComUnsafe.pointer(keyMemory.pointer().address),
-              DynComUnsafe.pointer(variantMemory.pointer().address)
-            ]);
-            const raw = readNumberVariant(variantMemory.readBytes(0, PROPVARIANT_BYTES));
-            const number = toUint32WithDefault([argPointer(variantMemory), argU32(NOT_A_NUMBER)]).number >>> 0;
-            return {
-              type: raw.type,
-              number
-            };
-          }
-        })
+        use: keyMemory =>
+          withBytes({
+            bytes: Buffer.alloc(PROPVARIANT_BYTES),
+            use(variantMemory) {
+              methods
+                .method(GET_VALUE_SLOT)
+                .invoke(store, [
+                  DynComUnsafe.pointer(keyMemory.pointer().address),
+                  DynComUnsafe.pointer(variantMemory.pointer().address)
+                ]);
+              const raw = readNumberVariant(variantMemory.readBytes(0, PROPVARIANT_BYTES));
+              const number = toUint32WithDefault([argPointer(variantMemory), argU32(NOT_A_NUMBER)]).number >>> 0;
+              return {
+                type: raw.type,
+                number
+              };
+            }
+          })
       });
     },
     release() {

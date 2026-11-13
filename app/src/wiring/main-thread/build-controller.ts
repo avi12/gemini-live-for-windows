@@ -22,7 +22,14 @@ import type { ShippedFiles } from "@/wiring/main-thread/shipped-files.ts";
 
 // The pill controller over the real devices, engines and windows. The UI worker's ends of the
 // links it uses are in `channels`; the pill's window answers on the first of them.
-export function buildController({ settings, installedVersion, files, channels, quit, log }: {
+export function buildController({
+  settings,
+  installedVersion,
+  files,
+  channels,
+  quit,
+  log
+}: {
   settings: Settings;
   installedVersion: string | undefined;
   files: ShippedFiles;
@@ -76,7 +83,18 @@ export function buildController({ settings, installedVersion, files, channels, q
   return controller;
 }
 
-function buildPillDeps({ settings, installedVersion, files, media, google, overlays, pillLink, checker, quit, log }: {
+function buildPillDeps({
+  settings,
+  installedVersion,
+  files,
+  media,
+  google,
+  overlays,
+  pillLink,
+  checker,
+  quit,
+  log
+}: {
   settings: Settings;
   installedVersion: string | undefined;
   files: ShippedFiles;

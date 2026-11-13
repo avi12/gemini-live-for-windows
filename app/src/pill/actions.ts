@@ -1,3 +1,6 @@
+import { PillActionKind } from "@gemini-live/protocol/view";
+import type { PillAction } from "@gemini-live/protocol/view";
+
 import { EngineKind } from "@/contracts/live-engine.ts";
 import type { PillContext } from "@/pill/context.ts";
 import { runInBackground } from "@/pill/context.ts";
@@ -6,19 +9,14 @@ import { refreshMicrophones, setMicrophone } from "@/pill/menus/microphones.ts";
 import { askForKey, connectExtension, hideKeyPanel, setFocusable } from "@/pill/menus/setup-panels.ts";
 import { checkForUpdates, installUpdate, setAutoUpdate } from "@/pill/menus/update-menu.ts";
 import { endConversation, restartConversation, setMuted, switchEngine } from "@/pill/session.ts";
-import { PillActionKind } from "@gemini-live/protocol/view";
-import type { PillAction } from "@gemini-live/protocol/view";
 
 const NEEDS_GOOGLE_ENGINE = "Camera sharing needs the Gemini subscription engine";
 const NO_SESSION_FOR_CAMERA = "Camera sharing needs a running session";
 
 // Camera share rides the Google engine's frame pull; the API-key engine pushes the screen itself
-async function setCamera({ context, isOn }: {
-  context: PillContext;
-  isOn: boolean;
-}) {
+async function setCamera({ context, isOn }: { context: PillContext; isOn: boolean }) {
   const { deps, state } = context;
-  const isGoogle = deps.settings.engine === EngineKind.google;
+  const isGoogle = deps.settings.engine === EngineKind.GOOGLE;
   if (!isGoogle) {
     deps.log(NEEDS_GOOGLE_ENGINE);
     return;
@@ -35,10 +33,7 @@ async function setCamera({ context, isOn }: {
   context.changed();
 }
 
-async function submitKey({ context, key }: {
-  context: PillContext;
-  key: string;
-}) {
+async function submitKey({ context, key }: { context: PillContext; key: string }) {
   await context.deps.settings.setApiKey(key);
   hideKeyPanel(context);
   runInBackground({
@@ -60,17 +55,13 @@ function cancelKey(context: PillContext) {
     context,
     task: switchEngine({
       context,
-      kind: EngineKind.google
+      kind: EngineKind.GOOGLE
     }),
     name: "switching back to Google"
   });
 }
 
-function moveBy({ context, deltaX, deltaY }: {
-  context: PillContext;
-  deltaX: number;
-  deltaY: number;
-}) {
+function moveBy({ context, deltaX, deltaY }: { context: PillContext; deltaX: number; deltaY: number }) {
   context.deps.window.moveBy({
     deltaX: Math.round(deltaX),
     deltaY: Math.round(deltaY)
@@ -81,32 +72,29 @@ function refuseUnknown(action: unknown) {
   throw new Error(`Nothing handles '${JSON.stringify(action)}'`);
 }
 
-async function applyConversationAction({ context, action }: {
-  context: PillContext;
-  action: PillAction;
-}) {
+async function applyConversationAction({ context, action }: { context: PillContext; action: PillAction }) {
   switch (action.kind) {
-    case PillActionKind.mute:
+    case PillActionKind.MUTE:
       // The tracked state, not the engine's, so it works across a reconnect
       setMuted({
         context,
         isMuted: !context.state.isMuted
       });
       return true;
-    case PillActionKind.end:
+    case PillActionKind.END:
       runInBackground({
         context,
         task: endConversation(context),
         name: "ending"
       });
       return true;
-    case PillActionKind.share:
+    case PillActionKind.SHARE:
       shareDisplay({
         context,
         displayId: action.displayId
       });
       return true;
-    case PillActionKind.setCamera:
+    case PillActionKind.SET_CAMERA:
       runInBackground({
         context,
         task: setCamera({
@@ -116,7 +104,7 @@ async function applyConversationAction({ context, action }: {
         name: "switching the camera"
       });
       return true;
-    case PillActionKind.setEngine:
+    case PillActionKind.SET_ENGINE:
       runInBackground({
         context,
         task: switchEngine({
@@ -131,40 +119,37 @@ async function applyConversationAction({ context, action }: {
   }
 }
 
-async function applyInputAction({ context, action }: {
-  context: PillContext;
-  action: PillAction;
-}) {
+async function applyInputAction({ context, action }: { context: PillContext; action: PillAction }) {
   switch (action.kind) {
-    case PillActionKind.setMicrophone:
+    case PillActionKind.SET_MICROPHONE:
       await setMicrophone({
         context,
         id: action.microphoneId
       });
       return true;
-    case PillActionKind.refreshMicrophones:
+    case PillActionKind.REFRESH_MICROPHONES:
       runInBackground({
         context,
         task: refreshMicrophones(context),
         name: "listing microphones"
       });
       return true;
-    case PillActionKind.askForKey:
+    case PillActionKind.ASK_FOR_KEY:
       askForKey(context);
       return true;
-    case PillActionKind.submitKey:
+    case PillActionKind.SUBMIT_KEY:
       await submitKey({
         context,
         key: action.key
       });
       return true;
-    case PillActionKind.cancelKey:
+    case PillActionKind.CANCEL_KEY:
       cancelKey(context);
       return true;
-    case PillActionKind.connectExtension:
+    case PillActionKind.CONNECT_EXTENSION:
       connectExtension(context);
       return true;
-    case PillActionKind.openLink:
+    case PillActionKind.OPEN_LINK:
       context.deps.openExternal(new URL(action.uri).href);
       return true;
     default:
@@ -172,24 +157,21 @@ async function applyInputAction({ context, action }: {
   }
 }
 
-async function applyAppAction({ context, action }: {
-  context: PillContext;
-  action: PillAction;
-}) {
+async function applyAppAction({ context, action }: { context: PillContext; action: PillAction }) {
   switch (action.kind) {
-    case PillActionKind.update:
+    case PillActionKind.UPDATE:
       installUpdate(context);
       return true;
-    case PillActionKind.checkForUpdates:
+    case PillActionKind.CHECK_FOR_UPDATES:
       checkForUpdates(context);
       return true;
-    case PillActionKind.setAutoUpdate:
+    case PillActionKind.SET_AUTO_UPDATE:
       await setAutoUpdate({
         context,
         isOn: action.isOn
       });
       return true;
-    case PillActionKind.quit:
+    case PillActionKind.QUIT:
       runInBackground({
         context,
         task: endConversation(context),
@@ -197,13 +179,13 @@ async function applyAppAction({ context, action }: {
       });
       context.deps.quit();
       return true;
-    case PillActionKind.setFocusable:
+    case PillActionKind.SET_FOCUSABLE:
       setFocusable({
         context,
         isFocusable: action.isFocusable
       });
       return true;
-    case PillActionKind.moveBy:
+    case PillActionKind.MOVE_BY:
       moveBy({
         context,
         deltaX: action.dx,
@@ -217,10 +199,7 @@ async function applyAppAction({ context, action }: {
 
 // Does the action; slow work carries on in the background. One that cannot be done throws, and the
 // window gets the message as the answer's error.
-export async function applyAction({ context, action }: {
-  context: PillContext;
-  action: PillAction;
-}) {
+export async function applyAction({ context, action }: { context: PillContext; action: PillAction }) {
   const handlers = [applyConversationAction, applyInputAction, applyAppAction];
   for (const handler of handlers) {
     const isHandled = await handler({

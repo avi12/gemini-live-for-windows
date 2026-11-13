@@ -4,6 +4,11 @@ import type { UpdateCheck } from "@/core/updates/update-checker.ts";
 import type { PillNamed } from "@/pill/types.ts";
 
 // What the pill controller needs from the rest of the app, as the small interfaces it is tested
+interface CreateOptions {
+  kind: EngineKind;
+  monitor: Monitor;
+}
+
 // with: CORE, LIVE, GOOGLE, MEDIA and OVERLAYS satisfy these, and nothing here imports them.
 
 export interface SettingsPort {
@@ -18,24 +23,28 @@ export interface SettingsPort {
 }
 
 export interface EnginesPort {
-  create(options: {
-    kind: EngineKind;
-    monitor: Monitor;
-  }): LiveEngine;
+  create(options: CreateOptions): LiveEngine;
+}
+
+interface ReconcileOptions {
+  all: readonly Monitor[];
+  display: Monitor;
 }
 
 export interface GooglePort {
   beginExtensionSetup(): void;
 }
 
+interface FocusOnOptions {
+  monitor: Monitor;
+  region: Region;
+}
+
 export interface DisplaysPort {
   all(): readonly Monitor[];
   active(): Monitor;
   // The current version of `display` in `all`, or the active display when it was unplugged
-  reconcile(options: {
-    all: readonly Monitor[];
-    display: Monitor;
-  }): Monitor;
+  reconcile(options: ReconcileOptions): Monitor;
   onChanged(listener: () => void): () => void;
 }
 
@@ -47,12 +56,14 @@ export interface MicrophonesPort {
 export interface ScreenFocusPort {
   cover(monitor: Monitor): void;
   hideBorder(): void;
-  focusOn(options: {
-    monitor: Monitor;
-    region: Region;
-  }): void;
+  focusOn(options: FocusOnOptions): void;
   unfocus(): void;
   onChanged(listener: () => void): () => void;
+}
+
+interface MoveByOptions {
+  deltaX: number;
+  deltaY: number;
 }
 
 export interface ScreenFocusOptions {
@@ -67,10 +78,7 @@ export interface PreviousAppPort {
 export interface PillWindowPort {
   bringToFront(): void;
   restorePreviousApp(): void;
-  moveBy(options: {
-    deltaX: number;
-    deltaY: number;
-  }): void;
+  moveBy(options: MoveByOptions): void;
 }
 
 export interface UpdatesPort {

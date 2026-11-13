@@ -13,20 +13,13 @@ import { askForKey, hideKeyPanel, onExtensionNeeded } from "@/pill/menus/setup-p
 const EXIT_SETTLE_MS = 400;
 const API_KEY_ERROR = /API key/i;
 
-function setStatus({ context, status, detail = "" }: {
-  context: PillContext;
-  status: string;
-  detail?: string;
-}) {
+function setStatus({ context, status, detail = "" }: { context: PillContext; status: string; detail?: string }) {
   context.state.status = status;
   context.state.statusDetail = detail;
   context.changed();
 }
 
-export function setMuted({ context, isMuted }: {
-  context: PillContext;
-  isMuted: boolean;
-}) {
+export function setMuted({ context, isMuted }: { context: PillContext; isMuted: boolean }) {
   const { state } = context;
   state.isMuted = isMuted;
 
@@ -50,11 +43,7 @@ function detach(context: PillContext) {
 }
 
 // A session died: keep the pill up with the reason, so the failure shows
-function fail({ context, engine, reason }: {
-  context: PillContext;
-  engine: LiveEngine;
-  reason: string;
-}) {
+function fail({ context, engine, reason }: { context: PillContext; engine: LiveEngine; reason: string }) {
   const isReplaced = !isCurrent({
     context,
     engine
@@ -67,7 +56,7 @@ function fail({ context, engine, reason }: {
   detach(context);
   setStatus({
     context,
-    status: LiveStatus.stopped,
+    status: LiveStatus.STOPPED,
     detail: reason
   });
   context.captions.addNote(reason);
@@ -78,11 +67,7 @@ function fail({ context, engine, reason }: {
   });
 }
 
-function onEngineEvent({ context, engine, event }: {
-  context: PillContext;
-  engine: LiveEngine;
-  event: LiveEvent;
-}) {
+function onEngineEvent({ context, engine, event }: { context: PillContext; engine: LiveEngine; event: LiveEvent }) {
   const { state, captions } = context;
   const isReplaced = !isCurrent({
     context,
@@ -93,22 +78,22 @@ function onEngineEvent({ context, engine, event }: {
   }
 
   switch (event.kind) {
-    case LiveEventKind.status:
+    case LiveEventKind.STATUS:
       setStatus({
         context,
         status: event.status
       });
       break;
-    case LiveEventKind.transcript:
+    case LiveEventKind.TRANSCRIPT:
       captions.show({
         text: event.text,
         isUser: event.isUser
       });
       break;
-    case LiveEventKind.links:
+    case LiveEventKind.LINKS:
       captions.showLinks(event.links);
       break;
-    case LiveEventKind.level:
+    case LiveEventKind.LEVEL:
       state.glow = followGlow({
         glow: state.glow,
         level: event.peak,
@@ -116,7 +101,7 @@ function onEngineEvent({ context, engine, event }: {
       });
       context.changed();
       break;
-    case LiveEventKind.ended:
+    case LiveEventKind.ENDED:
       fail({
         context,
         engine,
@@ -126,10 +111,7 @@ function onEngineEvent({ context, engine, event }: {
   }
 }
 
-async function connect({ context, engine }: {
-  context: PillContext;
-  engine: LiveEngine;
-}) {
+async function connect({ context, engine }: { context: PillContext; engine: LiveEngine }) {
   const { state, deps } = context;
   function isReplaced() {
     return !isCurrent({
@@ -167,7 +149,7 @@ async function connect({ context, engine }: {
 
   setStatus({
     context,
-    status: LiveStatus.listening
+    status: LiveStatus.LISTENING
   });
 
   if (!engine.reportsLevels) {
@@ -185,10 +167,7 @@ async function connect({ context, engine }: {
   });
 }
 
-export async function startConversation({ context, monitor }: {
-  context: PillContext;
-  monitor: Monitor;
-}) {
+export async function startConversation({ context, monitor }: { context: PillContext; monitor: Monitor }) {
   const { state, deps, captions, focus } = context;
   captions.clear();
   state.isMuted = false;
@@ -197,7 +176,7 @@ export async function startConversation({ context, monitor }: {
     monitor
   });
 
-  const isMissingKey = deps.settings.engine === EngineKind.apiKey && !deps.settings.hasApiKey;
+  const isMissingKey = deps.settings.engine === EngineKind.API_KEY && !deps.settings.hasApiKey;
   if (isMissingKey) {
     askForKey(context);
     return;
@@ -208,11 +187,13 @@ export async function startConversation({ context, monitor }: {
     monitor
   });
   state.conversation = engine;
-  engine.onEvent(event => onEngineEvent({
-    context,
-    engine,
-    event
-  }));
+  engine.onEvent(event =>
+    onEngineEvent({
+      context,
+      engine,
+      event
+    })
+  );
 
   engine.onExtensionNeeded(isNeeded => {
     const isReplaced = !isCurrent({
@@ -231,7 +212,7 @@ export async function startConversation({ context, monitor }: {
 
   setStatus({
     context,
-    status: LiveStatus.connecting
+    status: LiveStatus.CONNECTING
   });
   focus.cover(monitor);
   await connect({
@@ -276,10 +257,7 @@ export async function restartConversation(context: PillContext) {
 }
 
 // Saves the choice, and starts the open pill over on it
-export async function switchEngine({ context, kind }: {
-  context: PillContext;
-  kind: EngineKind;
-}) {
+export async function switchEngine({ context, kind }: { context: PillContext; kind: EngineKind }) {
   const { state, deps } = context;
   const isUnchanged = deps.settings.engine === kind;
   if (isUnchanged) {
@@ -290,7 +268,7 @@ export async function switchEngine({ context, kind }: {
   deps.log(`engine -> ${kind}`);
   hideKeyPanel(context);
 
-  const isLeavingGoogle = kind !== EngineKind.google;
+  const isLeavingGoogle = kind !== EngineKind.GOOGLE;
   if (isLeavingGoogle) {
     onExtensionNeeded({
       context,

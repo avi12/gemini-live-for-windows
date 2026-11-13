@@ -1,12 +1,9 @@
 import { EngineKind, LiveStatus } from "@/contracts/live-engine.ts";
 import type { PillContext } from "@/pill/context.ts";
 
-export function onExtensionNeeded({ context, isNeeded }: {
-  context: PillContext;
-  isNeeded: boolean;
-}) {
+export function onExtensionNeeded({ context, isNeeded }: { context: PillContext; isNeeded: boolean }) {
   const { state, deps } = context;
-  const isGoogleSessionWindingDown = isNeeded && deps.settings.engine !== EngineKind.google;
+  const isGoogleSessionWindingDown = isNeeded && deps.settings.engine !== EngineKind.GOOGLE;
   if (isGoogleSessionWindingDown) {
     return;
   }
@@ -30,7 +27,7 @@ export function askForKey(context: PillContext) {
   // A running session keeps its status: changing the key can still be cancelled
   const isIdle = state.conversation === undefined;
   if (isIdle) {
-    state.status = LiveStatus.needsApiKey;
+    state.status = LiveStatus.NEEDS_API_KEY;
     state.statusDetail = "";
   }
 
@@ -48,10 +45,7 @@ export function hideKeyPanel(context: PillContext) {
 
 // Selecting transcript text, or typing a key, needs the window to hold focus or the keys go to the
 // app underneath. It stops being focusable when it loses activation, unless the key prompt waits.
-export function setFocusable({ context, isFocusable }: {
-  context: PillContext;
-  isFocusable: boolean;
-}) {
+export function setFocusable({ context, isFocusable }: { context: PillContext; isFocusable: boolean }) {
   const { state, deps } = context;
   state.isFocusable = isFocusable || state.isKeyPromptShown;
 

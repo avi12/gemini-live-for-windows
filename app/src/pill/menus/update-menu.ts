@@ -21,10 +21,7 @@ export function describeUpdate({ deps }: PillContext) {
 }
 
 // Turns looking on its own on or off; turning it on looks right away
-export async function setAutoUpdate({ context, isOn }: {
-  context: PillContext;
-  isOn: boolean;
-}) {
+export async function setAutoUpdate({ context, isOn }: { context: PillContext; isOn: boolean }) {
   const { deps } = context;
   await deps.settings.setAutoUpdate(isOn);
 
@@ -47,17 +44,14 @@ export function installUpdate(context: PillContext) {
   context.captions.addNote(INSTALLER_NOTE);
 }
 
-function describeCheck({ context, result }: {
-  context: PillContext;
-  result: UpdateCheck;
-}) {
+function describeCheck({ context, result }: { context: PillContext; result: UpdateCheck }) {
   const { deps } = context;
-  const isReady = result === UpdateCheck.ready;
+  const isReady = result === UpdateCheck.READY;
   if (isReady) {
     return `Version ${deps.updates.ready?.version} is ready. Open the gear menu to restart into it.`;
   }
 
-  const isFailed = result === UpdateCheck.failed;
+  const isFailed = result === UpdateCheck.FAILED;
   if (isFailed) {
     return "Couldn't get the update from GitHub.";
   }

@@ -84,7 +84,10 @@ async function waitForFakeStart(startControl: FakeStartControl) {
   }
 }
 
-function createFakeSubscriptions({ listeners, extensionListeners }: {
+function createFakeSubscriptions({
+  listeners,
+  extensionListeners
+}: {
   listeners: Set<LiveEventListener>;
   extensionListeners: Set<(isNeeded: boolean) => void>;
 }) {
@@ -102,7 +105,12 @@ function createFakeSubscriptions({ listeners, extensionListeners }: {
   } satisfies Pick<LiveEngine, "onEvent" | "onExtensionNeeded">;
 }
 
-export function createFakeEngine({ kind, monitor, hasLevels = false, extensionListeners = new Set() }: {
+export function createFakeEngine({
+  kind,
+  monitor,
+  hasLevels = false,
+  extensionListeners = new Set()
+}: {
   kind: EngineKind;
   monitor: Monitor;
   hasLevels?: boolean;
@@ -164,10 +172,7 @@ export function createFakeEngine({ kind, monitor, hasLevels = false, extensionLi
 
 export type FakeEngine = ReturnType<typeof createFakeEngine>;
 
-function createFakeWorld({ engineKind, hasApiKey }: {
-  engineKind: EngineKind;
-  hasApiKey: boolean;
-}) {
+function createFakeWorld({ engineKind, hasApiKey }: { engineKind: EngineKind; hasApiKey: boolean }) {
   const world: FakeWorld = {
     engineKind,
     hasApiKey,
@@ -178,7 +183,7 @@ function createFakeWorld({ engineKind, hasApiKey }: {
     microphones: DEFAULT_MICROPHONES,
     readyVersion: undefined,
     isInstallOk: true,
-    checkResult: UpdateCheck.upToDate
+    checkResult: UpdateCheck.UP_TO_DATE
   };
   return world;
 }
@@ -199,10 +204,7 @@ function createFakeListeners() {
   };
 }
 
-function createFakeSettings({ world, calls }: {
-  world: FakeWorld;
-  calls: string[];
-}) {
+function createFakeSettings({ world, calls }: { world: FakeWorld; calls: string[] }) {
   return {
     get engine() {
       return world.engineKind;
@@ -236,10 +238,7 @@ function createFakeSettings({ world, calls }: {
   } satisfies PillDeps["settings"];
 }
 
-function createFakeDisplays({ world, listeners }: {
-  world: FakeWorld;
-  listeners: FakeListeners;
-}) {
+function createFakeDisplays({ world, listeners }: { world: FakeWorld; listeners: FakeListeners }) {
   return {
     all: () => world.displays,
     active: () => world.active,
@@ -254,17 +253,11 @@ function createFakeDisplays({ world, listeners }: {
   } satisfies PillDeps["displays"];
 }
 
-function createFakeFocus({ calls, listeners }: {
-  calls: string[];
-  listeners: FakeListeners;
-}) {
+function createFakeFocus({ calls, listeners }: { calls: string[]; listeners: FakeListeners }) {
   return {
     cover: monitor => calls.push(`cover ${monitor.index}`),
     hideBorder: () => calls.push("hideBorder"),
-    focusOn({ monitor, region }: {
-      monitor: Monitor;
-      region: Region;
-    }) {
+    focusOn({ monitor, region }: { monitor: Monitor; region: Region }) {
       calls.push(`focusOn ${monitor.index} ${region.width}x${region.height}`);
     },
     unfocus: () => calls.push("unfocus"),
@@ -275,7 +268,12 @@ function createFakeFocus({ calls, listeners }: {
   } satisfies ReturnType<PillDeps["createFocus"]>;
 }
 
-function createFakeUpdates({ world, calls, listeners, isPackaged }: {
+function createFakeUpdates({
+  world,
+  calls,
+  listeners,
+  isPackaged
+}: {
   world: FakeWorld;
   calls: string[];
   listeners: FakeListeners;
@@ -302,10 +300,7 @@ function createFakeUpdates({ world, calls, listeners, isPackaged }: {
   } satisfies PillDeps["updates"];
 }
 
-function createFakeShell({ world, calls }: {
-  world: FakeWorld;
-  calls: string[];
-}) {
+function createFakeShell({ world, calls }: { world: FakeWorld; calls: string[] }) {
   return {
     google: {
       beginExtensionSetup() {
@@ -333,7 +328,11 @@ function createFakeShell({ world, calls }: {
   } satisfies Pick<PillDeps, "google" | "microphones" | "previousApp" | "window">;
 }
 
-function createFakeEnginesPort({ engines, listeners, queue }: {
+function createFakeEnginesPort({
+  engines,
+  listeners,
+  queue
+}: {
   engines: FakeEngine[];
   listeners: FakeListeners;
   queue: { next: NextEngine };
@@ -365,7 +364,13 @@ function lastFakeEngine(engines: readonly FakeEngine[]) {
   return last;
 }
 
-function createFakeHost({ world, calls, logs, listeners, isPackaged }: {
+function createFakeHost({
+  world,
+  calls,
+  logs,
+  listeners,
+  isPackaged
+}: {
   world: FakeWorld;
   calls: string[];
   logs: string[];
@@ -398,7 +403,11 @@ function createFakeHost({ world, calls, logs, listeners, isPackaged }: {
   } satisfies Omit<PillDeps, "engines" | "createFocus">;
 }
 
-export function createFakePill({ engineKind = EngineKind.google, hasApiKey = true, isPackaged = true }: {
+export function createFakePill({
+  engineKind = EngineKind.GOOGLE,
+  hasApiKey = true,
+  isPackaged = true
+}: {
   engineKind?: EngineKind;
   hasApiKey?: boolean;
   isPackaged?: boolean;

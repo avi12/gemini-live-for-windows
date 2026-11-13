@@ -5,14 +5,14 @@ import { z } from "zod";
 // elsewhere: fields Google adds later pass through and are reported once as unhandled.
 
 export const Modality = {
-  audio: "AUDIO",
-  text: "TEXT"
+  AUDIO: "AUDIO",
+  TEXT: "TEXT"
 } as const;
 
 export const MediaResolution = {
-  low: "MEDIA_RESOLUTION_LOW",
-  medium: "MEDIA_RESOLUTION_MEDIUM",
-  high: "MEDIA_RESOLUTION_HIGH"
+  LOW: "MEDIA_RESOLUTION_LOW",
+  MEDIUM: "MEDIA_RESOLUTION_MEDIUM",
+  HIGH: "MEDIA_RESOLUTION_HIGH"
 } as const;
 
 const blobSchema = z.object({
@@ -78,23 +78,24 @@ const serverMessageSchema = z.looseObject({
   setupComplete: z.looseObject({}).optional(),
   serverContent: serverContentSchema.optional(),
   goAway: z.looseObject({ timeLeft: z.string().optional() }).optional(),
-  sessionResumptionUpdate: z.object({
-    resumable: z.boolean().default(false),
-    newHandle: z.string().optional()
-  }).optional()
+  sessionResumptionUpdate: z
+    .object({
+      resumable: z.boolean().default(false),
+      newHandle: z.string().optional()
+    })
+    .optional()
 });
 
 export type ServerMessage = z.infer<typeof serverMessageSchema>;
 
-export const HANDLED_SERVER_FIELDS: ReadonlySet<string> = new Set(
-  Object.keys(serverMessageSchema.shape)
-);
+export const HANDLED_SERVER_FIELDS: ReadonlySet<string> = new Set(Object.keys(serverMessageSchema.shape));
 
 export function serializeClientMessage(message: ClientMessage) {
   return JSON.stringify(clientMessageSchema.parse(message));
 }
 
-const serverFrameSchema = z.string()
+const serverFrameSchema = z
+  .string()
   .transform((text, context) => {
     try {
       return JSON.parse(text);

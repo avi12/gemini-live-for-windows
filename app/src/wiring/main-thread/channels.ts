@@ -1,4 +1,5 @@
 import { MessageChannel } from "node:worker_threads";
+
 import { createMessagePortTransport } from "winui-svelte/state/host";
 
 // One MessageChannel per link between the main thread and the UI worker. The main thread keeps

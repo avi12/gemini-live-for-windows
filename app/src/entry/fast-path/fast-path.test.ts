@@ -1,13 +1,19 @@
-import { createCopilotMessageHook, triggerFromWParam, WM_COPILOT, WParam } from "./fast-path.ts";
-import { KeyTrigger } from "@/core/instance/key-trigger.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+
+import { KeyTrigger } from "@/core/instance/key-trigger.ts";
+
+import { createCopilotMessageHook, triggerFromWParam, WM_COPILOT, WParam } from "./fast-path.ts";
 
 const OUR_WINDOW = 0x1234n;
 const UNDECLARED_WPARAM = 3n;
 const NO_WINDOW = 0n;
 
-function press({ hwnd = OUR_WINDOW, id = WM_COPILOT, wParam = WParam.tap }: {
+function press({
+  hwnd = OUR_WINDOW,
+  id = WM_COPILOT,
+  wParam = WParam.tap
+}: {
   hwnd?: bigint;
   id?: number;
   wParam?: bigint;
@@ -31,9 +37,9 @@ function press({ hwnd = OUR_WINDOW, id = WM_COPILOT, wParam = WParam.tap }: {
 
 describe("triggerFromWParam", () => {
   it("maps the manifest's MessageWParam numbers", () => {
-    assert.equal(triggerFromWParam(WParam.tap), KeyTrigger.tap);
-    assert.equal(triggerFromWParam(WParam.holdStart), KeyTrigger.holdStart);
-    assert.equal(triggerFromWParam(WParam.holdStop), KeyTrigger.holdStop);
+    assert.equal(triggerFromWParam(WParam.tap), KeyTrigger.TAP);
+    assert.equal(triggerFromWParam(WParam.holdStart), KeyTrigger.HOLD_START);
+    assert.equal(triggerFromWParam(WParam.holdStop), KeyTrigger.HOLD_STOP);
   });
 
   it("rejects numbers the manifest does not declare", () => {
@@ -45,7 +51,7 @@ describe("createCopilotMessageHook", () => {
   it("reports each trigger of our window and handles the message", () => {
     assert.deepEqual(press({ wParam: 1n }), {
       isHandled: true,
-      triggers: [KeyTrigger.holdStart]
+      triggers: [KeyTrigger.HOLD_START]
     });
   });
 

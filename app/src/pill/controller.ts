@@ -1,3 +1,6 @@
+import { pillViewSchema } from "@gemini-live/protocol/view";
+import type { PillAction, PillView } from "@gemini-live/protocol/view";
+
 import type { Monitor, Region } from "@/contracts/monitor.ts";
 import { KeyTrigger } from "@/core/instance/key-trigger.ts";
 import { applyAction } from "@/pill/actions.ts";
@@ -8,15 +11,10 @@ import { onDisplaysChanged } from "@/pill/menus/displays.ts";
 import type { PillDeps } from "@/pill/ports.ts";
 import { endConversation, setMuted, startConversation } from "@/pill/session.ts";
 import { buildView } from "@/pill/view-builder.ts";
-import { pillViewSchema } from "@gemini-live/protocol/view";
-import type { PillAction, PillView } from "@gemini-live/protocol/view";
 
 type ViewListener = (view: PillView) => void;
 
-function parseView({ view, log }: {
-  view: unknown;
-  log: PillDeps["log"];
-}) {
+function parseView({ view, log }: { view: unknown; log: PillDeps["log"] }) {
   const parsed = pillViewSchema.safeParse(view);
   if (!parsed.success) {
     log(`pill: the view is invalid: ${parsed.error.message}`);
@@ -27,7 +25,11 @@ function parseView({ view, log }: {
 }
 
 // The newest view, and the view after each change from then on; the returned function stops it
-function subscribeView({ listeners, listener, current }: {
+function subscribeView({
+  listeners,
+  listener,
+  current
+}: {
   listeners: Set<ViewListener>;
   listener: ViewListener;
   current: PillView | undefined;
@@ -44,10 +46,7 @@ function subscribeView({ listeners, listener, current }: {
   };
 }
 
-function createViewPublisher({ log, build }: {
-  log: PillDeps["log"];
-  build: () => PillView;
-}) {
+function createViewPublisher({ log, build }: { log: PillDeps["log"]; build: () => PillView }) {
   const listeners = new Set<ViewListener>();
   let latest: PillView | undefined;
   let latestText = "";
@@ -88,30 +87,28 @@ function createViewPublisher({ log, build }: {
   return {
     flush,
     changed,
-    subscribe: (listener: ViewListener) => subscribeView({
-      listeners,
-      listener,
-      current: flush()
-    })
+    subscribe: (listener: ViewListener) =>
+      subscribeView({
+        listeners,
+        listener,
+        current: flush()
+      })
   };
 }
 
 // The Copilot key: a tap toggles, a hold starts and unmutes
-function handleTrigger({ context, trigger }: {
-  context: PillContext;
-  trigger: KeyTrigger;
-}) {
+function handleTrigger({ context, trigger }: { context: PillContext; trigger: KeyTrigger }) {
   const { deps, state } = context;
   deps.log(`trigger ${trigger}`);
   const isLive = state.conversation !== undefined;
-  const isTap = trigger === KeyTrigger.tap;
+  const isTap = trigger === KeyTrigger.TAP;
   const isEnding = isTap && isLive;
   if (isEnding) {
     return endConversation(context);
   }
 
-  const isHoldStart = trigger === KeyTrigger.holdStart;
-  const isStarting = isTap || isHoldStart && !isLive;
+  const isHoldStart = trigger === KeyTrigger.HOLD_START;
+  const isStarting = isTap || (isHoldStart && !isLive);
   if (isStarting) {
     return startConversation({
       context,
@@ -130,11 +127,7 @@ function handleTrigger({ context, trigger }: {
 }
 
 // Circle to Search: Gemini watches the circled region, starting a conversation first if none runs
-async function focusRegion({ context, monitor, region }: {
-  context: PillContext;
-  monitor: Monitor;
-  region: Region;
-}) {
+async function focusRegion({ context, monitor, region }: { context: PillContext; monitor: Monitor; region: Region }) {
   const isIdle = context.state.conversation === undefined;
   if (isIdle) {
     await startConversation({
@@ -149,10 +142,7 @@ async function focusRegion({ context, monitor, region }: {
   });
 }
 
-function createContext({ deps, changed }: {
-  deps: PillDeps;
-  changed: () => void;
-}) {
+function createContext({ deps, changed }: { deps: PillDeps; changed: () => void }) {
   const state = createPillState();
   const context: PillContext = {
     state,
@@ -217,10 +207,7 @@ export function createPillController(deps: PillDeps) {
         monitor
       });
     },
-    focusRegion({ monitor, region }: {
-      monitor: Monitor;
-      region: Region;
-    }) {
+    focusRegion({ monitor, region }: { monitor: Monitor; region: Region }) {
       return focusRegion({
         context,
         monitor,

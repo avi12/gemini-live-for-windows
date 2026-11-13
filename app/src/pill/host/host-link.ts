@@ -1,10 +1,11 @@
-import type { PillController } from "@/pill/controller.ts";
-import type { PillWindowPort } from "@/pill/ports.ts";
 import { pillActionSchema, VIEW_NAME, WindowMessage } from "@gemini-live/protocol/view";
 import type { PillAction, PillView, WindowProtocol } from "@gemini-live/protocol/view";
 import { defineMessaging } from "winui-svelte/messaging";
 import { diff, MessageType } from "winui-svelte/state/host";
 import type { StateProtocol, Transport } from "winui-svelte/state/host";
+
+import type { PillController } from "@/pill/controller.ts";
+import type { PillWindowPort } from "@/pill/ports.ts";
 
 // Everything on the pill's link: the state protocol, and what only the window can do
 export type PillProtocol = StateProtocol<PillAction> & WindowProtocol;
@@ -24,9 +25,9 @@ export function openPillLink({ transport, log }: PillLinkSetup) {
   });
 
   const windowPort: PillWindowPort = {
-    bringToFront: () => messaging.notify(WindowMessage.bringToFront),
-    restorePreviousApp: () => messaging.notify(WindowMessage.restorePreviousApp),
-    moveBy: data => messaging.notify(WindowMessage.moveBy, data)
+    bringToFront: () => messaging.notify(WindowMessage.BRING_TO_FRONT),
+    restorePreviousApp: () => messaging.notify(WindowMessage.RESTORE_PREVIOUS_APP),
+    moveBy: data => messaging.notify(WindowMessage.MOVE_BY, data)
   };
 
   // Serves the view over the state protocol: a snapshot first, then a patch after each change

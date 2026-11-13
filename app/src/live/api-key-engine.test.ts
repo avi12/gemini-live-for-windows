@@ -1,3 +1,6 @@
+import assert from "node:assert/strict";
+import { afterEach, describe, it, mock } from "node:test";
+
 import { EngineKind, type LiveEvent, LiveEventKind, LiveStatus } from "@/contracts/live-engine.ts";
 import { createApiKeyEngine } from "@/live/api-key-engine.ts";
 import { FRAME_INTERVAL_MS } from "@/live/api/constants.ts";
@@ -12,8 +15,6 @@ import {
   TEST_KEY,
   TEST_MONITOR
 } from "@/live/fakes.ts";
-import assert from "node:assert/strict";
-import { afterEach, describe, it, mock } from "node:test";
 
 const MIC_PEAK = 0.5;
 const LOUD_PEAK = 0.9;
@@ -37,7 +38,9 @@ function setup() {
     connect: network.connect
   });
   const events: LiveEvent[] = [];
-  engine.onEvent(event => void events.push(event));
+  engine.onEvent(event => {
+    events.push(event);
+  });
   return {
     engine,
     network,
@@ -64,7 +67,7 @@ describe("api key engine", () => {
 
   it("is the API-key engine and reports levels", () => {
     const { engine } = setup();
-    assert.equal(engine.kind, EngineKind.apiKey);
+    assert.equal(engine.kind, EngineKind.API_KEY);
     assert.equal(engine.reportsLevels, true);
   });
 
@@ -89,12 +92,14 @@ describe("api key engine", () => {
       serverContent: {
         interrupted: true,
         modelTurn: {
-          parts: [{
-            inlineData: {
-              mimeType: "audio/pcm;rate=24000",
-              data: PCM_BASE64
+          parts: [
+            {
+              inlineData: {
+                mimeType: "audio/pcm;rate=24000",
+                data: PCM_BASE64
+              }
             }
-          }]
+          ]
         }
       }
     });
@@ -126,20 +131,20 @@ describe("api key engine", () => {
         }
       }
     });
-    const transcripts = events.filter(event => event.kind === LiveEventKind.transcript);
+    const transcripts = events.filter(event => event.kind === LiveEventKind.TRANSCRIPT);
     assert.deepEqual(transcripts, [
       {
-        kind: LiveEventKind.transcript,
+        kind: LiveEventKind.TRANSCRIPT,
         text: "What is",
         isUser: true
       },
       {
-        kind: LiveEventKind.transcript,
+        kind: LiveEventKind.TRANSCRIPT,
         text: "What is this?",
         isUser: true
       },
       {
-        kind: LiveEventKind.transcript,
+        kind: LiveEventKind.TRANSCRIPT,
         text: "A cat.",
         isUser: false
       }
@@ -153,20 +158,20 @@ describe("api key engine", () => {
     engine.isMuted = true;
     audio.emitMicLevel(LOUD_PEAK);
     audio.emitSpeakerLevel(SPEAKER_PEAK);
-    const levels = events.filter(event => event.kind === LiveEventKind.level);
+    const levels = events.filter(event => event.kind === LiveEventKind.LEVEL);
     assert.deepEqual(levels, [
       {
-        kind: LiveEventKind.level,
+        kind: LiveEventKind.LEVEL,
         peak: MIC_PEAK,
         isUser: true
       },
       {
-        kind: LiveEventKind.level,
+        kind: LiveEventKind.LEVEL,
         peak: 0,
         isUser: true
       },
       {
-        kind: LiveEventKind.level,
+        kind: LiveEventKind.LEVEL,
         peak: SPEAKER_PEAK,
         isUser: false
       }
@@ -181,9 +186,12 @@ describe("api key engine", () => {
       goAway: {}
     });
     await flush();
-    assert.deepEqual(events.map(event => event.kind), [LiveEventKind.status, LiveEventKind.status]);
+    assert.deepEqual(
+      events.map(event => event.kind),
+      [LiveEventKind.STATUS, LiveEventKind.STATUS]
+    );
     const second = events[1];
-    assert.ok(second?.kind === LiveEventKind.status && second.status === LiveStatus.listening);
+    assert.ok(second?.kind === LiveEventKind.STATUS && second.status === LiveStatus.LISTENING);
     await engine.dispose();
   });
 
@@ -193,10 +201,12 @@ describe("api key engine", () => {
       code: 1011,
       reason: "Quota exceeded"
     });
-    assert.deepEqual(events, [{
-      kind: LiveEventKind.ended,
-      reason: "Quota exceeded"
-    }]);
+    assert.deepEqual(events, [
+      {
+        kind: LiveEventKind.ENDED,
+        reason: "Quota exceeded"
+      }
+    ]);
     await engine.dispose();
   });
 
@@ -235,9 +245,11 @@ describe("api key engine", () => {
     await flush();
     assert.equal(screen.targets.length, captured);
     assert.ok(audio.calls.includes("dispose"));
-    assert.deepEqual(socket.closes, [{
-      code: 1000,
-      reason: "bye"
-    }]);
+    assert.deepEqual(socket.closes, [
+      {
+        code: 1000,
+        reason: "bye"
+      }
+    ]);
   });
 });

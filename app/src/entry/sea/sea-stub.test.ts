@@ -1,9 +1,10 @@
-import { HOST_ARGUMENT_PREFIX, HOST_MODULE, MAIN_MODULE, seaStubSource } from "./sea-stub.ts";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { describe, it } from "node:test";
 import sandbox from "node:vm";
+
+import { HOST_ARGUMENT_PREFIX, HOST_MODULE, MAIN_MODULE, seaStubSource } from "./sea-stub.ts";
 
 const EXE_FOLDER = path.join("C:", "Apps", "Gemini Live");
 

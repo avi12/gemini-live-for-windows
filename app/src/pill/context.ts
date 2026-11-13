@@ -51,15 +51,16 @@ export function createPillState() {
 }
 
 // An engine's events and results only count while it is still the conversation
-export function isCurrent({ context, engine }: {
-  context: PillContext;
-  engine: LiveEngine;
-}) {
+export function isCurrent({ context, engine }: { context: PillContext; engine: LiveEngine }) {
   return context.state.conversation === engine;
 }
 
 // Slow work carries on after the action is answered; a failure is logged, never unhandled
-export function runInBackground({ context, task, name }: {
+export function runInBackground({
+  context,
+  task,
+  name
+}: {
   context: PillContext;
   task: Promise<unknown>;
   name: string;

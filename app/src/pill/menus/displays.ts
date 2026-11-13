@@ -4,15 +4,12 @@ import type { PillContext } from "@/pill/context.ts";
 import { runInBackground } from "@/pill/context.ts";
 import { refreshMicrophones } from "@/pill/menus/microphones.ts";
 
-export function describeMonitor(monitor: Monitor) {
+function describeMonitor(monitor: Monitor) {
   const primary = monitor.isPrimary ? " (primary)" : "";
   return `${monitorName(monitor)}${primary} · ${monitor.width}×${monitor.height}`;
 }
 
-export function showOn({ context, monitor }: {
-  context: PillContext;
-  monitor: Monitor;
-}) {
+export function showOn({ context, monitor }: { context: PillContext; monitor: Monitor }) {
   const { state, deps } = context;
   if (!state.isShown) {
     runInBackground({
@@ -36,10 +33,7 @@ export function showOn({ context, monitor }: {
   context.changed();
 }
 
-function share({ context, monitor }: {
-  context: PillContext;
-  monitor: Monitor;
-}) {
+function share({ context, monitor }: { context: PillContext; monitor: Monitor }) {
   const { state, deps, focus } = context;
   const { conversation } = state;
   const isIdle = conversation === undefined;
@@ -54,10 +48,7 @@ function share({ context, monitor }: {
   deps.log(`sharing ${describeMonitor(monitor)}`);
 }
 
-export function shareDisplay({ context, displayId }: {
-  context: PillContext;
-  displayId: string;
-}) {
+export function shareDisplay({ context, displayId }: { context: PillContext; displayId: string }) {
   const monitor = context.deps.displays.all().find(display => display.deviceName === displayId);
   const isMissing = monitor === undefined;
   if (isMissing) {

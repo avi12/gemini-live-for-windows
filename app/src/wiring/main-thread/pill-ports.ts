@@ -23,7 +23,12 @@ type GoogleLink = ReturnType<typeof connectGoogle>;
 
 // Both kinds of conversation behind the pill's one factory: the Google engine runs on the UI
 // worker and is reached over the link, the API-key engine runs here on its own devices
-export function createEnginesPort({ settings, media, google, log }: {
+export function createEnginesPort({
+  settings,
+  media,
+  google,
+  log
+}: {
   settings: Settings;
   media: Pick<Media, "createAudioDuplex" | "screenSource">;
   google: Pick<GoogleLink, "createEngine">;
@@ -31,7 +36,7 @@ export function createEnginesPort({ settings, media, google, log }: {
 }) {
   const port: EnginesPort = {
     create({ kind, monitor }) {
-      const isGoogle = kind === EngineKind.google;
+      const isGoogle = kind === EngineKind.GOOGLE;
       if (isGoogle) {
         return google.createEngine(monitor);
       }
@@ -56,10 +61,11 @@ export function createDisplaysPort(media: Pick<Media, "monitors" | "onDisplaysCh
   const port: DisplaysPort = {
     all: () => media.monitors.all(),
     active: () => media.monitors.active(),
-    reconcile: ({ all, display }) => media.monitors.reconcile({
-      current: all,
-      display
-    }),
+    reconcile: ({ all, display }) =>
+      media.monitors.reconcile({
+        current: all,
+        display
+      }),
     onChanged: listener => media.onDisplaysChanged(() => listener())
   };
   return port;
@@ -74,7 +80,10 @@ export function createMicrophonesPort(google: Pick<GoogleLink, "microphones">) {
 }
 
 // The extension's one-click setup: copy it out, put its folder on the clipboard, open the browser
-export function createGooglePort({ extensionDirectory, log }: {
+export function createGooglePort({
+  extensionDirectory,
+  log
+}: {
   extensionDirectory: string;
   log: (message: string) => void;
 }) {
@@ -88,10 +97,7 @@ export function createGooglePort({ extensionDirectory, log }: {
   return port;
 }
 
-export function createUpdatesPort({ checker, installed }: {
-  checker: UpdateChecker;
-  installed: string | undefined;
-}) {
+export function createUpdatesPort({ checker, installed }: { checker: UpdateChecker; installed: string | undefined }) {
   const port: UpdatesPort = {
     installed,
     get ready() {
@@ -99,7 +105,7 @@ export function createUpdatesPort({ checker, installed }: {
     },
     check: options => checker.check(options),
     install: () => checker.install(),
-    onReadyChanged: listener => checker.events.onMessage(UpdateMessage.readyChanged, () => listener()),
+    onReadyChanged: listener => checker.events.onMessage(UpdateMessage.READY_CHANGED, () => listener()),
     watch: () => checker.watch()
   };
   return port;
@@ -107,7 +113,10 @@ export function createUpdatesPort({ checker, installed }: {
 
 // The foreground is followed on the UI worker, which owns the windows and the message pump; the
 // main thread only asks it to put the previous app back
-export function createPreviousAppPort({ window, delay }: {
+export function createPreviousAppPort({
+  window,
+  delay
+}: {
   window: PillWindowPort;
   delay: (milliseconds: number) => Promise<void>;
 }) {

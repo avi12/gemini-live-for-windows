@@ -18,7 +18,10 @@ interface Press {
 
 // Hands key triggers to the pill controller once it exists. A press that arrives while the app is
 // still starting (the pipe is served before the controller is built) waits instead of being lost.
-export function createTriggerRelay({ now = () => performance.now(), log = () => undefined }: {
+export function createTriggerRelay({
+  now = () => performance.now(),
+  log = () => undefined
+}: {
   now?: () => number;
   log?: (message: string) => void;
 } = {}) {
@@ -34,10 +37,11 @@ export function createTriggerRelay({ now = () => performance.now(), log = () => 
     }
 
     const elapsed = now() - previousAt;
-    const isForwardedEcho = source === KeySource.forwarded && elapsed < FORWARDED_ECHO_MILLISECONDS;
-    const isRepeatedEcho = source === KeySource.fastPath
-      && elapsed >= REPEAT_ECHO_FROM_MILLISECONDS
-      && elapsed < REPEAT_ECHO_UNTIL_MILLISECONDS;
+    const isForwardedEcho = source === KeySource.FORWARDED && elapsed < FORWARDED_ECHO_MILLISECONDS;
+    const isRepeatedEcho =
+      source === KeySource.FAST_PATH &&
+      elapsed >= REPEAT_ECHO_FROM_MILLISECONDS &&
+      elapsed < REPEAT_ECHO_UNTIL_MILLISECONDS;
     return isForwardedEcho || isRepeatedEcho;
   }
 
@@ -50,7 +54,7 @@ export function createTriggerRelay({ now = () => performance.now(), log = () => 
         return;
       }
 
-      const isFastPath = press.source === KeySource.fastPath;
+      const isFastPath = press.source === KeySource.FAST_PATH;
       if (isFastPath) {
         lastFastPathAt = now();
       }

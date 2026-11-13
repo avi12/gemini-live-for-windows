@@ -39,25 +39,27 @@ export function connectWebSocket(url: string) {
   const socket = new WebSocket(url);
   socket.binaryType = "arraybuffer";
   return {
-    isOpen: () => socket.readyState === SocketState.open,
+    isOpen: () => socket.readyState === SocketState.OPEN,
     send: data => socket.send(data),
     close: ({ code, reason }) => socket.close(code, reason),
     onOpen: listener => socket.addEventListener("open", () => listener()),
     onError: listener => socket.addEventListener("error", () => listener()),
-    onMessage: listener => socket.addEventListener("message", event => {
-      const text = decodeFrame(event.data);
-      const isUnreadable = text === undefined;
-      if (isUnreadable) {
-        return;
-      }
+    onMessage: listener =>
+      socket.addEventListener("message", event => {
+        const text = decodeFrame(event.data);
+        const isUnreadable = text === undefined;
+        if (isUnreadable) {
+          return;
+        }
 
-      listener(text);
-    }),
-    onClose: listener => socket.addEventListener("close", event => {
-      listener({
-        code: event.code,
-        reason: event.reason
-      });
-    })
+        listener(text);
+      }),
+    onClose: listener =>
+      socket.addEventListener("close", event => {
+        listener({
+          code: event.code,
+          reason: event.reason
+        });
+      })
   } satisfies LiveSocket;
 }

@@ -1,12 +1,18 @@
-import { bringToFront } from "@/overlays/focus/foreground.ts";
-import type { ForegroundApi } from "@/overlays/ports.ts";
-import type { PillProtocol } from "@/pill/host/host-link.ts";
 import { moveByDataSchema, WindowMessage } from "@gemini-live/protocol/view";
 import type { Messaging } from "winui-svelte/messaging";
 import { shouldRestore } from "winui-svelte/window/foreground";
 import type { ForegroundSnapshot } from "winui-svelte/window/foreground";
 
+import { bringToFront } from "@/overlays/focus/foreground.ts";
+import type { ForegroundApi } from "@/overlays/ports.ts";
+import type { PillProtocol } from "@/pill/host/host-link.ts";
+
 export const WINDOW_NOT_UP = "The pill's window isn't up yet";
+
+interface MoveToPosition {
+  x: number;
+  y: number;
+}
 
 // The pill's window as the abilities below need it, in physical screen pixels
 export interface PillWindowSurface {
@@ -15,10 +21,7 @@ export interface PillWindowSurface {
     x: number;
     y: number;
   };
-  moveTo(position: {
-    x: number;
-    y: number;
-  }): void;
+  moveTo(position: MoveToPosition): void;
 }
 
 // What the foreground tracker knows, as the abilities below read it
@@ -30,7 +33,14 @@ export interface ForegroundMemory {
 // What the controller asks of the pill's window, answered on the UI worker (the thread that owns
 // it): to be raised past Windows' foreground lock, and to be moved when the user drags it. A
 // request that arrives before the window exists is refused with a reason.
-export function serveWindowAbilities({ link, surface, foreground, memory, bringToFrontOf, log }: {
+export function serveWindowAbilities({
+  link,
+  surface,
+  foreground,
+  memory,
+  bringToFrontOf,
+  log
+}: {
   link: Pick<Messaging<PillProtocol>, "onMessage">;
   surface: () => PillWindowSurface | undefined;
   foreground: ForegroundApi;
@@ -47,7 +57,7 @@ export function serveWindowAbilities({ link, surface, foreground, memory, bringT
     return current;
   }
 
-  link.onMessage(WindowMessage.bringToFront, () => {
+  link.onMessage(WindowMessage.BRING_TO_FRONT, () => {
     bringToFront({
       api: foreground,
       hwnd: windowOrThrow().hwnd
@@ -55,12 +65,14 @@ export function serveWindowAbilities({ link, surface, foreground, memory, bringT
   });
   // Gives the keyboard back to the app the user was in: when Windows left the foreground on the shell
   // or a window of ours, the last real app returns; an app the user switched to is left alone
-  link.onMessage(WindowMessage.restorePreviousApp, () => {
+  link.onMessage(WindowMessage.RESTORE_PREVIOUS_APP, () => {
     const { lastRealApp, foreground: inFront } = memory;
-    const isBack = lastRealApp !== null && shouldRestore({
-      lastRealApp,
-      foreground: inFront
-    });
+    const isBack =
+      lastRealApp !== null &&
+      shouldRestore({
+        lastRealApp,
+        foreground: inFront
+      });
     if (!isBack) {
       return;
     }
@@ -68,7 +80,7 @@ export function serveWindowAbilities({ link, surface, foreground, memory, bringT
     bringToFrontOf(lastRealApp);
     log("focus: back to the app that was in front");
   });
-  link.onMessage(WindowMessage.moveBy, message => {
+  link.onMessage(WindowMessage.MOVE_BY, message => {
     const { deltaX, deltaY } = moveByDataSchema.parse(message.data);
     const current = windowOrThrow();
     const { x, y } = current.position();

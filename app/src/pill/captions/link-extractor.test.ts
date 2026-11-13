@@ -1,6 +1,7 @@
-import { findLinks, shortTitle } from "@/pill/captions/link-extractor.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+
+import { findLinks, shortTitle } from "@/pill/captions/link-extractor.ts";
 
 const SEARCH = "https://www.google.com/search?q=";
 
@@ -62,7 +63,7 @@ describe("findLinks", () => {
   });
 
   it("turns a long quoted title into a Google search", () => {
-    assert.deepEqual(findLinks("Search for \"Apple unveils new chip\" to read it"), [
+    assert.deepEqual(findLinks('Search for "Apple unveils new chip" to read it'), [
       {
         title: "Apple unveils new chip",
         uri: `${SEARCH}Apple%20unveils%20new%20chip`,
@@ -78,27 +79,28 @@ describe("findLinks", () => {
   });
 
   it("ignores a short quote", () => {
-    assert.deepEqual(findLinks("He said \"hello there\""), []);
+    assert.deepEqual(findLinks('He said "hello there"'), []);
   });
 
   it("escapes the marks encodeURIComponent keeps, like .NET does", () => {
-    const [link] = findLinks("Find \"What is (this)? it's odd!\" please");
+    const [link] = findLinks('Find "What is (this)? it\'s odd!" please');
     assert.equal(link?.uri, `${SEARCH}What%20is%20%28this%29%3F%20it%27s%20odd%21`);
   });
 
   it("drops a repeated address in any casing, keeping the first", () => {
     const links = findLinks("https://Example.com/A and https://example.com/a and example.com");
-    assert.deepEqual(links.map(link => link.uri), ["https://Example.com/A", "https://example.com"]);
+    assert.deepEqual(
+      links.map(link => link.uri),
+      ["https://Example.com/A", "https://example.com"]
+    );
   });
 
   it("lists markdown first, then URLs, then domains, then searches", () => {
-    const links = findLinks("\"A quoted headline here\" example.org https://b.com/x [t](https://a.com/y)");
-    assert.deepEqual(links.map(link => link.uri), [
-      "https://a.com/y",
-      "https://b.com/x",
-      "https://example.org",
-      `${SEARCH}A%20quoted%20headline%20here`
-    ]);
+    const links = findLinks('"A quoted headline here" example.org https://b.com/x [t](https://a.com/y)');
+    assert.deepEqual(
+      links.map(link => link.uri),
+      ["https://a.com/y", "https://b.com/x", "https://example.org", `${SEARCH}A%20quoted%20headline%20here`]
+    );
   });
 });
 

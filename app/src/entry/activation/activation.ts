@@ -1,5 +1,6 @@
-import { KeyTrigger } from "@/core/instance/key-trigger.ts";
 import { z } from "zod";
+
+import { KeyTrigger } from "@/core/instance/key-trigger.ts";
 
 export const KEY_SCHEME = "geminilive-key";
 export const RECOVERED_ARGUMENT = "--recovered";
@@ -9,29 +10,29 @@ const STATE_PARAMETER = "state";
 export const STARTUP_TASK_ACTIVATION_KIND = 1020;
 
 export const ActivationKind = {
-  launch: "launch",
-  key: "key",
-  startup: "startup",
+  LAUNCH: "launch",
+  KEY: "key",
+  STARTUP: "startup",
   // The app started itself again after its window died: it only comes back up, like a sign-in start
-  recovered: "recovered"
+  RECOVERED: "recovered"
 } as const;
-export type ActivationKind = typeof ActivationKind[keyof typeof ActivationKind];
+export type ActivationKind = (typeof ActivationKind)[keyof typeof ActivationKind];
 
 export type Activation =
-  | { kind: typeof ActivationKind.launch }
-  | { kind: typeof ActivationKind.startup }
-  | { kind: typeof ActivationKind.recovered }
+  | { kind: typeof ActivationKind.LAUNCH }
+  | { kind: typeof ActivationKind.STARTUP }
+  | { kind: typeof ActivationKind.RECOVERED }
   | {
-    kind: typeof ActivationKind.key;
-    trigger: KeyTrigger;
-  };
+      kind: typeof ActivationKind.KEY;
+      trigger: KeyTrigger;
+    };
 
 const TRIGGER_BY_LOWERCASE_NAME = new Map(Object.values(KeyTrigger).map(name => [name.toLowerCase(), name]));
 
 // C# treated a missing or unknown ?state= as a tap.
 const stateSchema = z.preprocess(
   value => (typeof value === "string" ? TRIGGER_BY_LOWERCASE_NAME.get(value.toLowerCase()) : undefined),
-  z.enum(KeyTrigger).catch(KeyTrigger.tap)
+  z.enum(KeyTrigger).catch(KeyTrigger.TAP)
 );
 
 function keyUriOf(argument: string) {
@@ -58,7 +59,10 @@ export function triggerFromArgument(argument: string) {
  * passes nothing, so it can only be told from a plain launch by the Windows App SDK's activation
  * kind, which the caller reads (`packagedKind`) and which is undefined outside a package.
  */
-export function describeActivation({ args, packagedKind }: {
+export function describeActivation({
+  args,
+  packagedKind
+}: {
   args: readonly string[];
   packagedKind?: number | undefined;
 }) {
@@ -67,18 +71,18 @@ export function describeActivation({ args, packagedKind }: {
     const isKey = trigger !== undefined;
     if (isKey) {
       return {
-        kind: ActivationKind.key,
+        kind: ActivationKind.KEY,
         trigger
       };
     }
   }
   const isRecovered = args.includes(RECOVERED_ARGUMENT);
   if (isRecovered) {
-    return { kind: ActivationKind.recovered };
+    return { kind: ActivationKind.RECOVERED };
   }
 
   const isStartup = packagedKind === STARTUP_TASK_ACTIVATION_KIND;
-  return isStartup ? { kind: ActivationKind.startup } : { kind: ActivationKind.launch };
+  return isStartup ? { kind: ActivationKind.STARTUP } : { kind: ActivationKind.LAUNCH };
 }
 
 /** The arguments the user (or the manifest) gave: what follows the exe in `process.argv`. */

@@ -25,12 +25,15 @@ function createLineBook(takeId: (prefix: string) => string) {
   let lines: readonly PillLine[] = [];
 
   function append({ text, isUser, isNote }: Omit<PillLine, "id">) {
-    const added = [...lines, {
-      id: takeId(LINE_ID_PREFIX),
-      text,
-      isUser,
-      isNote
-    }];
+    const added = [
+      ...lines,
+      {
+        id: takeId(LINE_ID_PREFIX),
+        text,
+        isUser,
+        isNote
+      }
+    ];
     lines = added.slice(-MAX_LINES);
   }
 
@@ -44,17 +47,17 @@ function createLineBook(takeId: (prefix: string) => string) {
     append,
     // The engine sends the current utterance's full text; a new one starts when the speaker
     // changes, and a note is never continued
-    show({ text, isUser }: {
-      text: string;
-      isUser: boolean;
-    }) {
+    show({ text, isUser }: { text: string; isUser: boolean }) {
       const last = lines.at(-1);
       const isContinuing = last !== undefined && !last.isNote && last.isUser === isUser;
       if (isContinuing) {
-        lines = [...lines.slice(0, -1), {
-          ...last,
-          text
-        }];
+        lines = [
+          ...lines.slice(0, -1),
+          {
+            ...last,
+            text
+          }
+        ];
         return;
       }
 
@@ -67,7 +70,10 @@ function createLineBook(takeId: (prefix: string) => string) {
   };
 }
 
-function createLinkBook({ takeId, onLinkAdded }: {
+function createLinkBook({
+  takeId,
+  onLinkAdded
+}: {
   takeId: (prefix: string) => string;
   onLinkAdded: CaptionLogOptions["onLinkAdded"];
 }) {
@@ -91,13 +97,16 @@ function createLinkBook({ takeId, onLinkAdded }: {
         }
 
         addresses.add(key);
-        links = [...links, {
-          id: takeId(LINK_ID_PREFIX),
-          title: link.title,
-          uri: link.uri,
-          address: shortTitle(link.uri),
-          isSearch: link.isSearch
-        }];
+        links = [
+          ...links,
+          {
+            id: takeId(LINK_ID_PREFIX),
+            title: link.title,
+            uri: link.uri,
+            address: shortTitle(link.uri),
+            isSearch: link.isSearch
+          }
+        ];
         onLinkAdded?.(link.uri);
       }
     }
@@ -126,10 +135,7 @@ export function createCaptionLog({ onChange, onLinkAdded }: CaptionLogOptions) {
       linkBook.clear();
       onChange();
     },
-    show({ text, isUser }: {
-      text: string;
-      isUser: boolean;
-    }) {
+    show({ text, isUser }: { text: string; isUser: boolean }) {
       lineBook.show({
         text,
         isUser

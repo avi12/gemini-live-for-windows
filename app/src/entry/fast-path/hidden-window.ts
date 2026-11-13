@@ -1,13 +1,6 @@
-import {
-  argHandle,
-  argI32,
-  argNull,
-  argU32,
-  argWideString,
-  bindFunction,
-  Win32Type
-} from "@/win32/bind.ts";
 import "@microsoft/dynwinrt";
+
+import { argHandle, argI32, argNull, argU32, argWideString, bindFunction, Win32Type } from "@/win32/bind.ts";
 
 const STATIC_CLASS = "STATIC";
 const NO_EXTENDED_STYLE = 0;
@@ -26,11 +19,20 @@ function bindCreateWindow() {
     library: "user32.dll",
     entryPoint: "CreateWindowExW",
     parameters: [
-      Win32Type.u32, Win32Type.pointer, Win32Type.pointer, Win32Type.u32,
-      Win32Type.i32, Win32Type.i32, Win32Type.i32, Win32Type.i32,
-      Win32Type.handle, Win32Type.handle, Win32Type.handle, Win32Type.pointer
+      Win32Type.U32,
+      Win32Type.POINTER,
+      Win32Type.POINTER,
+      Win32Type.U32,
+      Win32Type.I32,
+      Win32Type.I32,
+      Win32Type.I32,
+      Win32Type.I32,
+      Win32Type.HANDLE,
+      Win32Type.HANDLE,
+      Win32Type.HANDLE,
+      Win32Type.POINTER
     ],
-    returns: Win32Type.handle,
+    returns: Win32Type.HANDLE,
     shouldCaptureLastError: true
   });
 }
@@ -39,8 +41,8 @@ function bindDestroyWindow() {
   return bindFunction({
     library: "user32.dll",
     entryPoint: "DestroyWindow",
-    parameters: [Win32Type.handle],
-    returns: Win32Type.bool32
+    parameters: [Win32Type.HANDLE],
+    returns: Win32Type.BOOL32
   });
 }
 
@@ -52,9 +54,18 @@ export function createHiddenWindow(title: string) {
   createWindow ??= bindCreateWindow();
   destroyWindow ??= bindDestroyWindow();
   const result = createWindow([
-    argU32(NO_EXTENDED_STYLE), argWideString(STATIC_CLASS), argWideString(title), argU32(HIDDEN_STYLE),
-    argI32(NO_POSITION), argI32(NO_POSITION), argI32(NO_SIZE), argI32(NO_SIZE),
-    argHandle(null), argHandle(null), argHandle(null), argNull()
+    argU32(NO_EXTENDED_STYLE),
+    argWideString(STATIC_CLASS),
+    argWideString(title),
+    argU32(HIDDEN_STYLE),
+    argI32(NO_POSITION),
+    argI32(NO_POSITION),
+    argI32(NO_SIZE),
+    argI32(NO_SIZE),
+    argHandle(null),
+    argHandle(null),
+    argHandle(null),
+    argNull()
   ]);
   const isCreationFailed = result.address === NO_WINDOW;
   if (isCreationFailed) {

@@ -1,3 +1,6 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+
 import {
   MAX_RAPID_RESTARTS,
   planRestart,
@@ -7,8 +10,6 @@ import {
   STABLE_RUN_MILLISECONDS,
   superviseUiWorker
 } from "./worker-supervisor.ts";
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 
 describe("planRestart", () => {
   it("counts a window that died soon after it started", () => {
@@ -16,7 +17,8 @@ describe("planRestart", () => {
       planRestart({
         rapidRestarts: 2,
         ranMilliseconds: 500
-      }), {
+      }),
+      {
         rapidRestarts: 3,
         isGivingUp: false
       }
@@ -28,7 +30,8 @@ describe("planRestart", () => {
       planRestart({
         rapidRestarts: 4,
         ranMilliseconds: STABLE_RUN_MILLISECONDS
-      }), {
+      }),
+      {
         rapidRestarts: 0,
         isGivingUp: false
       }
@@ -64,7 +67,8 @@ describe("restartCommand", () => {
         execPath: "C:/app/GeminiLive.exe",
         execArgv: [],
         script: "C:/app/GeminiLive.exe"
-      }), {
+      }),
+      {
         file: "C:/app/GeminiLive.exe",
         args: ["--recovered"]
       }
@@ -78,7 +82,8 @@ describe("restartCommand", () => {
         execPath: "node.exe",
         execArgv: ["--no-warnings"],
         script: "main.js"
-      }), {
+      }),
+      {
         file: "node.exe",
         args: ["--no-warnings", "main.js", "--recovered"]
       }

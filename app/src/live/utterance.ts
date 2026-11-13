@@ -10,7 +10,11 @@ export const EMPTY_UTTERANCE: Utterance = {
 
 // The API streams transcripts as fragments; the engine contract is whole utterances, and a new
 // one starts when the speaker changes
-export function appendFragment({ utterance, fragment, isUser }: {
+export function appendFragment({
+  utterance,
+  fragment,
+  isUser
+}: {
   utterance: Utterance;
   fragment: string;
   isUser: boolean;

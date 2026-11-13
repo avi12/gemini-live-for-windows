@@ -1,8 +1,9 @@
-import type { loadDevMountPill } from "@gemini-live/pill/dev-mount";
-import { PILL_DEV_MARKER_FILE, pillDevMarkerPath, readPillDevMarker } from "@gemini-live/protocol/pill-dev";
-import fs from "node:fs";
+import fileSystem from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+
+import type { loadDevMountPill } from "@gemini-live/pill/dev-mount";
+import { PILL_DEV_MARKER_FILE, pillDevMarkerPath, readPillDevMarker } from "@gemini-live/protocol/pill-dev";
 import { z } from "zod";
 
 const DEV_MOUNT_FILE = "dev-mount.ts";
@@ -28,8 +29,8 @@ export async function loadMountPill() {
 // `pnpm dev` starting or stopping: the caller ends the window so it comes back from the other source
 export function watchPillDevMarker({ onChanged }: { onChanged: () => void }) {
   const markerPath = pillDevMarkerPath();
-  fs.mkdirSync(path.dirname(markerPath), { recursive: true });
-  const watcher = fs.watch(path.dirname(markerPath), (_, fileName) => {
+  fileSystem.mkdirSync(path.dirname(markerPath), { recursive: true });
+  const watcher = fileSystem.watch(path.dirname(markerPath), (_, fileName) => {
     const isMarker = fileName === PILL_DEV_MARKER_FILE;
     if (isMarker) {
       onChanged();

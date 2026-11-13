@@ -1,7 +1,8 @@
+import type { EngineKind } from "@gemini-live/protocol/view";
+
 import type { Settings } from "@/core/settings/settings-file.ts";
 import { apiKey, saveSettings, setApiKey } from "@/core/settings/settings.ts";
 import type { SettingsPort } from "@/pill/ports.ts";
-import type { EngineKind } from "@gemini-live/protocol/view";
 
 // The pill's view of the loaded settings: reads the live object, saves after each change
 export function createSettingsPort(settings: Settings) {

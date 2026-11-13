@@ -1,8 +1,9 @@
+import { createHash } from "node:crypto";
+
 import type { Monitor, Region } from "@/contracts/monitor.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 import { FRAME_REFRESH_MS } from "@/live/api/constants.ts";
 import type { LogSink, ScreenSource, ScreenTarget } from "@/live/ports.ts";
-import { createHash } from "node:crypto";
 
 export interface FrameSenderDeps {
   readonly source: ScreenSource;

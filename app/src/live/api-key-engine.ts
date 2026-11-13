@@ -30,71 +30,77 @@ type Emit = (event: LiveEvent) => void;
 function createTranscript(emit: Emit) {
   let utterance = EMPTY_UTTERANCE;
 
-  return function appendTranscript({ fragment, isUser }: {
-    fragment: string;
-    isUser: boolean;
-  }) {
+  return function appendTranscript({ fragment, isUser }: { fragment: string; isUser: boolean }) {
     utterance = appendFragment({
       utterance,
       fragment,
       isUser
     });
     emit({
-      kind: LiveEventKind.transcript,
+      kind: LiveEventKind.TRANSCRIPT,
       text: utterance.text.trim(),
       isUser
     });
   };
 }
 
-function buildSessionListeners({ audio, emit }: {
-  audio: AudioDuplex;
-  emit: Emit;
-}) {
+function buildSessionListeners({ audio, emit }: { audio: AudioDuplex; emit: Emit }) {
   const appendTranscript = createTranscript(emit);
 
   return {
     onAudio: (pcm16: Uint8Array) => audio.play(pcm16),
     onInterrupted: () => audio.flush(),
-    onUserText: (fragment: string) => appendTranscript({
-      fragment,
-      isUser: true
-    }),
-    onModelText: (fragment: string) => appendTranscript({
-      fragment,
-      isUser: false
-    }),
-    onStatus: (status: string) => emit({
-      kind: LiveEventKind.status,
-      status
-    }),
-    onClosed: (reason: string) => emit({
-      kind: LiveEventKind.ended,
-      reason
-    })
+    onUserText: (fragment: string) =>
+      appendTranscript({
+        fragment,
+        isUser: true
+      }),
+    onModelText: (fragment: string) =>
+      appendTranscript({
+        fragment,
+        isUser: false
+      }),
+    onStatus: (status: string) =>
+      emit({
+        kind: LiveEventKind.STATUS,
+        status
+      }),
+    onClosed: (reason: string) =>
+      emit({
+        kind: LiveEventKind.ENDED,
+        reason
+      })
   };
 }
 
-function subscribeAudio({ audio, sendAudio, emit }: {
+function subscribeAudio({
+  audio,
+  sendAudio,
+  emit
+}: {
   audio: AudioDuplex;
   sendAudio: (pcm16: Uint8Array) => void;
   emit: Emit;
 }) {
   return [
     audio.onMicChunk(sendAudio),
-    audio.onMicLevel(peak => emit({
-      kind: LiveEventKind.level,
-      peak: micLevel({
-        peak,
-        isMuted: audio.isMuted
-      }),
-      isUser: true
-    })),
-    audio.onSpeakerLevel(peak => emit({
-      kind: LiveEventKind.level,
-      peak: speakerLevel(peak),
-      isUser: false
-    }))
+    audio.onMicLevel(peak =>
+      emit({
+        kind: LiveEventKind.LEVEL,
+        peak: micLevel({
+          peak,
+          isMuted: audio.isMuted
+        }),
+        isUser: true
+      })
+    ),
+    audio.onSpeakerLevel(peak =>
+      emit({
+        kind: LiveEventKind.LEVEL,
+        peak: speakerLevel(peak),
+        isUser: false
+      })
+    )
   ];
 }
 
@@ -120,7 +126,9 @@ function createFrameLoop(frames: ReturnType<typeof createFrameSender>) {
   return {
     start() {
       void tick();
-      timer = setInterval(() => void tick(), FRAME_INTERVAL_MS);
+      timer = setInterval(() => {
+        void tick();
+      }, FRAME_INTERVAL_MS);
     },
     stop() {
       isStopped = true;
@@ -129,7 +137,16 @@ function createFrameLoop(frames: ReturnType<typeof createFrameSender>) {
   };
 }
 
-function assembleParts({ config, monitor, audio, screen, log, connect, now, emit }: Required<ApiKeyEngineDeps> & {
+function assembleParts({
+  config,
+  monitor,
+  audio,
+  screen,
+  log,
+  connect,
+  now,
+  emit
+}: Required<ApiKeyEngineDeps> & {
   emit: Emit;
 }) {
   const session = createLiveSession({
@@ -163,11 +180,7 @@ function assembleParts({ config, monitor, audio, screen, log, connect, now, emit
 // The API-key engine: mic to Gemini, screen to Gemini, Gemini to speaker, over the public Live
 // API. Mic chunks (every 40 ms) and screen stills (about 1/s) are two producers writing to the
 // same socket, so listening, looking and talking all happen at once.
-export function createApiKeyEngine({
-  connect = connectWebSocket,
-  now = Date.now,
-  ...deps
-}: ApiKeyEngineDeps) {
+export function createApiKeyEngine({ connect = connectWebSocket, now = Date.now, ...deps }: ApiKeyEngineDeps) {
   const { audio } = deps;
   const listeners = new Set<LiveEventListener>();
   const { session, frames, frameLoop, unsubscribes } = assembleParts({
@@ -182,7 +195,7 @@ export function createApiKeyEngine({
   });
 
   return {
-    kind: EngineKind.apiKey,
+    kind: EngineKind.API_KEY,
     reportsLevels: true,
     isCameraShared: false,
     get monitor() {

@@ -1,13 +1,14 @@
-import { argHandle, bindFunction, Win32Type } from "@/win32/bind.ts";
 import "@microsoft/dynwinrt";
 
+import { argHandle, bindFunction, Win32Type } from "@/win32/bind.ts";
+
 export const DpiAwareness = {
-  unaware: "unaware",
-  system: "system",
-  perMonitor: "per-monitor",
-  perMonitorV2: "per-monitor-v2"
+  UNAWARE: "unaware",
+  SYSTEM: "system",
+  PER_MONITOR: "per-monitor",
+  PER_MONITOR_V2: "per-monitor-v2"
 } as const;
-export type DpiAwareness = typeof DpiAwareness[keyof typeof DpiAwareness];
+export type DpiAwareness = (typeof DpiAwareness)[keyof typeof DpiAwareness];
 
 // DPI_AWARENESS_CONTEXT pseudo handles (windef.h): small negative numbers, passed as pointers.
 const DpiContext = {
@@ -18,17 +19,17 @@ const DpiContext = {
 } as const;
 
 const AWARENESS_BY_CONTEXT = [
-  [DpiContext.perMonitorV2, DpiAwareness.perMonitorV2],
-  [DpiContext.perMonitor, DpiAwareness.perMonitor],
-  [DpiContext.system, DpiAwareness.system],
-  [DpiContext.unaware, DpiAwareness.unaware]
+  [DpiContext.perMonitorV2, DpiAwareness.PER_MONITOR_V2],
+  [DpiContext.perMonitor, DpiAwareness.PER_MONITOR],
+  [DpiContext.system, DpiAwareness.SYSTEM],
+  [DpiContext.unaware, DpiAwareness.UNAWARE]
 ] as const;
 const ERROR_ACCESS_DENIED = 5;
 const AWARENESS_RANK: Record<DpiAwareness, number> = {
-  [DpiAwareness.unaware]: 0,
-  [DpiAwareness.system]: 1,
-  [DpiAwareness.perMonitor]: 2,
-  [DpiAwareness.perMonitorV2]: 3
+  [DpiAwareness.UNAWARE]: 0,
+  [DpiAwareness.SYSTEM]: 1,
+  [DpiAwareness.PER_MONITOR]: 2,
+  [DpiAwareness.PER_MONITOR_V2]: 3
 };
 
 export interface DpiCalls {
@@ -51,21 +52,21 @@ function createDpiCalls() {
   const setContext = bindFunction({
     library: "user32.dll",
     entryPoint: "SetProcessDpiAwarenessContext",
-    parameters: [Win32Type.handle],
-    returns: Win32Type.bool32,
+    parameters: [Win32Type.HANDLE],
+    returns: Win32Type.BOOL32,
     shouldCaptureLastError: true
   });
   const getThreadContext = bindFunction({
     library: "user32.dll",
     entryPoint: "GetThreadDpiAwarenessContext",
     parameters: [],
-    returns: Win32Type.handle
+    returns: Win32Type.HANDLE
   });
   const areEqual = bindFunction({
     library: "user32.dll",
     entryPoint: "AreDpiAwarenessContextsEqual",
-    parameters: [Win32Type.handle, Win32Type.handle],
-    returns: Win32Type.bool32
+    parameters: [Win32Type.HANDLE, Win32Type.HANDLE],
+    returns: Win32Type.BOOL32
   });
   return {
     read() {
@@ -76,7 +77,7 @@ function createDpiCalls() {
           return awareness;
         }
       }
-      return DpiAwareness.unaware;
+      return DpiAwareness.UNAWARE;
     },
     setPerMonitorV2() {
       const result = setContext([argHandle(toPointerValue(DpiContext.perMonitorV2))]);
@@ -89,10 +90,7 @@ function createDpiCalls() {
 }
 
 /** True when `current` is at least `required`. */
-export function isAwareAtLeast({ current, required }: {
-  current: DpiAwareness;
-  required: DpiAwareness;
-}) {
+export function isAwareAtLeast({ current, required }: { current: DpiAwareness; required: DpiAwareness }) {
   return AWARENESS_RANK[current] >= AWARENESS_RANK[required];
 }
 
@@ -106,7 +104,7 @@ export function isAwareAtLeast({ current, required }: {
  */
 export function ensureDpiAware({ calls = createDpiCalls() }: { calls?: DpiCalls } = {}) {
   const before = calls.read();
-  const isAlreadyV2 = before === DpiAwareness.perMonitorV2;
+  const isAlreadyV2 = before === DpiAwareness.PER_MONITOR_V2;
   if (isAlreadyV2) {
     return before;
   }
@@ -121,10 +119,10 @@ export function ensureDpiAware({ calls = createDpiCalls() }: { calls?: DpiCalls 
   const after = calls.read();
   const isAcceptable = isAwareAtLeast({
     current: after,
-    required: DpiAwareness.perMonitor
+    required: DpiAwareness.PER_MONITOR
   });
   if (!isAcceptable) {
-    throw new Error(`DPI awareness is ${after} and Windows refused ${DpiAwareness.perMonitorV2}`);
+    throw new Error(`DPI awareness is ${after} and Windows refused ${DpiAwareness.PER_MONITOR_V2}`);
   }
 
   return after;

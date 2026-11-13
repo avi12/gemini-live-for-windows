@@ -1,9 +1,10 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+
 import type { Monitor } from "@/contracts/monitor.ts";
 import { FRAME_REFRESH_MS } from "@/live/api/constants.ts";
 import { createFakeScreen, TEST_MONITOR } from "@/live/fakes.ts";
 import { createFrameSender } from "@/live/frame-sender.ts";
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 
 const SECOND_MONITOR: Monitor = {
   ...TEST_MONITOR,
@@ -21,9 +22,13 @@ function setup(frames: readonly Uint8Array[]) {
   const sender = createFrameSender({
     source: screen.source,
     monitor: TEST_MONITOR,
-    send: jpeg => void sent.push(jpeg),
+    send(jpeg) {
+      sent.push(jpeg);
+    },
     now: () => clock,
-    log: message => void logs.push(message)
+    log(message) {
+      logs.push(message);
+    }
   });
   return {
     sender,
