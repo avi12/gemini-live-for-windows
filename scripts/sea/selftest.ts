@@ -1,8 +1,9 @@
-import { PeSubsystem, readSubsystem } from "../../app/src/entry/sea/pe-subsystem.ts";
 import { spawn } from "node:child_process";
-import fs from "node:fs";
+import fileSystem from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+
+import { PeSubsystem, readSubsystem } from "../../app/src/entry/sea/pe-subsystem.ts";
 
 const EXIT_TIMEOUT_MS = 15_000;
 const STARTUP_RUNS = 3;
@@ -15,6 +16,9 @@ if (exe === undefined || dynwinrtEntry === undefined) {
   throw new Error("Usage: selftest.ts <exe> <dynwinrt win32-unsafe.js>");
 }
 
+const executable = exe;
+const dynwinrtPath = dynwinrtEntry;
+
 function runOnce() {
   return new Promise<{
     readyMs: number;
@@ -22,10 +26,10 @@ function runOnce() {
     output: string;
   }>((resolve, reject) => {
     const started = performance.now();
-    const child = spawn(exe!, [], {
+    const child = spawn(executable, [], {
       env: {
         ...process.env,
-        SEA_SELFTEST_DYNWINRT: pathToFileURL(dynwinrtEntry!).href
+        SEA_SELFTEST_DYNWINRT: pathToFileURL(dynwinrtPath).href
       },
       stdio: ["pipe", "pipe", "pipe"]
     });
@@ -37,8 +41,8 @@ function runOnce() {
     }, EXIT_TIMEOUT_MS);
     child.stdout.on("data", chunk => {
       output += String(chunk);
-
-      if (readyMs === 0 && output.includes("ready")) {
+      const isFirstReadyOutput = readyMs === 0 && output.includes("ready");
+      if (isFirstReadyOutput) {
         readyMs = performance.now() - started;
         child.stdin.end();
       }
@@ -58,19 +62,22 @@ function runOnce() {
   });
 }
 
-const subsystem = readSubsystem(fs.readFileSync(exe));
-if (subsystem !== PeSubsystem.windowsGui) {
-  throw new Error(`Subsystem is ${subsystem}, expected GUI (${PeSubsystem.windowsGui})`);
+const subsystem = readSubsystem(fileSystem.readFileSync(exe));
+if (subsystem !== PeSubsystem.WINDOWS_GUI) {
+  throw new Error(`Subsystem is ${subsystem}, expected GUI (${PeSubsystem.WINDOWS_GUI})`);
 }
 
 const times: number[] = [];
 for (let run = 0; run < STARTUP_RUNS; run += 1) {
   const result = await runOnce();
-  if (result.exitCode !== 0 || !result.output.includes("worker=tla dynwinrt=ok")) {
+  const isSelftestFailed = result.exitCode !== 0 || !result.output.includes("worker=tla dynwinrt=ok");
+  if (isSelftestFailed) {
     throw new Error(`Self test failed (exit ${result.exitCode}): ${result.output}`);
   }
 
   times.push(result.readyMs);
 }
-const megabytes = fs.statSync(exe).size / BYTES_PER_MEGABYTE;
-process.stdout.write(`${path.basename(exe)}: GUI subsystem, ${megabytes.toFixed(1)} MB, ready in ${times.map(time => time.toFixed(0)).join(" / ")} ms, exit 0 on stdin close\n`);
+const megabytes = fileSystem.statSync(exe).size / BYTES_PER_MEGABYTE;
+process.stdout.write(
+  `${path.basename(exe)}: GUI subsystem, ${megabytes.toFixed(1)} MB, ready in ${times.map(time => time.toFixed(0)).join(" / ")} ms, exit 0 on stdin close\n`
+);

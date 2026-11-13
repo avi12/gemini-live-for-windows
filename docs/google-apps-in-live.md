@@ -7,14 +7,14 @@ not touched.
 
 ## Verdict
 
-| Surface (same page, same bridge, same account) | Google apps? |
-|---|---|
-| Glic **text** turn | **Yes.** "Connected to Google Calendar": read events, created and deleted an event |
-| Glic **Live** turn | **No.** "I don't have access to your personal Google Calendar" (sometimes stalls on "Let me take a look...") |
+| Surface (same page, same bridge, same account) | Google apps?                                                                                                 |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Glic **text** turn                             | **Yes.** "Connected to Google Calendar": read events, created and deleted an event                           |
+| Glic **Live** turn                             | **No.** "I don't have access to your personal Google Calendar" (sometimes stalls on "Let me take a look...") |
 
 Nothing the host controls turns apps on in Live. The Live backend (`geminiweb-pa/v1/processSession`)
 just isn't given the Workspace tools for this client. **Fix: a hybrid.** Pause Live, run the request
-as a text turn in the *same* Glic conversation, then resume Live. Proven end to end (see Evidence).
+as a text turn in the _same_ Glic conversation, then resume Live. Proven end to end (see Evidence).
 
 ## What gates it (and what doesn't)
 
@@ -31,7 +31,7 @@ as a text turn in the *same* Glic conversation, then resume Live. Proven end to 
   "Apps" list UI and server flags (`45761586`, …). The text path turns them on per request on the
   server. The account already has them on, because text works with no change.
 - **`CHROME_TOOLS` (16) is text-only too.** A host `tools()` with `getChromeTools` / `executeTool` is
-  loaded by `GlicToolsService` and attached to *text* requests (`ClientFunctionCallOpExecutor`). In
+  loaded by `GlicToolsService` and attached to _text_ requests (`ClientFunctionCallOpExecutor`). In
   Live, a test tool `get_secret_word` was fetched but never called, and Live web-searched instead.
   (Not used by this fix. It could later let our app run actions natively from text turns.)
 
@@ -51,6 +51,7 @@ as a text turn in the *same* Glic conversation, then resume Live. Proven end to 
 ## Change to make (hybrid, same page)
 
 **C# (`GlicConversation` / `GlicHost`)**
+
 1. **Detect** an action in the Live transcript the bridge already relays (`transcript`, `dir:"user"`):
    - an intent regex on the user utterance: schedule / meeting / event / calendar / remind / reminder /
      task / to-do / note / list / Keep / email / Gmail / inbox; and
@@ -63,6 +64,7 @@ as a text turn in the *same* Glic conversation, then resume Live. Proven end to 
    ("what did you add?"). Live already knows the result.
 
 **Bridge (`glic_bridge.js`)**: add `runAction(prompt)`, exposed on `window.__glicBridge`:
+
 1. `stop()` (clicks "Switch to text mode", sets `active=false` so the monitor won't resume).
 2. Wait for `[contenteditable=true]`.
 3. Type the prompt. **It must be trusted input:** `execCommand('insertText')` / synthetic
@@ -82,7 +84,7 @@ Cost: Live pauses for roughly 10-25 s per action (stop, text turn, restart). Cap
 
 - Keep, Tasks, Gmail and Reminders were not exercised. Only Calendar (read, create, delete) was
   proven. Their confirmation button labels are unknown.
-- Whether a **second** hidden page could run the text turn in the *same* conversation (avoiding the
+- Whether a **second** hidden page could run the text turn in the _same_ conversation (avoiding the
   Live pause). This is untested. A separate conversation would not feed Live's context.
 - The setup list `[[4,28,1,3],[4,1]]` is unmapped. A future server flag could give Live tools
   natively, so re-test Live after Glic build bumps.
@@ -98,12 +100,12 @@ without the host handshake (`registerWebClient` → `initialize(host)`) the page
 conversation greets "Hello, You" and text turns submit. Read-only turns; one write per app was triggered
 only to read its card button, then **Cancelled** - nothing was created or sent (re-reads confirmed).
 
-| App | Text path | Notes |
-|---|---|---|
-| **Keep** | **Yes** | Read real notes (incl. a long Hebrew note). Write shows a confirmation card. |
-| **Tasks** | **Yes** | Read real active + completed tasks. Write shows a confirmation card. |
-| **Gmail** | **Read yes, send no** | Summarised real unread emails. Compose+send is refused: "I cannot send emails on your behalf." No send card is offered. |
-| **Home** | **No** | "I don't have access to your real-time smart home device registry or API status." It only infers devices from past chat memory - no live state, no device card. Unsupported on this path. Re-checked 2026-10-06 on `/app` text too: "unable to retrieve the real-time status" (a bare "is my AC on?" got a "yes" guessed from chat history). The account's web Connected Apps page (`/apps`) lists no Google Home at all, and a Glic text turn "Turn off the AC lights" hung in a tool call until stopped. So Home (and alarms/timers) no longer take the text path: Live answers them itself. Re-add them to `AppTopic` when `/apps` lists Google Home. |
+| App       | Text path             | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| --------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Keep**  | **Yes**               | Read real notes (incl. a long Hebrew note). Write shows a confirmation card.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| **Tasks** | **Yes**               | Read real active + completed tasks. Write shows a confirmation card.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| **Gmail** | **Read yes, send no** | Summarised real unread emails. Compose+send is refused: "I cannot send emails on your behalf." No send card is offered.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| **Home**  | **No**                | "I don't have access to your real-time smart home device registry or API status." It only infers devices from past chat memory - no live state, no device card. Unsupported on this path. Re-checked 2026-10-06 on `/app` text too: "unable to retrieve the real-time status" (a bare "is my AC on?" got a "yes" guessed from chat history). The account's web Connected Apps page (`/apps`) lists no Google Home at all, and a Glic text turn "Turn off the AC lights" hung in a tool call until stopped. So Home (and alarms/timers) no longer take the text path: Live answers them itself. Re-add them to `AppTopic` when `/apps` lists Google Home. |
 
 ### Confirmation card labels (the load-bearing fix)
 
@@ -114,16 +116,16 @@ aria-labels**, not the visible verb:
 - cancel: `aria-label="Button that cancels actions."` · visible text "Cancel" · `cancel-confirmation-button`
 
 `clickButton` matches on **aria-label**, so the old `ACTION_CONFIRM` (`'Add','Save','Create',…` = the
-*visible* text) never matched this card. Worse, its bare `'Add'` matched the always-present composer
+_visible_ text) never matched this card. Worse, its bare `'Add'` matched the always-present composer
 button `"Add tabs. Press Enter to activate"`, so `submitAndRead` auto-clicked "Add tabs" on every turn.
 
 Changes to `glic_bridge.js`:
 
 - **`ACTION_CONFIRM`** now leads with `'Button that confirms actions'` (the generic confirm aria-label
   - covers every app on this shared card), then specific legacy verbs (`Add event`, `Add Event`,
-  `Create`, `Save`, `Remove`, `Delete`, `Update`, `Confirm`). Dropped the over-generic
-  `Add`/`Yes`/`Done`/`Send`/`Turn on`/`Turn off` (e.g. `Turn on` would hit `"Turn on live captions"`).
-  Verified live against a real card: `findButton` picks the confirm button, never "Add tabs" or Cancel.
+    `Create`, `Save`, `Remove`, `Delete`, `Update`, `Confirm`). Dropped the over-generic
+    `Add`/`Yes`/`Done`/`Send`/`Turn on`/`Turn off` (e.g. `Turn on` would hit `"Turn on live captions"`).
+    Verified live against a real card: `findButton` picks the confirm button, never "Add tabs" or Cancel.
 - **`lastReplyText`** now prefers the whole `.presented-response-container` (stripping the "Gemini said"
   a11y prefix), falling back to the old inner-node selector. App result cards render as embedded
   siblings of the inner `.markdown`, so the old selector returned only the "Here are your Google Keep
@@ -165,8 +167,8 @@ control a user's Home devices - phone-free, no impersonation, no Gemini:
 
 - Endpoint `https://home.googleapis.com/mcp` (preprod `preprod-home.sandbox.googleapis.com/mcp`), SSE,
   OAuth 2.0 scope `https://www.googleapis.com/auth/home.platform.v2`, the user's own Google Cloud project
-  + Web OAuth client. Tools: `list_homes`, `list_home_resources`, `list_home_states`, `run_home_actions`,
-  `list_home_history`. Early access.
+  - Web OAuth client. Tools: `list_homes`, `list_home_resources`, `list_home_states`, `run_home_actions`,
+    `list_home_history`. Early access.
 - This is NOT "Home through Gemini's own tools" - it is the app calling the Home API directly, the same
   detect-intent-and-route pattern already used for Calendar/Keep/Tasks/Gmail. Home becomes a reachable
   integration backed by the Home API, not by Gemini's tool slot.

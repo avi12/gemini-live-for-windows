@@ -105,7 +105,7 @@ The last command prints the key. `--api-target` restricts it to the Gemini API a
 - **Google account engine (default).** The real Gemini web client (`gemini.google.com/glic`, the one behind Gemini in Chrome) runs in a hidden WebView2. It owns the mic, echo cancellation, the Live connection and Gemini's voice.
   - **Pictures:** it pulls screen stills from the app, a fresh one each second. The app announces the screen under a new tab id each time, since the client sends one picture per tab id.
   - **Text:** each picture comes with an exact text copy of the foreground window, read through UI Automation, so small text Gemini can't make out in the picture still reaches it word for word.
-  - **Recovery:** a Live that breaks is retried with Gemini's own *Try again*, then reloaded, up to three times in ten minutes.
+  - **Recovery:** a Live that breaks is retried with Gemini's own _Try again_, then reloaded, up to three times in ten minutes.
 - **Your browser's Google session.** The companion extension pushes the session over a loopback WebSocket whenever Google rotates it. The app never rotates the cookies itself, so your browser stays the only owner of the session.
   - The socket has no fixed port. The app listens on a free one each run and hands it out, with a fresh token, through a native messaging host (`GeminiLiveHost.exe`). The browser lets only this extension's ID talk to that host.
   - The extension sends cookies only after the app greets it with that token.
@@ -128,16 +128,16 @@ The app in `app/` is one Node process (`GeminiLive.exe`, a single-executable app
 
 Windows only lists signed providers in the Copilot key setting, so use the default mode to try Win+C. The release mode signs the extension's `.crx` with `keys\chrome.pem`, which git ignores; the extension's ID comes from that key.
 
-| Path | What |
-| --- | --- |
-| `app/` | the whole app in TypeScript on [winui-svelte](https://github.com/avi12/winui-svelte): `src/main.ts` and `src/window.ts` are its two threads, `src/host.ts` the native messaging host, `src/wiring/` builds it |
-| `pill/` | the pill's UI in Svelte on winui-svelte, with its fonts in `pill/fonts` |
-| `protocol/` | the wire shared by the pill, the app and the extension: the pill's view and actions, and the extension link |
-| `bridge/` | the TypeScript injected into the hidden Gemini and Google Home pages (`glic/`, `home/`, `shared/`), built into `bridge/dist` |
-| `extension/` | the companion browser extension (WXT) |
-| `messaging/` | typed messaging, in [@webext-core/messaging](https://webext-core.aklinker1.io/messaging/)'s protocol-map style, shared by the bridges, the extension and the app |
-| `package/` | the MSIX manifest, assets, and `build-config.json` (the Node version and the minimum Windows) |
-| `scripts/` | the install and release scripts |
+| Path         | What                                                                                                                                                                                                          |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `app/`       | the whole app in TypeScript on [winui-svelte](https://github.com/avi12/winui-svelte): `src/main.ts` and `src/window.ts` are its two threads, `src/host.ts` the native messaging host, `src/wiring/` builds it |
+| `pill/`      | the pill's UI in Svelte on winui-svelte, with its fonts in `pill/fonts`                                                                                                                                       |
+| `protocol/`  | the wire shared by the pill, the app and the extension: the pill's view and actions, and the extension link                                                                                                   |
+| `bridge/`    | the TypeScript injected into the hidden Gemini and Google Home pages (`glic/`, `home/`, `shared/`), built into `bridge/dist`                                                                                  |
+| `extension/` | the companion browser extension (WXT)                                                                                                                                                                         |
+| `messaging/` | typed messaging, in [@webext-core/messaging](https://webext-core.aklinker1.io/messaging/)'s protocol-map style, shared by the bridges, the extension and the app                                              |
+| `package/`   | the MSIX manifest, assets, and `build-config.json` (the Node version and the minimum Windows)                                                                                                                 |
+| `scripts/`   | the install and release scripts                                                                                                                                                                               |
 
 ### Hot reload for the pill
 

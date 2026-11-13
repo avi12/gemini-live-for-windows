@@ -23,7 +23,20 @@ function nodeResolvePlugin(root: string) {
 }
 
 // `entries` maps each output file's name to its source file, relative to the package's src folder
-export async function buildWinuiApp<Config extends object>({ root, entries, config, buildApp }: {
+function existingPlugins(config: object) {
+  if (!("plugins" in config)) {
+    return [];
+  }
+
+  return Array.isArray(config.plugins) ? config.plugins : [];
+}
+
+export async function buildWinuiApp<Config extends object>({
+  root,
+  entries,
+  config,
+  buildApp
+}: {
   root: string;
   entries: Readonly<Record<string, string>>;
   config: Config;
@@ -37,11 +50,13 @@ export async function buildWinuiApp<Config extends object>({ root, entries, conf
   const outDirectory = path.join(root, "dist");
   const files = await buildApp({
     root,
-    entries: Object.fromEntries(Object.entries(entries).map(([name, source]) => [name, path.join(root, "src", source)])),
+    entries: Object.fromEntries(
+      Object.entries(entries).map(([name, source]) => [name, path.join(root, "src", source)])
+    ),
     outDirectory,
     config: {
       ...config,
-      plugins: [nodeResolvePlugin(root), ..."plugins" in config && Array.isArray(config.plugins) ? config.plugins : []]
+      plugins: [nodeResolvePlugin(root), ...existingPlugins(config)]
     }
   });
 

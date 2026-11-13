@@ -29,17 +29,17 @@ chunk is JSON: `[[arrayId, payload], ...]`.
 
 Inside `MSG`:
 
-| Field | Meaning | Example |
-|---|---|---|
-| `MSG[7]` | **Input transcription** (user), cumulative. `[[text]]` partial, `[null,[text]]` final | `["10",null,…,null,[null,["Can you check what is on my calendar for tomorrow?"]]]` |
+| Field       | Meaning                                                                                                                      | Example                                                                                |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `MSG[7]`    | **Input transcription** (user), cumulative. `[[text]]` partial, `[null,[text]]` final                                        | `["10",null,…,null,[null,["Can you check what is on my calendar for tomorrow?"]]]`     |
 | `MSG[1][5]` | **Output transcription** (Gemini), one fragment: `[text, start, end, first]`; `first` = 1 on a generation's opening fragment | `["22",[null,null,null,null,null,["Let me take a moment to ",[],[null,960625000],1]]]` |
-| `MSG[1][0]` | Audio config `[3, 24000, 1, "<generation>"]` (generation id increments) | `["17",[[3,24000,1,"1"]]]` |
-| `MSG[1][1]` | Audio chunk `[<base64 mp3>]` | |
-| `MSG[1][2]` | Generation complete (`[null,null,[]]`) | `["71",[null,null,[]]]` |
-| `MSG[1][3]` | Interrupted / barge-in (`[null,null,null,[]]`) | |
-| `MSG[1][4]` | Audio stream markers (`"1-audio-stream"`, `"<uuid>-wait-for-audio"`) | |
-| `MSG[3]` | Status / tool events, e.g. `[[[30,null,null,["<uuid>",null,"google_search:search"]]]]` | |
-| `MSG[6]` | Conversation metadata; later repeats the user prompt and the full reply text | |
+| `MSG[1][0]` | Audio config `[3, 24000, 1, "<generation>"]` (generation id increments)                                                      | `["17",[[3,24000,1,"1"]]]`                                                             |
+| `MSG[1][1]` | Audio chunk `[<base64 mp3>]`                                                                                                 |                                                                                        |
+| `MSG[1][2]` | Generation complete (`[null,null,[]]`)                                                                                       | `["71",[null,null,[]]]`                                                                |
+| `MSG[1][3]` | Interrupted / barge-in (`[null,null,null,[]]`)                                                                               |                                                                                        |
+| `MSG[1][4]` | Audio stream markers (`"1-audio-stream"`, `"<uuid>-wait-for-audio"`)                                                         |                                                                                        |
+| `MSG[3]`    | Status / tool events, e.g. `[[[30,null,null,["<uuid>",null,"google_search:search"]]]]`                                       |                                                                                        |
+| `MSG[6]`    | Conversation metadata; later repeats the user prompt and the full reply text                                                 |                                                                                        |
 
 ## Utterance grouping (what the bridge emits)
 

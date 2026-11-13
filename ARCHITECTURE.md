@@ -49,24 +49,24 @@ The app is one Node process with a few worker threads. The pill is the only wind
 
 ## Components
 
-| Component | Where | Role |
-| --- | --- | --- |
-| Entry and single instance | `app/src/entry/`, `app/src/core/instance/` | The first process owns a named pipe. Later launches forward their trigger to it and exit. |
-| Pill (UI) | `pill/` (Svelte on winui-svelte); the wire in `protocol/src/view.ts` | The window the user sees: state, captions, links, the gear menu and the setup panels. It owns no session logic; it draws the `view` it is sent and reports what the user did. Runs on the UI worker. |
-| Pill (controller) | `app/src/pill/` | Owns the pill's state, builds the `view` from the engine and settings, and answers the actions. `host/` is the main thread's end of the pill link. |
-| Engine interface | `app/src/contracts/live-engine.ts` | The one contract both engines satisfy: status, transcript, links, mute and start/stop. |
-| Google engine | `app/src/google/` (`google-engine.ts`, `glic/`, `web-host/`) | Runs Gemini's web client in a hidden WebView2 and reads its state through the bridge. |
-| Detours | `app/src/google/detours/` | Routes requests Live can't serve: lights to Home, app or web requests to Gemini's text path. |
-| Home | `app/src/google/home-host.ts`, `app/src/google/protocols/home.ts` | Drives the PC lights through the Google Home web app. |
-| API key engine | `app/src/live/` | Streams mic audio and screen frames to the public Live API over a WebSocket. Audio runs on its own worker (`app/src/media/audio/`). |
-| Session link | `app/src/google/session/`, `app/src/core/link/` | Accepts the browser's Google session over a loopback WebSocket, one token per run. |
-| Native host | `app/src/host.ts`, `app/src/core/native-host/` | The same exe, copied as `GeminiLiveHost.exe`: the native messaging program the extension calls to learn the app's link. |
-| Bridges | `bridge/**/*.ts`, built to `bridge/dist/*.js` | Injected at document-start into the hidden pages. They install the host object, watch Live and answer the app. |
-| Extension | `extension/` (WXT) | Pushes the Google session to the app whenever Google rotates it. |
-| Updates | `app/src/core/updates/` | Polls the repository's `docs/updates.json` at start and every six hours, downloads a newer `.msix` and checks its SHA-256, then offers "Restart to update" in the gear menu. |
-| Messaging | `messaging/` | Typed envelopes shared by the bridges, the extension and the app. |
-| Settings and secrets | `app/src/core/settings/`, `app/src/core/secret/` | Engine choice in settings. The API key is stored with DPAPI for the Windows user. |
-| Lint rules | `eslint-rules/`, `.oxlintrc.json` | Enforce the code style. |
+| Component                 | Where                                                                | Role                                                                                                                                                                                                 |
+| ------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Entry and single instance | `app/src/entry/`, `app/src/core/instance/`                           | The first process owns a named pipe. Later launches forward their trigger to it and exit.                                                                                                            |
+| Pill (UI)                 | `pill/` (Svelte on winui-svelte); the wire in `protocol/src/view.ts` | The window the user sees: state, captions, links, the gear menu and the setup panels. It owns no session logic; it draws the `view` it is sent and reports what the user did. Runs on the UI worker. |
+| Pill (controller)         | `app/src/pill/`                                                      | Owns the pill's state, builds the `view` from the engine and settings, and answers the actions. `host/` is the main thread's end of the pill link.                                                   |
+| Engine interface          | `app/src/contracts/live-engine.ts`                                   | The one contract both engines satisfy: status, transcript, links, mute and start/stop.                                                                                                               |
+| Google engine             | `app/src/google/` (`google-engine.ts`, `glic/`, `web-host/`)         | Runs Gemini's web client in a hidden WebView2 and reads its state through the bridge.                                                                                                                |
+| Detours                   | `app/src/google/detours/`                                            | Routes requests Live can't serve: lights to Home, app or web requests to Gemini's text path.                                                                                                         |
+| Home                      | `app/src/google/home-host.ts`, `app/src/google/protocols/home.ts`    | Drives the PC lights through the Google Home web app.                                                                                                                                                |
+| API key engine            | `app/src/live/`                                                      | Streams mic audio and screen frames to the public Live API over a WebSocket. Audio runs on its own worker (`app/src/media/audio/`).                                                                  |
+| Session link              | `app/src/google/session/`, `app/src/core/link/`                      | Accepts the browser's Google session over a loopback WebSocket, one token per run.                                                                                                                   |
+| Native host               | `app/src/host.ts`, `app/src/core/native-host/`                       | The same exe, copied as `GeminiLiveHost.exe`: the native messaging program the extension calls to learn the app's link.                                                                              |
+| Bridges                   | `bridge/**/*.ts`, built to `bridge/dist/*.js`                        | Injected at document-start into the hidden pages. They install the host object, watch Live and answer the app.                                                                                       |
+| Extension                 | `extension/` (WXT)                                                   | Pushes the Google session to the app whenever Google rotates it.                                                                                                                                     |
+| Updates                   | `app/src/core/updates/`                                              | Polls the repository's `docs/updates.json` at start and every six hours, downloads a newer `.msix` and checks its SHA-256, then offers "Restart to update" in the gear menu.                         |
+| Messaging                 | `messaging/`                                                         | Typed envelopes shared by the bridges, the extension and the app.                                                                                                                                    |
+| Settings and secrets      | `app/src/core/settings/`, `app/src/core/secret/`                     | Engine choice in settings. The API key is stored with DPAPI for the Windows user.                                                                                                                    |
+| Lint rules                | `eslint-rules/`, `.oxlintrc.json`                                    | Enforce the code style.                                                                                                                                                                              |
 
 ## Flows
 
@@ -189,7 +189,7 @@ flowchart LR
   Api --> Audio
 ```
 
-*Four `MessageChannel`s join the two threads, one per concern, and each carries a typed protocol. The main thread owns the state and the decisions; the UI worker owns everything that needs the window thread.*
+_Four `MessageChannel`s join the two threads, one per concern, and each carries a typed protocol. The main thread owns the state and the decisions; the UI worker owns everything that needs the window thread._
 
 - **Why two threads.** WinUI's message loop never gives its thread back, and a `WebView2` control, a window and a global hotkey all belong to the thread that made them. So the pill window, the overlays, the Copilot key's hidden window and the two Google pages live on the UI worker. The pill controller, settings, media and the API key engine stay on the main thread, which is never blocked by painting.
 - **The Google engine crosses the link.** The glic page is a `WebView2`, so it runs on the UI worker. `google/remote/` is the link: `google-server.ts` runs the real engine there, and `google-client.ts` hands the controller a `LiveEngine` that looks like any other and forwards every call and event. Each message names its engine, since a stale one can still be winding down when the next starts.
@@ -197,18 +197,18 @@ flowchart LR
 - **Shared wire types.** `protocol/` holds what both `pill/` and `app/` read: the pill's `view` and `PillAction` schemas, the window messages, and the extension link. The window's own abilities (`bringToFront`, `moveBy`) travel on the pill's link and are answered on the UI worker (`pill/window-abilities.ts`).
 - **Composition is in `wiring/`.** `main.ts`, `window.ts` and `host.ts` are three lines each. `wiring/start-app.ts` claims the instance, starts the Windows App SDK and builds the controller; `wiring/start-ui.ts` mounts the pill and starts the rest of the UI worker's parts, each failing alone.
 
-| Folder (`app/src/`) | Role |
-| --- | --- |
-| `wiring/` | Builds the controller and the UI worker's parts over the real devices and links. |
-| `contracts/` | The engine and monitor types every part agrees on. |
-| `pill/` | The pill controller: state, captions, the view, the actions; the main thread's end of the pill link. |
-| `google/` | The Google engine: glic and Home hosts, the session link, detours, and `remote/`. |
-| `live/` | The API key engine over the public Live API. |
-| `media/` | Displays, screen capture, screen text (UI Automation, OCR as the fallback), camera, and the audio graph on its own worker thread. |
-| `overlays/` | The share border, focus chip, circle overlay and hotkeys, and the controller's end of their link. |
-| `core/` | Settings, secrets, the log, updates, the single-instance pipe, the native host and extension setup. |
-| `entry/` | How the process starts and hears the Copilot key: activation, DPI, the fast path. |
-| `win32/`, `lib/` | Win32 binding helpers, and the small shared utilities. |
+| Folder (`app/src/`) | Role                                                                                                                              |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `wiring/`           | Builds the controller and the UI worker's parts over the real devices and links.                                                  |
+| `contracts/`        | The engine and monitor types every part agrees on.                                                                                |
+| `pill/`             | The pill controller: state, captions, the view, the actions; the main thread's end of the pill link.                              |
+| `google/`           | The Google engine: glic and Home hosts, the session link, detours, and `remote/`.                                                 |
+| `live/`             | The API key engine over the public Live API.                                                                                      |
+| `media/`            | Displays, screen capture, screen text (UI Automation, OCR as the fallback), camera, and the audio graph on its own worker thread. |
+| `overlays/`         | The share border, focus chip, circle overlay and hotkeys, and the controller's end of their link.                                 |
+| `core/`             | Settings, secrets, the log, updates, the single-instance pipe, the native host and extension setup.                               |
+| `entry/`            | How the process starts and hears the Copilot key: activation, DPI, the fast path.                                                 |
+| `win32/`, `lib/`    | Win32 binding helpers, and the small shared utilities.                                                                            |
 
 **Not proven without a packaged run on a real screen:** that the Copilot key's fast path is posted to the hidden window (checklist in `entry/index.ts`, spike in `scripts/Register-FastPathSpike.ps1`), that a `WebView2` parked off-screen on the UI worker keeps Chromium at full speed, that the SEA executable keeps its package identity and its per-monitor DPI, and that the overlays and hotkeys behave on the UI worker's message pump. The unit tests cover each part and each link.
 
