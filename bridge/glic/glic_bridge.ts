@@ -18,7 +18,8 @@
 
 import { defineMessaging } from "@gemini-live/messaging";
 
-import { webViewTransport } from "../shared/webview_transport";
+import { webViewTransport } from "@/shared/webview_transport";
+
 import { readCaptions } from "./captions";
 import { installDesktopMic } from "./desktop_mic";
 import { createGlicHost, installBootstrap } from "./glic_host";

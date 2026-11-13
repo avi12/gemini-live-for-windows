@@ -1,8 +1,8 @@
 import fileSystem from "node:fs";
 
-import { stripSignature } from "../../app/src/entry/sea/pe-signature.ts";
-import { PeSubsystem, readSubsystem, setSubsystem } from "../../app/src/entry/sea/pe-subsystem.ts";
-import { seaStubSource } from "../../app/src/entry/sea/sea-stub.ts";
+import { stripSignature } from "#app/src/entry/sea/pe-signature.ts";
+import { PeSubsystem, readSubsystem, setSubsystem } from "#app/src/entry/sea/pe-subsystem.ts";
+import { seaStubSource } from "#app/src/entry/sea/sea-stub.ts";
 
 // The two build steps that are code rather than shell, kept in TypeScript beside their unit tests
 // (app/src/entry). Build-SeaExe.ps1 calls them.

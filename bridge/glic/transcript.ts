@@ -1,4 +1,5 @@
-import { collapseWhitespace } from "../shared/text";
+import { collapseWhitespace } from "@/shared/text";
+
 // The transcript the app shows, from either source: the Live wire (live_wire.ts) or, without it,
 // Glic's captions (captions.ts). Each relays an utterance's current full text keyed by its index.
 import type { Direction, TranscriptLine } from "./glic_protocol";

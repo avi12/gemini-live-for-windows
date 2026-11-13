@@ -1,6 +1,6 @@
+import { buildWinuiApp } from "@scripts/build-winui-app.ts";
 import { buildApp } from "winui-svelte/vite";
 
-import { buildWinuiApp } from "../scripts/build-winui-app.ts";
 import { aliasPlugin } from "./alias.ts";
 
 // main.js starts the app, window.js is the UI thread (it carries the pill, the overlays and the

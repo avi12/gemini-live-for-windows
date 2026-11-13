@@ -3,7 +3,7 @@ import fileSystem from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { PeSubsystem, readSubsystem } from "../../app/src/entry/sea/pe-subsystem.ts";
+import { PeSubsystem, readSubsystem } from "#app/src/entry/sea/pe-subsystem.ts";
 
 const EXIT_TIMEOUT_MS = 15_000;
 const STARTUP_RUNS = 3;

@@ -1,7 +1,8 @@
 import { defineMessaging } from "@gemini-live/messaging";
 
-import { collapseWhitespace, labelAndText } from "../shared/text";
-import { webViewTransport } from "../shared/webview_transport";
+import { collapseWhitespace, labelAndText } from "@/shared/text";
+import { webViewTransport } from "@/shared/webview_transport";
+
 // Injected at document-start into home.google.com inside our hidden WebView2 (bundled to
 // home_bridge.js by build.mjs). The Home web app is signed in with the browser's Google session and
 // does all the auth and device wiring; we only locate the PC Lights tile, read whether it is on from

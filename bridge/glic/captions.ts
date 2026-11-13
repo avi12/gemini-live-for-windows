@@ -1,4 +1,5 @@
-import { collapseWhitespace } from "../shared/text";
+import { collapseWhitespace } from "@/shared/text";
+
 // Captions -> transcript, the fallback when the wire tap sees nothing (a changed channel). Glic
 // renders "<b>You:</b> ... <b>Gemini:</b> ..." and revises the live utterance in place, so the
 // bridge relays each utterance's current full text keyed by index. Its labels are not trustworthy

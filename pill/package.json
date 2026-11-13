@@ -19,7 +19,7 @@
   "scripts": {
     "dev": "node dev/main.ts",
     "svelte:check": "svelte-check --tsconfig ./tsconfig.json",
-    "build": "pnpm svelte:check && node build.ts"
+    "build": "pnpm svelte:check && node --import ../scripts/scripts-alias.ts build.ts"
   },
   "dependencies": {
     "@gemini-live/protocol": "workspace:*",

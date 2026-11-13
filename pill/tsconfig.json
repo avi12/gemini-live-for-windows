@@ -22,7 +22,7 @@
     "isolatedModules": true,
     "skipLibCheck": true,
     "types": ["node"],
-    "paths": { "@/*": ["./src/*"] }
+    "paths": { "@/*": ["./src/*"], "@scripts/*": ["../scripts/*"] }
   },
   "include": ["src/**/*.ts", "dev/**/*.ts", "src/**/*.svelte", "*.ts", "*.js"]
 }
