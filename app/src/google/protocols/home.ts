@@ -4,8 +4,8 @@ import { z } from "zod";
 // as an as-const object for the same reason as the glic protocol.
 
 export const HomeMessage = {
-  ready: "ready",
-  pcLights: "pcLights"
+  READY: "ready",
+  PC_LIGHTS: "pcLights"
 } as const;
 
 // The PC Lights tile as the page shows it; x and y are whole pixels, where a trusted click lands
@@ -25,6 +25,6 @@ export const pcLightsSchema = z.discriminatedUnion("found", [
 
 export interface HomeProtocolMap {
   // Whether the device grid has loaded the lights' state
-  [HomeMessage.ready](): unknown;
-  [HomeMessage.pcLights](): unknown;
+  [HomeMessage.READY](): unknown;
+  [HomeMessage.PC_LIGHTS](): unknown;
 }

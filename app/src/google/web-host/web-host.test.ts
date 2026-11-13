@@ -1,9 +1,11 @@
+import assert from "node:assert/strict";
+import { describe, test } from "node:test";
+
+import { HomeMessage, type HomeProtocolMap } from "@/google/protocols/home.ts";
+
 import { createFakeWebViewFactory } from "./fake-web-view.ts";
 import { createWebHost, RecoveryFailure, type WebHostOptions } from "./web-host.ts";
 import { PermissionDecision, PermissionKind, ProcessFailureKind } from "./web-view-port.ts";
-import { HomeMessage, type HomeProtocolMap } from "@/google/protocols/home.ts";
-import assert from "node:assert/strict";
-import { describe, test } from "node:test";
 
 const CRASHES_TO_GIVE_UP = 4;
 
@@ -19,7 +21,7 @@ function setup(overrides: Partial<WebHostOptions> = {}) {
     messageTimeoutMs: 500,
     isDebugging: false,
     isNavigationAllowed: uri => uri.startsWith("https://"),
-    decidePermission: () => PermissionDecision.allow,
+    decidePermission: () => PermissionDecision.ALLOW,
     log: {
       write: () => undefined
     },
@@ -48,7 +50,7 @@ describe("building the control", () => {
     assert.deepEqual(view.blocked, ["https://accounts.google.com/RotateCookies*"]);
     assert.equal(view.allows("https://x.example/"), true);
     assert.equal(view.allows("file:///c"), false);
-    assert.equal(view.decide(PermissionKind.microphone), PermissionDecision.allow);
+    assert.equal(view.decide(PermissionKind.MICROPHONE), PermissionDecision.ALLOW);
     assert.equal(ready.length, 1);
   });
 
@@ -65,25 +67,25 @@ describe("messaging", () => {
     await host.ensureCore();
     const view = factory.latest;
     assert.ok(view);
-    view.answers.set(HomeMessage.ready, true);
-    assert.equal(await host.messenger.sendMessage(HomeMessage.ready), true);
-    assert.equal(view.requestsOf(HomeMessage.ready).length, 1);
+    view.answers.set(HomeMessage.READY, true);
+    assert.equal(await host.messenger.sendMessage(HomeMessage.READY), true);
+    assert.equal(view.requestsOf(HomeMessage.READY).length, 1);
   });
 
   test("a handler registered once keeps working on the rebuilt control", async () => {
     const { host, factory } = setup();
     const received: unknown[] = [];
-    host.messenger.onMessage(HomeMessage.pcLights, message => {
+    host.messenger.onMessage(HomeMessage.PC_LIGHTS, message => {
       received.push(message.data);
       return null;
     });
     await host.ensureCore();
-    factory.latest?.fail(ProcessFailureKind.browserExited);
+    factory.latest?.fail(ProcessFailureKind.BROWSER_EXITED);
     await new Promise(resolve => setImmediate(resolve));
     assert.equal(factory.views.length, 2);
     factory.latest?.fromPage({
       id: 1,
-      type: HomeMessage.pcLights,
+      type: HomeMessage.PC_LIGHTS,
       data: "after",
       timestamp: 0
     });
@@ -95,7 +97,7 @@ describe("crash recovery", () => {
   test("a render crash reloads the page in place", async () => {
     const { host, factory, recovering } = setup();
     await host.ensureCore();
-    factory.latest?.fail(ProcessFailureKind.other);
+    factory.latest?.fail(ProcessFailureKind.OTHER);
     await new Promise(resolve => setImmediate(resolve));
     assert.equal(factory.latest?.reloads, 1);
     assert.equal(factory.views.length, 1);
@@ -105,7 +107,7 @@ describe("crash recovery", () => {
   test("a browser crash replaces the control and runs the setup again", async () => {
     const { host, factory, ready, recovering } = setup();
     await host.ensureCore();
-    factory.latest?.fail(ProcessFailureKind.browserExited);
+    factory.latest?.fail(ProcessFailureKind.BROWSER_EXITED);
     assert.equal(host.core, undefined);
     await new Promise(resolve => setImmediate(resolve));
     assert.equal(factory.views.length, 2);
@@ -118,11 +120,11 @@ describe("crash recovery", () => {
     const { host, factory, failures } = setup();
     await host.ensureCore();
     for (let iCrash = 0; iCrash < CRASHES_TO_GIVE_UP; iCrash += 1) {
-      factory.latest?.fail(ProcessFailureKind.browserExited);
+      factory.latest?.fail(ProcessFailureKind.BROWSER_EXITED);
       await new Promise(resolve => setImmediate(resolve));
     }
 
-    assert.deepEqual(failures, [RecoveryFailure.crashLoop]);
+    assert.deepEqual(failures, [RecoveryFailure.CRASH_LOOP]);
     assert.equal(host.core, undefined);
     await host.ensureCore();
     assert.ok(host.core);

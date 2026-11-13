@@ -1,7 +1,3 @@
-import { authCookies } from "./cookies.ts";
-import type { Logger } from "@/google/ports.ts";
-import { createFrameTransport } from "@/google/web-host/transports.ts";
-import { errorMessage } from "@/lib/error-message.ts";
 import { defineMessaging, type Messenger } from "@gemini-live/messaging";
 import {
   type BrowserCookie,
@@ -11,6 +7,12 @@ import {
 } from "@gemini-live/protocol/link";
 import { WebSocket } from "ws";
 
+import type { Logger } from "@/google/ports.ts";
+import { createFrameTransport } from "@/google/web-host/transports.ts";
+import { errorMessage } from "@/lib/error-message.ts";
+
+import { authCookies } from "./cookies.ts";
+
 function createSocketTransport(socket: WebSocket) {
   return createFrameTransport({
     send(json) {
@@ -19,25 +21,31 @@ function createSocketTransport(socket: WebSocket) {
         socket.send(json);
       }
     },
-    onFrame: listener => socket.on("message", (data, isBinary) => {
-      const isText = !isBinary && Buffer.isBuffer(data);
-      if (!isText) {
-        return;
-      }
+    onFrame: listener =>
+      socket.on("message", (data, isBinary) => {
+        const isText = !isBinary && Buffer.isBuffer(data);
+        if (!isText) {
+          return;
+        }
 
-      listener(data.toString("utf8"));
-    })
+        listener(data.toString("utf8"));
+      })
   });
 }
 
-async function greet({ socket, messenger, token, log }: {
+async function greet({
+  socket,
+  messenger,
+  token,
+  log
+}: {
   socket: WebSocket;
   messenger: Messenger<LinkProtocolMap>;
   token: string;
   log: Logger;
 }) {
   try {
-    await messenger.sendMessage(LinkMessage.hello, token);
+    await messenger.sendMessage(LinkMessage.HELLO, token);
     return true;
   } catch (error) {
     log.write(`session link: hello refused: ${errorMessage(error)}`);
@@ -46,7 +54,11 @@ async function greet({ socket, messenger, token, log }: {
   }
 }
 
-function deliverCookies({ received, log, onCookies }: {
+function deliverCookies({
+  received,
+  log,
+  onCookies
+}: {
   received: unknown;
   log: Logger;
   onCookies: (cookies: readonly BrowserCookie[]) => void;
@@ -62,14 +74,18 @@ function deliverCookies({ received, log, onCookies }: {
   onCookies(auth);
 }
 
-async function queryCookies({ messenger, log, onCookies }: {
+async function queryCookies({
+  messenger,
+  log,
+  onCookies
+}: {
   messenger: Messenger<LinkProtocolMap>;
   log: Logger;
   onCookies: (cookies: readonly BrowserCookie[]) => void;
 }) {
   try {
     deliverCookies({
-      received: await messenger.sendMessage(LinkMessage.query),
+      received: await messenger.sendMessage(LinkMessage.QUERY),
       log,
       onCookies
     });
@@ -79,7 +95,14 @@ async function queryCookies({ messenger, log, onCookies }: {
 }
 
 // The socket's messenger once it has said hello with the token; undefined when it was refused
-async function openClient({ socket, token, log, messageTimeoutMs, onCookies, onClosed }: {
+async function openClient({
+  socket,
+  token,
+  log,
+  messageTimeoutMs,
+  onCookies,
+  onClosed
+}: {
   socket: WebSocket;
   token: string;
   log: Logger;
@@ -88,7 +111,7 @@ async function openClient({ socket, token, log, messageTimeoutMs, onCookies, onC
   onClosed: (messenger: Messenger<LinkProtocolMap>) => void;
 }) {
   const messenger = defineMessaging<LinkProtocolMap>(createSocketTransport(socket), { timeoutMs: messageTimeoutMs });
-  messenger.onMessage(LinkMessage.cookies, message => {
+  messenger.onMessage(LinkMessage.COOKIES, message => {
     deliverCookies({
       received: message.data,
       log,
@@ -109,7 +132,13 @@ async function openClient({ socket, token, log, messageTimeoutMs, onCookies, onC
 
 // The extension connections that said hello with this run's token: what they send, and what the
 // app asks of them
-export function createLinkClients({ log, token, messageTimeoutMs, onCookies, onConnected }: {
+export function createLinkClients({
+  log,
+  token,
+  messageTimeoutMs,
+  onCookies,
+  onConnected
+}: {
   log: Logger;
   token: string;
   messageTimeoutMs: number;
@@ -145,11 +174,9 @@ export function createLinkClients({ log, token, messageTimeoutMs, onCookies, onC
     get count() {
       return clients.size;
     },
-    broadcast(type: typeof LinkMessage.refresh | typeof LinkMessage.ping) {
+    broadcast(type: typeof LinkMessage.REFRESH | typeof LinkMessage.PING) {
       for (const messenger of clients) {
-        messenger.sendMessage(type).catch(error => log.write(
-          `session link ${type}: ${errorMessage(error)}`
-        ));
+        messenger.sendMessage(type).catch(error => log.write(`session link ${type}: ${errorMessage(error)}`));
       }
     },
     requestCookies() {

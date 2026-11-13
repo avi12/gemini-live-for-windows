@@ -1,5 +1,7 @@
-import { createSessionLink } from "./session-link.ts";
-import { createFrameTransport } from "@/google/web-host/transports.ts";
+import assert from "node:assert/strict";
+import { once } from "node:events";
+import { afterEach, describe, test } from "node:test";
+
 import { defineMessaging } from "@gemini-live/messaging";
 import {
   type BrowserCookie,
@@ -8,10 +10,11 @@ import {
   LinkMessage,
   type LinkProtocolMap
 } from "@gemini-live/protocol/link";
-import assert from "node:assert/strict";
-import { once } from "node:events";
-import { afterEach, describe, test } from "node:test";
 import { WebSocket } from "ws";
+
+import { createFrameTransport } from "@/google/web-host/transports.ts";
+
+import { createSessionLink } from "./session-link.ts";
 
 function cookie(name: string) {
   const result: BrowserCookie = {
@@ -29,7 +32,7 @@ function cookie(name: string) {
 
 const TOKEN_HEX_LENGTH = 64;
 const SETTLE_MS = 100;
-const stoppers: Array<() => void> = [];
+const stoppers: (() => void)[] = [];
 
 afterEach(() => {
   for (const stop of stoppers.splice(0)) {
@@ -44,7 +47,9 @@ async function startLink() {
       write: () => undefined
     },
     publisher: {
-      publish: async info => void published.push(info)
+      async publish(info) {
+        published.push(info);
+      }
     },
     pingIntervalMs: 60_000,
     messageTimeoutMs: 2000
@@ -63,10 +68,7 @@ async function startLink() {
 }
 
 // The extension's side: answers Hello, Query, Refresh and Ping like extension/src/lib/link.ts
-function connectExtension({ port, cookies }: {
-  port: number;
-  cookies: BrowserCookie[];
-}) {
+function connectExtension({ port, cookies }: { port: number; cookies: BrowserCookie[] }) {
   const socket = new WebSocket(`ws://127.0.0.1:${port}`, { origin: EXTENSION_ORIGIN });
   stoppers.push(() => socket.terminate());
   const tokens: string[] = [];
@@ -79,16 +81,17 @@ function connectExtension({ port, cookies }: {
     createFrameTransport({
       send: json => socket.send(json),
       onFrame: listener => socket.on("message", data => listener(data.toString()))
-    }), { timeoutMs: 2000 }
+    }),
+    { timeoutMs: 2000 }
   );
-  messenger.onMessage(LinkMessage.hello, message => {
+  messenger.onMessage(LinkMessage.HELLO, message => {
     seen.tokens.push(message.data);
   });
-  messenger.onMessage(LinkMessage.query, () => cookies);
-  messenger.onMessage(LinkMessage.refresh, () => {
+  messenger.onMessage(LinkMessage.QUERY, () => cookies);
+  messenger.onMessage(LinkMessage.REFRESH, () => {
     seen.refreshes += 1;
   });
-  messenger.onMessage(LinkMessage.ping, () => {
+  messenger.onMessage(LinkMessage.PING, () => {
     seen.pings += 1;
   });
   return {
@@ -129,8 +132,11 @@ describe("session link", () => {
     });
     await connected;
     const delivered = new Promise<readonly BrowserCookie[]>(resolve => link.source.onCookies(resolve));
-    await extension.messenger.sendMessage(LinkMessage.cookies, [cookie("SID"), cookie("_ga")]);
-    assert.deepEqual((await delivered).map(item => item.name), ["SID"]);
+    await extension.messenger.sendMessage(LinkMessage.COOKIES, [cookie("SID"), cookie("_ga")]);
+    assert.deepEqual(
+      (await delivered).map(item => item.name),
+      ["SID"]
+    );
   });
 
   test("asks for the cookies on request and for a refresh", async () => {
@@ -143,7 +149,10 @@ describe("session link", () => {
     await connected;
     const delivered = new Promise<readonly BrowserCookie[]>(resolve => link.source.onCookies(resolve));
     link.source.requestCookies();
-    assert.deepEqual((await delivered).map(item => item.name), ["__Secure-1PSID"]);
+    assert.deepEqual(
+      (await delivered).map(item => item.name),
+      ["__Secure-1PSID"]
+    );
 
     link.source.requestRefresh();
     await new Promise(resolve => setTimeout(resolve, SETTLE_MS));

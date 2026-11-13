@@ -1,7 +1,8 @@
-import type { LinkPublisher, Logger } from "@/google/ports.ts";
 import { EXTENSION_ORIGIN } from "@gemini-live/protocol/link";
 import type { WebSocket } from "ws";
 import { WebSocketServer } from "ws";
+
+import type { LinkPublisher, Logger } from "@/google/ports.ts";
 
 const LOOPBACK = "127.0.0.1";
 const HTTP_FORBIDDEN = 403;
@@ -31,7 +32,14 @@ async function listenOnFreePort(log: Logger) {
 
 // The loopback WebSocket server on a free port, open to the extension's origin only. Once up it
 // publishes the port with the run's token and pings its clients to keep the extension awake.
-export function createLinkServer({ log, publisher, token, pingIntervalMs, onSocket, onPing }: {
+export function createLinkServer({
+  log,
+  publisher,
+  token,
+  pingIntervalMs,
+  onSocket,
+  onPing
+}: {
   log: Logger;
   publisher: LinkPublisher;
   token: string;

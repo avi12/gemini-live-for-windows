@@ -1,13 +1,15 @@
-import { connectGoogle } from "./google-client.ts";
-import { serveGoogle } from "./google-server.ts";
-import type { GoogleHostServices } from "./google-server.ts";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+
 import { EngineKind, LiveEventKind } from "@/contracts/live-engine.ts";
 import type { LiveEvent } from "@/contracts/live-engine.ts";
 import { linkedTransports } from "@/lib/transport/linked-transports.ts";
 import { createFakeEngine, PRIMARY, SECONDARY, settle } from "@/pill/test-fakes.ts";
 import type { FakeEngine } from "@/pill/test-fakes.ts";
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+
+import { connectGoogle } from "./google-client.ts";
+import { serveGoogle } from "./google-server.ts";
+import type { GoogleHostServices } from "./google-server.ts";
 
 const REGION = {
   x: 1,
@@ -20,12 +22,12 @@ function setup() {
   const transports = linkedTransports();
   const engines: FakeEngine[] = [];
   const extensionListeners = new Set<(isNeeded: boolean) => void>();
-  const microphoneIds: Array<string | null> = [];
+  const microphoneIds: (string | null)[] = [];
   const lines: string[] = [];
   const services: GoogleHostServices = {
     createEngine(monitor) {
       const fake = createFakeEngine({
-        kind: EngineKind.google,
+        kind: EngineKind.GOOGLE,
         monitor,
         extensionListeners
       });
@@ -35,10 +37,13 @@ function setup() {
     setMicrophone(id) {
       microphoneIds.push(id);
     },
-    listMicrophones: () => Promise.resolve([{
-      id: "mic-1",
-      label: "Headset"
-    }])
+    listMicrophones: () =>
+      Promise.resolve([
+        {
+          id: "mic-1",
+          label: "Headset"
+        }
+      ])
   };
   serveGoogle({
     transport: transports.second,
@@ -88,16 +93,18 @@ describe("the Google link", () => {
     engine.onEvent(event => heard.push(event));
     await settle();
     engines[0]?.emit({
-      kind: LiveEventKind.transcript,
+      kind: LiveEventKind.TRANSCRIPT,
       text: "hello",
       isUser: true
     });
     await settle();
-    assert.deepEqual(heard, [{
-      kind: LiveEventKind.transcript,
-      text: "hello",
-      isUser: true
-    }]);
+    assert.deepEqual(heard, [
+      {
+        kind: LiveEventKind.TRANSCRIPT,
+        text: "hello",
+        isUser: true
+      }
+    ]);
   });
 
   it("carries mute, the region and a shared display to the engine, and remembers them here", async () => {
@@ -154,10 +161,12 @@ describe("the Google link", () => {
 
   it("lists and selects microphones", async () => {
     const { client, microphoneIds } = setup();
-    assert.deepEqual(await client.microphones.list(), [{
-      id: "mic-1",
-      name: "Headset"
-    }]);
+    assert.deepEqual(await client.microphones.list(), [
+      {
+        id: "mic-1",
+        name: "Headset"
+      }
+    ]);
     client.microphones.select("mic-1");
     client.microphones.select(null);
     await settle();

@@ -1,9 +1,12 @@
-import { createLinkClients } from "./link-clients.ts";
-import { createLinkServer } from "./link-server.ts";
+import { randomBytes } from "node:crypto";
+
+import { type BrowserCookie, LinkMessage } from "@gemini-live/protocol/link";
+
 import { createEmitter } from "@/google/emitter.ts";
 import type { LinkPublisher, Logger } from "@/google/ports.ts";
-import { type BrowserCookie, LinkMessage } from "@gemini-live/protocol/link";
-import { randomBytes } from "node:crypto";
+
+import { createLinkClients } from "./link-clients.ts";
+import { createLinkServer } from "./link-server.ts";
 
 const TOKEN_BYTES = 32;
 const PING_INTERVAL_MS = 20_000;
@@ -53,8 +56,10 @@ export function createSessionLink({
     publisher,
     token,
     pingIntervalMs,
-    onSocket: socket => void clients.serve(socket),
-    onPing: () => clients.broadcast(LinkMessage.ping)
+    onSocket(socket) {
+      void clients.serve(socket);
+    },
+    onPing: () => clients.broadcast(LinkMessage.PING)
   });
 
   const source: SessionSource = {
@@ -67,7 +72,7 @@ export function createSessionLink({
     requestCookies: clients.requestCookies,
     // The session we have stopped working: ask the extension to have the browser refresh it. The
     // refreshed cookies arrive like any rotation.
-    requestRefresh: () => clients.broadcast(LinkMessage.refresh)
+    requestRefresh: () => clients.broadcast(LinkMessage.REFRESH)
   };
 
   return {

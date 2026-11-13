@@ -1,26 +1,28 @@
-import { LiveEventKind } from "@/contracts/live-engine.ts";
-import type { LiveEvent } from "@/contracts/live-engine.ts";
-import { monitorSchema, regionSchema } from "@/contracts/monitor.ts";
+import { regionSchema } from "@gemini-live/protocol/view";
 import type { ProtocolWithReturn } from "winui-svelte/messaging";
 import { z } from "zod";
+
+import { LiveEventKind } from "@/contracts/live-engine.ts";
+import type { LiveEvent } from "@/contracts/live-engine.ts";
+import { monitorSchema } from "@/contracts/monitor.ts";
 
 // The Google engine lives on the UI worker (its WebView2 pages are WinUI controls and need that
 // thread); the pill controller on the main thread reaches it over this link. One engine runs at a
 // time, but a stale one may still be winding down, so every message names its engine.
 export const GoogleMessage = {
   // Main thread to the UI worker
-  createEngine: "google/createEngine",
-  start: "google/start",
-  dispose: "google/dispose",
-  setMuted: "google/setMuted",
-  share: "google/share",
-  setRegion: "google/setRegion",
-  useCamera: "google/useCamera",
-  listMicrophones: "google/listMicrophones",
-  selectMicrophone: "google/selectMicrophone",
+  CREATE_ENGINE: "google/createEngine",
+  START: "google/start",
+  DISPOSE: "google/dispose",
+  SET_MUTED: "google/setMuted",
+  SHARE: "google/share",
+  SET_REGION: "google/setRegion",
+  USE_CAMERA: "google/useCamera",
+  LIST_MICROPHONES: "google/listMicrophones",
+  SELECT_MICROPHONE: "google/selectMicrophone",
   // UI worker to the main thread
-  event: "google/event",
-  extensionNeeded: "google/extensionNeeded"
+  EVENT: "google/event",
+  EXTENSION_NEEDED: "google/extensionNeeded"
 } as const;
 
 export const engineRefSchema = z.object({ engineId: z.number().int() });
@@ -54,16 +56,16 @@ export type Microphones = z.infer<typeof microphonesSchema>;
 
 export const liveEventSchema = z.discriminatedUnion("kind", [
   z.object({
-    kind: z.literal(LiveEventKind.status),
+    kind: z.literal(LiveEventKind.STATUS),
     status: z.string()
   }),
   z.object({
-    kind: z.literal(LiveEventKind.transcript),
+    kind: z.literal(LiveEventKind.TRANSCRIPT),
     text: z.string(),
     isUser: z.boolean()
   }),
   z.object({
-    kind: z.literal(LiveEventKind.links),
+    kind: z.literal(LiveEventKind.LINKS),
     links: z.array(
       z.object({
         title: z.string(),
@@ -72,12 +74,12 @@ export const liveEventSchema = z.discriminatedUnion("kind", [
     )
   }),
   z.object({
-    kind: z.literal(LiveEventKind.level),
+    kind: z.literal(LiveEventKind.LEVEL),
     peak: z.number(),
     isUser: z.boolean()
   }),
   z.object({
-    kind: z.literal(LiveEventKind.ended),
+    kind: z.literal(LiveEventKind.ENDED),
     reason: z.string()
   })
 ]) satisfies z.ZodType<LiveEvent>;
@@ -89,17 +91,17 @@ export const extensionNeededSchema = engineRefSchema.extend({ isNeeded: z.boolea
 export type ExtensionNeeded = z.infer<typeof extensionNeededSchema>;
 
 export interface GoogleProtocol {
-  [GoogleMessage.createEngine]: ProtocolWithReturn<CreateEngine, void>;
+  [GoogleMessage.CREATE_ENGINE]: ProtocolWithReturn<CreateEngine, void>;
   // Answered once Gemini is listening, or rejected with why it is not
-  [GoogleMessage.start]: ProtocolWithReturn<EngineRef, void>;
-  [GoogleMessage.dispose]: ProtocolWithReturn<EngineRef, void>;
-  [GoogleMessage.setMuted]: ProtocolWithReturn<SetMuted, void>;
-  [GoogleMessage.share]: ProtocolWithReturn<Share, void>;
-  [GoogleMessage.setRegion]: ProtocolWithReturn<SetRegion, void>;
+  [GoogleMessage.START]: ProtocolWithReturn<EngineRef, void>;
+  [GoogleMessage.DISPOSE]: ProtocolWithReturn<EngineRef, void>;
+  [GoogleMessage.SET_MUTED]: ProtocolWithReturn<SetMuted, void>;
+  [GoogleMessage.SHARE]: ProtocolWithReturn<Share, void>;
+  [GoogleMessage.SET_REGION]: ProtocolWithReturn<SetRegion, void>;
   // Whether the camera is now the source
-  [GoogleMessage.useCamera]: ProtocolWithReturn<UseCamera, boolean>;
-  [GoogleMessage.listMicrophones]: ProtocolWithReturn<void, Microphones>;
-  [GoogleMessage.selectMicrophone]: ProtocolWithReturn<SelectMicrophone, void>;
-  [GoogleMessage.event]: ProtocolWithReturn<EngineEvent, void>;
-  [GoogleMessage.extensionNeeded]: ProtocolWithReturn<ExtensionNeeded, void>;
+  [GoogleMessage.USE_CAMERA]: ProtocolWithReturn<UseCamera, boolean>;
+  [GoogleMessage.LIST_MICROPHONES]: ProtocolWithReturn<void, Microphones>;
+  [GoogleMessage.SELECT_MICROPHONE]: ProtocolWithReturn<SelectMicrophone, void>;
+  [GoogleMessage.EVENT]: ProtocolWithReturn<EngineEvent, void>;
+  [GoogleMessage.EXTENSION_NEEDED]: ProtocolWithReturn<ExtensionNeeded, void>;
 }

@@ -1,6 +1,10 @@
 // Gives one send its own, shorter deadline than the messenger's: the messenger has a single
 // timeout, while a text action legitimately waits far longer than a readiness poll
-export function withinMs<TResult>({ work, durationMs, label }: {
+export function withinMs<TResult>({
+  work,
+  durationMs,
+  label
+}: {
   work: Promise<TResult>;
   durationMs: number;
   label: string;

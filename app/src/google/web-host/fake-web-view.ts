@@ -1,3 +1,6 @@
+import type { BrowserCookie } from "@gemini-live/protocol/link";
+import { z } from "zod";
+
 import type {
   PermissionDecision,
   PermissionKind,
@@ -6,8 +9,6 @@ import type {
   WebViewFactory,
   WebViewOptions
 } from "./web-view-port.ts";
-import type { BrowserCookie } from "@gemini-live/protocol/link";
-import { z } from "zod";
 
 const requestSchema = z.object({
   id: z.number(),
@@ -22,10 +23,10 @@ interface Recorded {
   scripts: string[];
   blocked: string[];
   cookies: BrowserCookie[][];
-  devTools: Array<{
+  devTools: {
     method: string;
     params: object;
-  }>;
+  }[];
   answers: Map<string, unknown>;
 }
 
@@ -38,7 +39,11 @@ interface Hooks {
   navigationFilter: ((uri: string) => boolean) | undefined;
 }
 
-function createFakeCore({ recorded, hooks, fromPage }: {
+function createFakeCore({
+  recorded,
+  hooks,
+  fromPage
+}: {
   recorded: Recorded;
   hooks: Hooks;
   fromPage: (envelope: object) => void;
@@ -65,10 +70,12 @@ function createFakeCore({ recorded, hooks, fromPage }: {
         return;
       }
 
-      queueMicrotask(() => fromPage({
-        replyTo: request.data.id,
-        res: answers.get(request.data.type) ?? null
-      }));
+      queueMicrotask(() =>
+        fromPage({
+          replyTo: request.data.id,
+          res: answers.get(request.data.type) ?? null
+        })
+      );
     },
     onMessage(listener) {
       hooks.messageListener = listener;
@@ -145,10 +152,10 @@ function createFakeWebView() {
     decide: (kind: PermissionKind) => hooks.permissionDecider?.(kind),
     allows: (uri: string) => hooks.navigationFilter?.(uri),
     // The requests the host sent the page, newest last
-    requestsOf: (type: string) => posted.filter(
-      envelope => typeof envelope === "object" && envelope !== null && "type" in envelope
-        && envelope.type === type
-    )
+    requestsOf: (type: string) =>
+      posted.filter(
+        envelope => typeof envelope === "object" && envelope !== null && "type" in envelope && envelope.type === type
+      )
   };
 }
 

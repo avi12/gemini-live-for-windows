@@ -6,26 +6,34 @@ import type { SessionSource } from "@/google/session/session-link.ts";
 const REFRESH_GRACE_MS = 25_000;
 
 const SessionNotice = {
-  refreshing: "Refreshing your Google session…",
-  signIn: "Sign in to Google in your browser",
-  waitingForBrowser: "Waiting for your browser…",
-  setup: "One-time setup"
+  REFRESHING: "Refreshing your Google session…",
+  SIGN_IN: "Sign in to Google in your browser",
+  WAITING_FOR_BROWSER: "Waiting for your browser…",
+  SETUP: "One-time setup"
 } as const;
 
-export function sessionNoticeFor({ isConnected, isInstalled, isStale }: {
+export function sessionNoticeFor({
+  isConnected,
+  isInstalled,
+  isStale
+}: {
   isConnected: boolean;
   isInstalled: boolean;
   isStale: boolean;
 }) {
   if (isConnected) {
-    return isStale ? SessionNotice.refreshing : SessionNotice.signIn;
+    return isStale ? SessionNotice.REFRESHING : SessionNotice.SIGN_IN;
   }
 
-  return isInstalled ? SessionNotice.waitingForBrowser : SessionNotice.setup;
+  return isInstalled ? SessionNotice.WAITING_FOR_BROWSER : SessionNotice.SETUP;
 }
 
 // No usable session yet: say why, and ask the extension for a fresh one
-export function createSessionWaiter({ state, link, events }: {
+export function createSessionWaiter({
+  state,
+  link,
+  events
+}: {
   state: GlicState;
   link: SessionSource;
   events: ReturnType<typeof createEmitter<GlicHostEvent>>;
@@ -43,7 +51,7 @@ export function createSessionWaiter({ state, link, events }: {
     // they run, so have the browser refresh it. Usually that's all a "sign in" needs.
     const isStale = state.session.length > 0;
     events.emit({
-      kind: GlicHostEventKind.notice,
+      kind: GlicHostEventKind.NOTICE,
       notice: sessionNoticeFor({
         isConnected,
         isInstalled,
@@ -51,7 +59,7 @@ export function createSessionWaiter({ state, link, events }: {
       })
     });
     events.emit({
-      kind: GlicHostEventKind.extensionNeeded,
+      kind: GlicHostEventKind.EXTENSION_NEEDED,
       isNeeded: !isInstalled
     });
 
@@ -66,8 +74,8 @@ export function createSessionWaiter({ state, link, events }: {
       const isStillSignedOut = state.isActive && state.isUnavailable;
       if (isStillSignedOut) {
         events.emit({
-          kind: GlicHostEventKind.notice,
-          notice: SessionNotice.signIn
+          kind: GlicHostEventKind.NOTICE,
+          notice: SessionNotice.SIGN_IN
         });
       }
     }, REFRESH_GRACE_MS);

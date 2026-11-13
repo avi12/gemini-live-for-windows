@@ -1,5 +1,3 @@
-import { type GlicHostEvent, GlicHostEventKind } from "./glic-events.ts";
-import type { GlicState } from "./glic-state.ts";
 import { LiveStatus } from "@/contracts/live-engine.ts";
 import type { createEmitter } from "@/google/emitter.ts";
 import type { Logger } from "@/google/ports.ts";
@@ -9,12 +7,24 @@ import { decideGlicPermission, isGoogleNavigation } from "@/google/web-host/guar
 import { createWebHost, RecoveryFailure } from "@/google/web-host/web-host.ts";
 import type { WebViewFactory } from "@/google/web-host/web-view-port.ts";
 
+import { type GlicHostEvent, GlicHostEventKind } from "./glic-events.ts";
+import type { GlicState } from "./glic-state.ts";
+
 export const GLIC_URL = "https://gemini.google.com/glic";
 export const SEND_TIMEOUT_MS = 3000;
 // The page waits up to 6 s for its text box, and up to 30 s for an answer plus a few settles
 export const SUBMIT_TIMEOUT_MS = 45_000;
 
-export function createGlicWebHost({ factory, bridgeScript, link, state, events, log, now, isDebugging }: {
+export function createGlicWebHost({
+  factory,
+  bridgeScript,
+  link,
+  state,
+  events,
+  log,
+  now,
+  isDebugging
+}: {
   factory: WebViewFactory;
   bridgeScript: string;
   link: SessionSource;
@@ -43,15 +53,18 @@ export function createGlicWebHost({ factory, bridgeScript, link, state, events, 
     onRecovering() {
       state.isBooted = false;
       events.emit({
-        kind: GlicHostEventKind.notice,
-        notice: LiveStatus.reconnecting
+        kind: GlicHostEventKind.NOTICE,
+        notice: LiveStatus.RECONNECTING
       });
     },
     onRecoveryFailed({ reason, cause }) {
       state.ready.reject(cause ?? new Error("Gemini keeps crashing."));
       events.emit({
-        kind: GlicHostEventKind.failed,
-        message: reason === RecoveryFailure.crashLoop ? "Gemini keeps crashing; try again shortly." : "Couldn't restart Gemini."
+        kind: GlicHostEventKind.FAILED,
+        message:
+          reason === RecoveryFailure.CRASH_LOOP
+            ? "Gemini keeps crashing; try again shortly."
+            : "Couldn't restart Gemini."
       });
     }
   });

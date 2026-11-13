@@ -1,5 +1,6 @@
-import { engineEventSchema, extensionNeededSchema, GoogleMessage, microphonesSchema } from "./protocol.ts";
-import type { GoogleProtocol } from "./protocol.ts";
+import { defineMessaging } from "winui-svelte/messaging";
+import type { Transport } from "winui-svelte/state/host";
+
 import { EngineKind, LiveEventKind } from "@/contracts/live-engine.ts";
 import type { LiveEngine, LiveEvent } from "@/contracts/live-engine.ts";
 import type { Monitor, Region } from "@/contracts/monitor.ts";
@@ -7,8 +8,9 @@ import { createEmitter } from "@/google/emitter.ts";
 import type { Logger } from "@/google/ports.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 import { unwrapParsed } from "@/lib/unwrap-parsed.ts";
-import { defineMessaging } from "winui-svelte/messaging";
-import type { Transport } from "winui-svelte/state/host";
+
+import { engineEventSchema, extensionNeededSchema, GoogleMessage, microphonesSchema } from "./protocol.ts";
+import type { GoogleProtocol } from "./protocol.ts";
 
 interface Route {
   readonly events: ReturnType<typeof createEmitter<LiveEvent>>;
@@ -24,13 +26,18 @@ interface EngineState {
   isCameraShared: boolean;
 }
 
-async function useRemoteCamera({ messaging, engineId, state, isOn }: {
+async function useRemoteCamera({
+  messaging,
+  engineId,
+  state,
+  isOn
+}: {
   messaging: Messaging;
   engineId: number;
   state: EngineState;
   isOn: boolean;
 }) {
-  const isAchieved = await messaging.sendMessage(GoogleMessage.useCamera, {
+  const isAchieved = await messaging.sendMessage(GoogleMessage.USE_CAMERA, {
     engineId,
     isOn
   });
@@ -41,13 +48,17 @@ async function useRemoteCamera({ messaging, engineId, state, isOn }: {
   return isAchieved;
 }
 
-async function disposeRemote({ messaging, engineId, onDisposed }: {
+async function disposeRemote({
+  messaging,
+  engineId,
+  onDisposed
+}: {
   messaging: Messaging;
   engineId: number;
   onDisposed: () => void;
 }) {
   try {
-    await messaging.sendMessage(GoogleMessage.dispose, { engineId });
+    await messaging.sendMessage(GoogleMessage.DISPOSE, { engineId });
   } finally {
     onDisposed();
   }
@@ -75,7 +86,7 @@ function remoteEngine({ messaging, engineId, route, monitor, onDisposed }: Engin
   const state = initialState(monitor);
 
   const engine: LiveEngine = {
-    kind: EngineKind.google,
+    kind: EngineKind.GOOGLE,
     reportsLevels: false,
     get monitor() {
       return state.monitor;
@@ -85,7 +96,7 @@ function remoteEngine({ messaging, engineId, route, monitor, onDisposed }: Engin
     },
     set isMuted(isNowMuted: boolean) {
       state.isMuted = isNowMuted;
-      messaging.notify(GoogleMessage.setMuted, {
+      messaging.notify(GoogleMessage.SET_MUTED, {
         engineId,
         isMuted: isNowMuted
       });
@@ -95,7 +106,7 @@ function remoteEngine({ messaging, engineId, route, monitor, onDisposed }: Engin
     },
     set region(region: Region | undefined) {
       state.region = region;
-      messaging.notify(GoogleMessage.setRegion, {
+      messaging.notify(GoogleMessage.SET_REGION, {
         engineId,
         region: region ?? null
       });
@@ -105,26 +116,28 @@ function remoteEngine({ messaging, engineId, route, monitor, onDisposed }: Engin
     },
     onEvent: route.events.subscribe,
     onExtensionNeeded: route.extensionNeeded.subscribe,
-    useCamera: isOn => useRemoteCamera({
-      messaging,
-      engineId,
-      state,
-      isOn
-    }),
-    start: () => messaging.sendMessage(GoogleMessage.start, { engineId }),
+    useCamera: isOn =>
+      useRemoteCamera({
+        messaging,
+        engineId,
+        state,
+        isOn
+      }),
+    start: () => messaging.sendMessage(GoogleMessage.START, { engineId }),
     share(next: Monitor) {
       state.monitor = next;
       state.region = undefined;
-      messaging.notify(GoogleMessage.share, {
+      messaging.notify(GoogleMessage.SHARE, {
         engineId,
         monitor: next
       });
     },
-    dispose: () => disposeRemote({
-      messaging,
-      engineId,
-      onDisposed
-    })
+    dispose: () =>
+      disposeRemote({
+        messaging,
+        engineId,
+        onDisposed
+      })
   };
   return engine;
 }
@@ -132,10 +145,7 @@ function remoteEngine({ messaging, engineId, route, monitor, onDisposed }: Engin
 // The main thread's end of the Google link: engines that look like any other LiveEngine to the
 // pill controller while the real ones run on the UI worker. What the controller reads at once
 // (the shared display, the region, mute, the camera) is kept here; every change is sent over.
-export function connectGoogle({ transport, log }: {
-  transport: Transport;
-  log: Logger;
-}) {
+export function connectGoogle({ transport, log }: { transport: Transport; log: Logger }) {
   const messaging = defineMessaging<GoogleProtocol>({
     transport,
     onError: error => log.write(`google: ${error.message}`)
@@ -143,11 +153,11 @@ export function connectGoogle({ transport, log }: {
   const routes = new Map<number, Route>();
   let lastEngineId = 0;
 
-  messaging.onMessage(GoogleMessage.event, message => {
+  messaging.onMessage(GoogleMessage.EVENT, message => {
     const { engineId, event } = unwrapParsed(engineEventSchema.safeParse(message.data));
     routes.get(engineId)?.events.emit(event);
   });
-  messaging.onMessage(GoogleMessage.extensionNeeded, message => {
+  messaging.onMessage(GoogleMessage.EXTENSION_NEEDED, message => {
     const { engineId, isNeeded } = unwrapParsed(extensionNeededSchema.safeParse(message.data));
     routes.get(engineId)?.extensionNeeded.emit(isNeeded);
   });
@@ -161,13 +171,17 @@ export function connectGoogle({ transport, log }: {
     };
     routes.set(engineId, route);
 
-    messaging.sendMessage(GoogleMessage.createEngine, {
-      engineId,
-      monitor
-    }).catch((error: unknown) => route.events.emit({
-      kind: LiveEventKind.ended,
-      reason: errorMessage(error)
-    }));
+    messaging
+      .sendMessage(GoogleMessage.CREATE_ENGINE, {
+        engineId,
+        monitor
+      })
+      .catch((error: unknown) =>
+        route.events.emit({
+          kind: LiveEventKind.ENDED,
+          reason: errorMessage(error)
+        })
+      );
 
     return remoteEngine({
       messaging,
@@ -182,10 +196,10 @@ export function connectGoogle({ transport, log }: {
     createEngine,
     microphones: {
       async list() {
-        const listed = await messaging.sendMessage(GoogleMessage.listMicrophones);
+        const listed = await messaging.sendMessage(GoogleMessage.LIST_MICROPHONES);
         return unwrapParsed(microphonesSchema.safeParse(listed));
       },
-      select: (id: string | null) => messaging.notify(GoogleMessage.selectMicrophone, { id })
+      select: (id: string | null) => messaging.notify(GoogleMessage.SELECT_MICROPHONE, { id })
     },
     close: () => messaging.close()
   };

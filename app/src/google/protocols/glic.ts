@@ -6,46 +6,46 @@ import { z } from "zod";
 // Every payload that crosses is loose data, so each is a zod schema checked on receipt.
 
 export const GlicMessage = {
-  start: "start",
-  stop: "stop",
-  setMuted: "setMuted",
-  listMics: "listMics",
-  setMic: "setMic",
-  beginAction: "beginAction",
-  submitAndRead: "submitAndRead",
-  booted: "booted",
-  ready: "ready",
-  state: "state",
-  transcript: "transcript",
-  error: "error",
-  capture: "capture",
-  read: "read"
+  START: "start",
+  STOP: "stop",
+  SET_MUTED: "setMuted",
+  LIST_MICS: "listMics",
+  SET_MIC: "setMic",
+  BEGIN_ACTION: "beginAction",
+  SUBMIT_AND_READ: "submitAndRead",
+  BOOTED: "booted",
+  READY: "ready",
+  STATE: "state",
+  TRANSCRIPT: "transcript",
+  ERROR: "error",
+  CAPTURE: "capture",
+  READ: "read"
 } as const;
 
 // The failures the page reports by code; anything else is a message to show
 export const PageError = {
-  signedOut: "signed-out",
-  unavailable: "unavailable",
-  liveBroke: "live-broke"
+  SIGNED_OUT: "signed-out",
+  UNAVAILABLE: "unavailable",
+  LIVE_BROKE: "live-broke"
 } as const;
 
 export const GlicState = {
-  idle: "idle",
-  listening: "listening",
-  resuming: "resuming"
+  IDLE: "idle",
+  LISTENING: "listening",
+  RESUMING: "resuming"
 } as const;
 
 export const Direction = {
-  assistant: "assistant",
-  user: "user"
+  ASSISTANT: "assistant",
+  USER: "user"
 } as const;
 
 export const BlockKind = {
-  heading: "heading",
-  paragraph: "paragraph"
+  HEADING: "heading",
+  PARAGRAPH: "paragraph"
 } as const;
 
-export const glicStateSchema = z.enum([GlicState.idle, GlicState.listening, GlicState.resuming]);
+export const glicStateSchema = z.enum([GlicState.IDLE, GlicState.LISTENING, GlicState.RESUMING]);
 
 const microphoneSchema = z.object({
   id: z.string(),
@@ -56,7 +56,7 @@ export const microphonesSchema = z.array(microphoneSchema);
 // One utterance so far; a later line with the same index revises it
 export const transcriptLineSchema = z.object({
   text: z.string(),
-  direction: z.enum([Direction.assistant, Direction.user]),
+  direction: z.enum([Direction.ASSISTANT, Direction.USER]),
   index: z.number().int()
 });
 
@@ -85,7 +85,7 @@ const screenViewSchema = z.object({
   app: z.string(),
   blocks: z.array(
     z.object({
-      kind: z.enum([BlockKind.heading, BlockKind.paragraph]),
+      kind: z.enum([BlockKind.HEADING, BlockKind.PARAGRAPH]),
       text: z.string()
     })
   ),
@@ -95,22 +95,22 @@ export type ScreenView = z.infer<typeof screenViewSchema>;
 
 // Payloads the page sends or answers with are `unknown` here and checked with the schemas above
 export interface GlicProtocolMap {
-  [GlicMessage.start](): void;
-  [GlicMessage.stop](): void;
-  [GlicMessage.setMuted](muted: boolean): void;
-  [GlicMessage.listMics](): unknown;
-  [GlicMessage.setMic](id: string | null): void;
+  [GlicMessage.START](): void;
+  [GlicMessage.STOP](): void;
+  [GlicMessage.SET_MUTED](muted: boolean): void;
+  [GlicMessage.LIST_MICS](): unknown;
+  [GlicMessage.SET_MIC](id: string | null): void;
   // Switches to text mode; whether a focused, empty text box is ready for typing
-  [GlicMessage.beginAction](): unknown;
+  [GlicMessage.BEGIN_ACTION](): unknown;
   // Submits the typed request; the answer and its links
-  [GlicMessage.submitAndRead](): unknown;
-  [GlicMessage.booted](): void;
-  [GlicMessage.ready](): void;
-  [GlicMessage.state](state: unknown): void;
-  [GlicMessage.transcript](line: unknown): void;
-  [GlicMessage.error](message: unknown): void;
+  [GlicMessage.SUBMIT_AND_READ](): unknown;
+  [GlicMessage.BOOTED](): void;
+  [GlicMessage.READY](): void;
+  [GlicMessage.STATE](state: unknown): void;
+  [GlicMessage.TRANSCRIPT](line: unknown): void;
+  [GlicMessage.ERROR](message: unknown): void;
   // A picture of the shared screen or camera; null when there is none
-  [GlicMessage.capture](): Picture | null;
+  [GlicMessage.CAPTURE](): Picture | null;
   // An exact text copy of the window on the shared display; null when there is none
-  [GlicMessage.read](): ScreenView | null;
+  [GlicMessage.READ](): ScreenView | null;
 }

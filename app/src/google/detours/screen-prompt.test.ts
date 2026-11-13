@@ -1,7 +1,9 @@
-import { clip, describeScreen, unescapeMarkdown, webSearchPrompt } from "./screen-prompt.ts";
-import { BlockKind } from "@/google/protocols/glic.ts";
 import assert from "node:assert/strict";
 import { test } from "node:test";
+
+import { BlockKind } from "@/google/protocols/glic.ts";
+
+import { clip, describeScreen, unescapeMarkdown, webSearchPrompt } from "./screen-prompt.ts";
 
 const screen = {
   title: "Cats",
@@ -9,11 +11,11 @@ const screen = {
   version: "1",
   blocks: [
     {
-      kind: BlockKind.heading,
+      kind: BlockKind.HEADING,
       text: "Cat facts"
     },
     {
-      kind: BlockKind.paragraph,
+      kind: BlockKind.PARAGRAPH,
       text: "Cats sleep a lot."
     }
   ]
@@ -28,20 +30,22 @@ test("clip shortens with an ellipsis", () => {
     clip({
       text: "abcdef",
       limit: 3
-    }), "abc…"
+    }),
+    "abc…"
   );
   assert.equal(
     clip({
       text: "abc",
       limit: 3
-    }), "abc"
+    }),
+    "abc"
   );
 });
 
 test("describeScreen names the window, headings and text", () => {
   assert.equal(
     describeScreen(screen),
-    "a window titled \"Cats\"; heading \"Cat facts\"; text beginning \"Cat facts Cats sleep a lot.\""
+    'a window titled "Cats"; heading "Cat facts"; text beginning "Cat facts Cats sleep a lot."'
   );
 });
 
@@ -52,7 +56,7 @@ test("webSearchPrompt adds the screen, Gemini's last line and the ask", () => {
     lastGeminiLine: "Cats nap."
   });
   assert.ok(prompt.startsWith("find the source (On my screen: a window titled"));
-  assert.ok(prompt.includes("(You just told me: \"Cats nap.\".)"));
+  assert.ok(prompt.includes('(You just told me: "Cats nap.".)'));
   assert.ok(prompt.endsWith("link the exact pages you used.)"));
 });
 

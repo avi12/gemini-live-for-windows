@@ -1,21 +1,33 @@
-import type { Logger, SecretSealer } from "@/google/ports.ts";
-import { type BrowserCookie, browserCookiesSchema } from "@gemini-live/protocol/link";
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+import { type BrowserCookie, browserCookiesSchema } from "@gemini-live/protocol/link";
+
+import type { Logger, SecretSealer } from "@/google/ports.ts";
+
 // The Google login/session family; the rest of a jar is analytics noise
 const AUTH_COOKIE_PREFIXES = ["__Secure-", "__Host-"];
 const AUTH_COOKIE_NAMES = new Set([
-  "SID", "HSID", "SSID", "APISID", "SAPISID", "LSID", "OSID", "NID", "SIDCC", "ACCOUNT_CHOOSER",
-  "LSOLH", "GAPS"
+  "SID",
+  "HSID",
+  "SSID",
+  "APISID",
+  "SAPISID",
+  "LSID",
+  "OSID",
+  "NID",
+  "SIDCC",
+  "ACCOUNT_CHOOSER",
+  "LSOLH",
+  "GAPS"
 ]);
 const SESSION_COOKIE_NAMES = new Set(["SID", "__Secure-1PSID"]);
 
 export const SameSite = {
-  strict: "strict",
-  lax: "lax",
-  none: "none"
+  STRICT: "strict",
+  LAX: "lax",
+  NONE: "none"
 } as const;
 
 export function isAuthCookie(name: string) {
@@ -34,19 +46,17 @@ export function hasSession(cookies: readonly BrowserCookie[]) {
 
 // Stable fingerprint, to skip re-injecting an unchanged session
 export function fingerprint(cookies: readonly BrowserCookie[]) {
-  const lines = cookies
-    .map(cookie => `${cookie.domain}|${cookie.name}|${cookie.value}`)
-    .toSorted();
+  const lines = cookies.map(cookie => `${cookie.domain}|${cookie.name}|${cookie.value}`).toSorted();
   return createHash("sha256").update(lines.join("\n")).digest("hex");
 }
 
 export function sameSiteOf(value: string | null | undefined) {
-  const isRestrictive = value === SameSite.strict || value === SameSite.lax;
+  const isRestrictive = value === SameSite.STRICT || value === SameSite.LAX;
   if (isRestrictive) {
     return value;
   }
 
-  return SameSite.none;
+  return SameSite.NONE;
 }
 
 export function encodeSession(cookies: readonly BrowserCookie[]) {
@@ -65,11 +75,7 @@ export function decodeSession(plain: Uint8Array) {
 
 // The sealed copy of the browser's session, so a restart is signed in before the extension
 // reconnects. The same file and format the C# app wrote: sealed JSON of the cookie list.
-export function createSessionStore({ filePath, sealer, log }: {
-  filePath: string;
-  sealer: SecretSealer;
-  log: Logger;
-}) {
+export function createSessionStore({ filePath, sealer, log }: { filePath: string; sealer: SecretSealer; log: Logger }) {
   async function save(cookies: readonly BrowserCookie[]) {
     const sealed = await sealer.seal(encodeSession(cookies));
     await mkdir(path.dirname(filePath), { recursive: true });

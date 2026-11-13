@@ -5,24 +5,30 @@ import type { BrowserCookie } from "@gemini-live/protocol/link";
 // a fake, so everything above this file runs without a window.
 
 export const ProcessFailureKind = {
-  browserExited: "browserExited",
-  other: "other"
+  BROWSER_EXITED: "browserExited",
+  OTHER: "other"
 } as const;
-export type ProcessFailureKind = typeof ProcessFailureKind[keyof typeof ProcessFailureKind];
+export type ProcessFailureKind = (typeof ProcessFailureKind)[keyof typeof ProcessFailureKind];
 
 export const PermissionKind = {
-  microphone: "microphone",
-  camera: "camera",
-  other: "other"
+  MICROPHONE: "microphone",
+  CAMERA: "camera",
+  OTHER: "other"
 } as const;
-export type PermissionKind = typeof PermissionKind[keyof typeof PermissionKind];
+
+interface CallDevToolsRequest {
+  method: string;
+  params: object;
+}
+
+export type PermissionKind = (typeof PermissionKind)[keyof typeof PermissionKind];
 
 export const PermissionDecision = {
-  allow: "allow",
-  deny: "deny",
-  default: "default"
+  ALLOW: "allow",
+  DENY: "deny",
+  DEFAULT: "default"
 } as const;
-export type PermissionDecision = typeof PermissionDecision[keyof typeof PermissionDecision];
+export type PermissionDecision = (typeof PermissionDecision)[keyof typeof PermissionDecision];
 
 export interface WebViewCore {
   readonly source: string;
@@ -38,10 +44,7 @@ export interface WebViewCore {
   blockRequests(filter: string): void;
   setCookies(cookies: readonly BrowserCookie[]): void;
   // A DevTools protocol call; its result is not needed by any caller
-  callDevTools(request: {
-    method: string;
-    params: object;
-  }): Promise<void>;
+  callDevTools(request: CallDevToolsRequest): Promise<void>;
 }
 
 export interface WebViewOptions {

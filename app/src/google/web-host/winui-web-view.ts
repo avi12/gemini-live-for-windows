@@ -1,3 +1,13 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+
+import type { BrowserCookie } from "@gemini-live/protocol/link";
+import type { AppWindow } from "winui-svelte/window";
+
+import type { Logger } from "@/google/ports.ts";
+import { SameSite, sameSiteOf } from "@/google/session/cookies.ts";
+import { errorMessage } from "@/lib/error-message.ts";
+
 import {
   PermissionDecision,
   PermissionKind,
@@ -5,19 +15,13 @@ import {
   type WebViewCore,
   type WebViewOptions
 } from "./web-view-port.ts";
-import type { Logger } from "@/google/ports.ts";
-import { SameSite, sameSiteOf } from "@/google/session/cookies.ts";
-import { errorMessage } from "@/lib/error-message.ts";
-import type { BrowserCookie } from "@gemini-live/protocol/link";
-import { readFile } from "node:fs/promises";
-import path from "node:path";
-import type { AppWindow } from "winui-svelte/window";
 
 // Parked off-screen reads as occluded, which would throttle the page's timers; the voice must also
 // play without a click inside the page. Both matter for glic and are harmless for Home.
-const CHROMIUM_ARGUMENTS = "--autoplay-policy=no-user-gesture-required "
-  + "--disable-features=CalculateNativeWinOcclusion "
-  + "--disable-background-timer-throttling --disable-renderer-backgrounding";
+const CHROMIUM_ARGUMENTS =
+  "--autoplay-policy=no-user-gesture-required " +
+  "--disable-features=CalculateNativeWinOcclusion " +
+  "--disable-background-timer-throttling --disable-renderer-backgrounding";
 // Port 0: Chromium picks a free port, so debugging never collides with another app's
 const DEBUG_ARGUMENT = " --remote-debugging-port=0";
 const PARKED_AT = -32_000;
@@ -77,15 +81,11 @@ type Bindings = Awaited<ReturnType<typeof loadBindings>>;
 type Core = InstanceType<Bindings["webViewClass"]>["coreWebView2"];
 type Environment = Awaited<ReturnType<Bindings["environmentClass"]["createWithOptionsAsync"]>>;
 
-function createCookieWriter({ core, bindings, log }: {
-  core: Core;
-  bindings: Bindings;
-  log: Logger;
-}) {
+function createCookieWriter({ core, bindings, log }: { core: Core; bindings: Bindings; log: Logger }) {
   const sameSiteKinds = new Map<string, ValueOf<typeof bindings.sameSiteKind>>([
-    [SameSite.strict, bindings.sameSiteKind.Strict],
-    [SameSite.lax, bindings.sameSiteKind.Lax],
-    [SameSite.none, bindings.sameSiteKind.None]
+    [SameSite.STRICT, bindings.sameSiteKind.Strict],
+    [SameSite.LAX, bindings.sameSiteKind.Lax],
+    [SameSite.NONE, bindings.sameSiteKind.None]
   ]);
 
   return function setCookie(saved: BrowserCookie) {
@@ -108,18 +108,15 @@ function createCookieWriter({ core, bindings, log }: {
   };
 }
 
-function bindEvents({ core, bindings }: {
-  core: Core;
-  bindings: Bindings;
-}) {
+function bindEvents({ core, bindings }: { core: Core; bindings: Bindings }) {
   const permissionKinds = new Map<number, PermissionKind>([
-    [bindings.permissionKind.Microphone, PermissionKind.microphone],
-    [bindings.permissionKind.Camera, PermissionKind.camera]
+    [bindings.permissionKind.Microphone, PermissionKind.MICROPHONE],
+    [bindings.permissionKind.Camera, PermissionKind.CAMERA]
   ]);
   const permissionStates = new Map<PermissionDecision, ValueOf<typeof bindings.permissionState>>([
-    [PermissionDecision.allow, bindings.permissionState.Allow],
-    [PermissionDecision.deny, bindings.permissionState.Deny],
-    [PermissionDecision.default, bindings.permissionState.Default]
+    [PermissionDecision.ALLOW, bindings.permissionState.Allow],
+    [PermissionDecision.DENY, bindings.permissionState.Deny],
+    [PermissionDecision.DEFAULT, bindings.permissionState.Default]
   ]);
 
   return {
@@ -129,13 +126,13 @@ function bindEvents({ core, bindings }: {
     onProcessFailed(listener) {
       core.onProcessFailed((_sender, args) => {
         const isBrowserDead = args.processFailedKind === bindings.failedKind.BrowserProcessExited;
-        listener(isBrowserDead ? ProcessFailureKind.browserExited : ProcessFailureKind.other);
+        listener(isBrowserDead ? ProcessFailureKind.BROWSER_EXITED : ProcessFailureKind.OTHER);
       });
     },
     onPermission(decide) {
       core.onPermissionRequested((_sender, args) => {
-        const decision = decide(permissionKinds.get(args.permissionKind) ?? PermissionKind.other);
-        const isDefault = decision === PermissionDecision.default;
+        const decision = decide(permissionKinds.get(args.permissionKind) ?? PermissionKind.OTHER);
+        const isDefault = decision === PermissionDecision.DEFAULT;
         if (isDefault) {
           return;
         }
@@ -155,7 +152,12 @@ function bindEvents({ core, bindings }: {
   } satisfies Pick<WebViewCore, "onMessage" | "onProcessFailed" | "onPermission" | "onNavigation">;
 }
 
-function bindActions({ core, environment, bindings, log }: {
+function bindActions({
+  core,
+  environment,
+  bindings,
+  log
+}: {
   core: Core;
   environment: Environment;
   bindings: Bindings;
@@ -177,12 +179,7 @@ function bindActions({ core, environment, bindings, log }: {
     blockRequests(filter) {
       core.addWebResourceRequestedFilter(filter, bindings.resourceContext.All);
       core.onWebResourceRequested((_sender, args) => {
-        args.response = environment.createWebResourceResponse(
-          new bindings.streamClass(),
-          NO_CONTENT,
-          "No Content",
-          ""
-        );
+        args.response = environment.createWebResourceResponse(new bindings.streamClass(), NO_CONTENT, "No Content", "");
       });
     },
     setCookies(cookies) {
@@ -196,10 +193,7 @@ function bindActions({ core, environment, bindings, log }: {
   } satisfies Omit<WebViewCore, "source" | "onMessage" | "onProcessFailed" | "onPermission" | "onNavigation">;
 }
 
-async function logDebugPort({ spec, log }: {
-  spec: WindowSpec;
-  log: Logger;
-}) {
+async function logDebugPort({ spec, log }: { spec: WindowSpec; log: Logger }) {
   try {
     const file = path.join(spec.profileDir, "EBWebView", "DevToolsActivePort");
     const [port] = (await readFile(file, "utf8")).split(/\r?\n/);
@@ -209,7 +203,12 @@ async function logDebugPort({ spec, log }: {
   }
 }
 
-function closeWindow({ window, spec, log, replacing }: {
+function closeWindow({
+  window,
+  spec,
+  log,
+  replacing
+}: {
   window: AppWindow<object> | undefined;
   spec: WindowSpec;
   log: Logger;
@@ -230,7 +229,13 @@ interface Replacing {
   isActive: boolean;
 }
 
-function openParkedWindow({ bindings, control, spec, log, replacing }: {
+function openParkedWindow({
+  bindings,
+  control,
+  spec,
+  log,
+  replacing
+}: {
   bindings: Bindings;
   control: InstanceType<Bindings["webViewClass"]>;
   spec: WindowSpec;
@@ -276,10 +281,7 @@ function openParkedWindow({ bindings, control, spec, log, replacing }: {
 // Unproven without a desktop session: that such a window keeps Chromium's page at full speed, that
 // the environment's folder and flags reach the browser, that an empty response stops
 // RotateCookies, and that a rebuilt control starts cleanly after a browser crash.
-export function createWinUiWebViewFactory({ spec, log }: {
-  spec: WindowSpec;
-  log: Logger;
-}) {
+export function createWinUiWebViewFactory({ spec, log }: { spec: WindowSpec; log: Logger }) {
   let previous: AppWindow<object> | undefined;
   const replacing: Replacing = { isActive: false };
 

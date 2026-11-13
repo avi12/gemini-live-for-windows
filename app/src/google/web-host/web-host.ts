@@ -1,20 +1,27 @@
+import { defineMessaging, type ProtocolMap } from "@gemini-live/messaging";
+
+import type { Logger } from "@/google/ports.ts";
+import { errorMessage } from "@/lib/error-message.ts";
+
 import { CrashVerdict, createCrashGuard } from "./guards/crash-guard.ts";
 import { createSwitchableTransport } from "./transports.ts";
 import type { PermissionDecision, PermissionKind, WebViewCore, WebViewFactory } from "./web-view-port.ts";
 import { ProcessFailureKind } from "./web-view-port.ts";
-import type { Logger } from "@/google/ports.ts";
-import { errorMessage } from "@/lib/error-message.ts";
-import { defineMessaging, type ProtocolMap } from "@gemini-live/messaging";
 
 const MAX_CRASH_STREAK = 3;
 const CRASH_WINDOW_MS = 30_000;
 const ROTATE_COOKIES_FILTER = "https://accounts.google.com/RotateCookies*";
 
 export const RecoveryFailure = {
-  crashLoop: "crashLoop",
-  rebuildFailed: "rebuildFailed"
+  CRASH_LOOP: "crashLoop",
+  REBUILD_FAILED: "rebuildFailed"
 } as const;
-export type RecoveryFailure = typeof RecoveryFailure[keyof typeof RecoveryFailure];
+export type RecoveryFailure = (typeof RecoveryFailure)[keyof typeof RecoveryFailure];
+
+interface OnRecoveryFailedFailure {
+  reason: RecoveryFailure;
+  cause: Error | undefined;
+}
 
 export interface WebHostOptions {
   // For the log lines
@@ -34,10 +41,7 @@ export interface WebHostOptions {
   // A crash is being recovered from; the page is about to reload
   readonly onRecovering: () => void;
   // Recovery gave up; the next ensureCore() tries again
-  readonly onRecoveryFailed: (failure: {
-    reason: RecoveryFailure;
-    cause: Error | undefined;
-  }) => void;
+  readonly onRecoveryFailed: (failure: OnRecoveryFailedFailure) => void;
 }
 
 // The live engine, or undefined before warm-up and while a crashed browser is being replaced.
@@ -51,7 +55,12 @@ type SwitchableChannel = ReturnType<typeof createSwitchableTransport>;
 
 // Points the channel at a fresh control and hands it the host's policies, the cookie-rotation
 // block and the bridge
-async function buildCore({ options, channel, holder, onProcessFailed }: {
+async function buildCore({
+  options,
+  channel,
+  holder,
+  onProcessFailed
+}: {
   options: WebHostOptions;
   channel: SwitchableChannel;
   holder: CoreHolder;
@@ -79,7 +88,14 @@ async function buildCore({ options, channel, holder, onProcessFailed }: {
 
 // A render crash reloads the page in place; a browser crash kills the whole control, so it is
 // replaced. Repeated crashes in a short window stop looping.
-async function recoverFromFailure({ kind, options, channel, holder, crashGuard, ensureCore }: {
+async function recoverFromFailure({
+  kind,
+  options,
+  channel,
+  holder,
+  crashGuard,
+  ensureCore
+}: {
   kind: ProcessFailureKind;
   options: WebHostOptions;
   channel: SwitchableChannel;
@@ -88,18 +104,18 @@ async function recoverFromFailure({ kind, options, channel, holder, crashGuard, 
   ensureCore: () => Promise<WebViewCore | undefined>;
 }) {
   options.log.write(`${options.name}: process failed (${kind})`);
-  const isBrowserDead = kind === ProcessFailureKind.browserExited;
+  const isBrowserDead = kind === ProcessFailureKind.BROWSER_EXITED;
   const failed = holder.core;
   if (isBrowserDead) {
     holder.core = undefined;
     channel.detach();
   }
 
-  const isCrashLoop = crashGuard.record() === CrashVerdict.giveUp;
+  const isCrashLoop = crashGuard.record() === CrashVerdict.GIVE_UP;
   if (isCrashLoop) {
     options.log.write(`${options.name}: crashing repeatedly; waiting for the next use to retry`);
     options.onRecoveryFailed({
-      reason: RecoveryFailure.crashLoop,
+      reason: RecoveryFailure.CRASH_LOOP,
       cause: undefined
     });
     return;
@@ -117,7 +133,7 @@ async function recoverFromFailure({ kind, options, channel, holder, crashGuard, 
     const cause = error instanceof Error ? error : new Error(errorMessage(error));
     options.log.write(`${options.name}: recovery failed: ${cause.message}`);
     options.onRecoveryFailed({
-      reason: RecoveryFailure.rebuildFailed,
+      reason: RecoveryFailure.REBUILD_FAILED,
       cause
     });
   }
@@ -154,14 +170,16 @@ export function createWebHost<TProtocolMap extends ProtocolMap>(options: WebHost
       options,
       channel,
       holder,
-      onProcessFailed: kind => void recoverFromFailure({
-        kind,
-        options,
-        channel,
-        holder,
-        crashGuard,
-        ensureCore
-      })
+      onProcessFailed(kind) {
+        void recoverFromFailure({
+          kind,
+          options,
+          channel,
+          holder,
+          crashGuard,
+          ensureCore
+        });
+      }
     }).finally(() => {
       holder.building = undefined;
     });

@@ -1,20 +1,10 @@
-import {
-  GrabDetail,
-  type JpegFrame,
-  type Logger,
-  type MediaPort,
-  MIME_JPEG,
-  type WebcamPort
-} from "./ports.ts";
-import type { Picture } from "./protocols/glic.ts";
 import type { Monitor, Region } from "@/contracts/monitor.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 
-async function attempt<T>({ label, work, log }: {
-  label: string;
-  work: () => Promise<T>;
-  log: Logger;
-}) {
+import { GrabDetail, type JpegFrame, type Logger, type MediaPort, MIME_JPEG, type WebcamPort } from "./ports.ts";
+import type { Picture } from "./protocols/glic.ts";
+
+async function attempt<T>({ label, work, log }: { label: string; work: () => Promise<T>; log: Logger }) {
   try {
     return await work();
   } catch (error) {
@@ -25,11 +15,7 @@ async function attempt<T>({ label, work, log }: {
 
 // The webcam, opened and closed on request. `onSwitch` runs before a real change of source, since
 // the other source's picture is no stand-in for the new one.
-function createCameraSource({ media, log, onSwitch }: {
-  media: MediaPort;
-  log: Logger;
-  onSwitch: () => void;
-}) {
+function createCameraSource({ media, log, onSwitch }: { media: MediaPort; log: Logger; onSwitch: () => void }) {
   let camera: WebcamPort | undefined;
 
   // False if the camera could not be opened, leaving the screen as the source
@@ -85,22 +71,25 @@ function grabScreen({ media, log, state }: Omit<ViewSources, "camera">) {
   return attempt({
     label: "grab",
     log,
-    work: () => media.grab({
-      monitor: state.monitor,
-      region: state.region,
-      detail: GrabDetail.sharp
-    })
+    work: () =>
+      media.grab({
+        monitor: state.monitor,
+        region: state.region,
+        detail: GrabDetail.SHARP
+      })
   });
 }
 
 // A picture for the page's pull: the camera's, or a sharp grab of the shared display. A failed
 // grab keeps the last good picture rather than leaving Gemini blind for a frame.
 async function capturePicture({ media, log, state, camera }: ViewSources) {
-  const frame = camera.current ? camera.current.grab() : await grabScreen({
-    media,
-    log,
-    state
-  });
+  const frame = camera.current
+    ? camera.current.grab()
+    : await grabScreen({
+        media,
+        log,
+        state
+      });
   const shown = frame ?? state.lastFrame;
   state.lastFrame = shown;
 
@@ -137,11 +126,7 @@ async function readScreenText({ media, log, state, camera }: ViewSources) {
 // What Gemini sees through the glic page: the shared display, or the webcam in its place. The page
 // pulls a picture, and a text copy of the window, whenever it wants one; this only decides which
 // source answers.
-export function createSharedView({ media, monitor, log }: {
-  media: MediaPort;
-  monitor: Monitor;
-  log: Logger;
-}) {
+export function createSharedView({ media, monitor, log }: { media: MediaPort; monitor: Monitor; log: Logger }) {
   const state: ViewState = {
     lastFrame: undefined,
     monitor,
@@ -158,18 +143,20 @@ export function createSharedView({ media, monitor, log }: {
   return {
     // Shares the webcam instead of the screen, or switches back
     useCamera: camera.use,
-    capture: () => capturePicture({
-      media,
-      log,
-      state,
-      camera
-    }),
-    read: () => readScreenText({
-      media,
-      log,
-      state,
-      camera
-    }),
+    capture: () =>
+      capturePicture({
+        media,
+        log,
+        state,
+        camera
+      }),
+    read: () =>
+      readScreenText({
+        media,
+        log,
+        state,
+        camera
+      }),
     get isUsingCamera() {
       return camera.current !== undefined;
     },

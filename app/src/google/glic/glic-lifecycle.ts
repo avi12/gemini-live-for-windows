@@ -1,14 +1,22 @@
-import type { GlicCommands } from "./glic-commands.ts";
-import type { GlicState } from "./glic-state.ts";
-import type { GlicWebHost } from "./glic-web-host.ts";
-import type { GlicSession } from "./session/glic-session.ts";
 import { createDeferred } from "@/google/emitter.ts";
 import type { Logger } from "@/google/ports.ts";
 import { fingerprint, hasSession, type SessionStore } from "@/google/session/cookies.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 
+import type { GlicCommands } from "./glic-commands.ts";
+import type { GlicState } from "./glic-state.ts";
+import type { GlicWebHost } from "./glic-web-host.ts";
+import type { GlicSession } from "./session/glic-session.ts";
+
 // Warming the page up, starting and stopping Live on it
-export function createGlicLifecycle({ state, webHost, session, commands, store, log }: {
+export function createGlicLifecycle({
+  state,
+  webHost,
+  session,
+  commands,
+  store,
+  log
+}: {
   state: GlicState;
   webHost: GlicWebHost;
   session: GlicSession;

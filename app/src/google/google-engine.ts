@@ -1,3 +1,5 @@
+import { type LiveEvent, LiveEventKind, LiveStatus } from "@/contracts/live-engine.ts";
+
 import { createDetours, createSpeechRecord } from "./detours/detours.ts";
 import { createIntentTriggers } from "./detours/intent-triggers.ts";
 import { createEmitter } from "./emitter.ts";
@@ -8,36 +10,40 @@ import type { HomeHost } from "./home-host.ts";
 import { createLiveEventSink, type LiveEventSink } from "./live-event-sink.ts";
 import type { Logger } from "./ports.ts";
 import type { SharedView } from "./shared-view.ts";
-import { type LiveEvent, LiveEventKind, LiveStatus } from "@/contracts/live-engine.ts";
 
-function routeHostEvent({ event, sink, onCaption, onExtensionNeeded }: {
+function routeHostEvent({
+  event,
+  sink,
+  onCaption,
+  onExtensionNeeded
+}: {
   event: GlicHostEvent;
   sink: LiveEventSink;
-  onCaption: (caption: Extract<GlicHostEvent, { kind: typeof GlicHostEventKind.caption }>) => void;
+  onCaption: (caption: Extract<GlicHostEvent, { kind: typeof GlicHostEventKind.CAPTION }>) => void;
   onExtensionNeeded: (isNeeded: boolean) => void;
 }) {
-  const isState = event.kind === GlicHostEventKind.state;
+  const isState = event.kind === GlicHostEventKind.STATE;
   if (isState) {
-    sink.status(event.isListening ? LiveStatus.listening : LiveStatus.resuming);
+    sink.status(event.isListening ? LiveStatus.LISTENING : LiveStatus.RESUMING);
     return;
   }
 
-  const isCaption = event.kind === GlicHostEventKind.caption;
+  const isCaption = event.kind === GlicHostEventKind.CAPTION;
   if (isCaption) {
     onCaption(event);
     return;
   }
 
-  const isNotice = event.kind === GlicHostEventKind.notice;
+  const isNotice = event.kind === GlicHostEventKind.NOTICE;
   if (isNotice) {
     sink.status(event.notice);
     return;
   }
 
-  const isFailure = event.kind === GlicHostEventKind.failed;
+  const isFailure = event.kind === GlicHostEventKind.FAILED;
   if (isFailure) {
     sink.emit({
-      kind: LiveEventKind.ended,
+      kind: LiveEventKind.ENDED,
       reason: event.message
     });
     return;
@@ -48,7 +54,13 @@ function routeHostEvent({ event, sink, onCaption, onExtensionNeeded }: {
 
 // The Google-account engine: one Live session on the long-lived glic host. Gemini's own client
 // does the audio, so there are no levels to show; captions arrive as whole utterances.
-export function createGoogleEngine({ host, home, view, log, now }: {
+export function createGoogleEngine({
+  host,
+  home,
+  view,
+  log,
+  now
+}: {
   host: Pick<GlicHost, "onEvent" | "start" | "stop" | "setMuted" | "runAction">;
   home: Pick<HomeHost, "setLights">;
   view: SharedView;
@@ -73,12 +85,14 @@ export function createGoogleEngine({ host, home, view, log, now }: {
     sink,
     now
   });
-  const unsubscribeHost = host.onEvent(event => routeHostEvent({
-    event,
-    sink,
-    onCaption: triggers.onCaption,
-    onExtensionNeeded: extensionNeeded.emit
-  }));
+  const unsubscribeHost = host.onEvent(event =>
+    routeHostEvent({
+      event,
+      sink,
+      onCaption: triggers.onCaption,
+      onExtensionNeeded: extensionNeeded.emit
+    })
+  );
   return createLiveEngine({
     host,
     view,

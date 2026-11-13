@@ -3,8 +3,9 @@ import { BlockKind, type ScreenView } from "@/google/protocols/glic.ts";
 // Added to a web request so the text turn searches and cites, in whatever language it was asked.
 // It also says what NOT to do: a text turn starts a fresh chat, and without it asks the user for
 // details they have already given. The screen context above is what "this" refers to.
-const WEB_SEARCH_ASK = "(This is a new chat, so use only the context above. Don't ask me for details: search the web,"
-  + " find the original source, and link the exact pages you used.)";
+const WEB_SEARCH_ASK =
+  "(This is a new chat, so use only the context above. Don't ask me for details: search the web," +
+  " find the original source, and link the exact pages you used.)";
 const MAX_CONTEXT_CHARS = 300;
 const SCREEN_HEADINGS = 3;
 const SCREEN_TEXT_CHARS = 600;
@@ -17,10 +18,7 @@ export function unescapeMarkdown(text: string) {
 }
 
 // Keeps a prompt quick to type: the text turn is typed one trusted key event per character
-export function clip({ text, limit = MAX_CONTEXT_CHARS }: {
-  text: string;
-  limit?: number;
-}) {
+export function clip({ text, limit = MAX_CONTEXT_CHARS }: { text: string; limit?: number }) {
   return text.length <= limit ? text : `${text.slice(0, limit)}…`;
 }
 
@@ -33,9 +31,7 @@ export function describeScreen(screen: ScreenView) {
     parts.push(`a window titled "${clip({ text: screen.title })}"`);
   }
 
-  const headings = screen.blocks
-    .filter(block => block.kind === BlockKind.heading)
-    .slice(0, SCREEN_HEADINGS);
+  const headings = screen.blocks.filter(block => block.kind === BlockKind.HEADING).slice(0, SCREEN_HEADINGS);
   for (const heading of headings) {
     parts.push(`heading "${clip({ text: heading.text })}"`);
   }
@@ -57,7 +53,11 @@ export function describeScreen(screen: ScreenView) {
 // The request as the text turn needs it. That turn sees neither the screen nor what Live said, so
 // "the article I'm looking at" means nothing there: name the window on screen and Live's last
 // words, then ask it to search and link its sources.
-export function webSearchPrompt({ request, screen, lastGeminiLine }: {
+export function webSearchPrompt({
+  request,
+  screen,
+  lastGeminiLine
+}: {
   request: string;
   screen: ScreenView | null;
   lastGeminiLine: string;

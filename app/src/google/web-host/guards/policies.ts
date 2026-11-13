@@ -7,17 +7,17 @@ const BLANK_PAGE = "about:blank";
 // page never opens the camera itself (the shared view captures it in-process); denying it keeps
 // Chromium from opening the device, which is what triggers Windows' camera prompt.
 export function decideGlicPermission(kind: PermissionKind) {
-  const isMicrophone = kind === PermissionKind.microphone;
+  const isMicrophone = kind === PermissionKind.MICROPHONE;
   if (isMicrophone) {
-    return PermissionDecision.allow;
+    return PermissionDecision.ALLOW;
   }
 
-  const isCamera = kind === PermissionKind.camera;
+  const isCamera = kind === PermissionKind.CAMERA;
   if (isCamera) {
-    return PermissionDecision.deny;
+    return PermissionDecision.DENY;
   }
 
-  return PermissionDecision.default;
+  return PermissionDecision.DEFAULT;
 }
 
 function isGoogleHost(hostname: string) {

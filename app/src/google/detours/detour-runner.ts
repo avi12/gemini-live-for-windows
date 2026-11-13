@@ -6,7 +6,11 @@ export function createDetourRunner(sink: LiveEventSink) {
   let handledUtterance = "";
   let isRunning = false;
 
-  async function run({ request, statusText, detour }: {
+  async function run({
+    request,
+    statusText,
+    detour
+  }: {
     request: string;
     statusText: string;
     detour: () => Promise<void>;

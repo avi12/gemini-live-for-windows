@@ -1,10 +1,11 @@
-import type { createDetourRunner } from "./detour-runner.ts";
 import { LiveEventKind, LiveStatus } from "@/contracts/live-engine.ts";
 import type { GlicHost } from "@/google/glic/glic-host.ts";
 import type { LiveEventSink } from "@/google/live-event-sink.ts";
 import type { Logger } from "@/google/ports.ts";
 import { delay } from "@/google/web-host/timeout.ts";
 import { errorMessage } from "@/lib/error-message.ts";
+
+import type { createDetourRunner } from "./detour-runner.ts";
 
 // A text detour replaces the Live session, which cuts Gemini off mid-word. So it waits for Gemini
 // to start answering (a moment after the request), then for its captions to stop growing (the
@@ -17,10 +18,7 @@ const SPEECH_POLL_MS = 150;
 // Returns once Gemini has stopped talking for now: it gets a short grace to start answering, then
 // until its captions have been still for a moment, up to a cap. There is no "speaking" signal from
 // the page, so a still caption is the best sign it has finished.
-async function waitForGeminiToFinish({ speech, now }: {
-  speech: { lastGeminiCaptionAt: number };
-  now: () => number;
-}) {
+async function waitForGeminiToFinish({ speech, now }: { speech: { lastGeminiCaptionAt: number }; now: () => number }) {
   const asked = now();
   while (now() - asked < ANSWER_START_GRACE_MS && speech.lastGeminiCaptionAt < asked) {
     await delay(SPEECH_POLL_MS);
@@ -33,7 +31,17 @@ async function waitForGeminiToFinish({ speech, now }: {
 
 // Lets Gemini finish what it is saying first, since the text turn replaces the Live session, then
 // asks the prompt it builds, after the wait so it can quote Gemini's whole last line.
-export function runTextDetour({ runner, host, sink, log, now, speech, request, statusText, buildPrompt }: {
+export function runTextDetour({
+  runner,
+  host,
+  sink,
+  log,
+  now,
+  speech,
+  request,
+  statusText,
+  buildPrompt
+}: {
   runner: ReturnType<typeof createDetourRunner>;
   host: Pick<GlicHost, "start" | "runAction">;
   sink: LiveEventSink;
@@ -62,7 +70,12 @@ export function runTextDetour({ runner, host, sink, log, now, speech, request, s
   });
 }
 
-async function askTextPath({ prompt, host, sink, log }: {
+async function askTextPath({
+  prompt,
+  host,
+  sink,
+  log
+}: {
   prompt: string;
   host: Pick<GlicHost, "start" | "runAction">;
   sink: LiveEventSink;
@@ -83,7 +96,7 @@ async function askTextPath({ prompt, host, sink, log }: {
     const hasLinks = answer.links.length > 0;
     if (hasLinks) {
       sink.emit({
-        kind: LiveEventKind.links,
+        kind: LiveEventKind.LINKS,
         links: answer.links.map(link => ({
           title: link.title,
           uri: link.url
@@ -92,10 +105,10 @@ async function askTextPath({ prompt, host, sink, log }: {
     }
 
     await host.start();
-    sink.status(LiveStatus.listening);
+    sink.status(LiveStatus.LISTENING);
   } catch (error) {
     log.write(`text turn failed: ${errorMessage(error)}`);
-    sink.status(LiveStatus.listening);
+    sink.status(LiveStatus.LISTENING);
     host.start().catch(() => undefined);
   }
 }

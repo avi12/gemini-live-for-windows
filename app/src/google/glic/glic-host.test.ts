@@ -1,7 +1,8 @@
-import { type GlicHostEvent, GlicHostEventKind } from "./glic-events.ts";
-import { createGlicHost } from "./glic-host.ts";
-import { pageErrorOf } from "./page/glic-recovery.ts";
-import { sessionNoticeFor } from "./session/glic-session-wait.ts";
+import assert from "node:assert/strict";
+import { afterEach, beforeEach, describe, mock, test } from "node:test";
+
+import type { BrowserCookie } from "@gemini-live/protocol/link";
+
 import { LiveStatus } from "@/contracts/live-engine.ts";
 import type { MediaPort } from "@/google/ports.ts";
 import { Direction, GlicMessage, GlicState, PageError } from "@/google/protocols/glic.ts";
@@ -9,15 +10,11 @@ import type { SessionStore } from "@/google/session/cookies.ts";
 import type { SessionSource } from "@/google/session/session-link.ts";
 import { createSharedView } from "@/google/shared-view.ts";
 import { createFakeWebViewFactory, type FakeWebView } from "@/google/web-host/fake-web-view.ts";
-import type { BrowserCookie } from "@gemini-live/protocol/link";
-import assert from "node:assert/strict";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  mock,
-  test
-} from "node:test";
+
+import { type GlicHostEvent, GlicHostEventKind } from "./glic-events.ts";
+import { createGlicHost } from "./glic-host.ts";
+import { pageErrorOf } from "./page/glic-recovery.ts";
+import { sessionNoticeFor } from "./session/glic-session-wait.ts";
 
 const REFRESH_GRACE_MS = 25_000;
 const RESTART_BUDGET = 3;
@@ -56,9 +53,11 @@ function setup({ saved = [] }: { saved?: BrowserCookie[] } = {}) {
   const saves: BrowserCookie[][] = [];
   const store: SessionStore = {
     load: async () => saved,
-    save: async cookies => void saves.push([...cookies])
+    async save(cookies) {
+      saves.push([...cookies]);
+    }
   };
-  const cookieListeners: Array<(cookies: readonly BrowserCookie[]) => void> = [];
+  const cookieListeners: ((cookies: readonly BrowserCookie[]) => void)[] = [];
   const requests = {
     cookies: 0,
     refreshes: 0
@@ -70,8 +69,12 @@ function setup({ saved = [] }: { saved?: BrowserCookie[] } = {}) {
       return () => undefined;
     },
     onConnected: () => () => undefined,
-    requestCookies: () => void (requests.cookies += 1),
-    requestRefresh: () => void (requests.refreshes += 1)
+    requestCookies() {
+      requests.cookies += 1;
+    },
+    requestRefresh() {
+      requests.refreshes += 1;
+    }
   };
   const media: MediaPort = {
     grab: async () => ({
@@ -124,11 +127,7 @@ function flush() {
 }
 
 // The page announces itself the way its bridge does
-function pageSends({ view, type, data }: {
-  view: FakeWebView | undefined;
-  type: string;
-  data?: unknown;
-}) {
+function pageSends({ view, type, data }: { view: FakeWebView | undefined; type: string; data?: unknown }) {
   view?.fromPage({
     id: 99,
     type,
@@ -152,33 +151,37 @@ describe("session notices", () => {
         isConnected: true,
         isInstalled: true,
         isStale: true
-      }), "Refreshing your Google session…"
+      }),
+      "Refreshing your Google session…"
     );
     assert.equal(
       sessionNoticeFor({
         isConnected: true,
         isInstalled: true,
         isStale: false
-      }), "Sign in to Google in your browser"
+      }),
+      "Sign in to Google in your browser"
     );
     assert.equal(
       sessionNoticeFor({
         isConnected: false,
         isInstalled: true,
         isStale: true
-      }), "Waiting for your browser…"
+      }),
+      "Waiting for your browser…"
     );
     assert.equal(
       sessionNoticeFor({
         isConnected: false,
         isInstalled: false,
         isStale: false
-      }), "One-time setup"
+      }),
+      "One-time setup"
     );
   });
 
   test("a page error code is recognized, anything else is a message", () => {
-    assert.equal(pageErrorOf("live-broke"), PageError.liveBroke);
+    assert.equal(pageErrorOf("live-broke"), PageError.LIVE_BROKE);
     assert.equal(pageErrorOf("Gemini page did not start"), undefined);
   });
 });
@@ -188,7 +191,10 @@ describe("warm-up", () => {
     const { host, factory } = setup({ saved: [cookie("SID")] });
     await host.warmUp();
     const view = factory.latest;
-    assert.deepEqual(view?.cookies[0]?.map(item => item.name), ["SID"]);
+    assert.deepEqual(
+      view?.cookies[0]?.map(item => item.name),
+      ["SID"]
+    );
     assert.deepEqual(view?.navigations, ["https://gemini.google.com/glic"]);
     assert.deepEqual(view?.scripts, ["bridge();"]);
   });
@@ -199,18 +205,18 @@ describe("starting Live", () => {
     const { host, factory } = setup({ saved: [cookie("SID")] });
     await host.warmUp();
     const started = host.start();
-    assert.equal(factory.latest?.requestsOf(GlicMessage.start).length, 0);
+    assert.equal(factory.latest?.requestsOf(GlicMessage.START).length, 0);
 
     pageSends({
       view: factory.latest,
-      type: GlicMessage.booted
+      type: GlicMessage.BOOTED
     });
     await flush();
-    assert.equal(factory.latest?.requestsOf(GlicMessage.start).length, 1);
+    assert.equal(factory.latest?.requestsOf(GlicMessage.START).length, 1);
 
     pageSends({
       view: factory.latest,
-      type: GlicMessage.ready
+      type: GlicMessage.READY
     });
     await started;
   });
@@ -220,12 +226,12 @@ describe("starting Live", () => {
     await host.warmUp();
     void host.start();
     assert.equal(requests.cookies, 1);
-    assert.deepEqual(events.map(event => event.kind), [
-      GlicHostEventKind.notice,
-      GlicHostEventKind.extensionNeeded
-    ]);
+    assert.deepEqual(
+      events.map(event => event.kind),
+      [GlicHostEventKind.NOTICE, GlicHostEventKind.EXTENSION_NEEDED]
+    );
     assert.deepEqual(events[0], {
-      kind: GlicHostEventKind.notice,
+      kind: GlicHostEventKind.NOTICE,
       notice: "One-time setup"
     });
   });
@@ -236,13 +242,13 @@ describe("starting Live", () => {
     void host.start();
     pageSends({
       view: factory.latest,
-      type: GlicMessage.error,
-      data: PageError.unavailable
+      type: GlicMessage.ERROR,
+      data: PageError.UNAVAILABLE
     });
     assert.equal(requests.refreshes, 1);
     mock.timers.tick(REFRESH_GRACE_MS);
     assert.deepEqual(events.at(-1), {
-      kind: GlicHostEventKind.notice,
+      kind: GlicHostEventKind.NOTICE,
       notice: "Sign in to Google in your browser"
     });
   });
@@ -254,7 +260,10 @@ describe("starting Live", () => {
     adopt([cookie("SID")]);
     await flush();
     assert.equal(saves.length, 1);
-    assert.deepEqual(factory.latest?.cookies.map(list => list.length), [0, 1]);
+    assert.deepEqual(
+      factory.latest?.cookies.map(list => list.length),
+      [0, 1]
+    );
     assert.equal(factory.latest?.navigations.length, 2);
   });
 });
@@ -265,32 +274,32 @@ describe("reports from the page", () => {
     await host.warmUp();
     pageSends({
       view: factory.latest,
-      type: GlicMessage.transcript,
+      type: GlicMessage.TRANSCRIPT,
       data: {
         text: "hi",
-        direction: Direction.user,
+        direction: Direction.USER,
         index: 2
       }
     });
     pageSends({
       view: factory.latest,
-      type: GlicMessage.state,
-      data: GlicState.resuming
+      type: GlicMessage.STATE,
+      data: GlicState.RESUMING
     });
     pageSends({
       view: factory.latest,
-      type: GlicMessage.state,
+      type: GlicMessage.STATE,
       data: "nonsense"
     });
     assert.deepEqual(events, [
       {
-        kind: GlicHostEventKind.caption,
+        kind: GlicHostEventKind.CAPTION,
         text: "hi",
         isUser: true,
         index: 2
       },
       {
-        kind: GlicHostEventKind.state,
+        kind: GlicHostEventKind.STATE,
         isListening: false
       }
     ]);
@@ -303,17 +312,17 @@ describe("reports from the page", () => {
     for (let iBreak = 0; iBreak < BREAKS; iBreak += 1) {
       pageSends({
         view: factory.latest,
-        type: GlicMessage.error,
-        data: PageError.liveBroke
+        type: GlicMessage.ERROR,
+        data: PageError.LIVE_BROKE
       });
     }
 
     const reconnecting = events.filter(
-      event => event.kind === GlicHostEventKind.notice && event.notice === LiveStatus.reconnecting
+      event => event.kind === GlicHostEventKind.NOTICE && event.notice === LiveStatus.RECONNECTING
     );
     assert.equal(reconnecting.length, RESTART_BUDGET);
     assert.deepEqual(events.at(-1), {
-      kind: GlicHostEventKind.failed,
+      kind: GlicHostEventKind.FAILED,
       message: "Gemini Live stopped working"
     });
     assert.equal(factory.latest?.navigations.length, RESTART_BUDGET + 1);
@@ -324,13 +333,14 @@ describe("reports from the page", () => {
     await host.warmUp();
     factory.latest?.fromPage({
       id: PULL_ID,
-      type: GlicMessage.capture,
+      type: GlicMessage.CAPTURE,
       data: null,
       timestamp: 0
     });
     await flush();
     const reply = factory.latest?.posted.find(
-      envelope => typeof envelope === "object" && envelope !== null && "replyTo" in envelope && envelope.replyTo === PULL_ID
+      envelope =>
+        typeof envelope === "object" && envelope !== null && "replyTo" in envelope && envelope.replyTo === PULL_ID
     );
     assert.deepEqual(reply, {
       replyTo: PULL_ID,
@@ -348,13 +358,15 @@ describe("text action", () => {
   test("opens the text box, types trusted keys and returns the checked answer", async () => {
     const { host, factory } = setup({ saved: [cookie("SID")] });
     await host.warmUp();
-    factory.latest?.answers.set(GlicMessage.beginAction, true);
-    factory.latest?.answers.set(GlicMessage.submitAndRead, {
+    factory.latest?.answers.set(GlicMessage.BEGIN_ACTION, true);
+    factory.latest?.answers.set(GlicMessage.SUBMIT_AND_READ, {
       text: "ok",
-      links: [{
-        title: "t",
-        url: "https://u"
-      }]
+      links: [
+        {
+          title: "t",
+          url: "https://u"
+        }
+      ]
     });
     const answer = await host.runAction("hi");
     assert.equal(factory.latest?.devTools.length, KEY_EVENTS_FOR_HI);
@@ -365,7 +377,7 @@ describe("text action", () => {
   test("fails when the text box does not open", async () => {
     const { host, factory } = setup({ saved: [cookie("SID")] });
     await host.warmUp();
-    factory.latest?.answers.set(GlicMessage.beginAction, false);
+    factory.latest?.answers.set(GlicMessage.BEGIN_ACTION, false);
     await assert.rejects(host.runAction("hi"), /text box/);
   });
 });

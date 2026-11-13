@@ -1,3 +1,6 @@
+import assert from "node:assert/strict";
+import { describe, test } from "node:test";
+
 import {
   appName,
   asksWeb,
@@ -9,8 +12,6 @@ import {
   targetsApp,
   withholdsLink
 } from "./spoken-intent.ts";
-import assert from "node:assert/strict";
-import { describe, test } from "node:test";
 
 describe("lightsCommand", () => {
   test("reads a clear command with its direction", () => {
@@ -66,19 +67,19 @@ describe("web", () => {
 describe("classifyUtterance", () => {
   test("tries lights, then apps, then the web", () => {
     assert.deepEqual(classifyUtterance("turn off the lights"), {
-      kind: IntentKind.lights,
+      kind: IntentKind.LIGHTS,
       isOn: false
     });
-    assert.deepEqual(classifyUtterance("add a meeting"), { kind: IntentKind.app });
-    assert.deepEqual(classifyUtterance("search the web for cats"), { kind: IntentKind.web });
+    assert.deepEqual(classifyUtterance("add a meeting"), { kind: IntentKind.APP });
+    assert.deepEqual(classifyUtterance("search the web for cats"), { kind: IntentKind.WEB });
     assert.equal(classifyUtterance("how are you"), undefined);
   });
 });
 
 describe("classifyRefusal", () => {
   test("maps a refusal to the detour that fixes it", () => {
-    assert.equal(classifyRefusal("I don't have access to your calendar"), IntentKind.app);
-    assert.equal(classifyRefusal("I can't browse the internet"), IntentKind.web);
+    assert.equal(classifyRefusal("I don't have access to your calendar"), IntentKind.APP);
+    assert.equal(classifyRefusal("I can't browse the internet"), IntentKind.WEB);
     assert.equal(classifyRefusal("Sure, one moment"), undefined);
   });
 });

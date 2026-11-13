@@ -4,16 +4,13 @@ const DISPATCH_KEY = "Input.dispatchKeyEvent";
 const DISPATCH_MOUSE = "Input.dispatchMouseEvent";
 
 const MouseEventType = {
-  pressed: "mousePressed",
-  released: "mouseReleased"
+  PRESSED: "mousePressed",
+  RELEASED: "mouseReleased"
 } as const;
 
 // Types text as trusted key events, one key down and up per character: synthetic input never
 // enables Glic's Submit, and page scripts cannot make events trusted
-export async function typeText({ core, text }: {
-  core: WebViewCore;
-  text: string;
-}) {
+export async function typeText({ core, text }: { core: WebViewCore; text: string }) {
   for (const key of text) {
     await core.callDevTools({
       method: DISPATCH_KEY,
@@ -35,11 +32,7 @@ export async function typeText({ core, text }: {
 }
 
 // The Home tiles ignore synthetic DOM clicks, so a click is a trusted mouse press and release
-export async function clickAt({ core, x, y }: {
-  core: WebViewCore;
-  x: number;
-  y: number;
-}) {
+export async function clickAt({ core, x, y }: { core: WebViewCore; x: number; y: number }) {
   for (const type of Object.values(MouseEventType)) {
     await core.callDevTools({
       method: DISPATCH_MOUSE,

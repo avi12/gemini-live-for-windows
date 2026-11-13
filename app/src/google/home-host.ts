@@ -1,3 +1,5 @@
+import { errorMessage } from "@/lib/error-message.ts";
+
 import type { Logger } from "./ports.ts";
 import { HomeMessage, type HomeProtocolMap, pcLightsSchema } from "./protocols/home.ts";
 import type { SessionStore } from "./session/cookies.ts";
@@ -7,7 +9,6 @@ import { isGoogleNavigation } from "./web-host/guards/policies.ts";
 import { delay } from "./web-host/timeout.ts";
 import { createWebHost } from "./web-host/web-host.ts";
 import type { WebViewFactory } from "./web-host/web-view-port.ts";
-import { errorMessage } from "@/lib/error-message.ts";
 
 const HOME_URL = "https://home.google.com/";
 const SIGNED_IN_PREFIX = `${HOME_URL}home`;
@@ -30,10 +31,7 @@ function onOff(isOn: boolean) {
 // device view: first use, or after a stale session bounced the page to the welcome screen. This
 // keeps the app off home.google.com in the background, where a second live Google tab could
 // disturb glic's session. Brings the engine back first if a crash took it down.
-async function ensureHome({ webHost, store }: {
-  webHost: HomeWebHost;
-  store: SessionStore;
-}) {
+async function ensureHome({ webHost, store }: { webHost: HomeWebHost; store: SessionStore }) {
   const core = await webHost.ensureCore();
   if (!core) {
     return;
@@ -51,18 +49,14 @@ async function ensureHome({ webHost, store }: {
 }
 
 // What the Home page's bridge answers: whether it listens yet, and the PC lights' tile
-function createHomePage({ webHost, now, log }: {
-  webHost: HomeWebHost;
-  now: () => number;
-  log: Logger;
-}) {
+function createHomePage({ webHost, now, log }: { webHost: HomeWebHost; now: () => number; log: Logger }) {
   const { messenger } = webHost;
 
   // While the page is still loading the bridge isn't listening yet (no listener) or the message is
   // lost to the navigation (timeout); either just means not ready yet
   async function isReady() {
     try {
-      return await messenger.sendMessage(HomeMessage.ready) === true;
+      return (await messenger.sendMessage(HomeMessage.READY)) === true;
     } catch {
       return false;
     }
@@ -87,7 +81,7 @@ function createHomePage({ webHost, now, log }: {
 
   async function readLights() {
     try {
-      const parsed = pcLightsSchema.safeParse(await messenger.sendMessage(HomeMessage.pcLights));
+      const parsed = pcLightsSchema.safeParse(await messenger.sendMessage(HomeMessage.PC_LIGHTS));
       return parsed.success ? parsed.data : undefined;
     } catch (error) {
       log.write(`home: reading the lights: ${errorMessage(error)}`);
@@ -107,13 +101,18 @@ const FALLBACK_LIGHTS_NAME = "PC lights";
 
 // Sets the PC lights on or off, returning a short line to speak. Reads the tile's state first, so
 // an already-correct light is a no-op instead of a toggle the wrong way.
-async function switchLights({ isOn, webHost, page, log }: {
+async function switchLights({
+  isOn,
+  webHost,
+  page,
+  log
+}: {
   isOn: boolean;
   webHost: HomeWebHost;
   page: HomePage;
   log: Logger;
 }) {
-  if (!await page.waitReady()) {
+  if (!(await page.waitReady())) {
     return UNREACHABLE;
   }
 
@@ -162,7 +161,15 @@ async function switchLights({ isOn, webHost, page, log }: {
 // Gemini's text path can't reach. The page owns auth and the device graph; home_bridge.js finds a
 // tile and reads its lit state when asked, and a trusted click flips it. The page is loaded on
 // demand, never kept live in the background. PC lights only.
-export function createHomeHost({ factory, bridgeScript, link, store, log, now, isDebugging }: {
+export function createHomeHost({
+  factory,
+  bridgeScript,
+  link,
+  store,
+  log,
+  now,
+  isDebugging
+}: {
   factory: WebViewFactory;
   bridgeScript: string;
   link: SessionSource;
@@ -184,7 +191,10 @@ export function createHomeHost({ factory, bridgeScript, link, store, log, now, i
     log,
     now,
     onCoreReady(core) {
-      store.load().then(cookies => core.setCookies(cookies)).catch(error => log.write(`home: ${errorMessage(error)}`));
+      store
+        .load()
+        .then(cookies => core.setCookies(cookies))
+        .catch(error => log.write(`home: ${errorMessage(error)}`));
     },
     onRecovering: () => undefined,
     onRecoveryFailed: () => undefined

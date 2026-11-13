@@ -1,6 +1,7 @@
-import { CrashVerdict, createCrashGuard } from "./crash-guard.ts";
 import assert from "node:assert/strict";
 import { test } from "node:test";
+
+import { CrashVerdict, createCrashGuard } from "./crash-guard.ts";
 
 const CRASHES = 5;
 const SECOND_MS = 1000;
@@ -20,11 +21,11 @@ test("recovers until the streak passes the limit, then gives up", () => {
   }
 
   assert.deepEqual(verdicts, [
-    CrashVerdict.recover,
-    CrashVerdict.recover,
-    CrashVerdict.recover,
-    CrashVerdict.giveUp,
-    CrashVerdict.giveUp
+    CrashVerdict.RECOVER,
+    CrashVerdict.RECOVER,
+    CrashVerdict.RECOVER,
+    CrashVerdict.GIVE_UP,
+    CrashVerdict.GIVE_UP
   ]);
 });
 
@@ -35,9 +36,9 @@ test("a quiet spell starts a new streak", () => {
     windowMs: 30_000,
     now: () => clock
   });
-  assert.equal(guard.record(), CrashVerdict.recover);
+  assert.equal(guard.record(), CrashVerdict.RECOVER);
   clock += SECOND_MS;
-  assert.equal(guard.record(), CrashVerdict.giveUp);
+  assert.equal(guard.record(), CrashVerdict.GIVE_UP);
   clock += QUIET_SPELL_MS;
-  assert.equal(guard.record(), CrashVerdict.recover);
+  assert.equal(guard.record(), CrashVerdict.RECOVER);
 });

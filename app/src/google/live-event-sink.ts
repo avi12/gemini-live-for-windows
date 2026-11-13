@@ -1,12 +1,14 @@
 import { type LiveEvent, LiveEventKind } from "@/contracts/live-engine.ts";
 
+interface TranscriptCaption {
+  text: string;
+  isUser: boolean;
+}
+
 export interface LiveEventSink {
   emit(event: LiveEvent): void;
   status(text: string): void;
-  transcript(caption: {
-    text: string;
-    isUser: boolean;
-  }): void;
+  transcript(caption: TranscriptCaption): void;
 }
 
 export function createLiveEventSink(emit: (event: LiveEvent) => void) {
@@ -14,13 +16,13 @@ export function createLiveEventSink(emit: (event: LiveEvent) => void) {
     emit,
     status(text) {
       emit({
-        kind: LiveEventKind.status,
+        kind: LiveEventKind.STATUS,
         status: text
       });
     },
     transcript({ text, isUser }) {
       emit({
-        kind: LiveEventKind.transcript,
+        kind: LiveEventKind.TRANSCRIPT,
         text,
         isUser
       });

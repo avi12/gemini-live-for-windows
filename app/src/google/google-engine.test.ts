@@ -1,16 +1,12 @@
+import assert from "node:assert/strict";
+import { afterEach, beforeEach, describe, mock, test } from "node:test";
+
+import { EngineKind, type LiveEvent, LiveEventKind, LiveStatus } from "@/contracts/live-engine.ts";
+
 import { type GlicHostEvent, GlicHostEventKind } from "./glic/glic-events.ts";
 import { createGoogleEngine } from "./google-engine.ts";
 import type { MediaPort } from "./ports.ts";
 import { createSharedView } from "./shared-view.ts";
-import { EngineKind, type LiveEvent, LiveEventKind, LiveStatus } from "@/contracts/live-engine.ts";
-import assert from "node:assert/strict";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  mock,
-  test
-} from "node:test";
 
 const MONITOR = {
   deviceName: "D1",
@@ -41,7 +37,7 @@ const media: MediaPort = {
 };
 
 function setup() {
-  const hostListeners: Array<(event: GlicHostEvent) => void> = [];
+  const hostListeners: ((event: GlicHostEvent) => void)[] = [];
   const muted: boolean[] = [];
   const actions: string[] = [];
   const lights: boolean[] = [];
@@ -58,17 +54,25 @@ function setup() {
         hostListeners.push(listener);
         return () => undefined;
       },
-      start: async () => void (calls.starts += 1),
-      stop: async () => void (calls.stops += 1),
-      setMuted: async isMuted => void calls.muted.push(isMuted),
+      async start() {
+        calls.starts += 1;
+      },
+      async stop() {
+        calls.stops += 1;
+      },
+      async setMuted(isMuted) {
+        calls.muted.push(isMuted);
+      },
       async runAction(prompt) {
         calls.actions.push(prompt);
         return {
           text: "answer",
-          links: [{
-            title: "Doc",
-            url: "https://doc"
-          }]
+          links: [
+            {
+              title: "Doc",
+              url: "https://doc"
+            }
+          ]
         };
       }
     },
@@ -101,18 +105,20 @@ function setup() {
     engine,
     events,
     calls,
-    user: (text: string, index = 0) => hostSays({
-      kind: GlicHostEventKind.caption,
-      text,
-      isUser: true,
-      index
-    }),
-    gemini: (text: string, index = 1) => hostSays({
-      kind: GlicHostEventKind.caption,
-      text,
-      isUser: false,
-      index
-    }),
+    user: (text: string, index = 0) =>
+      hostSays({
+        kind: GlicHostEventKind.CAPTION,
+        text,
+        isUser: true,
+        index
+      }),
+    gemini: (text: string, index = 1) =>
+      hostSays({
+        kind: GlicHostEventKind.CAPTION,
+        text,
+        isUser: false,
+        index
+      }),
     hostSays
   };
 }
@@ -137,7 +143,7 @@ afterEach(() => {
 describe("the engine contract", () => {
   test("is the Google engine with no levels", () => {
     const { engine } = setup();
-    assert.equal(engine.kind, EngineKind.google);
+    assert.equal(engine.kind, EngineKind.GOOGLE);
     assert.equal(engine.reportsLevels, false);
   });
 
@@ -163,34 +169,34 @@ describe("the engine contract", () => {
   test("maps the host's state, captions and failure", () => {
     const { events, hostSays, gemini } = setup();
     hostSays({
-      kind: GlicHostEventKind.state,
+      kind: GlicHostEventKind.STATE,
       isListening: true
     });
     hostSays({
-      kind: GlicHostEventKind.notice,
+      kind: GlicHostEventKind.NOTICE,
       notice: "Waiting for your browser…"
     });
     gemini(String.raw`It is 17\.3 degrees`);
     hostSays({
-      kind: GlicHostEventKind.failed,
+      kind: GlicHostEventKind.FAILED,
       message: "boom"
     });
     assert.deepEqual(events, [
       {
-        kind: LiveEventKind.status,
-        status: LiveStatus.listening
+        kind: LiveEventKind.STATUS,
+        status: LiveStatus.LISTENING
       },
       {
-        kind: LiveEventKind.status,
+        kind: LiveEventKind.STATUS,
         status: "Waiting for your browser…"
       },
       {
-        kind: LiveEventKind.transcript,
+        kind: LiveEventKind.TRANSCRIPT,
         text: "It is 17.3 degrees",
         isUser: false
       },
       {
-        kind: LiveEventKind.ended,
+        kind: LiveEventKind.ENDED,
         reason: "boom"
       }
     ]);
@@ -201,7 +207,7 @@ describe("the engine contract", () => {
     const needed: boolean[] = [];
     engine.onExtensionNeeded(isNeeded => needed.push(isNeeded));
     hostSays({
-      kind: GlicHostEventKind.extensionNeeded,
+      kind: GlicHostEventKind.EXTENSION_NEEDED,
       isNeeded: true
     });
     assert.deepEqual(needed, [true]);
@@ -222,10 +228,10 @@ describe("detours", () => {
     user("turn off the lights");
     await advance(SETTLED_MS);
     assert.deepEqual(calls.lights, [false]);
-    assert.ok(events.some(event => event.kind === LiveEventKind.transcript && event.text === "lights false"));
+    assert.ok(events.some(event => event.kind === LiveEventKind.TRANSCRIPT && event.text === "lights false"));
     assert.deepEqual(events.at(-1), {
-      kind: LiveEventKind.status,
-      status: LiveStatus.listening
+      kind: LiveEventKind.STATUS,
+      status: LiveStatus.LISTENING
     });
   });
 
@@ -237,8 +243,8 @@ describe("detours", () => {
     await advance(DETOUR_MS);
     assert.deepEqual(calls.actions, ["add a meeting for tomorrow"]);
     assert.equal(calls.starts, 1);
-    assert.ok(events.some(event => event.kind === LiveEventKind.status && event.status === "Checking Calendar…"));
-    assert.ok(events.some(event => event.kind === LiveEventKind.links && event.links[0]?.uri === "https://doc"));
+    assert.ok(events.some(event => event.kind === LiveEventKind.STATUS && event.status === "Checking Calendar…"));
+    assert.ok(events.some(event => event.kind === LiveEventKind.LINKS && event.links[0]?.uri === "https://doc"));
   });
 
   test("Gemini's refusal triggers the detour even when the request was not recognized up front", async () => {

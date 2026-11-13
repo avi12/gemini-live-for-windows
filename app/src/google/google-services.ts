@@ -1,3 +1,7 @@
+import path from "node:path";
+
+import type { Monitor } from "@/contracts/monitor.ts";
+
 import { createGlicHost } from "./glic/glic-host.ts";
 import { createGoogleEngine } from "./google-engine.ts";
 import { createHomeHost } from "./home-host.ts";
@@ -10,8 +14,6 @@ import { createSharedView } from "./shared-view.ts";
 import type { SharedView } from "./shared-view.ts";
 import { BridgeName, readBridgeScript } from "./web-host/bridge-script.ts";
 import { createWinUiWebViewFactory } from "./web-host/winui-web-view.ts";
-import type { Monitor } from "@/contracts/monitor.ts";
-import path from "node:path";
 
 const SESSION_FILE = "google-session.bin";
 const GLIC_PROFILE = "WebView2";
@@ -21,14 +23,14 @@ const GLIC_WINDOW = {
   width: 900,
   height: 720,
   logTag: "glic"
-} as const;
+};
 // Wide enough that the device grid lays out, not the phone view
 const HOME_WINDOW = {
   title: "Gemini Live - Home",
   width: 1100,
   height: 900,
   logTag: "home"
-} as const;
+};
 
 function now() {
   return Date.now();
@@ -43,7 +45,11 @@ interface PageParts {
   isDebugging: boolean;
 }
 
-function webViewFactory({ window, profile, parts }: {
+function webViewFactory({
+  window,
+  profile,
+  parts
+}: {
   window: typeof GLIC_WINDOW | typeof HOME_WINDOW;
   profile: string;
   parts: PageParts;
@@ -61,11 +67,11 @@ async function readBridges(directory: string | undefined) {
   const options = directory === undefined ? {} : { directory };
   const [glic, home] = await Promise.all([
     readBridgeScript({
-      name: BridgeName.glic,
+      name: BridgeName.GLIC,
       ...options
     }),
     readBridgeScript({
-      name: BridgeName.home,
+      name: BridgeName.HOME,
       ...options
     })
   ]);
@@ -76,7 +82,11 @@ async function readBridges(directory: string | undefined) {
 }
 
 // The two long-lived hidden pages, each in a WebView2 of its own profile
-async function createPages({ parts, view, bridgesDir }: {
+async function createPages({
+  parts,
+  view,
+  bridgesDir
+}: {
   parts: PageParts;
   view: SharedView;
   bridgesDir: string | undefined;
@@ -174,7 +184,13 @@ export async function createGoogleServices({
   });
 }
 
-function googleServices({ link, view, glic, home, log }: {
+function googleServices({
+  link,
+  view,
+  glic,
+  home,
+  log
+}: {
   link: ReturnType<typeof createSessionLink>;
   view: ReturnType<typeof createSharedView>;
   glic: Awaited<ReturnType<typeof createPages>>["glic"];

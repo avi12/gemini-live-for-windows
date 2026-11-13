@@ -1,3 +1,13 @@
+import assert from "node:assert/strict";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { describe, test } from "node:test";
+
+import type { BrowserCookie } from "@gemini-live/protocol/link";
+
+import type { SecretSealer } from "@/google/ports.ts";
+
 import {
   authCookies,
   createSessionStore,
@@ -8,13 +18,6 @@ import {
   isAuthCookie,
   sameSiteOf
 } from "./cookies.ts";
-import type { SecretSealer } from "@/google/ports.ts";
-import type { BrowserCookie } from "@gemini-live/protocol/link";
-import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
-import { describe, test } from "node:test";
 
 function cookie(name: string) {
   const result: BrowserCookie = {
@@ -38,7 +41,10 @@ const reversingSealer: SecretSealer = {
 describe("auth cookies", () => {
   test("keeps the login family and drops analytics noise", () => {
     const kept = authCookies([cookie("SID"), cookie("_ga"), cookie("__Secure-3PAPISID"), cookie("NID")]);
-    assert.deepEqual(kept.map(item => item.name), ["SID", "__Secure-3PAPISID", "NID"]);
+    assert.deepEqual(
+      kept.map(item => item.name),
+      ["SID", "__Secure-3PAPISID", "NID"]
+    );
     assert.equal(isAuthCookie("__Host-GAPS"), true);
     assert.equal(isAuthCookie("_ga"), false);
   });
@@ -63,10 +69,14 @@ describe("fingerprint", () => {
     const first = fingerprint([sid, hsid]);
     assert.equal(fingerprint([hsid, sid]), first);
     assert.notEqual(
-      fingerprint([{
-        ...sid,
-        value: "changed"
-      }, hsid]), first
+      fingerprint([
+        {
+          ...sid,
+          value: "changed"
+        },
+        hsid
+      ]),
+      first
     );
   });
 });
@@ -87,14 +97,15 @@ describe("session format", () => {
   });
 
   test("reads what the C# app wrote: camelCase, with a null SameSite and expiry", () => {
-    const written = "[{\"name\":\"SID\",\"value\":\"x\",\"domain\":\".google.com\",\"path\":\"/\",\"secure\":true,\"httpOnly\":false,\"sameSite\":null,\"expirationDate\":null}]";
+    const written =
+      '[{"name":"SID","value":"x","domain":".google.com","path":"/","secure":true,"httpOnly":false,"sameSite":null,"expirationDate":null}]';
     const [first] = decodeSession(new TextEncoder().encode(written));
     assert.equal(first?.name, "SID");
     assert.equal(first?.expirationDate, null);
   });
 
   test("a malformed file is refused, saying why", () => {
-    assert.throws(() => decodeSession(new TextEncoder().encode("{\"not\":\"a list\"}")), /unexpected shape/u);
+    assert.throws(() => decodeSession(new TextEncoder().encode('{"not":"a list"}')), /unexpected shape/u);
   });
 });
 
@@ -103,7 +114,7 @@ describe("session store", () => {
     const folder = await mkdtemp(path.join(tmpdir(), "google-session-"));
     try {
       const filePath = path.join(folder, "google-session.bin");
-      await writeFile(filePath, await reversingSealer.seal(new TextEncoder().encode("{\"not\":\"a list\"}")));
+      await writeFile(filePath, await reversingSealer.seal(new TextEncoder().encode('{"not":"a list"}')));
       const messages: string[] = [];
       const store = createSessionStore({
         filePath,

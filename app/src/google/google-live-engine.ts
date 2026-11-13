@@ -1,11 +1,18 @@
-import type { createEmitter } from "./emitter.ts";
-import type { GlicHost } from "./glic/glic-host.ts";
-import type { SharedView } from "./shared-view.ts";
 import { EngineKind, type LiveEngine, type LiveEvent } from "@/contracts/live-engine.ts";
 import type { Monitor, Region } from "@/contracts/monitor.ts";
 
+import type { createEmitter } from "./emitter.ts";
+import type { GlicHost } from "./glic/glic-host.ts";
+import type { SharedView } from "./shared-view.ts";
+
 // The LiveEngine contract over the glic host and the shared view
-export function createLiveEngine({ host, view, events, extensionNeeded, dispose }: {
+export function createLiveEngine({
+  host,
+  view,
+  events,
+  extensionNeeded,
+  dispose
+}: {
   host: Pick<GlicHost, "start" | "stop" | "setMuted">;
   view: SharedView;
   events: ReturnType<typeof createEmitter<LiveEvent>>;
@@ -15,7 +22,7 @@ export function createLiveEngine({ host, view, events, extensionNeeded, dispose 
   let isMuted = false;
 
   const engine: LiveEngine = {
-    kind: EngineKind.google,
+    kind: EngineKind.GOOGLE,
     reportsLevels: false,
     get monitor() {
       return view.monitor;

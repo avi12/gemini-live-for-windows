@@ -1,6 +1,8 @@
-import type { ScreenView } from "./protocols/glic.ts";
-import type { Monitor, Region } from "@/contracts/monitor.ts";
 import type { LinkInfo } from "@gemini-live/protocol/link";
+
+import type { Monitor, Region } from "@/contracts/monitor.ts";
+
+import type { ScreenView } from "./protocols/glic.ts";
 
 // What the Google engine needs from the rest of the app, as small interfaces: MEDIA, CORE and the
 // shell provide the real ones, the tests hand in fakes.
@@ -10,10 +12,16 @@ export interface Logger {
 }
 
 export const GrabDetail = {
-  sharp: "sharp",
-  light: "light"
+  SHARP: "sharp",
+  LIGHT: "light"
 } as const;
-export type GrabDetail = typeof GrabDetail[keyof typeof GrabDetail];
+export type GrabDetail = (typeof GrabDetail)[keyof typeof GrabDetail];
+
+interface GrabRequest {
+  monitor: Monitor;
+  region: Region | undefined;
+  detail: GrabDetail;
+}
 
 export interface JpegFrame {
   readonly jpeg: Uint8Array;
@@ -28,11 +36,7 @@ export interface WebcamPort {
 
 // Pull-style: the page asks for a picture, so nothing is captured until it does
 export interface MediaPort {
-  grab(request: {
-    monitor: Monitor;
-    region: Region | undefined;
-    detail: GrabDetail;
-  }): Promise<JpegFrame | undefined>;
+  grab(request: GrabRequest): Promise<JpegFrame | undefined>;
   readScreenText(monitor: Monitor): Promise<ScreenView | undefined>;
   openWebcam(): Promise<WebcamPort>;
 }

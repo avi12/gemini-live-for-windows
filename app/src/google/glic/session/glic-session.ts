@@ -1,4 +1,5 @@
-import { createSessionWaiter } from "./glic-session-wait.ts";
+import type { BrowserCookie } from "@gemini-live/protocol/link";
+
 import type { createEmitter } from "@/google/emitter.ts";
 import { type GlicHostEvent, GlicHostEventKind } from "@/google/glic/glic-events.ts";
 import type { GlicState } from "@/google/glic/glic-state.ts";
@@ -7,10 +8,18 @@ import type { Logger } from "@/google/ports.ts";
 import { fingerprint, type SessionStore } from "@/google/session/cookies.ts";
 import type { SessionSource } from "@/google/session/session-link.ts";
 import { errorMessage } from "@/lib/error-message.ts";
-import type { BrowserCookie } from "@gemini-live/protocol/link";
+
+import { createSessionWaiter } from "./glic-session-wait.ts";
 
 // The browser's Google session as the page sees it: waiting for one, and taking each rotation
-export function createGlicSession({ state, webHost, link, store, events, log }: {
+export function createGlicSession({
+  state,
+  webHost,
+  link,
+  store,
+  events,
+  log
+}: {
   state: GlicState;
   webHost: GlicWebHost;
   link: SessionSource;
@@ -48,10 +57,12 @@ export function createGlicSession({ state, webHost, link, store, events, log }: 
   }
 
   link.onCookies(adoptSession);
-  link.onConnected(() => events.emit({
-    kind: GlicHostEventKind.extensionNeeded,
-    isNeeded: false
-  }));
+  link.onConnected(() =>
+    events.emit({
+      kind: GlicHostEventKind.EXTENSION_NEEDED,
+      isNeeded: false
+    })
+  );
 
   return {
     waitForSession: createSessionWaiter({

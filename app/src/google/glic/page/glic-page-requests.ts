@@ -10,10 +10,7 @@ const BEGIN_ACTION_TIMEOUT_MS = 10_000;
 // Runs a request Live can't serve (a Google app, or a web search whose links Live could only say)
 // as a text turn in the same conversation, and returns the answer with its links. The caller
 // resumes Live with start().
-async function runTextTurn({ webHost, prompt }: {
-  webHost: GlicWebHost;
-  prompt: string;
-}) {
+async function runTextTurn({ webHost, prompt }: { webHost: GlicWebHost; prompt: string }) {
   const core = webHost.core;
   if (!core) {
     return {
@@ -23,9 +20,9 @@ async function runTextTurn({ webHost, prompt }: {
   }
 
   const began = await withinMs({
-    work: webHost.messenger.sendMessage(GlicMessage.beginAction),
+    work: webHost.messenger.sendMessage(GlicMessage.BEGIN_ACTION),
     durationMs: BEGIN_ACTION_TIMEOUT_MS,
-    label: GlicMessage.beginAction
+    label: GlicMessage.BEGIN_ACTION
   });
   const isTextBoxOpen = began === true;
   if (!isTextBoxOpen) {
@@ -37,18 +34,15 @@ async function runTextTurn({ webHost, prompt }: {
     text: prompt
   });
   const answer = await withinMs({
-    work: webHost.messenger.sendMessage(GlicMessage.submitAndRead),
+    work: webHost.messenger.sendMessage(GlicMessage.SUBMIT_AND_READ),
     durationMs: SUBMIT_TIMEOUT_MS,
-    label: GlicMessage.submitAndRead
+    label: GlicMessage.SUBMIT_AND_READ
   });
   return textAnswerSchema.parse(answer);
 }
 
 // What the host asks the page and waits for the answer
-export function createGlicPageRequests({ webHost, log }: {
-  webHost: GlicWebHost;
-  log: Logger;
-}) {
+export function createGlicPageRequests({ webHost, log }: { webHost: GlicWebHost; log: Logger }) {
   // The microphones the page can open; empty until the page has loaded
   async function listMicrophones() {
     if (!webHost.core) {
@@ -57,9 +51,9 @@ export function createGlicPageRequests({ webHost, log }: {
 
     try {
       const listed = await withinMs({
-        work: webHost.messenger.sendMessage(GlicMessage.listMics),
+        work: webHost.messenger.sendMessage(GlicMessage.LIST_MICS),
         durationMs: SEND_TIMEOUT_MS,
-        label: GlicMessage.listMics
+        label: GlicMessage.LIST_MICS
       });
       const parsed = microphonesSchema.safeParse(listed);
       return parsed.success ? parsed.data : [];
@@ -71,9 +65,10 @@ export function createGlicPageRequests({ webHost, log }: {
 
   return {
     listMicrophones,
-    runAction: (prompt: string) => runTextTurn({
-      webHost,
-      prompt
-    })
+    runAction: (prompt: string) =>
+      runTextTurn({
+        webHost,
+        prompt
+      })
   };
 }

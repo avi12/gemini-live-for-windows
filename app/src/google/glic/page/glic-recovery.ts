@@ -17,7 +17,13 @@ export function pageErrorOf(message: string) {
 
 // Live broke and Glic's own Try again didn't bring it back: reload the page, whose Booted starts
 // Live again since the session is still active. False once the restart budget is spent.
-function createRestarter({ state, webHost, events, log, now }: {
+function createRestarter({
+  state,
+  webHost,
+  events,
+  log,
+  now
+}: {
   state: GlicState;
   webHost: GlicWebHost;
   events: ReturnType<typeof createEmitter<GlicHostEvent>>;
@@ -41,8 +47,8 @@ function createRestarter({ state, webHost, events, log, now }: {
     restarts.push(moment);
     log.write(`glic: Live broke, reloading (${restarts.length}/${MAX_RESTARTS})`);
     events.emit({
-      kind: GlicHostEventKind.notice,
-      notice: LiveStatus.reconnecting
+      kind: GlicHostEventKind.NOTICE,
+      notice: LiveStatus.RECONNECTING
     });
     state.isBooted = false;
     core.navigate(GLIC_URL);
@@ -51,7 +57,14 @@ function createRestarter({ state, webHost, events, log, now }: {
 }
 
 // What the host does when the page reports an error
-export function createGlicRecovery({ state, webHost, session, events, log, now }: {
+export function createGlicRecovery({
+  state,
+  webHost,
+  session,
+  events,
+  log,
+  now
+}: {
   state: GlicState;
   webHost: GlicWebHost;
   session: GlicSession;
@@ -72,7 +85,7 @@ export function createGlicRecovery({ state, webHost, session, events, log, now }
     log.write(`glic error: ${message}`);
     const error = pageErrorOf(message);
     // Signed out or a stale session: get the browser's current one
-    const isSessionProblem = error === PageError.signedOut || error === PageError.unavailable;
+    const isSessionProblem = error === PageError.SIGNED_OUT || error === PageError.UNAVAILABLE;
     if (isSessionProblem) {
       state.isUnavailable = true;
       session.waitForSession();
@@ -83,15 +96,15 @@ export function createGlicRecovery({ state, webHost, session, events, log, now }
       return;
     }
 
-    const isRestarted = error === PageError.liveBroke && tryRestart();
+    const isRestarted = error === PageError.LIVE_BROKE && tryRestart();
     if (isRestarted) {
       return;
     }
 
-    const shown = error === PageError.liveBroke ? "Gemini Live stopped working" : message;
+    const shown = error === PageError.LIVE_BROKE ? "Gemini Live stopped working" : message;
     state.ready.reject(new Error(shown));
     events.emit({
-      kind: GlicHostEventKind.failed,
+      kind: GlicHostEventKind.FAILED,
       message: shown
     });
   }

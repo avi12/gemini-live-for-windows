@@ -52,7 +52,10 @@ export function createSwitchableTransport() {
 }
 
 // A messaging transport over a socket's text frames, both ways
-export function createFrameTransport({ send, onFrame }: {
+export function createFrameTransport({
+  send,
+  onFrame
+}: {
   send: (json: string) => void;
   onFrame: (listener: (text: string) => void) => void;
 }) {
