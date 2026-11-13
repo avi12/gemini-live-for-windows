@@ -1,8 +1,9 @@
-import { nativeOf } from "./native-object.ts";
 import { DynComMethodSig, DynComUnsafe, WinGuid } from "@microsoft/dynwinrt/com/unsafe";
 import { DynComRawMemory, DynComRawOwnedComPointer } from "@microsoft/dynwinrt/com/unsafe/raw";
 import { IClosable } from "winui-svelte/bindings/windows/foundation/IClosable";
 import type { IMemoryBufferReference } from "winui-svelte/bindings/windows/foundation/IMemoryBufferReference";
+
+import { nativeOf } from "./native-object.ts";
 
 const MEMORY_BUFFER_BYTE_ACCESS = WinGuid.parse("5b0d3235-4dba-4d44-865e-8f1d0e4fd04d");
 // IUnknown has three methods, so IMemoryBufferByteAccess.GetBuffer is slot 3
@@ -26,9 +27,9 @@ export interface BufferBytes {
 function createGetBufferSlot() {
   return DynComUnsafe.registerIUnknownInterface("IMemoryBufferByteAccess", MEMORY_BUFFER_BYTE_ACCESS)
     .addMethodAt(
-      GET_BUFFER_SLOT, "GetBuffer", new DynComMethodSig()
-        .addIn(DynComUnsafe.unclassifiedPointerType())
-        .addIn(DynComUnsafe.unclassifiedPointerType())
+      GET_BUFFER_SLOT,
+      "GetBuffer",
+      new DynComMethodSig().addIn(DynComUnsafe.unclassifiedPointerType()).addIn(DynComUnsafe.unclassifiedPointerType())
     )
     .method(GET_BUFFER_SLOT);
 }
@@ -53,14 +54,12 @@ function referenceNativeOf(reference: IMemoryBufferReference) {
 // A frame or bitmap stays exclusively locked until the byte access, the reference and the buffer are
 // all released, and a locked AudioFrame refuses addFrame (0x80070005): so one helper owns the whole
 // release chain, the way the C# `using` blocks did.
-export function withBufferBytes<T>({ buffer, use }: {
-  buffer: MemoryBuffer;
-  use: (bytes: BufferBytes) => T;
-}) {
+export function withBufferBytes<T>({ buffer, use }: { buffer: MemoryBuffer; use: (bytes: BufferBytes) => T }) {
   const reference = buffer.createReference();
   const native = referenceNativeOf(reference);
-  const managed = DynComRawOwnedComPointer.queryInterface(native, MEMORY_BUFFER_BYTE_ACCESS)
-    .intoManaged(MEMORY_BUFFER_BYTE_ACCESS);
+  const managed = DynComRawOwnedComPointer.queryInterface(native, MEMORY_BUFFER_BYTE_ACCESS).intoManaged(
+    MEMORY_BUFFER_BYTE_ACCESS
+  );
   const pointerResult = DynComRawMemory.allocate(POINTER_BYTES, POINTER_BYTES);
   const capacityResult = DynComRawMemory.allocate(CAPACITY_BYTES, CAPACITY_BYTES);
   try {

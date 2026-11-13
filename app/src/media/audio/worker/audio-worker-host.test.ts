@@ -1,15 +1,17 @@
-import { serveAudio } from "./audio-worker-host.ts";
-import type { OpenGraphRequest } from "./audio-worker-host.ts";
-import { AudioCommandKind, AudioEventKind } from "@/media/audio/audio-protocol.ts";
-import type { AudioEvent } from "@/media/audio/audio-protocol.ts";
-import type { SessionGraph } from "@/media/audio/session/audio-session.ts";
-import { pcm16BytesOf } from "@/media/audio/signal/test-signals.ts";
-import type { Clock } from "@/media/clock.ts";
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
 import { MessageChannel } from "node:worker_threads";
 import type { MessagePort } from "node:worker_threads";
+
+import { AudioCommandKind, AudioEventKind } from "@/media/audio/audio-protocol.ts";
+import type { AudioEvent } from "@/media/audio/audio-protocol.ts";
+import type { SessionGraph } from "@/media/audio/session/audio-session.ts";
+import { pcm16BytesOf } from "@/media/audio/signal/test-signals.ts";
+import type { Clock } from "@/media/clock.ts";
+
+import { serveAudio } from "./audio-worker-host.ts";
+import type { OpenGraphRequest } from "./audio-worker-host.ts";
 
 const NUMBER_4 = 4;
 const NUMBER_0_POINT_5 = 0.5;
@@ -73,7 +75,7 @@ function createGraph() {
 function setup({ isOpenFailing = false }: { isOpenFailing?: boolean } = {}) {
   const channel = new MessageChannel();
   openPorts.push(channel.port1, channel.port2);
-  const ticks: Array<() => void> = [];
+  const ticks: (() => void)[] = [];
   let time = 0;
   const clock: Clock = {
     now: () => time,
@@ -121,7 +123,7 @@ function setup({ isOpenFailing = false }: { isOpenFailing?: boolean } = {}) {
 }
 
 const START = {
-  kind: AudioCommandKind.start,
+  kind: AudioCommandKind.START,
   deviceId: "device-1",
   isLoopback: false
 } as const;
@@ -130,21 +132,25 @@ describe("audio worker host", () => {
   it("opens the graph for the device it was asked for, starts it and says so", async () => {
     const host = setup();
     await host.send(START);
-    assert.deepEqual(host.requests, [{
-      deviceId: "device-1",
-      isLoopback: false
-    }]);
+    assert.deepEqual(host.requests, [
+      {
+        deviceId: "device-1",
+        isLoopback: false
+      }
+    ]);
     assert.equal(host.state.started, true);
-    assert.ok(host.events.some(event => event.kind === AudioEventKind.started));
+    assert.ok(host.events.some(event => event.kind === AudioEventKind.STARTED));
   });
 
   it("reports a graph that will not open as a failure with its message", async () => {
     const host = setup({ isOpenFailing: true });
     await host.send(START);
-    assert.deepEqual(host.events, [{
-      kind: AudioEventKind.failed,
-      message: "Microphone access is off"
-    }]);
+    assert.deepEqual(host.events, [
+      {
+        kind: AudioEventKind.FAILED,
+        message: "Microphone access is off"
+      }
+    ]);
   });
 
   it("streams mic chunks and levels out of the polling timer", async () => {
@@ -154,16 +160,16 @@ describe("audio worker host", () => {
       host.state.micFrames.push(new Float32Array(QUANTUM * CHANNELS).fill(NUMBER_0_POINT_2));
     }
     await host.runTicks(NUMBER_8);
-    const chunks = host.events.filter(event => event.kind === AudioEventKind.micChunk);
+    const chunks = host.events.filter(event => event.kind === AudioEventKind.MIC_CHUNK);
     assert.equal(chunks.length, 2);
     assert.equal(chunks[0]?.pcm16.length, NUMBER_1280);
-    assert.ok(host.events.some(event => event.kind === AudioEventKind.micLevel));
+    assert.ok(host.events.some(event => event.kind === AudioEventKind.MIC_LEVEL));
   });
 
   it("applies a mute sent before the graph was ready", async () => {
     const host = setup();
     await host.send({
-      kind: AudioCommandKind.mute,
+      kind: AudioCommandKind.MUTE,
       isMuted: true
     });
     await host.send(START);
@@ -171,7 +177,7 @@ describe("audio worker host", () => {
       host.state.micFrames.push(new Float32Array(QUANTUM * CHANNELS).fill(NUMBER_0_POINT_8));
     }
     await host.runTicks(NUMBER_4);
-    const chunk = host.events.find(event => event.kind === AudioEventKind.micChunk);
+    const chunk = host.events.find(event => event.kind === AudioEventKind.MIC_CHUNK);
     assert.ok(chunk?.pcm16.every(byte => byte === 0));
   });
 
@@ -179,30 +185,30 @@ describe("audio worker host", () => {
     const host = setup();
     await host.send(START);
     await host.send({
-      kind: AudioCommandKind.play,
+      kind: AudioCommandKind.PLAY,
       pcm16: pcm16BytesOf(new Float32Array(NUMBER_24_000).fill(NUMBER_0_POINT_5))
     });
-    await host.send({ kind: AudioCommandKind.flush });
+    await host.send({ kind: AudioCommandKind.FLUSH });
     assert.equal(host.state.queued, 0);
   });
 
   it("ignores play and flush before start without failing", async () => {
     const host = setup();
     await host.send({
-      kind: AudioCommandKind.play,
+      kind: AudioCommandKind.PLAY,
       pcm16: new Uint8Array(NUMBER_4)
     });
-    await host.send({ kind: AudioCommandKind.flush });
+    await host.send({ kind: AudioCommandKind.FLUSH });
     assert.deepEqual(host.events, []);
   });
 
   it("disposes: stops the timer, closes the graph, acknowledges", async () => {
     const host = setup();
     await host.send(START);
-    await host.send({ kind: AudioCommandKind.dispose });
+    await host.send({ kind: AudioCommandKind.DISPOSE });
     assert.equal(host.state.closed, true);
     assert.equal(host.ticks, 0);
-    assert.deepEqual(host.events.at(-1), { kind: AudioEventKind.disposed });
+    assert.deepEqual(host.events.at(-1), { kind: AudioEventKind.DISPOSED });
   });
 
   it("answers a command it cannot read with a failure, and keeps serving", async () => {
@@ -211,8 +217,8 @@ describe("audio worker host", () => {
       kind: "explode",
       deviceId: 3
     });
-    assert.equal(host.events[0]?.kind, AudioEventKind.failed);
+    assert.equal(host.events[0]?.kind, AudioEventKind.FAILED);
     await host.send(START);
-    assert.equal(host.events.at(-1)?.kind, AudioEventKind.started);
+    assert.equal(host.events.at(-1)?.kind, AudioEventKind.STARTED);
   });
 });

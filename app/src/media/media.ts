@@ -1,3 +1,9 @@
+import { Worker } from "node:worker_threads";
+
+import { createUiaWorker } from "winui-svelte/automation";
+
+import type { Monitor } from "@/contracts/monitor.ts";
+
 import { createAudioDuplex } from "./audio/audio-duplex.ts";
 import { createAudioWorkerLink } from "./audio/worker/audio-worker-link.ts";
 import { openCamera } from "./camera/camera.ts";
@@ -11,13 +17,16 @@ import { createOcrScreenTextReader, createUiaScreenTextReader } from "./screen-t
 import { createCircleScreen } from "./screen/circle/circle-screen.ts";
 import { createScreenCapture } from "./screen/screen-capture.ts";
 import { createScreenSource } from "./screen/screen-source.ts";
-import type { Monitor } from "@/contracts/monitor.ts";
-import { Worker } from "node:worker_threads";
-import { createUiaWorker } from "winui-svelte/automation";
 
 // The real devices behind every consumer's port, built once. The process must already be per-monitor DPI
 // aware (ensureDpiAware, first thing on the main thread) and the WinRT runtime initialised on this thread.
-export function createMedia({ log, microphoneId, audioWorkerUrl, uiaWorkerUrl, ownProcessId = process.pid }: {
+export function createMedia({
+  log,
+  microphoneId,
+  audioWorkerUrl,
+  uiaWorkerUrl,
+  ownProcessId = process.pid
+}: {
   log: (message: string) => void;
   // The Windows device id the pill's microphone picker chose, or null for the default microphone
   microphoneId: () => string | null;
@@ -38,12 +47,13 @@ export function createMedia({ log, microphoneId, audioWorkerUrl, uiaWorkerUrl, o
   const uiaWorker = createUiaWorker({ spawn: () => new Worker(uiaWorkerUrl) });
   const screenText = createUiaScreenTextReader({
     ...foreground,
-    readText: ({ hwnd, excludeProcessId }) => uiaWorker.readText({
-      target: {
-        hwnd
-      },
-      excludeProcessId
-    }),
+    readText: ({ hwnd, excludeProcessId }) =>
+      uiaWorker.readText({
+        target: {
+          hwnd
+        },
+        excludeProcessId
+      }),
     fallback: createOcrScreenTextReader({
       ...foreground,
       grab: request => screenCapture.grab(request),
@@ -63,20 +73,23 @@ export function createMedia({ log, microphoneId, audioWorkerUrl, uiaWorkerUrl, o
     mediaPort: createMediaPort({
       screenCapture,
       screenText,
-      openCamera: () => openCamera({
-        onError: error => log(`camera: ${error instanceof Error ? error.message : String(error)}`)
-      })
+      openCamera: () =>
+        openCamera({
+          onError: error => log(`camera: ${error instanceof Error ? error.message : String(error)}`)
+        })
     }),
     // One per conversation: it owns a worker thread, which `dispose()` ends
-    createAudioDuplex: () => createAudioDuplex({
-      link: createAudioWorkerLink({ workerUrl: audioWorkerUrl }),
-      microphoneId
-    }),
-    onDisplaysChanged: (listener: (current: Monitor[]) => void) => watchDisplays({
-      monitors,
-      clock: systemClock,
-      onChange: listener
-    }),
+    createAudioDuplex: () =>
+      createAudioDuplex({
+        link: createAudioWorkerLink({ workerUrl: audioWorkerUrl }),
+        microphoneId
+      }),
+    onDisplaysChanged: (listener: (current: Monitor[]) => void) =>
+      watchDisplays({
+        monitors,
+        clock: systemClock,
+        onChange: listener
+      }),
     dispose() {
       uiaWorker.close();
       screenCapture.dispose();

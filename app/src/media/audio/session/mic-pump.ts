@@ -10,7 +10,11 @@ export interface MicFrameSource {
   read(): Float32Array | undefined;
 }
 
-function newest({ mono, maxBacklogFrames, stats }: {
+function newest({
+  mono,
+  maxBacklogFrames,
+  stats
+}: {
   mono: Float32Array;
   maxBacklogFrames: number;
   stats: { droppedFrames: number };

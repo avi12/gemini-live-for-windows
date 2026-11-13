@@ -5,15 +5,15 @@ const FINE_TIMER_MILLISECONDS = 1;
 const timeBeginPeriod = bindFunction({
   library: "winmm.dll",
   entryPoint: "timeBeginPeriod",
-  parameters: [Win32Type.u32],
-  returns: Win32Type.u32
+  parameters: [Win32Type.U32],
+  returns: Win32Type.U32
 });
 
 const timeEndPeriod = bindFunction({
   library: "winmm.dll",
   entryPoint: "timeEndPeriod",
-  parameters: [Win32Type.u32],
-  returns: Win32Type.u32
+  parameters: [Win32Type.U32],
+  returns: Win32Type.U32
 });
 
 // Without it a 10 ms timer ticks every 15.6 ms (measured: median 15.5 ms, p99 20 ms, against 10.0 and

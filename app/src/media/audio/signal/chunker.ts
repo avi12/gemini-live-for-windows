@@ -20,7 +20,7 @@ export function createChunker({ chunkSamples }: { chunkSamples: number }) {
     grow(filled + samples.length);
     pending.set(samples, filled);
     filled += samples.length;
-    const chunks: Array<Uint8Array<ArrayBuffer>> = [];
+    const chunks: Uint8Array<ArrayBuffer>[] = [];
     let consumed = 0;
     while (filled - consumed >= chunkSamples) {
       chunks.push(pcm16ToBytes(pending.subarray(consumed, consumed + chunkSamples)));

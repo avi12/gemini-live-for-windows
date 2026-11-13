@@ -1,9 +1,11 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+
+import type { Monitor } from "@/contracts/monitor.ts";
+
 import { createMediaPort } from "./media-port.ts";
 import type { CameraHandle } from "./media-port.ts";
 import { ScreenDetail } from "./screen/capture-geometry.ts";
-import type { Monitor } from "@/contracts/monitor.ts";
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 
 const HEX_D8 = 0xd8;
 const HEX_FF = 0xff;
@@ -70,11 +72,13 @@ describe("media port", () => {
       detail: "sharp"
     });
     assert.deepEqual(frame, FRAME);
-    assert.deepEqual(grabs, [{
-      monitor: MONITOR,
-      region: undefined,
-      detail: ScreenDetail.sharp
-    }]);
+    assert.deepEqual(grabs, [
+      {
+        monitor: MONITOR,
+        region: undefined,
+        detail: ScreenDetail.SHARP
+      }
+    ]);
   });
 
   it("opens the camera only when asked, and hands out its latest frame", async () => {

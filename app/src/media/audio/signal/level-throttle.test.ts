@@ -1,6 +1,7 @@
-import { createLevelThrottle } from "./level-throttle.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+
+import { createLevelThrottle } from "./level-throttle.ts";
 
 const NUMBER_30 = 30;
 const NUMBER_24 = 24;

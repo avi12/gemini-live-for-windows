@@ -1,8 +1,10 @@
-import { createMicPump } from "./mic-pump.ts";
-import { bytesToFloats } from "@/media/audio/signal/pcm.ts";
-import { concatenate, risingZeroCrossings, sine } from "@/media/audio/signal/test-signals.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+
+import { bytesToFloats } from "@/media/audio/signal/pcm.ts";
+import { concatenate, risingZeroCrossings, sine } from "@/media/audio/signal/test-signals.ts";
+
+import { createMicPump } from "./mic-pump.ts";
 
 const NUMBER_25 = 25;
 const NUMBER_4 = 4;
@@ -16,10 +18,7 @@ const QUANTUM = 480;
 const TONE = 440;
 const CHUNK_BYTES = 1280;
 
-function interleave({ mono, channels }: {
-  mono: Float32Array;
-  channels: number;
-}) {
+function interleave({ mono, channels }: { mono: Float32Array; channels: number }) {
   const out = new Float32Array(mono.length * channels);
   for (const [iFrame, sample] of mono.entries()) {
     out.fill(sample, iFrame * channels, (iFrame + 1) * channels);
@@ -27,11 +26,14 @@ function interleave({ mono, channels }: {
   return out;
 }
 
-function setup({ channels = 2, isMuted = false }: {
+function setup({
+  channels = 2,
+  isMuted = false
+}: {
   channels?: number;
   isMuted?: boolean;
 } = {}) {
-  const frames: Array<Float32Array | undefined> = [];
+  const frames: (Float32Array | undefined)[] = [];
   const chunks: Uint8Array[] = [];
   const levels: number[] = [];
   const state = { isMuted };
@@ -54,10 +56,7 @@ function setup({ channels = 2, isMuted = false }: {
   };
 }
 
-function toneFrames({ seconds, channels }: {
-  seconds: number;
-  channels: number;
-}) {
+function toneFrames({ seconds, channels }: { seconds: number; channels: number }) {
   const mono = sine({
     frequency: TONE,
     sampleRate: GRAPH_RATE,

@@ -1,9 +1,11 @@
-import { createAudioSession, POLL_MILLISECONDS } from "./audio-session.ts";
-import type { SessionGraph } from "./audio-session.ts";
-import { pcm16BytesOf } from "@/media/audio/signal/test-signals.ts";
-import type { Clock } from "@/media/clock.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+
+import { pcm16BytesOf } from "@/media/audio/signal/test-signals.ts";
+import type { Clock } from "@/media/clock.ts";
+
+import { createAudioSession, POLL_MILLISECONDS } from "./audio-session.ts";
+import type { SessionGraph } from "./audio-session.ts";
 
 const NUMBER_0_POINT_9 = 0.9;
 const NUMBER_8 = 8;
@@ -27,10 +29,13 @@ function isSilent(chunk: Uint8Array) {
 
 function createFakeClock() {
   let time = 0;
-  const timers = new Map<number, {
-    tick: () => void;
-    milliseconds: number;
-  }>();
+  const timers = new Map<
+    number,
+    {
+      tick: () => void;
+      milliseconds: number;
+    }
+  >();
   let nextId = 0;
   const clock: Clock = {
     now: () => time,

@@ -16,7 +16,11 @@ export interface OpenGraphRequest {
   isLoopback: boolean;
 }
 
-function createSessionHolder({ send, openGraph, clock }: {
+function createSessionHolder({
+  send,
+  openGraph,
+  clock
+}: {
   send: (event: AudioEvent) => void;
   openGraph: (request: OpenGraphRequest) => Promise<SessionGraph>;
   clock: Clock;
@@ -30,31 +34,35 @@ function createSessionHolder({ send, openGraph, clock }: {
       session = createAudioSession({
         graph,
         clock,
-        onMicChunk: pcm16 => send({
-          kind: AudioEventKind.micChunk,
-          pcm16
-        }),
-        onMicLevel: peak => send({
-          kind: AudioEventKind.micLevel,
-          peak
-        }),
-        onSpeakerLevel: peak => send({
-          kind: AudioEventKind.speakerLevel,
-          peak
-        }),
-        onFailure: message => send({
-          kind: AudioEventKind.failed,
-          message
-        })
+        onMicChunk: pcm16 =>
+          send({
+            kind: AudioEventKind.MIC_CHUNK,
+            pcm16
+          }),
+        onMicLevel: peak =>
+          send({
+            kind: AudioEventKind.MIC_LEVEL,
+            peak
+          }),
+        onSpeakerLevel: peak =>
+          send({
+            kind: AudioEventKind.SPEAKER_LEVEL,
+            peak
+          }),
+        onFailure: message =>
+          send({
+            kind: AudioEventKind.FAILED,
+            message
+          })
       });
       session.setMuted(isMuted);
       session.start();
-      send({ kind: AudioEventKind.started });
+      send({ kind: AudioEventKind.STARTED });
     },
     dispose() {
       session?.dispose();
       session = undefined;
-      send({ kind: AudioEventKind.disposed });
+      send({ kind: AudioEventKind.DISPOSED });
     },
     play(pcm16: Uint8Array<ArrayBuffer>) {
       session?.play(pcm16);
@@ -69,24 +77,27 @@ function createSessionHolder({ send, openGraph, clock }: {
   };
 }
 
-async function handleCommand({ holder, command }: {
+async function handleCommand({
+  holder,
+  command
+}: {
   holder: ReturnType<typeof createSessionHolder>;
   command: AudioCommand;
 }) {
   switch (command.kind) {
-    case AudioCommandKind.start:
+    case AudioCommandKind.START:
       await holder.start({
         deviceId: command.deviceId,
         isLoopback: command.isLoopback
       });
       break;
-    case AudioCommandKind.play:
+    case AudioCommandKind.PLAY:
       holder.play(command.pcm16);
       break;
-    case AudioCommandKind.flush:
+    case AudioCommandKind.FLUSH:
       holder.flush();
       break;
-    case AudioCommandKind.mute:
+    case AudioCommandKind.MUTE:
       holder.mute(command.isMuted);
       break;
     default:
@@ -96,7 +107,11 @@ async function handleCommand({ holder, command }: {
 
 // The worker's whole behaviour: commands in, events out, one session at a time. Importing it does
 // nothing; audio-worker.ts is the entry that calls it.
-export function serveAudio({ port, openGraph, clock }: {
+export function serveAudio({
+  port,
+  openGraph,
+  clock
+}: {
   port: AudioPort;
   openGraph: (request: OpenGraphRequest) => Promise<SessionGraph>;
   clock: Clock;
@@ -116,7 +131,7 @@ export function serveAudio({ port, openGraph, clock }: {
     const parsed = audioCommandSchema.safeParse(message);
     if (!parsed.success) {
       send({
-        kind: AudioEventKind.failed,
+        kind: AudioEventKind.FAILED,
         message: `Unreadable audio command: ${parsed.error.message}`
       });
       return;
@@ -129,7 +144,7 @@ export function serveAudio({ port, openGraph, clock }: {
       });
     } catch (error) {
       send({
-        kind: AudioEventKind.failed,
+        kind: AudioEventKind.FAILED,
         message: errorMessage(error)
       });
     }

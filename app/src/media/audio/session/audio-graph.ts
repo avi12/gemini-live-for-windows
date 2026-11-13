@@ -1,5 +1,3 @@
-import type { SessionGraph } from "./audio-session.ts";
-import { withBufferBytes } from "@/media/winrt/buffer-access.ts";
 import { DeviceInformation } from "winui-svelte/bindings/windows/devices/enumeration/DeviceInformation";
 import { AudioDeviceNodeCreationStatus } from "winui-svelte/bindings/windows/media/audio/AudioDeviceNodeCreationStatus";
 import type { AudioFrameInputNode } from "winui-svelte/bindings/windows/media/audio/AudioFrameInputNode";
@@ -12,6 +10,10 @@ import { AudioBufferAccessMode } from "winui-svelte/bindings/windows/media/Audio
 import { AudioFrame } from "winui-svelte/bindings/windows/media/AudioFrame";
 import { MediaCategory } from "winui-svelte/bindings/windows/media/capture/MediaCategory";
 import { AudioRenderCategory } from "winui-svelte/bindings/windows/media/render/AudioRenderCategory";
+
+import { withBufferBytes } from "@/media/winrt/buffer-access.ts";
+
+import type { SessionGraph } from "./audio-session.ts";
 
 const BYTES_PER_FLOAT = Float32Array.BYTES_PER_ELEMENT;
 export const MICROPHONE_ACCESS_OFF = "Microphone access is off - allow it in Settings › Privacy › Microphone";
@@ -38,10 +40,7 @@ function readFloats(tap: AudioFrameOutputNode) {
   }
 }
 
-function writeFloats({ feed, interleaved }: {
-  feed: AudioFrameInputNode;
-  interleaved: Float32Array;
-}) {
+function writeFloats({ feed, interleaved }: { feed: AudioFrameInputNode; interleaved: Float32Array }) {
   const frame = new AudioFrame(interleaved.length * BYTES_PER_FLOAT);
   const bytes = Buffer.from(interleaved.buffer, interleaved.byteOffset, interleaved.byteLength);
   withBufferBytes({
@@ -51,11 +50,7 @@ function writeFloats({ feed, interleaved }: {
   feed.addFrame(frame);
 }
 
-function wrapNodes({ graph, tap, feed }: {
-  graph: AudioGraph;
-  tap: AudioFrameOutputNode;
-  feed: AudioFrameInputNode;
-}) {
+function wrapNodes({ graph, tap, feed }: { graph: AudioGraph; tap: AudioFrameOutputNode; feed: AudioFrameInputNode }) {
   return {
     sampleRate: graph.encodingProperties.sampleRate,
     channels: graph.encodingProperties.channelCount,
@@ -67,10 +62,11 @@ function wrapNodes({ graph, tap, feed }: {
       get queuedSamples() {
         return Number(feed.queuedSampleCount);
       },
-      write: interleaved => writeFloats({
-        feed,
-        interleaved
-      }),
+      write: interleaved =>
+        writeFloats({
+          feed,
+          interleaved
+        }),
       discard: () => feed.discardQueuedFrames()
     },
     start: () => graph.start(),
@@ -93,17 +89,15 @@ async function createGraph() {
   return created.graph;
 }
 
-async function microphoneNodeOf({ graph, deviceId }: {
-  graph: AudioGraph;
-  deviceId: string | null;
-}) {
-  const created = deviceId === null
-    ? await graph.createDeviceInputNodeAsync(MediaCategory.Communications)
-    : await graph.createDeviceInputNodeAsync(
-      MediaCategory.Communications,
-      graph.encodingProperties,
-      await DeviceInformation.createFromIdAsync(deviceId)
-    );
+async function microphoneNodeOf({ graph, deviceId }: { graph: AudioGraph; deviceId: string | null }) {
+  const created =
+    deviceId === null
+      ? await graph.createDeviceInputNodeAsync(MediaCategory.Communications)
+      : await graph.createDeviceInputNodeAsync(
+          MediaCategory.Communications,
+          graph.encodingProperties,
+          await DeviceInformation.createFromIdAsync(deviceId)
+        );
   const isAccessDenied = created.status === AudioDeviceNodeCreationStatus.AccessDenied;
   if (isAccessDenied) {
     throw new Error(MICROPHONE_ACCESS_OFF);
@@ -159,7 +153,9 @@ const SILENT_GAIN = 0;
 // no device at all, so the graph runs unclocked (as fast as the CPU allows): that proves the data path,
 // never the cadence. `isClockedBySilentSpeaker` adds the render device at gain 0, which clocks the graph
 // like the real one does without a sound.
-export async function createLoopbackGraph({ isClockedBySilentSpeaker = false }: {
+export async function createLoopbackGraph({
+  isClockedBySilentSpeaker = false
+}: {
   isClockedBySilentSpeaker?: boolean;
 } = {}) {
   const graph = await createGraph();

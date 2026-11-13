@@ -2,7 +2,12 @@ import { floatToPcm16, pcm16ToBytes } from "./pcm.ts";
 
 const DEFAULT_AMPLITUDE = 0.5;
 
-export function sine({ frequency, sampleRate, seconds, amplitude = DEFAULT_AMPLITUDE }: {
+export function sine({
+  frequency,
+  sampleRate,
+  seconds,
+  amplitude = DEFAULT_AMPLITUDE
+}: {
   frequency: number;
   sampleRate: number;
   seconds: number;

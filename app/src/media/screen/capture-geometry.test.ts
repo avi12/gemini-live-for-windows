@@ -1,13 +1,9 @@
-import {
-  clipToSurface,
-  DETAIL_SETTINGS,
-  fitToEdge,
-  screenArea,
-  ScreenDetail
-} from "./capture-geometry.ts";
-import type { Monitor } from "@/contracts/monitor.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+
+import type { Monitor } from "@/contracts/monitor.ts";
+
+import { clipToSurface, DETAIL_SETTINGS, fitToEdge, screenArea, ScreenDetail } from "./capture-geometry.ts";
 
 const SECOND: Monitor = {
   deviceName: "\\.DISPLAY14",
@@ -24,11 +20,11 @@ const SECOND: Monitor = {
 
 describe("detail settings", () => {
   it("light is 1280 pixels at 0.70, sharp 2200 at 0.85, as ScreenGrabber.cs had them", () => {
-    assert.deepEqual(DETAIL_SETTINGS[ScreenDetail.light], {
+    assert.deepEqual(DETAIL_SETTINGS[ScreenDetail.LIGHT], {
       maxEdge: 1280,
       quality: 0.7
     });
-    assert.deepEqual(DETAIL_SETTINGS[ScreenDetail.sharp], {
+    assert.deepEqual(DETAIL_SETTINGS[ScreenDetail.SHARP], {
       maxEdge: 2200,
       quality: 0.85
     });
@@ -41,8 +37,9 @@ describe("detail settings", () => {
           width: 3840,
           height: 2160
         },
-        maxEdge: DETAIL_SETTINGS[ScreenDetail.frozen].maxEdge
-      }), {
+        maxEdge: DETAIL_SETTINGS[ScreenDetail.FROZEN].maxEdge
+      }),
+      {
         width: 3840,
         height: 2160
       }
@@ -59,7 +56,8 @@ describe("fit to edge", () => {
           height: 2160
         },
         maxEdge: 1280
-      }), {
+      }),
+      {
         width: 1280,
         height: 720
       }
@@ -74,7 +72,8 @@ describe("fit to edge", () => {
           height: 1920
         },
         maxEdge: 1280
-      }), {
+      }),
+      {
         width: 720,
         height: 1280
       }
@@ -89,7 +88,8 @@ describe("fit to edge", () => {
           height: 600
         },
         maxEdge: 1280
-      }), {
+      }),
+      {
         width: 800,
         height: 600
       }
@@ -104,7 +104,8 @@ describe("fit to edge", () => {
           height: 1
         },
         maxEdge: 1280
-      }), {
+      }),
+      {
         width: 1280,
         height: 1
       }
@@ -119,7 +120,8 @@ describe("fit to edge", () => {
           height: 1081
         },
         maxEdge: 1280
-      }), {
+      }),
+      {
         width: 1280,
         height: 720
       }
@@ -144,7 +146,8 @@ describe("clip to surface", () => {
       clipToSurface({
         region,
         size: surface
-      }), region
+      }),
+      region
     );
   });
 
@@ -158,7 +161,8 @@ describe("clip to surface", () => {
           height: 200
         },
         size: surface
-      }), {
+      }),
+      {
         x: 0,
         y: 400,
         width: 150,
@@ -177,7 +181,8 @@ describe("clip to surface", () => {
           height: 10
         },
         size: surface
-      }), undefined
+      }),
+      undefined
     );
     assert.equal(
       clipToSurface({
@@ -188,7 +193,8 @@ describe("clip to surface", () => {
           height: 10
         },
         size: surface
-      }), undefined
+      }),
+      undefined
     );
   });
 });
@@ -199,7 +205,8 @@ describe("screen area", () => {
       screenArea({
         monitor: SECOND,
         region: undefined
-      }), {
+      }),
+      {
         x: -3840,
         y: -134,
         width: 3840,
@@ -218,7 +225,8 @@ describe("screen area", () => {
           width: 800,
           height: 600
         }
-      }), {
+      }),
+      {
         x: -3740,
         y: -84,
         width: 800,
@@ -237,7 +245,8 @@ describe("screen area", () => {
           width: 500,
           height: 500
         }
-      }), {
+      }),
+      {
         x: -40,
         y: 1966,
         width: 40,
@@ -256,7 +265,8 @@ describe("screen area", () => {
           width: 10,
           height: 10
         }
-      }), undefined
+      }),
+      undefined
     );
   });
 });

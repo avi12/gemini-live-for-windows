@@ -1,14 +1,17 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+
+import { TextBlockKind } from "winui-svelte/automation";
+import type { WindowText } from "winui-svelte/automation";
+
+import type { Monitor } from "@/contracts/monitor.ts";
+import type { OcrLine } from "@/media/ocr/ocr-geometry.ts";
+import { ScreenDetail } from "@/media/screen/capture-geometry.ts";
+
 import { appNameOf } from "./foreground-window.ts";
 import type { ForegroundWindow } from "./foreground-window.ts";
 import { createOcrScreenTextReader, createUiaScreenTextReader } from "./screen-text.ts";
 import type { ScreenTextDeps, UiaScreenTextDeps } from "./screen-text.ts";
-import type { Monitor } from "@/contracts/monitor.ts";
-import type { OcrLine } from "@/media/ocr/ocr-geometry.ts";
-import { ScreenDetail } from "@/media/screen/capture-geometry.ts";
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
-import { TextBlockKind } from "winui-svelte/automation";
-import type { WindowText } from "winui-svelte/automation";
 
 const MONITOR: Monitor = {
   deviceName: "\\\\.\\DISPLAY2",
@@ -37,20 +40,24 @@ const WINDOW: ForegroundWindow = {
   }
 };
 
-const LINES: OcrLine[] = [{
-  words: [{
-    text: "Hello",
-    bounds: {
-      x: 0,
-      y: 0,
-      width: 50,
-      height: 20
-    }
-  }]
-}];
+const LINES: OcrLine[] = [
+  {
+    words: [
+      {
+        text: "Hello",
+        bounds: {
+          x: 0,
+          y: 0,
+          width: 50,
+          height: 20
+        }
+      }
+    ]
+  }
+];
 
 function setup(overrides: Partial<ScreenTextDeps> = {}) {
-  const grabs: Array<Parameters<ScreenTextDeps["grab"]>[0]> = [];
+  const grabs: Parameters<ScreenTextDeps["grab"]>[0][] = [];
   const reader = createOcrScreenTextReader({
     foregroundWindow: () => WINDOW,
     foregroundDisplayName: () => MONITOR.deviceName,
@@ -78,17 +85,19 @@ describe("OCR screen text reader", () => {
     const view = await reader.read(MONITOR);
     assert.equal(view?.title, "Article - Browser");
     assert.equal(view?.app, "msedge");
-    assert.deepEqual(view?.blocks, [{
-      kind: "paragraph",
-      text: "Hello"
-    }]);
+    assert.deepEqual(view?.blocks, [
+      {
+        kind: "paragraph",
+        text: "Hello"
+      }
+    ]);
     assert.deepEqual(grabs[0]?.region, {
       x: 100,
       y: 50,
       width: 1600,
       height: 900
     });
-    assert.equal(grabs[0]?.detail, ScreenDetail.frozen);
+    assert.equal(grabs[0]?.detail, ScreenDetail.FROZEN);
   });
 
   it("offsets the window by the display's origin on a second display", async () => {
@@ -125,7 +134,8 @@ describe("OCR screen text reader", () => {
           ...WINDOW,
           processId: OWN_PID
         })
-      }).reader.read(MONITOR), undefined
+      }).reader.read(MONITOR),
+      undefined
     );
   });
 
@@ -174,7 +184,7 @@ const EXACT_TEXT: WindowText = {
 };
 
 function setupUia(overrides: Partial<UiaScreenTextDeps> = {}) {
-  const requests: Array<Parameters<UiaScreenTextDeps["readText"]>[0]> = [];
+  const requests: Parameters<UiaScreenTextDeps["readText"]>[0][] = [];
   const logs: string[] = [];
   const fallback = setup();
   const reader = createUiaScreenTextReader({
@@ -216,34 +226,42 @@ describe("UI Automation screen text reader", () => {
       ],
       version: "abcdef0123456789"
     });
-    assert.deepEqual(requests, [{
-      hwnd: WINDOW.hwnd,
-      excludeProcessId: OWN_PID
-    }]);
+    assert.deepEqual(requests, [
+      {
+        hwnd: WINDOW.hwnd,
+        excludeProcessId: OWN_PID
+      }
+    ]);
     assert.equal(grabs.length, 0);
   });
 
   it("takes the window's title when the tree has none", async () => {
     const { reader } = setupUia({
-      readText: () => Promise.resolve({
-        ...EXACT_TEXT,
-        title: ""
-      })
+      readText: () =>
+        Promise.resolve({
+          ...EXACT_TEXT,
+          title: ""
+        })
     });
     assert.equal((await reader.read(MONITOR))?.title, "Article - Browser");
   });
 
   it("reads the picture when the tree gives no text", async () => {
-    for (const text of [null, {
-      ...EXACT_TEXT,
-      blocks: []
-    }]) {
+    for (const text of [
+      null,
+      {
+        ...EXACT_TEXT,
+        blocks: []
+      }
+    ]) {
       const { reader, grabs } = setupUia({ readText: () => Promise.resolve(text) });
       const view = await reader.read(MONITOR);
-      assert.deepEqual(view?.blocks, [{
-        kind: "paragraph",
-        text: "Hello"
-      }]);
+      assert.deepEqual(view?.blocks, [
+        {
+          kind: "paragraph",
+          text: "Hello"
+        }
+      ]);
       assert.equal(grabs.length, 1);
     }
   });
@@ -256,7 +274,7 @@ describe("UI Automation screen text reader", () => {
   });
 
   it("is undefined, without reading anything, for no window, our own or another display", async () => {
-    const cases: Array<Partial<UiaScreenTextDeps>> = [
+    const cases: Partial<UiaScreenTextDeps>[] = [
       { foregroundWindow: () => undefined },
       {
         foregroundWindow: () => ({

@@ -1,10 +1,13 @@
-import { ScreenDetail } from "./capture-geometry.ts";
-import { createScreenCapture } from "./screen-capture.ts";
-import { createDisplayNative } from "@/media/display/display-native.ts";
-import { createMonitors } from "@/media/display/monitors.ts";
-import { roInitialize } from "@microsoft/dynwinrt";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+
+import { roInitialize } from "@microsoft/dynwinrt";
+
+import { createDisplayNative } from "@/media/display/display-native.ts";
+import { createMonitors } from "@/media/display/monitors.ts";
+
+import { ScreenDetail } from "./capture-geometry.ts";
+import { createScreenCapture } from "./screen-capture.ts";
 
 const NUMBER_3 = 3;
 const HEX_FF = 0xff;
@@ -25,7 +28,7 @@ describe("screen capture on this machine", { skip: !IS_WINDOWS }, () => {
     try {
       const light = await screenCapture.grab({
         monitor,
-        detail: ScreenDetail.light
+        detail: ScreenDetail.LIGHT
       });
       assert.deepEqual([...light.jpeg.subarray(0, NUMBER_3)], JPEG_MAGIC);
       const monitorEdge = Math.max(monitor.width, monitor.height);
@@ -33,7 +36,7 @@ describe("screen capture on this machine", { skip: !IS_WINDOWS }, () => {
 
       const sharp = await screenCapture.grab({
         monitor,
-        detail: ScreenDetail.sharp
+        detail: ScreenDetail.SHARP
       });
       assert.equal(Math.max(sharp.width, sharp.height), Math.min(SHARP_MAX_EDGE, monitorEdge));
       assert.ok(sharp.jpeg.length > light.jpeg.length);
@@ -46,7 +49,7 @@ describe("screen capture on this machine", { skip: !IS_WINDOWS }, () => {
           width: REGION_SIZE,
           height: REGION_SIZE
         },
-        detail: ScreenDetail.frozen
+        detail: ScreenDetail.FROZEN
       });
       assert.deepEqual([region.width, region.height], [REGION_SIZE, REGION_SIZE]);
     } finally {

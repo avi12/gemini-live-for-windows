@@ -1,9 +1,10 @@
+import assert from "node:assert/strict";
+import { describe, it, mock } from "node:test";
+
 import { createAudioDuplex } from "./audio-duplex.ts";
 import type { AudioWorkerLink } from "./audio-duplex.ts";
 import { AudioCommandKind, AudioEventKind } from "./audio-protocol.ts";
 import type { AudioCommand } from "./audio-protocol.ts";
-import assert from "node:assert/strict";
-import { describe, it, mock } from "node:test";
 
 const NUMBER_1000 = 1000;
 const NUMBER_4 = 4;
@@ -16,17 +17,18 @@ function ignoreMessage() {
 }
 
 function createFakeLink() {
-  const posted: Array<{
+  const posted: {
     command: AudioCommand;
     transfer: readonly ArrayBuffer[];
-  }> = [];
+  }[] = [];
   let listener: (message: unknown) => void = ignoreMessage;
   let terminations = 0;
   const link: AudioWorkerLink = {
-    post: (command, transfer = []) => posted.push({
-      command,
-      transfer
-    }),
+    post: (command, transfer = []) =>
+      posted.push({
+        command,
+        transfer
+      }),
     onMessage(next) {
       listener = next;
     },
@@ -62,25 +64,25 @@ describe("audio duplex", () => {
     const { fake, duplex } = setup({ microphoneId: "mic-7" });
     const started = duplex.start();
     assert.deepEqual(fake.posted[0]?.command, {
-      kind: AudioCommandKind.start,
+      kind: AudioCommandKind.START,
       deviceId: "mic-7",
       isLoopback: false
     });
-    fake.emit({ kind: AudioEventKind.started });
+    fake.emit({ kind: AudioEventKind.STARTED });
     await started;
   });
 
   it("start asks for the default microphone with null", () => {
     const { fake, duplex } = setup();
     void duplex.start();
-    assert.equal(fake.posted[0]?.command.kind === AudioCommandKind.start && fake.posted[0].command.deviceId, null);
+    assert.equal(fake.posted[0]?.command.kind === AudioCommandKind.START && fake.posted[0].command.deviceId, null);
   });
 
   it("start rejects with the failure message", async () => {
     const { fake, duplex } = setup();
     const started = duplex.start();
     fake.emit({
-      kind: AudioEventKind.failed,
+      kind: AudioEventKind.FAILED,
       message: "Microphone access is off"
     });
     await assert.rejects(started, /Microphone access is off/);
@@ -91,10 +93,10 @@ describe("audio duplex", () => {
     const failures: string[] = [];
     duplex.onFailure(message => failures.push(message));
     const started = duplex.start();
-    fake.emit({ kind: AudioEventKind.started });
+    fake.emit({ kind: AudioEventKind.STARTED });
     await started;
     fake.emit({
-      kind: AudioEventKind.failed,
+      kind: AudioEventKind.FAILED,
       message: "device removed"
     });
     assert.deepEqual(failures, ["device removed"]);
@@ -109,20 +111,20 @@ describe("audio duplex", () => {
     duplex.onMicLevel(level => micLevels.push(level));
     duplex.onSpeakerLevel(level => speakerLevels.push(level));
     fake.emit({
-      kind: AudioEventKind.micChunk,
+      kind: AudioEventKind.MIC_CHUNK,
       pcm16: Uint8Array.of(1, 2)
     });
     fake.emit({
-      kind: AudioEventKind.micLevel,
+      kind: AudioEventKind.MIC_LEVEL,
       peak: 0.3
     });
     fake.emit({
-      kind: AudioEventKind.speakerLevel,
+      kind: AudioEventKind.SPEAKER_LEVEL,
       peak: 0.6
     });
     stopChunks();
     fake.emit({
-      kind: AudioEventKind.micChunk,
+      kind: AudioEventKind.MIC_CHUNK,
       pcm16: Uint8Array.of(NUMBER_3)
     });
     assert.deepEqual(chunks, [Uint8Array.of(1, 2)]);
@@ -135,7 +137,7 @@ describe("audio duplex", () => {
     const speech = Uint8Array.of(1, 2, NUMBER_3, NUMBER_4);
     duplex.play(speech);
     const posted = fake.posted[0];
-    assert.equal(posted?.command.kind, AudioCommandKind.play);
+    assert.equal(posted?.command.kind, AudioCommandKind.PLAY);
     assert.equal(posted?.transfer.length, 1);
     assert.equal(speech.buffer.byteLength > 0 && speech.length, NUMBER_4);
     assert.notEqual(posted?.transfer[0], speech.buffer);
@@ -146,13 +148,16 @@ describe("audio duplex", () => {
     duplex.flush();
     duplex.isMuted = true;
     assert.equal(duplex.isMuted, true);
-    assert.deepEqual(fake.posted.map(entry => entry.command), [
-      { kind: AudioCommandKind.flush },
-      {
-        kind: AudioCommandKind.mute,
-        isMuted: true
-      }
-    ]);
+    assert.deepEqual(
+      fake.posted.map(entry => entry.command),
+      [
+        { kind: AudioCommandKind.FLUSH },
+        {
+          kind: AudioCommandKind.MUTE,
+          isMuted: true
+        }
+      ]
+    );
   });
 
   it("dispose posts once, ignores later plays, and terminates after the worker acknowledges", () => {
@@ -161,8 +166,8 @@ describe("audio duplex", () => {
     duplex.dispose();
     duplex.play(Uint8Array.of(1));
     assert.equal(fake.posted.length, 1);
-    assert.equal(fake.posted[0]?.command.kind, AudioCommandKind.dispose);
-    fake.emit({ kind: AudioEventKind.disposed });
+    assert.equal(fake.posted[0]?.command.kind, AudioCommandKind.DISPOSE);
+    fake.emit({ kind: AudioEventKind.DISPOSED });
     assert.equal(fake.terminations, 1);
   });
 

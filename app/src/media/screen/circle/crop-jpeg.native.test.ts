@@ -1,11 +1,14 @@
-import { cropJpeg } from "./crop-jpeg.ts";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+
+import { roInitialize } from "@microsoft/dynwinrt";
+
 import { createDisplayNative } from "@/media/display/display-native.ts";
 import { createMonitors } from "@/media/display/monitors.ts";
 import { ScreenDetail } from "@/media/screen/capture-geometry.ts";
 import { createScreenCapture } from "@/media/screen/screen-capture.ts";
-import { roInitialize } from "@microsoft/dynwinrt";
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+
+import { cropJpeg } from "./crop-jpeg.ts";
 
 const NUMBER_3 = 3;
 const HEX_FF = 0xff;
@@ -31,7 +34,7 @@ describe("cropping a frozen frame on this machine", { skip: !IS_WINDOWS }, () =>
           width: FROZEN_SIZE,
           height: FROZEN_SIZE
         },
-        detail: ScreenDetail.frozen
+        detail: ScreenDetail.FROZEN
       });
       const crop = await cropJpeg({
         jpeg: frozen.jpeg,
@@ -41,7 +44,7 @@ describe("cropping a frozen frame on this machine", { skip: !IS_WINDOWS }, () =>
           width: CROP_WIDTH,
           height: CROP_HEIGHT
         },
-        detail: ScreenDetail.sharp
+        detail: ScreenDetail.SHARP
       });
       assert.deepEqual([...crop.jpeg.subarray(0, NUMBER_3)], JPEG_MAGIC);
       assert.deepEqual([crop.width, crop.height], [CROP_WIDTH, CROP_HEIGHT]);
@@ -54,7 +57,7 @@ describe("cropping a frozen frame on this machine", { skip: !IS_WINDOWS }, () =>
           width: 10,
           height: 10
         },
-        detail: ScreenDetail.sharp
+        detail: ScreenDetail.SHARP
       });
       assert.deepEqual([whole.width, whole.height], [FROZEN_SIZE, FROZEN_SIZE]);
     } finally {

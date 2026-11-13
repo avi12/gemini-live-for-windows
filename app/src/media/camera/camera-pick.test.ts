@@ -1,3 +1,6 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+
 import {
   listCameraEntries,
   pickColorCamera,
@@ -6,8 +9,6 @@ import {
   STREAM_VIDEO_RECORD
 } from "./camera-pick.ts";
 import type { CameraGroupInfo } from "./camera-pick.ts";
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 
 const INFRARED = 2;
 const PHOTO = 3;
@@ -15,11 +16,13 @@ const PHOTO = 3;
 const IR_ONLY: CameraGroupInfo = {
   id: "ir",
   name: "IR camera",
-  sources: [{
-    id: "ir-1",
-    sourceKind: INFRARED,
-    mediaStreamType: STREAM_VIDEO_PREVIEW
-  }]
+  sources: [
+    {
+      id: "ir-1",
+      sourceKind: INFRARED,
+      mediaStreamType: STREAM_VIDEO_PREVIEW
+    }
+  ]
 };
 const WEBCAM: CameraGroupInfo = {
   id: "cam-a",
@@ -40,11 +43,13 @@ const WEBCAM: CameraGroupInfo = {
 const USB: CameraGroupInfo = {
   id: "cam-b",
   name: "USB Camera",
-  sources: [{
-    id: "record",
-    sourceKind: SOURCE_KIND_COLOR,
-    mediaStreamType: STREAM_VIDEO_RECORD
-  }]
+  sources: [
+    {
+      id: "record",
+      sourceKind: SOURCE_KIND_COLOR,
+      mediaStreamType: STREAM_VIDEO_RECORD
+    }
+  ]
 };
 
 describe("camera list", () => {
@@ -73,7 +78,8 @@ describe("camera pick", () => {
       pickColorCamera({
         groups: [IR_ONLY, WEBCAM, USB],
         cameraId: undefined
-      }), {
+      }),
+      {
         groupId: "cam-a",
         sourceId: "preview"
       }
@@ -85,7 +91,8 @@ describe("camera pick", () => {
       pickColorCamera({
         groups: [WEBCAM, USB],
         cameraId: "cam-b"
-      }), {
+      }),
+      {
         groupId: "cam-b",
         sourceId: "record"
       }
@@ -97,7 +104,8 @@ describe("camera pick", () => {
       pickColorCamera({
         groups: [WEBCAM, USB],
         cameraId: "unplugged"
-      })?.groupId, "cam-a"
+      })?.groupId,
+      "cam-a"
     );
   });
 
@@ -106,13 +114,15 @@ describe("camera pick", () => {
       pickColorCamera({
         groups: [IR_ONLY],
         cameraId: undefined
-      }), undefined
+      }),
+      undefined
     );
     assert.equal(
       pickColorCamera({
         groups: [],
         cameraId: undefined
-      }), undefined
+      }),
+      undefined
     );
   });
 });

@@ -15,10 +15,7 @@ export function pcm16ToFloat(sample: number) {
   return sample / PCM16_NEGATIVE_SCALE;
 }
 
-export function floatsToPcm16({ samples, isMuted = false }: {
-  samples: Float32Array;
-  isMuted?: boolean;
-}) {
+export function floatsToPcm16({ samples, isMuted = false }: { samples: Float32Array; isMuted?: boolean }) {
   const pcm = new Int16Array(samples.length);
   if (isMuted) {
     return pcm;
@@ -49,10 +46,7 @@ export function bytesToFloats(bytes: Uint8Array) {
   return samples;
 }
 
-export function mixToMono({ interleaved, channels }: {
-  interleaved: Float32Array;
-  channels: number;
-}) {
+export function mixToMono({ interleaved, channels }: { interleaved: Float32Array; channels: number }) {
   const frames = Math.floor(interleaved.length / channels);
   const mono = new Float32Array(frames);
   for (let iFrame = 0; iFrame < frames; iFrame++) {
@@ -65,10 +59,7 @@ export function mixToMono({ interleaved, channels }: {
   return mono;
 }
 
-export function spreadToChannels({ mono, channels }: {
-  mono: Float32Array;
-  channels: number;
-}) {
+export function spreadToChannels({ mono, channels }: { mono: Float32Array; channels: number }) {
   const interleaved = new Float32Array(mono.length * channels);
   for (const [iFrame, sample] of mono.entries()) {
     interleaved.fill(sample, iFrame * channels, (iFrame + 1) * channels);

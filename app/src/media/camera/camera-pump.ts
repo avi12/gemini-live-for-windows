@@ -17,7 +17,12 @@ export interface CameraFrameSource {
 }
 
 // Polls the reader into a single latest-JPEG slot, one encode at a time, so `latest()` is an instant read
-export function createCameraPump({ source, clock, onError, intervalMilliseconds = CAMERA_POLL_MILLISECONDS }: {
+export function createCameraPump({
+  source,
+  clock,
+  onError,
+  intervalMilliseconds = CAMERA_POLL_MILLISECONDS
+}: {
   source: CameraFrameSource;
   clock: Clock;
   onError: (error: unknown) => void;

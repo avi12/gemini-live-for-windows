@@ -1,8 +1,10 @@
-import { CAMERA_POLL_MILLISECONDS, createCameraPump } from "./camera-pump.ts";
-import type { CameraFrame } from "./camera-pump.ts";
-import type { Clock } from "@/media/clock.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+
+import type { Clock } from "@/media/clock.ts";
+
+import { CAMERA_POLL_MILLISECONDS, createCameraPump } from "./camera-pump.ts";
+import type { CameraFrame } from "./camera-pump.ts";
 
 const NUMBER_9 = 9;
 const NUMBER_7 = 7;
@@ -12,7 +14,7 @@ function doNothing() {
 }
 
 function createManualClock() {
-  const ticks: Array<() => void> = [];
+  const ticks: (() => void)[] = [];
   const intervals: number[] = [];
   const clock: Clock = {
     now: () => 0,
@@ -36,11 +38,7 @@ function createManualClock() {
   };
 }
 
-function createFrame({ jpeg, releases, gate }: {
-  jpeg: number;
-  releases: number[];
-  gate?: Promise<void>;
-}) {
+function createFrame({ jpeg, releases, gate }: { jpeg: number; releases: number[]; gate?: Promise<void> }) {
   return {
     async encode() {
       await gate;
@@ -72,10 +70,12 @@ describe("camera pump", () => {
   it("keeps the newest encoded frame in the slot and releases every frame it took", async () => {
     const manual = createManualClock();
     const releases: number[] = [];
-    const frames = [1, 2].map(jpeg => createFrame({
-      jpeg,
-      releases
-    }));
+    const frames = [1, 2].map(jpeg =>
+      createFrame({
+        jpeg,
+        releases
+      })
+    );
     const pump = createCameraPump({
       source: {
         acquireLatest: () => frames.shift()
@@ -85,19 +85,22 @@ describe("camera pump", () => {
     });
     assert.equal(pump.latest(), undefined);
     await pump.tick();
-    assert.deepEqual([...pump.latest()?.jpeg ?? []], [1]);
+    assert.deepEqual([...(pump.latest()?.jpeg ?? [])], [1]);
     await pump.tick();
-    assert.deepEqual([...pump.latest()?.jpeg ?? []], [2]);
+    assert.deepEqual([...(pump.latest()?.jpeg ?? [])], [2]);
     assert.deepEqual(releases, [1, 2]);
   });
 
   it("keeps the old frame when the reader has none yet", async () => {
     const manual = createManualClock();
     const releases: number[] = [];
-    const queue: Array<CameraFrame | undefined> = [createFrame({
-      jpeg: 7,
-      releases
-    }), undefined];
+    const queue: (CameraFrame | undefined)[] = [
+      createFrame({
+        jpeg: 7,
+        releases
+      }),
+      undefined
+    ];
     const pump = createCameraPump({
       source: {
         acquireLatest: () => queue.shift()
@@ -107,7 +110,7 @@ describe("camera pump", () => {
     });
     await pump.tick();
     await pump.tick();
-    assert.deepEqual([...pump.latest()?.jpeg ?? []], [NUMBER_7]);
+    assert.deepEqual([...(pump.latest()?.jpeg ?? [])], [NUMBER_7]);
   });
 
   it("never encodes two frames at once, and does not even pull while one is in flight", async () => {
@@ -144,13 +147,16 @@ describe("camera pump", () => {
     const manual = createManualClock();
     const errors: unknown[] = [];
     const releases: number[] = [];
-    const queue: CameraFrame[] = [{
-      encode: () => Promise.reject(new Error("WIC failed")),
-      release: () => releases.push(0)
-    }, createFrame({
-      jpeg: 9,
-      releases
-    })];
+    const queue: CameraFrame[] = [
+      {
+        encode: () => Promise.reject(new Error("WIC failed")),
+        release: () => releases.push(0)
+      },
+      createFrame({
+        jpeg: 9,
+        releases
+      })
+    ];
     const pump = createCameraPump({
       source: {
         acquireLatest: () => queue.shift()
@@ -161,7 +167,7 @@ describe("camera pump", () => {
     await pump.tick();
     await pump.tick();
     assert.equal(errors.length, 1);
-    assert.deepEqual([...pump.latest()?.jpeg ?? []], [NUMBER_9]);
+    assert.deepEqual([...(pump.latest()?.jpeg ?? [])], [NUMBER_9]);
     assert.deepEqual(releases, [0, NUMBER_9]);
   });
 

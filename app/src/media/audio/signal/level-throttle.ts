@@ -1,6 +1,9 @@
 // Keeps the loudest peak seen since the last report and releases it at most once per interval, so the
 // glow is not flooded: it follows the peak, and the peak is never lost between reports.
-export function createLevelThrottle({ intervalMilliseconds, now }: {
+export function createLevelThrottle({
+  intervalMilliseconds,
+  now
+}: {
   intervalMilliseconds: number;
   now: () => number;
 }) {

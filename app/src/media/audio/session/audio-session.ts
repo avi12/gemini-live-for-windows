@@ -1,10 +1,11 @@
+import { errorMessage } from "@/lib/error-message.ts";
+import { createLevelThrottle } from "@/media/audio/signal/level-throttle.ts";
+import type { Clock } from "@/media/clock.ts";
+
 import { createMicPump } from "./mic-pump.ts";
 import type { MicFrameSource } from "./mic-pump.ts";
 import { createSpeakerPump } from "./speaker-pump.ts";
 import type { SpeakerSink } from "./speaker-pump.ts";
-import { errorMessage } from "@/lib/error-message.ts";
-import { createLevelThrottle } from "@/media/audio/signal/level-throttle.ts";
-import type { Clock } from "@/media/clock.ts";
 
 export const POLL_MILLISECONDS = 10;
 const LEVEL_MILLISECONDS = 33;
@@ -22,7 +23,10 @@ export interface SessionGraph {
   close(): void;
 }
 
-function throttled({ throttle, emit }: {
+function throttled({
+  throttle,
+  emit
+}: {
   throttle: ReturnType<typeof createLevelThrottle>;
   emit: (peak: number) => void;
 }) {
@@ -38,7 +42,14 @@ function throttled({ throttle, emit }: {
 // Everything between the graph and the callbacks: one timer polls the mic tap and tops up the speaker
 // feed (dynwinrt delivers no native-thread callbacks, so nothing here is event driven), levels are
 // throttled to about 30 a second, and disposal stops the timer before the graph closes.
-function createPumps({ graph, clock, isMuted, onMicChunk, onMicLevel, onSpeakerLevel }: {
+function createPumps({
+  graph,
+  clock,
+  isMuted,
+  onMicChunk,
+  onMicLevel,
+  onSpeakerLevel
+}: {
   graph: SessionGraph;
   clock: Clock;
   isMuted: () => boolean;
@@ -83,7 +94,14 @@ function createPumps({ graph, clock, isMuted, onMicChunk, onMicLevel, onSpeakerL
   };
 }
 
-export function createAudioSession({ graph, clock, onMicChunk, onMicLevel, onSpeakerLevel, onFailure }: {
+export function createAudioSession({
+  graph,
+  clock,
+  onMicChunk,
+  onMicLevel,
+  onSpeakerLevel,
+  onFailure
+}: {
   graph: SessionGraph;
   clock: Clock;
   onMicChunk: (pcm16: Uint8Array<ArrayBuffer>) => void;

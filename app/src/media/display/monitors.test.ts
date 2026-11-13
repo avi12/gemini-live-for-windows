@@ -1,10 +1,12 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+
+import type { Clock } from "@/media/clock.ts";
+
 import { displayNamed, haveDisplaysChanged, orderDisplays, reconcileDisplay } from "./monitor-layout.ts";
 import type { RawDisplay } from "./monitor-structs.ts";
 import { createMonitors, NO_DISPLAY_MESSAGE, watchDisplays } from "./monitors.ts";
 import type { DisplayNative } from "./monitors.ts";
-import type { Clock } from "@/media/clock.ts";
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 
 const NUMBER_3 = 3;
 const NUMBER_60 = 60;
@@ -65,11 +67,14 @@ const RIGHT = raw({
 describe("display order", () => {
   it("numbers left to right from 1, whatever order Windows listed them", () => {
     const monitors = orderDisplays([RIGHT, MAIN, LEFT]);
-    assert.deepEqual(monitors.map(monitor => [monitor.index, monitor.deviceName]), [
-      [1, LEFT.deviceName],
-      [2, MAIN.deviceName],
-      [NUMBER_3, RIGHT.deviceName]
-    ]);
+    assert.deepEqual(
+      monitors.map(monitor => [monitor.index, monitor.deviceName]),
+      [
+        [1, LEFT.deviceName],
+        [2, MAIN.deviceName],
+        [NUMBER_3, RIGHT.deviceName]
+      ]
+    );
   });
 
   it("breaks a tie on the left edge top to bottom", () => {
@@ -83,7 +88,10 @@ describe("display order", () => {
       left: 100,
       top: 1080
     });
-    assert.deepEqual(orderDisplays([lower, upper]).map(monitor => monitor.deviceName), ["upper", "lower"]);
+    assert.deepEqual(
+      orderDisplays([lower, upper]).map(monitor => monitor.deviceName),
+      ["upper", "lower"]
+    );
   });
 
   it("converts the rectangle to a position and a size, keeping the work edges", () => {
@@ -123,20 +131,25 @@ describe("display order", () => {
   });
 
   it("sees a refresh rate change as a display change", () => {
-    const before = orderDisplays([raw({
-      name: "main",
-      left: 0
-    })]);
-    const after = orderDisplays([raw({
-      name: "main",
-      left: 0,
-      refreshRateHertz: NUMBER_120
-    })]);
+    const before = orderDisplays([
+      raw({
+        name: "main",
+        left: 0
+      })
+    ]);
+    const after = orderDisplays([
+      raw({
+        name: "main",
+        left: 0,
+        refreshRateHertz: NUMBER_120
+      })
+    ]);
     assert.equal(
       haveDisplaysChanged({
         before,
         after
-      }), true
+      }),
+      true
     );
   });
 
@@ -150,7 +163,10 @@ describe("display order", () => {
       left: 5,
       width: 0
     });
-    assert.deepEqual(orderDisplays([empty, MAIN]).map(monitor => monitor.deviceName), [MAIN.deviceName]);
+    assert.deepEqual(
+      orderDisplays([empty, MAIN]).map(monitor => monitor.deviceName),
+      [MAIN.deviceName]
+    );
   });
 
   it("is empty for no displays", () => {
@@ -166,7 +182,8 @@ describe("display lookup", () => {
       displayNamed({
         all,
         deviceName: RIGHT.deviceName
-      })?.index, NUMBER_3
+      })?.index,
+      NUMBER_3
     );
   });
 
@@ -175,32 +192,38 @@ describe("display lookup", () => {
       displayNamed({
         all,
         deviceName: "gone"
-      })?.deviceName, MAIN.deviceName
+      })?.deviceName,
+      MAIN.deviceName
     );
     assert.equal(
       displayNamed({
         all,
         deviceName: undefined
-      })?.deviceName, MAIN.deviceName
+      })?.deviceName,
+      MAIN.deviceName
     );
   });
 
   it("falls back to the first when none is primary, and to nothing when empty", () => {
-    const noPrimary = orderDisplays([raw({
-      name: "a",
-      left: 0
-    })]);
+    const noPrimary = orderDisplays([
+      raw({
+        name: "a",
+        left: 0
+      })
+    ]);
     assert.equal(
       displayNamed({
         all: noPrimary,
         deviceName: "x"
-      })?.deviceName, "a"
+      })?.deviceName,
+      "a"
     );
     assert.equal(
       displayNamed({
         all: [],
         deviceName: "x"
-      }), undefined
+      }),
+      undefined
     );
   });
 });
@@ -234,7 +257,8 @@ describe("reconcile", () => {
         all: after,
         display: unplugged,
         fallback: () => fallback
-      }), fallback
+      }),
+      fallback
     );
   });
 });
@@ -246,36 +270,50 @@ describe("change detection", () => {
       haveDisplaysChanged({
         before: base,
         after: orderDisplays([LEFT, MAIN])
-      }), false
+      }),
+      false
     );
     assert.equal(
       haveDisplaysChanged({
         before: base,
         after: orderDisplays([MAIN])
-      }), true
+      }),
+      true
     );
     assert.equal(
       haveDisplaysChanged({
         before: base,
-        after: orderDisplays([LEFT, {
-          ...MAIN,
-          left: 10
-        }])
-      }), true
+        after: orderDisplays([
+          LEFT,
+          {
+            ...MAIN,
+            left: 10
+          }
+        ])
+      }),
+      true
     );
     assert.equal(
       haveDisplaysChanged({
         before: base,
-        after: orderDisplays([LEFT, {
-          ...MAIN,
-          right: MAIN.right + 1
-        }])
-      }), true
+        after: orderDisplays([
+          LEFT,
+          {
+            ...MAIN,
+            right: MAIN.right + 1
+          }
+        ])
+      }),
+      true
     );
   });
 });
 
-function createNative({ displays, foreground, cursor }: {
+function createNative({
+  displays,
+  foreground,
+  cursor
+}: {
   displays: RawDisplay[];
   foreground?: string;
   cursor?: string;
@@ -340,7 +378,7 @@ describe("monitors", () => {
 
 describe("display watcher", () => {
   function createManualClock() {
-    const ticks: Array<() => void> = [];
+    const ticks: (() => void)[] = [];
     const clock: Clock = {
       now: () => 0,
       setInterval(tick) {

@@ -1,10 +1,11 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+import { setTimeout as sleep } from "node:timers/promises";
+
 import { createAudioDuplex } from "./audio-duplex.ts";
 import { bytesToFloats } from "./signal/pcm.ts";
 import { concatenate, pcm16BytesOf, risingZeroCrossings, sine } from "./signal/test-signals.ts";
 import { createAudioWorkerLink } from "./worker/audio-worker-link.ts";
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
 
 const NUMBER_0_POINT_4 = 0.4;
 const NUMBER_12 = 12;
@@ -24,7 +25,7 @@ const MIC_BYTES_PER_CHUNK = 1280;
 // mic tap. The render device is opened at gain 0 (to clock the graph), so nothing is audible and no
 // microphone is touched. Skips where there is no render device.
 describe("audio loopback through the real worker", { skip: !IS_WINDOWS }, () => {
-  it("plays a tone through the speaker pump and hears it, intact, at the mic", async t => {
+  it("plays a tone through the speaker pump and hears it, intact, at the mic", async testContext => {
     const duplex = createAudioDuplex({
       link: createAudioWorkerLink({ workerUrl: new URL("./audio-worker.ts", import.meta.url) }),
       microphoneId: () => null,
@@ -38,7 +39,7 @@ describe("audio loopback through the real worker", { skip: !IS_WINDOWS }, () => 
       await duplex.start();
     } catch (error) {
       duplex.dispose();
-      t.skip(`no render device: ${error instanceof Error ? error.message : String(error)}`);
+      testContext.skip(`no render device: ${error instanceof Error ? error.message : String(error)}`);
       return;
     }
 

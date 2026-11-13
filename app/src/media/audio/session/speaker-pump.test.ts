@@ -1,8 +1,10 @@
-import { createSpeakerPump } from "./speaker-pump.ts";
-import type { SpeakerSink } from "./speaker-pump.ts";
-import { pcm16BytesOf, rootMeanSquare, sine } from "@/media/audio/signal/test-signals.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+
+import { pcm16BytesOf, rootMeanSquare, sine } from "@/media/audio/signal/test-signals.ts";
+
+import { createSpeakerPump } from "./speaker-pump.ts";
+import type { SpeakerSink } from "./speaker-pump.ts";
 
 const NUMBER_100 = 100;
 const NUMBER_0_POINT_1 = 0.1;

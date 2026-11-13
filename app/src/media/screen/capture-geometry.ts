@@ -4,22 +4,22 @@ import type { Monitor, Region } from "@/contracts/monitor.ts";
 // of a frame; `sharp` is for Gemini's web client, which misreads small text in a downscaled, compressed
 // picture; `frozen` is the still Circle to Search shows and crops, kept at full resolution.
 export const ScreenDetail = {
-  light: "light",
-  sharp: "sharp",
-  frozen: "frozen"
+  LIGHT: "light",
+  SHARP: "sharp",
+  FROZEN: "frozen"
 } as const;
-export type ScreenDetail = typeof ScreenDetail[keyof typeof ScreenDetail];
+export type ScreenDetail = (typeof ScreenDetail)[keyof typeof ScreenDetail];
 
 export const DETAIL_SETTINGS = {
-  [ScreenDetail.light]: {
+  [ScreenDetail.LIGHT]: {
     maxEdge: 1280,
     quality: 0.7
   },
-  [ScreenDetail.sharp]: {
+  [ScreenDetail.SHARP]: {
     maxEdge: 2200,
     quality: 0.85
   },
-  [ScreenDetail.frozen]: {
+  [ScreenDetail.FROZEN]: {
     maxEdge: Number.POSITIVE_INFINITY,
     quality: 0.92
   }
@@ -36,10 +36,7 @@ export interface PixelRect extends PixelSize {
 }
 
 // Never upscales; each edge keeps at least one pixel
-export function fitToEdge({ size, maxEdge }: {
-  size: PixelSize;
-  maxEdge: number;
-}) {
+export function fitToEdge({ size, maxEdge }: { size: PixelSize; maxEdge: number }) {
   const scale = Math.min(1, maxEdge / Math.max(size.width, size.height));
   return {
     width: Math.max(1, Math.trunc(size.width * scale)),
@@ -48,10 +45,7 @@ export function fitToEdge({ size, maxEdge }: {
 }
 
 // The part of `region` that lies inside a surface of `size`, or undefined when none of it does
-export function clipToSurface({ region, size }: {
-  region: Region;
-  size: PixelSize;
-}) {
+export function clipToSurface({ region, size }: { region: Region; size: PixelSize }) {
   const left = Math.max(0, region.x);
   const top = Math.max(0, region.y);
   const right = Math.min(size.width, region.x + region.width);
@@ -71,21 +65,19 @@ export function clipToSurface({ region, size }: {
 
 // What to copy from the virtual screen, in physical pixels: the whole display, or `region` of it
 // (in the display's own pixels), clipped to the display
-export function screenArea({ monitor, region }: {
-  monitor: Monitor;
-  region: Region | undefined;
-}) {
-  const clipped = region === undefined
-    ? {
-      x: 0,
-      y: 0,
-      width: monitor.width,
-      height: monitor.height
-    }
-    : clipToSurface({
-      region,
-      size: monitor
-    });
+export function screenArea({ monitor, region }: { monitor: Monitor; region: Region | undefined }) {
+  const clipped =
+    region === undefined
+      ? {
+          x: 0,
+          y: 0,
+          width: monitor.width,
+          height: monitor.height
+        }
+      : clipToSurface({
+          region,
+          size: monitor
+        });
   const isClippedMissing = clipped === undefined;
   if (isClippedMissing) {
     return undefined;

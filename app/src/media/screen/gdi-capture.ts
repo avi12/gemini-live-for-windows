@@ -1,13 +1,4 @@
-import type { PixelRect, PixelSize } from "./capture-geometry.ts";
-import {
-  argHandle,
-  argI32,
-  argPointer,
-  argU32,
-  bindFunction,
-  Win32Type,
-  withMemory
-} from "@/win32/bind.ts";
+import { argHandle, argI32, argPointer, argU32, bindFunction, Win32Type, withMemory } from "@/win32/bind.ts";
 import {
   createCompatibleDC,
   createDIBSection,
@@ -17,6 +8,8 @@ import {
   releaseDC,
   selectObject
 } from "@/win32/gdi.ts";
+
+import type { PixelRect, PixelSize } from "./capture-geometry.ts";
 
 const SRCCOPY = 0x00cc0020;
 const CAPTUREBLT = 0x40000000;
@@ -38,44 +31,44 @@ const HEADER_COMPRESSION_OFFSET = 16;
 const setStretchBltMode = bindFunction({
   library: "gdi32.dll",
   entryPoint: "SetStretchBltMode",
-  parameters: [Win32Type.handle, Win32Type.i32],
-  returns: Win32Type.i32
+  parameters: [Win32Type.HANDLE, Win32Type.I32],
+  returns: Win32Type.I32
 });
 
 const stretchBlt = bindFunction({
   library: "gdi32.dll",
   entryPoint: "StretchBlt",
   parameters: [
-    Win32Type.handle,
-    Win32Type.i32,
-    Win32Type.i32,
-    Win32Type.i32,
-    Win32Type.i32,
-    Win32Type.handle,
-    Win32Type.i32,
-    Win32Type.i32,
-    Win32Type.i32,
-    Win32Type.i32,
-    Win32Type.u32
+    Win32Type.HANDLE,
+    Win32Type.I32,
+    Win32Type.I32,
+    Win32Type.I32,
+    Win32Type.I32,
+    Win32Type.HANDLE,
+    Win32Type.I32,
+    Win32Type.I32,
+    Win32Type.I32,
+    Win32Type.I32,
+    Win32Type.U32
   ],
-  returns: Win32Type.bool32
+  returns: Win32Type.BOOL32
 });
 
 const bitBlt = bindFunction({
   library: "gdi32.dll",
   entryPoint: "BitBlt",
   parameters: [
-    Win32Type.handle,
-    Win32Type.i32,
-    Win32Type.i32,
-    Win32Type.i32,
-    Win32Type.i32,
-    Win32Type.handle,
-    Win32Type.i32,
-    Win32Type.i32,
-    Win32Type.u32
+    Win32Type.HANDLE,
+    Win32Type.I32,
+    Win32Type.I32,
+    Win32Type.I32,
+    Win32Type.I32,
+    Win32Type.HANDLE,
+    Win32Type.I32,
+    Win32Type.I32,
+    Win32Type.U32
   ],
-  returns: Win32Type.bool32
+  returns: Win32Type.BOOL32
 });
 
 // A 32-bit top-down BGRA copy of part of the screen. `address` points into a buffer that the next
@@ -95,11 +88,7 @@ interface Surface {
   address: bigint;
 }
 
-function createSurface({ memoryDC, width, height }: {
-  memoryDC: bigint;
-  width: number;
-  height: number;
-}) {
+function createSurface({ memoryDC, width, height }: { memoryDC: bigint; width: number; height: number }) {
   return withMemory({
     size: BITMAP_INFO_HEADER_BYTES,
     use(header) {
@@ -147,15 +136,17 @@ function openMemoryDC() {
   return memoryDC;
 }
 
-function releaseSurface({ memoryDC, held }: {
-  memoryDC: bigint;
-  held: Surface;
-}) {
+function releaseSurface({ memoryDC, held }: { memoryDC: bigint; held: Surface }) {
   selectObject([argHandle(memoryDC), argHandle(held.previous)]);
   deleteObject([argHandle(held.bitmap)]);
 }
 
-function copy({ memoryDC, screen, area, size }: {
+function copy({
+  memoryDC,
+  screen,
+  area,
+  size
+}: {
   memoryDC: bigint;
   screen: bigint;
   area: PixelRect;
@@ -163,7 +154,24 @@ function copy({ memoryDC, screen, area, size }: {
 }) {
   const isScaled = size.width !== area.width || size.height !== area.height;
   if (!isScaled) {
-    return bitBlt([
+    return (
+      bitBlt([
+        argHandle(memoryDC),
+        argI32(0),
+        argI32(0),
+        argI32(size.width),
+        argI32(size.height),
+        argHandle(screen),
+        argI32(area.x),
+        argI32(area.y),
+        argU32(SRCCOPY | CAPTUREBLT)
+      ]).number !== 0
+    );
+  }
+
+  setStretchBltMode([argHandle(memoryDC), argI32(HALFTONE)]);
+  return (
+    stretchBlt([
       argHandle(memoryDC),
       argI32(0),
       argI32(0),
@@ -172,31 +180,14 @@ function copy({ memoryDC, screen, area, size }: {
       argHandle(screen),
       argI32(area.x),
       argI32(area.y),
+      argI32(area.width),
+      argI32(area.height),
       argU32(SRCCOPY | CAPTUREBLT)
-    ]).number !== 0;
-  }
-
-  setStretchBltMode([argHandle(memoryDC), argI32(HALFTONE)]);
-  return stretchBlt([
-    argHandle(memoryDC),
-    argI32(0),
-    argI32(0),
-    argI32(size.width),
-    argI32(size.height),
-    argHandle(screen),
-    argI32(area.x),
-    argI32(area.y),
-    argI32(area.width),
-    argI32(area.height),
-    argU32(SRCCOPY | CAPTUREBLT)
-  ]).number !== 0;
+    ]).number !== 0
+  );
 }
 
-function copyScreen({ memoryDC, area, size }: {
-  memoryDC: bigint;
-  area: PixelRect;
-  size: PixelSize;
-}) {
+function copyScreen({ memoryDC, area, size }: { memoryDC: bigint; area: PixelRect; size: PixelSize }) {
   const screen = getDC([argHandle(null)]).address;
   try {
     const isCopied = copy({
@@ -275,10 +266,7 @@ export function createGdiCapturer() {
   return {
     // `area` is in virtual-screen pixels; the result is `size` pixels, shrunk by the GDI half-tone filter
     // when that is smaller. Shrinking here keeps the buffer, and everything after it, small
-    capture({ area, size }: {
-      area: PixelRect;
-      size: PixelSize;
-    }) {
+    capture({ area, size }: { area: PixelRect; size: PixelSize }) {
       const target = ensureSurface({
         state,
         ...size

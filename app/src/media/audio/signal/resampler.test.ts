@@ -1,7 +1,8 @@
-import { createResampler } from "./resampler.ts";
-import { concatenate, risingZeroCrossings, rootMeanSquare, sine } from "./test-signals.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+
+import { createResampler } from "./resampler.ts";
+import { concatenate, risingZeroCrossings, rootMeanSquare, sine } from "./test-signals.ts";
 
 const NUMBER_160 = 160;
 const NUMBER_480 = 480;
@@ -23,7 +24,12 @@ const SEAM_TOLERANCE = 1e-5;
 const STEP_HEADROOM = 1.1;
 const SINE_AMPLITUDE = 0.5;
 
-function runInChunks({ input, chunkSize, from, to }: {
+function runInChunks({
+  input,
+  chunkSize,
+  from,
+  to
+}: {
   input: Float32Array;
   chunkSize: number;
   from: number;
@@ -170,7 +176,7 @@ describe("resampler", () => {
       from: RATE_DOWN_FROM,
       to: RATE_DOWN_TO
     });
-    const maxStep = 2 * Math.PI * TONE / RATE_DOWN_TO * SINE_AMPLITUDE * STEP_HEADROOM;
+    const maxStep = ((2 * Math.PI * TONE) / RATE_DOWN_TO) * SINE_AMPLITUDE * STEP_HEADROOM;
     for (let iSample = 1; iSample < output.length; iSample++) {
       assert.ok(Math.abs((output[iSample] ?? 0) - (output[iSample - 1] ?? 0)) <= maxStep, `step ${iSample}`);
     }

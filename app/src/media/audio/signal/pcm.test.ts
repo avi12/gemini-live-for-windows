@@ -1,3 +1,6 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+
 import {
   bytesToFloats,
   floatsToPcm16,
@@ -8,8 +11,6 @@ import {
   peakOf,
   spreadToChannels
 } from "./pcm.ts";
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 
 const NUMBER_4 = 4;
 const NUMBER_0_POINT_7 = 0.7;

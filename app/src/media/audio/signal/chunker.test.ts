@@ -1,6 +1,7 @@
-import { createChunker } from "./chunker.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+
+import { createChunker } from "./chunker.ts";
 
 const NUMBER_20 = 20;
 const NUMBER_1280 = 1280;
@@ -15,10 +16,7 @@ const NUMBER_4 = 4;
 
 const CHUNK = 4;
 
-function ramp({ from, count }: {
-  from: number;
-  count: number;
-}) {
+function ramp({ from, count }: { from: number; count: number }) {
   return Int16Array.from({ length: count }, (_, iSample) => from + iSample);
 }
 
@@ -35,7 +33,8 @@ describe("chunker", () => {
           from: 0,
           count: 3
         })
-      ), []
+      ),
+      []
     );
     assert.equal(chunker.pendingSamples, NUMBER_3);
   });
@@ -99,10 +98,12 @@ describe("chunker", () => {
       }
       next += size;
     }
-    assert.deepEqual(emitted, [...ramp({
-      from: 0,
-      count: emitted.length
-    })]);
+    assert.deepEqual(emitted, [
+      ...ramp({
+        from: 0,
+        count: emitted.length
+      })
+    ]);
     assert.equal(emitted.length + chunker.pendingSamples, next);
   });
 

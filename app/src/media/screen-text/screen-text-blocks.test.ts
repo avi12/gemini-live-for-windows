@@ -1,16 +1,15 @@
-import { buildScreenView, MAX_HEADING_CHARS, MAX_SCREEN_TEXT_CHARS } from "./screen-text-blocks.ts";
-import type { OcrLine } from "@/media/ocr/ocr-geometry.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+
+import type { OcrLine } from "@/media/ocr/ocr-geometry.ts";
+
+import { buildScreenView, MAX_HEADING_CHARS, MAX_SCREEN_TEXT_CHARS } from "./screen-text-blocks.ts";
 
 const NUMBER_999 = 999;
 const NUMBER_60 = 60;
 const NUMBER_20 = 20;
 
-function line({ text, height = NUMBER_20 }: {
-  text: string;
-  height?: number;
-}) {
+function line({ text, height = NUMBER_20 }: { text: string; height?: number }) {
   return {
     words: text.split(" ").map((word, iWord) => ({
       text: word,
@@ -68,7 +67,10 @@ describe("screen view", () => {
       line({ text: "body two" }),
       line({ text: "body three" })
     ]);
-    assert.deepEqual(view?.blocks.map(block => block.kind), ["heading", "paragraph", "paragraph", "paragraph"]);
+    assert.deepEqual(
+      view?.blocks.map(block => block.kind),
+      ["heading", "paragraph", "paragraph", "paragraph"]
+    );
   });
 
   it("does not call a long big line a heading", () => {
@@ -92,7 +94,10 @@ describe("screen view", () => {
 
   it("collapses whitespace and drops repeated lines", () => {
     const view = viewOf([line({ text: "a  b" }), line({ text: "a b" }), line({ text: "c" })]);
-    assert.deepEqual(view?.blocks.map(block => block.text), ["a b", "c"]);
+    assert.deepEqual(
+      view?.blocks.map(block => block.text),
+      ["a b", "c"]
+    );
   });
 
   it("caps the whole text, truncating the line that crosses the cap", () => {

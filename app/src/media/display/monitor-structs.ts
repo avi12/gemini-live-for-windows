@@ -29,24 +29,25 @@ export const MonitorInfoLayout = {
 
 // DISPLAY_DEVICEW: cb, DeviceName[32], DeviceString[128], StateFlags, DeviceID[128], DeviceKey[128]
 export const DisplayDeviceLayout = {
-  size: DWORD_BYTES
-    + DEVICE_NAME_CHARS * WIDE_CHAR_BYTES
-    + DISPLAY_DEVICE_STRING_CHARS * WIDE_CHAR_BYTES
-    + DWORD_BYTES
-    + 2 * DISPLAY_DEVICE_STRING_CHARS * WIDE_CHAR_BYTES,
+  size:
+    DWORD_BYTES +
+    DEVICE_NAME_CHARS * WIDE_CHAR_BYTES +
+    DISPLAY_DEVICE_STRING_CHARS * WIDE_CHAR_BYTES +
+    DWORD_BYTES +
+    2 * DISPLAY_DEVICE_STRING_CHARS * WIDE_CHAR_BYTES,
   deviceName: 4,
   stateFlags: 324
 } as const;
 
 // DEVMODEW, the display half of its union: dmPosition, then the pixel size of the current mode
 export const DevModeLayout = {
-  size: 220,
-  sizeField: 68,
-  positionX: 76,
-  positionY: 80,
-  pixelsWidth: 172,
-  pixelsHeight: 176,
-  displayFrequency: 184
+  SIZE: 220,
+  SIZE_FIELD: 68,
+  POSITION_X: 76,
+  POSITION_Y: 80,
+  PIXELS_WIDTH: 172,
+  PIXELS_HEIGHT: 176,
+  DISPLAY_FREQUENCY: 184
 } as const;
 
 export const ENUM_CURRENT_SETTINGS = 0xffffffff;
@@ -70,11 +71,7 @@ export interface ModeBounds {
   bottom: number;
 }
 
-export function wideStringAt({ bytes, offset, maxChars }: {
-  bytes: Buffer;
-  offset: number;
-  maxChars: number;
-}) {
+export function wideStringAt({ bytes, offset, maxChars }: { bytes: Buffer; offset: number; maxChars: number }) {
   const text = bytes.toString("utf16le", offset, offset + maxChars * WIDE_CHAR_BYTES);
   const end = text.indexOf("\0");
   return end === -1 ? text : text.slice(0, end);
@@ -111,16 +108,16 @@ export function parseDisplayDevice(bytes: Buffer) {
 }
 
 export function parseModeRefreshRate(bytes: Buffer) {
-  return bytes.readUInt32LE(DevModeLayout.displayFrequency);
+  return bytes.readUInt32LE(DevModeLayout.DISPLAY_FREQUENCY);
 }
 
 export function parseModeBounds(bytes: Buffer) {
-  const left = bytes.readInt32LE(DevModeLayout.positionX);
-  const top = bytes.readInt32LE(DevModeLayout.positionY);
+  const left = bytes.readInt32LE(DevModeLayout.POSITION_X);
+  const top = bytes.readInt32LE(DevModeLayout.POSITION_Y);
   return {
     left,
     top,
-    right: left + bytes.readUInt32LE(DevModeLayout.pixelsWidth),
-    bottom: top + bytes.readUInt32LE(DevModeLayout.pixelsHeight)
+    right: left + bytes.readUInt32LE(DevModeLayout.PIXELS_WIDTH),
+    bottom: top + bytes.readUInt32LE(DevModeLayout.PIXELS_HEIGHT)
   };
 }

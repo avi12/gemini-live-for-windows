@@ -16,7 +16,11 @@ export interface OcrLine {
 
 // The part of the image to read, and how much to scale it first: shrunk to the engine's largest image,
 // or enlarged (never past that) so the short edge reaches the minimum
-export function planScan({ image, region, maxDimension }: {
+export function planScan({
+  image,
+  region,
+  maxDimension
+}: {
   image: PixelSize;
   region: Region | undefined;
   maxDimension: number;
@@ -50,7 +54,11 @@ export function planScan({ image, region, maxDimension }: {
 }
 
 // A box the engine reported in the scanned (cropped, scaled) image, back in the source image's pixels
-export function toSourceBounds({ bounds, origin, scale }: {
+export function toSourceBounds({
+  bounds,
+  origin,
+  scale
+}: {
   bounds: PixelRect;
   origin: {
     x: number;
@@ -78,7 +86,10 @@ export function sortLines(lines: readonly OcrLine[]) {
 
 // The user's own languages first, then every installed recognizer language, so a Hebrew or English
 // screen is read whichever the profile lacks. Each tag once.
-export function engineTagOrder({ profileTag, installedTags }: {
+export function engineTagOrder({
+  profileTag,
+  installedTags
+}: {
   profileTag: string | undefined;
   installedTags: readonly string[];
 }) {

@@ -1,8 +1,3 @@
-import type { PixelSize } from "./capture-geometry.ts";
-import type { CapturedPixels } from "./gdi-capture.ts";
-import { withBufferBytes } from "@/media/winrt/buffer-access.ts";
-import { releaseNative } from "@/media/winrt/release.ts";
-import { argAddress, argU64, bindFunction, Win32Type } from "@/win32/bind.ts";
 import { PropertyType } from "winui-svelte/bindings/windows/foundation/PropertyType";
 import { PropertyValue } from "winui-svelte/bindings/windows/foundation/PropertyValue";
 import { BitmapAlphaMode } from "winui-svelte/bindings/windows/graphics/imaging/BitmapAlphaMode";
@@ -18,14 +13,21 @@ import { Buffer as WinRtBuffer } from "winui-svelte/bindings/windows/storage/str
 import { InMemoryRandomAccessStream } from "winui-svelte/bindings/windows/storage/streams/InMemoryRandomAccessStream";
 import { InputStreamOptions } from "winui-svelte/bindings/windows/storage/streams/InputStreamOptions";
 
+import { withBufferBytes } from "@/media/winrt/buffer-access.ts";
+import { releaseNative } from "@/media/winrt/release.ts";
+import { argAddress, argU64, bindFunction, Win32Type } from "@/win32/bind.ts";
+
+import type { PixelSize } from "./capture-geometry.ts";
+import type { CapturedPixels } from "./gdi-capture.ts";
+
 const IMAGE_QUALITY = "ImageQuality";
 const STREAM_START = 0n;
 
 const moveMemory = bindFunction({
   library: "kernel32.dll",
   entryPoint: "RtlMoveMemory",
-  parameters: [Win32Type.pointer, Win32Type.pointer, Win32Type.u64],
-  returns: Win32Type.void
+  parameters: [Win32Type.POINTER, Win32Type.POINTER, Win32Type.U64],
+  returns: Win32Type.VOID
 });
 
 export interface EncodedFrame {
@@ -58,7 +60,11 @@ async function readStream(stream: InMemoryRandomAccessStream) {
 // encoder keeps a shared lock on the bitmap it was given, so it is released here, before the caller
 // closes or reuses the bitmap; WIC's own scaling holds a source-sized buffer until a collection, so
 // shrink before this where the source is large (the screen does, the camera frames are small).
-export async function encodeBitmap({ bitmap, quality, size }: {
+export async function encodeBitmap({
+  bitmap,
+  quality,
+  size
+}: {
   bitmap: SoftwareBitmap;
   quality: number;
   size?: PixelSize | undefined;
@@ -95,10 +101,7 @@ export async function encodeBitmap({ bitmap, quality, size }: {
   }
 }
 
-function fill({ target, pixels }: {
-  target: SoftwareBitmap;
-  pixels: CapturedPixels;
-}) {
+function fill({ target, pixels }: { target: SoftwareBitmap; pixels: CapturedPixels }) {
   withBufferBytes({
     buffer: target.lockBuffer(BitmapBufferAccessMode.Write),
     use({ address, capacity }) {

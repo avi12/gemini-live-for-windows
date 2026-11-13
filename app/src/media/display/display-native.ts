@@ -1,3 +1,6 @@
+import { argHandle, argPointer, argU32, argWideString, bindFunction, Win32Type, withMemory } from "@/win32/bind.ts";
+import { foregroundWindowHandle, readCursorPosition } from "@/win32/user32.ts";
+
 import {
   DevModeLayout,
   DisplayDeviceLayout,
@@ -10,16 +13,6 @@ import {
 } from "./monitor-structs.ts";
 import type { ModeBounds, RawDisplay } from "./monitor-structs.ts";
 import type { DisplayNative } from "./monitors.ts";
-import {
-  argHandle,
-  argPointer,
-  argU32,
-  argWideString,
-  bindFunction,
-  Win32Type,
-  withMemory
-} from "@/win32/bind.ts";
-import { foregroundWindowHandle, readCursorPosition } from "@/win32/user32.ts";
 
 const MONITOR_DEFAULT_TO_NEAREST = 2;
 const MAX_DEVICES = 64;
@@ -33,36 +26,36 @@ const NO_FLAGS = 0;
 const enumDisplayDevices = bindFunction({
   library: "user32.dll",
   entryPoint: "EnumDisplayDevicesW",
-  parameters: [Win32Type.pointer, Win32Type.u32, Win32Type.pointer, Win32Type.u32],
-  returns: Win32Type.bool32
+  parameters: [Win32Type.POINTER, Win32Type.U32, Win32Type.POINTER, Win32Type.U32],
+  returns: Win32Type.BOOL32
 });
 
 const enumDisplaySettings = bindFunction({
   library: "user32.dll",
   entryPoint: "EnumDisplaySettingsW",
-  parameters: [Win32Type.pointer, Win32Type.u32, Win32Type.pointer],
-  returns: Win32Type.bool32
+  parameters: [Win32Type.POINTER, Win32Type.U32, Win32Type.POINTER],
+  returns: Win32Type.BOOL32
 });
 
 const monitorFromRect = bindFunction({
   library: "user32.dll",
   entryPoint: "MonitorFromRect",
-  parameters: [Win32Type.pointer, Win32Type.u32],
-  returns: Win32Type.handle
+  parameters: [Win32Type.POINTER, Win32Type.U32],
+  returns: Win32Type.HANDLE
 });
 
 const monitorFromWindow = bindFunction({
   library: "user32.dll",
   entryPoint: "MonitorFromWindow",
-  parameters: [Win32Type.handle, Win32Type.u32],
-  returns: Win32Type.handle
+  parameters: [Win32Type.HANDLE, Win32Type.U32],
+  returns: Win32Type.HANDLE
 });
 
 const getMonitorInfo = bindFunction({
   library: "user32.dll",
   entryPoint: "GetMonitorInfoW",
-  parameters: [Win32Type.handle, Win32Type.pointer],
-  returns: Win32Type.bool32
+  parameters: [Win32Type.HANDLE, Win32Type.POINTER],
+  returns: Win32Type.BOOL32
 });
 
 function attachedDeviceNames() {
@@ -92,16 +85,16 @@ function attachedDeviceNames() {
 
 function currentMode(deviceName: string) {
   return withMemory({
-    size: DevModeLayout.size,
+    size: DevModeLayout.SIZE,
     use(memory) {
-      memory.writeU16(DevModeLayout.sizeField, DevModeLayout.size);
+      memory.writeU16(DevModeLayout.SIZE_FIELD, DevModeLayout.SIZE);
       const read = enumDisplaySettings([argWideString(deviceName), argU32(ENUM_CURRENT_SETTINGS), argPointer(memory)]);
       const isRead = read.number !== 0;
       if (!isRead) {
         return undefined;
       }
 
-      const bytes = memory.readBytes(0, DevModeLayout.size);
+      const bytes = memory.readBytes(0, DevModeLayout.SIZE);
       return {
         bounds: parseModeBounds(bytes),
         refreshRateHertz: parseModeRefreshRate(bytes)

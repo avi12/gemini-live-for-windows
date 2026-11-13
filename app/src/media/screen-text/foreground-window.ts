@@ -28,37 +28,37 @@ const PATH_SEPARATOR = /[\\/]/;
 const getWindowText = bindFunction({
   library: "user32.dll",
   entryPoint: "GetWindowTextW",
-  parameters: [Win32Type.handle, Win32Type.pointer, Win32Type.i32],
-  returns: Win32Type.i32
+  parameters: [Win32Type.HANDLE, Win32Type.POINTER, Win32Type.I32],
+  returns: Win32Type.I32
 });
 
 const openProcess = bindFunction({
   library: "kernel32.dll",
   entryPoint: "OpenProcess",
-  parameters: [Win32Type.u32, Win32Type.bool32, Win32Type.u32],
-  returns: Win32Type.handle
+  parameters: [Win32Type.U32, Win32Type.BOOL32, Win32Type.U32],
+  returns: Win32Type.HANDLE
 });
 
 const queryFullProcessImageName = bindFunction({
   library: "kernel32.dll",
   entryPoint: "QueryFullProcessImageNameW",
-  parameters: [Win32Type.handle, Win32Type.u32, Win32Type.pointer, Win32Type.pointer],
-  returns: Win32Type.bool32
+  parameters: [Win32Type.HANDLE, Win32Type.U32, Win32Type.POINTER, Win32Type.POINTER],
+  returns: Win32Type.BOOL32
 });
 
 const closeHandle = bindFunction({
   library: "kernel32.dll",
   entryPoint: "CloseHandle",
-  parameters: [Win32Type.handle],
-  returns: Win32Type.bool32
+  parameters: [Win32Type.HANDLE],
+  returns: Win32Type.BOOL32
 });
 
 // The frame without the invisible resize border and shadow Windows adds to GetWindowRect
 const dwmGetWindowAttribute = bindFunction({
   library: "dwmapi.dll",
   entryPoint: "DwmGetWindowAttribute",
-  parameters: [Win32Type.handle, Win32Type.u32, Win32Type.pointer, Win32Type.u32],
-  returns: Win32Type.i32
+  parameters: [Win32Type.HANDLE, Win32Type.U32, Win32Type.POINTER, Win32Type.U32],
+  returns: Win32Type.I32
 });
 
 export interface ForegroundWindow {
@@ -104,23 +104,26 @@ function imagePathOf(processId: number) {
   try {
     return withMemory({
       size: IMAGE_PATH_CHARS * WIDE_CHAR_BYTES,
-      use: path => withMemory({
-        size: DWORD_BYTES,
-        use(length) {
-          length.writeU32(0, IMAGE_PATH_CHARS);
-          const query = queryFullProcessImageName([
-            argHandle(process),
-            argU32(NO_FLAGS),
-            argPointer(path),
-            argPointer(length)
-          ]);
-          const isRead = query.number !== 0;
-          return isRead ? readWideString({
-            memory: path,
-            maxChars: IMAGE_PATH_CHARS
-          }) : "";
-        }
-      })
+      use: path =>
+        withMemory({
+          size: DWORD_BYTES,
+          use(length) {
+            length.writeU32(0, IMAGE_PATH_CHARS);
+            const query = queryFullProcessImageName([
+              argHandle(process),
+              argU32(NO_FLAGS),
+              argPointer(path),
+              argPointer(length)
+            ]);
+            const isRead = query.number !== 0;
+            return isRead
+              ? readWideString({
+                  memory: path,
+                  maxChars: IMAGE_PATH_CHARS
+                })
+              : "";
+          }
+        })
     });
   } finally {
     closeHandle([argHandle(process)]);

@@ -1,8 +1,4 @@
-function drainPieces({ pieces, count, startOffset }: {
-  pieces: Float32Array[];
-  count: number;
-  startOffset: number;
-}) {
+function drainPieces({ pieces, count, startOffset }: { pieces: Float32Array[]; count: number; startOffset: number }) {
   const output = new Float32Array(count);
   let headOffset = startOffset;
   let written = 0;

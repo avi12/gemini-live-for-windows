@@ -1,3 +1,6 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+
 import {
   DevModeLayout,
   DisplayDeviceLayout,
@@ -8,8 +11,6 @@ import {
   parseMonitorInfo,
   wideStringAt
 } from "./monitor-structs.ts";
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 
 const NUMBER_2160 = 2160;
 const NUMBER_3840 = 3840;
@@ -23,11 +24,7 @@ const NUMBER_840 = 840;
 const NUMBER_104 = 104;
 const NUMBER_120 = 120;
 
-function writeWide({ bytes, offset, text }: {
-  bytes: Buffer;
-  offset: number;
-  text: string;
-}) {
+function writeWide({ bytes, offset, text }: { bytes: Buffer; offset: number; text: string }) {
   bytes.write(`${text}\0`, offset, "utf16le");
 }
 
@@ -35,15 +32,12 @@ describe("struct sizes", () => {
   it("match the Windows headers on x64", () => {
     assert.equal(MonitorInfoLayout.size, NUMBER_104);
     assert.equal(DisplayDeviceLayout.size, NUMBER_840);
-    assert.equal(DevModeLayout.size, NUMBER_220);
+    assert.equal(DevModeLayout.SIZE, NUMBER_220);
   });
 });
 
 describe("MONITORINFOEXW", () => {
-  function build({ flags, deviceName }: {
-    flags: number;
-    deviceName: string;
-  }) {
+  function build({ flags, deviceName }: { flags: number; deviceName: string }) {
     const bytes = Buffer.alloc(MonitorInfoLayout.size);
     bytes.writeUInt32LE(MonitorInfoLayout.size, 0);
     bytes.writeInt32LE(NEGATIVE_NUMBER_3840, MonitorInfoLayout.monitorLeft);
@@ -89,16 +83,14 @@ describe("MONITORINFOEXW", () => {
           flags: 1,
           deviceName: "\\\\.\\DISPLAY1"
         })
-      ).isPrimary, true
+      ).isPrimary,
+      true
     );
   });
 });
 
 describe("DISPLAY_DEVICEW", () => {
-  function build({ flags, name }: {
-    flags: number;
-    name: string;
-  }) {
+  function build({ flags, name }: { flags: number; name: string }) {
     const bytes = Buffer.alloc(DisplayDeviceLayout.size);
     bytes.writeUInt32LE(DisplayDeviceLayout.size, 0);
     writeWide({
@@ -117,7 +109,8 @@ describe("DISPLAY_DEVICEW", () => {
           flags: 0x5,
           name: "\\\\.\\DISPLAY13"
         })
-      ), {
+      ),
+      {
         deviceName: "\\\\.\\DISPLAY13",
         isOnDesktop: true,
         isMirroringDriver: false
@@ -139,11 +132,11 @@ describe("DISPLAY_DEVICEW", () => {
 
 describe("DEVMODEW", () => {
   it("turns position and pixel size into bounds", () => {
-    const bytes = Buffer.alloc(DevModeLayout.size);
-    bytes.writeInt32LE(NEGATIVE_NUMBER_3840, DevModeLayout.positionX);
-    bytes.writeInt32LE(NEGATIVE_NUMBER_134, DevModeLayout.positionY);
-    bytes.writeUInt32LE(NUMBER_3840, DevModeLayout.pixelsWidth);
-    bytes.writeUInt32LE(NUMBER_2160, DevModeLayout.pixelsHeight);
+    const bytes = Buffer.alloc(DevModeLayout.SIZE);
+    bytes.writeInt32LE(NEGATIVE_NUMBER_3840, DevModeLayout.POSITION_X);
+    bytes.writeInt32LE(NEGATIVE_NUMBER_134, DevModeLayout.POSITION_Y);
+    bytes.writeUInt32LE(NUMBER_3840, DevModeLayout.PIXELS_WIDTH);
+    bytes.writeUInt32LE(NUMBER_2160, DevModeLayout.PIXELS_HEIGHT);
     assert.deepEqual(parseModeBounds(bytes), {
       left: -3840,
       top: -134,
@@ -153,8 +146,8 @@ describe("DEVMODEW", () => {
   });
 
   it("reads the refresh rate from dmDisplayFrequency", () => {
-    const bytes = Buffer.alloc(DevModeLayout.size);
-    bytes.writeUInt32LE(NUMBER_120, DevModeLayout.displayFrequency);
+    const bytes = Buffer.alloc(DevModeLayout.SIZE);
+    bytes.writeUInt32LE(NUMBER_120, DevModeLayout.DISPLAY_FREQUENCY);
     assert.equal(parseModeRefreshRate(bytes), NUMBER_120);
   });
 });
@@ -167,14 +160,16 @@ describe("wide strings", () => {
         bytes,
         offset: 0,
         maxChars: 5
-      }), "ab"
+      }),
+      "ab"
     );
     assert.equal(
       wideStringAt({
         bytes: Buffer.from("abcd", "utf16le"),
         offset: 0,
         maxChars: 2
-      }), "ab"
+      }),
+      "ab"
     );
   });
 });

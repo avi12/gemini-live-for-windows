@@ -1,18 +1,21 @@
+import type { Monitor, Region } from "@/contracts/monitor.ts";
+
 import { DETAIL_SETTINGS, fitToEdge, screenArea } from "./capture-geometry.ts";
 import type { PixelRect, PixelSize, ScreenDetail } from "./capture-geometry.ts";
 import { createGdiCapturer } from "./gdi-capture.ts";
 import type { CapturedPixels } from "./gdi-capture.ts";
 import { createJpegEncoder } from "./jpeg-encoder.ts";
 import type { EncodedFrame, EncodeRequest } from "./jpeg-encoder.ts";
-import type { Monitor, Region } from "@/contracts/monitor.ts";
 
 export type { EncodedFrame };
 
+interface CaptureRequest {
+  area: PixelRect;
+  size: PixelSize;
+}
+
 export interface PixelGrabber {
-  capture(request: {
-    area: PixelRect;
-    size: PixelSize;
-  }): CapturedPixels;
+  capture(request: CaptureRequest): CapturedPixels;
   dispose(): void;
 }
 
@@ -20,20 +23,28 @@ export interface FrameEncoder {
   encode(request: EncodeRequest): Promise<EncodedFrame>;
 }
 
-async function captureArea({ grabber, encoder, monitor, region, detail }: {
+async function captureArea({
+  grabber,
+  encoder,
+  monitor,
+  region,
+  detail
+}: {
   grabber: PixelGrabber;
   encoder: FrameEncoder;
   monitor: Monitor;
   region: Region | undefined;
   detail: ScreenDetail;
 }) {
-  const area = screenArea({
-    monitor,
-    region
-  }) ?? screenArea({
-    monitor,
-    region: undefined
-  });
+  const area =
+    screenArea({
+      monitor,
+      region
+    }) ??
+    screenArea({
+      monitor,
+      region: undefined
+    });
   const isAreaMissing = area === undefined;
   if (isAreaMissing) {
     throw new RangeError(`Display ${monitor.deviceName} has no area to capture`);
@@ -65,17 +76,15 @@ export function createScreenCapture({
 } = {}) {
   let queue: Promise<unknown> = Promise.resolve();
 
-  function grab(request: {
-    monitor: Monitor;
-    region?: Region | undefined;
-    detail: ScreenDetail;
-  }) {
-    const next = queue.then(() => captureArea({
-      grabber,
-      encoder,
-      region: undefined,
-      ...request
-    }));
+  function grab(request: { monitor: Monitor; region?: Region | undefined; detail: ScreenDetail }) {
+    const next = queue.then(() =>
+      captureArea({
+        grabber,
+        encoder,
+        region: undefined,
+        ...request
+      })
+    );
     queue = next.catch(() => undefined);
     return next;
   }

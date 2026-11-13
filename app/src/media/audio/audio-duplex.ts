@@ -1,6 +1,7 @@
+import type { AudioDuplex, Unsubscribe } from "@/live/ports.ts";
+
 import { AudioCommandKind, AudioEventKind, audioEventSchema } from "./audio-protocol.ts";
 import type { AudioCommand, AudioEvent } from "./audio-protocol.ts";
-import type { AudioDuplex, Unsubscribe } from "@/live/ports.ts";
 
 const DISPOSE_GRACE_MILLISECONDS = 1000;
 
@@ -28,10 +29,12 @@ function createListeners<T>() {
 }
 
 function createStartGate(failures: ReturnType<typeof createListeners<string>>) {
-  let settleStart: {
-    resolve: () => void;
-    reject: (error: Error) => void;
-  } | undefined;
+  let settleStart:
+    | {
+        resolve: () => void;
+        reject: (error: Error) => void;
+      }
+    | undefined;
 
   return {
     wait(begin: () => void) {
@@ -71,36 +74,44 @@ function createHubs() {
   };
 }
 
-function postMute({ link, isMuted }: {
-  link: AudioWorkerLink;
-  isMuted: boolean;
-}) {
+function postMute({ link, isMuted }: { link: AudioWorkerLink; isMuted: boolean }) {
   link.post({
-    kind: AudioCommandKind.mute,
+    kind: AudioCommandKind.MUTE,
     isMuted
   });
 }
 
-function postStart({ link, deviceId, isLoopback }: {
+function postStart({
+  link,
+  deviceId,
+  isLoopback
+}: {
   link: AudioWorkerLink;
   deviceId: string | null;
   isLoopback: boolean;
 }) {
   link.post({
-    kind: AudioCommandKind.start,
+    kind: AudioCommandKind.START,
     deviceId,
     isLoopback
   });
 }
 
 function postDispose(link: AudioWorkerLink) {
-  link.post({ kind: AudioCommandKind.dispose });
-  const timer = setTimeout(() => void link.terminate(), DISPOSE_GRACE_MILLISECONDS);
+  link.post({ kind: AudioCommandKind.DISPOSE });
+  const timer = setTimeout(() => {
+    void link.terminate();
+  }, DISPOSE_GRACE_MILLISECONDS);
   timer.unref();
   return timer;
 }
 
-function listenToWorker({ link, gate, hubs, onDisposed }: {
+function listenToWorker({
+  link,
+  gate,
+  hubs,
+  onDisposed
+}: {
   link: AudioWorkerLink;
   gate: ReturnType<typeof createStartGate>;
   hubs: ReturnType<typeof createHubs>;
@@ -108,19 +119,19 @@ function listenToWorker({ link, gate, hubs, onDisposed }: {
 }) {
   function route(event: AudioEvent) {
     switch (event.kind) {
-      case AudioEventKind.micChunk:
+      case AudioEventKind.MIC_CHUNK:
         hubs.chunks.emit(event.pcm16);
         break;
-      case AudioEventKind.micLevel:
+      case AudioEventKind.MIC_LEVEL:
         hubs.micLevels.emit(event.peak);
         break;
-      case AudioEventKind.speakerLevel:
+      case AudioEventKind.SPEAKER_LEVEL:
         hubs.speakerLevels.emit(event.peak);
         break;
-      case AudioEventKind.failed:
+      case AudioEventKind.FAILED:
         gate.failed(event.message);
         break;
-      case AudioEventKind.started:
+      case AudioEventKind.STARTED:
         gate.started();
         break;
       default:
@@ -139,15 +150,15 @@ function listenToWorker({ link, gate, hubs, onDisposed }: {
   });
 }
 
-function postPlay({ link, pcm16 }: {
-  link: AudioWorkerLink;
-  pcm16: Uint8Array;
-}) {
+function postPlay({ link, pcm16 }: { link: AudioWorkerLink; pcm16: Uint8Array }) {
   const copy = pcm16.slice();
-  link.post({
-    kind: AudioCommandKind.play,
-    pcm16: copy
-  }, [copy.buffer]);
+  link.post(
+    {
+      kind: AudioCommandKind.PLAY,
+      pcm16: copy
+    },
+    [copy.buffer]
+  );
 }
 
 function createLifecycle(link: AudioWorkerLink) {
@@ -183,7 +194,11 @@ function createLifecycle(link: AudioWorkerLink) {
 // AudioDuplex over a worker. `microphoneId` is read when starting (the pill's picker may change it
 // between sessions): a Windows device id, or null for the default microphone. `isLoopback` swaps the
 // real devices for the device-free fixture graph, for tests.
-export function createAudioDuplex({ link, microphoneId, isLoopback = false }: {
+export function createAudioDuplex({
+  link,
+  microphoneId,
+  isLoopback = false
+}: {
   link: AudioWorkerLink;
   microphoneId: () => string | null;
   isLoopback?: boolean;
@@ -211,18 +226,21 @@ export function createAudioDuplex({ link, microphoneId, isLoopback = false }: {
         isMuted: isNowMuted
       });
     },
-    start: () => gate.wait(() => postStart({
-      link,
-      deviceId: microphoneId(),
-      isLoopback
-    })),
+    start: () =>
+      gate.wait(() =>
+        postStart({
+          link,
+          deviceId: microphoneId(),
+          isLoopback
+        })
+      ),
     onMicChunk: hubs.chunks.subscribe,
     onMicLevel: hubs.micLevels.subscribe,
     onSpeakerLevel: hubs.speakerLevels.subscribe,
     // Beyond the AudioDuplex port: the graph died after start (a device was unplugged, say)
     onFailure: hubs.failures.subscribe,
     play: lifecycle.play,
-    flush: () => link.post({ kind: AudioCommandKind.flush }),
+    flush: () => link.post({ kind: AudioCommandKind.FLUSH }),
     dispose: lifecycle.dispose
   } satisfies AudioDuplex & { onFailure: (listener: (message: string) => void) => Unsubscribe };
 }

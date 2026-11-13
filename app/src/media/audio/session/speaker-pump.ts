@@ -1,8 +1,9 @@
-import { createSpeakerQueue } from "./speaker-queue.ts";
 import { SPEAKER_RATE } from "@/live/api/constants.ts";
 import { MILLISECONDS_PER_SECOND } from "@/media/audio/audio-format.ts";
 import { bytesToFloats, peakOf, spreadToChannels } from "@/media/audio/signal/pcm.ts";
 import { createResampler } from "@/media/audio/signal/resampler.ts";
+
+import { createSpeakerQueue } from "./speaker-queue.ts";
 
 const MAX_QUANTA_PER_TICK = 100;
 
@@ -13,7 +14,14 @@ export interface SpeakerSink {
   discard(): void;
 }
 
-function feedSink({ sink, queue, quantumSamples, channels, leadSamples, onLevel }: {
+function feedSink({
+  sink,
+  queue,
+  quantumSamples,
+  channels,
+  leadSamples,
+  onLevel
+}: {
   sink: SpeakerSink;
   queue: ReturnType<typeof createSpeakerQueue>;
   quantumSamples: number;
@@ -78,14 +86,15 @@ export function createSpeakerPump({
   return {
     write,
     flush,
-    tick: () => feedSink({
-      sink,
-      queue,
-      quantumSamples,
-      channels,
-      leadSamples,
-      onLevel
-    }),
+    tick: () =>
+      feedSink({
+        sink,
+        queue,
+        quantumSamples,
+        channels,
+        leadSamples,
+        onLevel
+      }),
     get queuedMilliseconds() {
       return (queue.queuedSamples * MILLISECONDS_PER_SECOND) / graphRate;
     },

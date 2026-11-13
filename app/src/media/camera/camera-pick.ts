@@ -33,7 +33,10 @@ export function listCameraEntries(groups: readonly CameraGroupInfo[]) {
 }
 
 // The group asked for by id, else the first webcam; and its first color video source
-export function pickColorCamera({ groups, cameraId }: {
+export function pickColorCamera({
+  groups,
+  cameraId
+}: {
   groups: readonly CameraGroupInfo[];
   cameraId: string | undefined;
 }) {

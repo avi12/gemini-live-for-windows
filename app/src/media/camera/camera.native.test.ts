@@ -1,7 +1,9 @@
-import { listCameras } from "./camera.ts";
-import { roInitialize } from "@microsoft/dynwinrt";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+
+import { roInitialize } from "@microsoft/dynwinrt";
+
+import { listCameras } from "./camera.ts";
 
 const IS_WINDOWS = process.platform === "win32";
 

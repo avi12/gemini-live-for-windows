@@ -1,24 +1,15 @@
-import {
-  engineTagOrder,
-  lineText,
-  MIN_OCR_EDGE,
-  planScan,
-  sortLines,
-  toSourceBounds
-} from "./ocr-geometry.ts";
-import type { OcrLine } from "./ocr-geometry.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+
+import { engineTagOrder, lineText, MIN_OCR_EDGE, planScan, sortLines, toSourceBounds } from "./ocr-geometry.ts";
+import type { OcrLine } from "./ocr-geometry.ts";
 
 const NUMBER_0_POINT_5 = 0.5;
 const NUMBER_50 = 50;
 
 const MAX_DIMENSION = 10_000;
 
-function line({ top, words }: {
-  top: number;
-  words: string[];
-}) {
+function line({ top, words }: { top: number; words: string[] }) {
   return {
     words: words.map((text, iWord) => ({
       text,
@@ -93,7 +84,8 @@ describe("plan scan", () => {
           height: 5
         },
         maxDimension: MAX_DIMENSION
-      }), undefined
+      }),
+      undefined
     );
   });
 
@@ -167,7 +159,8 @@ describe("source bounds", () => {
           y: 200
         },
         scale: 2
-      }), {
+      }),
+      {
         x: 310,
         y: 220,
         width: 50,
@@ -194,7 +187,10 @@ describe("lines", () => {
         words: ["b"]
       })
     ]);
-    assert.deepEqual(sorted.map(item => lineText(item)), ["a", "b", "c"]);
+    assert.deepEqual(
+      sorted.map(item => lineText(item)),
+      ["a", "b", "c"]
+    );
   });
 
   it("keeps the words in the order Windows returned them, right to left included", () => {
@@ -203,33 +199,42 @@ describe("lines", () => {
       words: ["third", "second", "first"]
     });
     assert.equal(lineText(hebrew), "third second first");
-    assert.deepEqual(sortLines([hebrew])[0]?.words.map(word => word.text), ["third", "second", "first"]);
+    assert.deepEqual(
+      sortLines([hebrew])[0]?.words.map(word => word.text),
+      ["third", "second", "first"]
+    );
   });
 
   it("orders a line by its highest word", () => {
     const tilted: OcrLine = {
-      words: [{
-        text: "x",
-        bounds: {
-          x: 0,
-          y: 90,
-          width: 1,
-          height: 1
+      words: [
+        {
+          text: "x",
+          bounds: {
+            x: 0,
+            y: 90,
+            width: 1,
+            height: 1
+          }
+        },
+        {
+          text: "y",
+          bounds: {
+            x: 5,
+            y: 10,
+            width: 1,
+            height: 1
+          }
         }
-      }, {
-        text: "y",
-        bounds: {
-          x: 5,
-          y: 10,
-          width: 1,
-          height: 1
-        }
-      }]
+      ]
     };
-    const sorted = sortLines([line({
-      top: 50,
-      words: ["mid"]
-    }), tilted]);
+    const sorted = sortLines([
+      line({
+        top: 50,
+        words: ["mid"]
+      }),
+      tilted
+    ]);
     assert.equal(lineText(sorted[0] ?? tilted), "x y");
   });
 });
@@ -240,7 +245,8 @@ describe("engine order", () => {
       engineTagOrder({
         profileTag: "en-GB",
         installedTags: ["en-US", "en-GB", "he"]
-      }), ["en-GB", "en-US", "he"]
+      }),
+      ["en-GB", "en-US", "he"]
     );
   });
 
@@ -249,7 +255,8 @@ describe("engine order", () => {
       engineTagOrder({
         profileTag: undefined,
         installedTags: ["en-US"]
-      }), ["en-US"]
+      }),
+      ["en-US"]
     );
   });
 
@@ -258,7 +265,8 @@ describe("engine order", () => {
       engineTagOrder({
         profileTag: undefined,
         installedTags: []
-      }), []
+      }),
+      []
     );
   });
 });

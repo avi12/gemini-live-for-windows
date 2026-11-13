@@ -1,5 +1,3 @@
-import { releaseNative } from "./release.ts";
-import type { PixelRect, PixelSize } from "@/media/screen/capture-geometry.ts";
 import { BitmapAlphaMode } from "winui-svelte/bindings/windows/graphics/imaging/BitmapAlphaMode";
 import { BitmapDecoder } from "winui-svelte/bindings/windows/graphics/imaging/BitmapDecoder";
 import { BitmapInterpolationMode } from "winui-svelte/bindings/windows/graphics/imaging/BitmapInterpolationMode";
@@ -9,6 +7,10 @@ import { ColorManagementMode } from "winui-svelte/bindings/windows/graphics/imag
 import { ExifOrientationMode } from "winui-svelte/bindings/windows/graphics/imaging/ExifOrientationMode";
 import { CryptographicBuffer } from "winui-svelte/bindings/windows/security/cryptography/CryptographicBuffer";
 import { InMemoryRandomAccessStream } from "winui-svelte/bindings/windows/storage/streams/InMemoryRandomAccessStream";
+
+import type { PixelRect, PixelSize } from "@/media/screen/capture-geometry.ts";
+
+import { releaseNative } from "./release.ts";
 
 const STREAM_START = 0n;
 
@@ -25,10 +27,7 @@ export async function openImage(encoded: Uint8Array) {
 
   // `area` (in the picture's pixels) as a BGRA bitmap, scaled by `scale` in the same decode. WIC scales
   // first and crops the scaled picture, so the bounds are scaled with it. The caller closes the bitmap.
-  function crop({ area, scale }: {
-    area: PixelRect;
-    scale: number;
-  }) {
+  function crop({ area, scale }: { area: PixelRect; scale: number }) {
     const transform = new BitmapTransform();
     transform.scaledWidth = Math.round(size.width * scale);
     transform.scaledHeight = Math.round(size.height * scale);

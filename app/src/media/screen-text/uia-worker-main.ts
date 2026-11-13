@@ -1,8 +1,10 @@
-import { errorMessage } from "@/lib/error-message.ts";
-import { DynCom } from "@microsoft/dynwinrt/com/unsafe";
 import type { MessagePort } from "node:worker_threads";
+
+import { DynCom } from "@microsoft/dynwinrt/com/unsafe";
 import { readWindowText, withUiaClient } from "winui-svelte/automation";
 import type { WindowText } from "winui-svelte/automation";
+
+import { errorMessage } from "@/lib/error-message.ts";
 
 // The multithreaded apartment Microsoft advises for a UI Automation client
 const MULTITHREADED_APARTMENT = 0;

@@ -1,6 +1,7 @@
-import { createSpeakerQueue } from "./speaker-queue.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+
+import { createSpeakerQueue } from "./speaker-queue.ts";
 
 const NUMBER_5 = 5;
 const NUMBER_4 = 4;

@@ -1,12 +1,11 @@
-import type { RawDisplay } from "./monitor-structs.ts";
-import { monitorSchema } from "@/contracts/monitor.ts";
-import type { Monitor } from "@/contracts/monitor.ts";
 import { knownRefreshRate } from "@gemini-live/protocol/view";
 
-function toMonitor({ raw, index }: {
-  raw: RawDisplay;
-  index: number;
-}) {
+import { monitorSchema } from "@/contracts/monitor.ts";
+import type { Monitor } from "@/contracts/monitor.ts";
+
+import type { RawDisplay } from "./monitor-structs.ts";
+
+function toMonitor({ raw, index }: { raw: RawDisplay; index: number }) {
   return monitorSchema.safeParse({
     deviceName: raw.deviceName,
     index,
@@ -40,16 +39,17 @@ export function orderDisplays(raws: readonly RawDisplay[]) {
 }
 
 // The display Windows named `deviceName`; the primary one if it is gone or none was named
-export function displayNamed({ all, deviceName }: {
-  all: readonly Monitor[];
-  deviceName: string | undefined;
-}) {
+export function displayNamed({ all, deviceName }: { all: readonly Monitor[]; deviceName: string | undefined }) {
   const named = all.find(monitor => monitor.deviceName === deviceName);
   return named ?? all.find(monitor => monitor.isPrimary) ?? all[0];
 }
 
 // After displays changed: the current version of `display` in `all`, or `fallback` if it was unplugged
-export function reconcileDisplay({ all, display, fallback }: {
+export function reconcileDisplay({
+  all,
+  display,
+  fallback
+}: {
   all: readonly Monitor[];
   display: Monitor;
   fallback: () => Monitor;
@@ -58,10 +58,7 @@ export function reconcileDisplay({ all, display, fallback }: {
 }
 
 // The same physical displays in the same places: nothing the pill or the capture needs to redo
-export function haveDisplaysChanged({ before, after }: {
-  before: readonly Monitor[];
-  after: readonly Monitor[];
-}) {
+export function haveDisplaysChanged({ before, after }: { before: readonly Monitor[]; after: readonly Monitor[] }) {
   const isResized = before.length !== after.length;
   if (isResized) {
     return true;

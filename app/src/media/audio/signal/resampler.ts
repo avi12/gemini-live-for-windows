@@ -5,11 +5,7 @@ interface ResampleRun {
   last: number;
 }
 
-function sampleAt({ input, index, last }: {
-  input: Float32Array;
-  index: number;
-  last: number;
-}) {
+function sampleAt({ input, index, last }: { input: Float32Array; index: number; last: number }) {
   return index < 0 ? last : (input[index] ?? 0);
 }
 
@@ -24,11 +20,13 @@ function shrink({ input, position, step, last }: ResampleRun) {
     }
     const isWindowEmpty = end <= start;
     output.push(
-      isWindowEmpty ? sampleAt({
-        input,
-        index: start - 1,
-        last
-      }) : sum / (end - start)
+      isWindowEmpty
+        ? sampleAt({
+            input,
+            index: start - 1,
+            last
+          })
+        : sum / (end - start)
     );
     position += step;
   }
@@ -49,11 +47,14 @@ function grow({ input, position, step, last }: ResampleRun) {
       last
     });
     output.push(
-      current + (sampleAt({
-        input,
-        index: index + 1,
-        last
-      }) - current) * fraction
+      current +
+        (sampleAt({
+          input,
+          index: index + 1,
+          last
+        }) -
+          current) *
+          fraction
     );
     position += step;
   }
@@ -66,10 +67,7 @@ function grow({ input, position, step, last }: ResampleRun) {
 // Streaming linear resampler, a port of AudioEngine.Resampler: shrinking the rate averages the input
 // window per output sample (a cheap anti-alias, plenty for speech), growing it interpolates. State
 // carries across chunks so the seams are continuous.
-export function createResampler({ from, to }: {
-  from: number;
-  to: number;
-}) {
+export function createResampler({ from, to }: { from: number; to: number }) {
   const step = from / to;
   const isPassThrough = from === to;
   const isShrinking = step > 1;

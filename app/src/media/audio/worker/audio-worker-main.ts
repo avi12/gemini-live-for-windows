@@ -1,14 +1,14 @@
-import { serveAudio } from "./audio-worker-host.ts";
-import type { AudioPort, OpenGraphRequest } from "./audio-worker-host.ts";
+import { roInitialize } from "@microsoft/dynwinrt";
+
 import { createDuplexGraph, createLoopbackGraph } from "@/media/audio/session/audio-graph.ts";
 import { requestFineTimers } from "@/media/audio/timer-resolution.ts";
 import { systemClock } from "@/media/clock.ts";
-import { roInitialize } from "@microsoft/dynwinrt";
+
+import { serveAudio } from "./audio-worker-host.ts";
+import type { AudioPort, OpenGraphRequest } from "./audio-worker-host.ts";
 
 function createGraph({ deviceId, isLoopback }: OpenGraphRequest) {
-  return isLoopback
-    ? createLoopbackGraph({ isClockedBySilentSpeaker: true })
-    : createDuplexGraph({ deviceId });
+  return isLoopback ? createLoopbackGraph({ isClockedBySilentSpeaker: true }) : createDuplexGraph({ deviceId });
 }
 
 // Finer timer ticks (a 10 ms poll otherwise lands every 15.6 ms) for as long as the graph is open

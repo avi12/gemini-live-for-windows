@@ -1,5 +1,6 @@
-import type { ForegroundWindow } from "./foreground-window.ts";
-import { buildScreenView } from "./screen-text-blocks.ts";
+import { TextBlockKind } from "winui-svelte/automation";
+import type { WindowText } from "winui-svelte/automation";
+
 import type { Monitor, Region } from "@/contracts/monitor.ts";
 import { BlockKind } from "@/google/protocols/glic.ts";
 import type { ScreenView } from "@/google/protocols/glic.ts";
@@ -7,12 +8,24 @@ import { errorMessage } from "@/lib/error-message.ts";
 import type { OcrLine } from "@/media/ocr/ocr-geometry.ts";
 import { clipToSurface, ScreenDetail } from "@/media/screen/capture-geometry.ts";
 import type { EncodedFrame } from "@/media/screen/jpeg-encoder.ts";
-import { TextBlockKind } from "winui-svelte/automation";
-import type { WindowText } from "winui-svelte/automation";
+
+import type { ForegroundWindow } from "./foreground-window.ts";
+import { buildScreenView } from "./screen-text-blocks.ts";
 
 // An exact text copy of the window the user is looking at. The real reader is UI Automation (Windows'
 // accessibility tree: exact words, headings, no recognition errors), createUiaScreenTextReader;
 // where it finds nothing (a window that exposes no tree, an elevated one, a timeout) it falls back to
+interface GrabRequest {
+  monitor: Monitor;
+  region: Region;
+  detail: ScreenDetail;
+}
+
+interface ReadTextRequest {
+  hwnd: bigint;
+  excludeProcessId: number;
+}
+
 // createOcrScreenTextReader, which answers with the same shape from a picture of the window.
 export interface ScreenTextReader {
   // The text of the foreground window if it is on `monitor`; undefined when there is none, it is on
@@ -27,28 +40,18 @@ export interface ForegroundDeps {
 }
 
 export interface ScreenTextDeps extends ForegroundDeps {
-  grab: (request: {
-    monitor: Monitor;
-    region: Region;
-    detail: ScreenDetail;
-  }) => Promise<EncodedFrame>;
+  grab: (request: GrabRequest) => Promise<EncodedFrame>;
   readLines: (request: { image: Uint8Array }) => Promise<OcrLine[]>;
 }
 
 export interface UiaScreenTextDeps extends ForegroundDeps {
-  readText: (request: {
-    hwnd: bigint;
-    excludeProcessId: number;
-  }) => Promise<WindowText | null>;
+  readText: (request: ReadTextRequest) => Promise<WindowText | null>;
   fallback: ScreenTextReader;
   log: (message: string) => void;
 }
 
 // The foreground window when it is the user's: not this app's own, and on `monitor`
-function userWindowOn({ deps, monitor }: {
-  deps: ForegroundDeps;
-  monitor: Monitor;
-}) {
+function userWindowOn({ deps, monitor }: { deps: ForegroundDeps; monitor: Monitor }) {
   const window = deps.foregroundWindow();
   const isNoWindowOrOurs = window === undefined || window.processId === deps.ownProcessId;
   if (isNoWindowOrOurs) {
@@ -89,7 +92,7 @@ export function createOcrScreenTextReader(deps: ScreenTextDeps) {
       const frame = await grab({
         monitor,
         region,
-        detail: ScreenDetail.frozen
+        detail: ScreenDetail.FROZEN
       });
       const lines = await readLines({ image: frame.jpeg });
       return buildScreenView({
@@ -101,16 +104,13 @@ export function createOcrScreenTextReader(deps: ScreenTextDeps) {
   } satisfies ScreenTextReader;
 }
 
-function screenViewOf({ text, window }: {
-  text: WindowText;
-  window: ForegroundWindow;
-}) {
+function screenViewOf({ text, window }: { text: WindowText; window: ForegroundWindow }) {
   const hasTitle = text.title.length > 0;
   return {
     title: hasTitle ? text.title : window.title,
     app: window.appName,
     blocks: text.blocks.map(block => ({
-      kind: block.kind === TextBlockKind.heading ? BlockKind.heading : BlockKind.paragraph,
+      kind: block.kind === TextBlockKind.heading ? BlockKind.HEADING : BlockKind.PARAGRAPH,
       text: block.text
     })),
     version: text.version

@@ -1,11 +1,13 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+
+import type { Monitor } from "@/contracts/monitor.ts";
+
 import { ScreenDetail } from "./capture-geometry.ts";
 import type { PixelRect, PixelSize } from "./capture-geometry.ts";
 import type { EncodeRequest } from "./jpeg-encoder.ts";
 import { createScreenCapture } from "./screen-capture.ts";
 import type { FrameEncoder, PixelGrabber } from "./screen-capture.ts";
-import type { Monitor } from "@/contracts/monitor.ts";
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 
 const NUMBER_0_POINT_85 = 0.85;
 const NUMBER_0_POINT_7 = 0.7;
@@ -81,26 +83,30 @@ describe("screen capture", () => {
     const { screenCapture, areas } = setup();
     await screenCapture.grab({
       monitor: MONITOR,
-      detail: ScreenDetail.light
+      detail: ScreenDetail.LIGHT
     });
-    assert.deepEqual(areas, [{
-      x: 100,
-      y: 50,
-      width: 3840,
-      height: 2160
-    }]);
+    assert.deepEqual(areas, [
+      {
+        x: 100,
+        y: 50,
+        width: 3840,
+        height: 2160
+      }
+    ]);
   });
 
   it("never shrinks a frozen still", async () => {
     const { screenCapture, sizes } = setup();
     await screenCapture.grab({
       monitor: MONITOR,
-      detail: ScreenDetail.frozen
+      detail: ScreenDetail.FROZEN
     });
-    assert.deepEqual(sizes, [{
-      width: 3840,
-      height: 2160
-    }]);
+    assert.deepEqual(sizes, [
+      {
+        width: 3840,
+        height: 2160
+      }
+    ]);
   });
 
   it("copies just the region, in physical pixels offset by the display", async () => {
@@ -113,14 +119,16 @@ describe("screen capture", () => {
         width: 300,
         height: 200
       },
-      detail: ScreenDetail.light
+      detail: ScreenDetail.LIGHT
     });
-    assert.deepEqual(areas, [{
-      x: 110,
-      y: 70,
-      width: 300,
-      height: 200
-    }]);
+    assert.deepEqual(areas, [
+      {
+        x: 110,
+        y: 70,
+        width: 300,
+        height: 200
+      }
+    ]);
   });
 
   it("gives the whole display when the region is outside it", async () => {
@@ -133,7 +141,7 @@ describe("screen capture", () => {
         width: 10,
         height: 10
       },
-      detail: ScreenDetail.light
+      detail: ScreenDetail.LIGHT
     });
     assert.equal(areas[0]?.width, NUMBER_3840);
   });
@@ -142,20 +150,26 @@ describe("screen capture", () => {
     const { screenCapture, requests, sizes } = setup();
     await screenCapture.grab({
       monitor: MONITOR,
-      detail: ScreenDetail.light
+      detail: ScreenDetail.LIGHT
     });
     await screenCapture.grab({
       monitor: MONITOR,
-      detail: ScreenDetail.sharp
+      detail: ScreenDetail.SHARP
     });
-    assert.deepEqual(sizes, [{
-      width: 1280,
-      height: 720
-    }, {
-      width: 2200,
-      height: 1237
-    }]);
-    assert.deepEqual(requests.map(request => request.quality), [NUMBER_0_POINT_7, NUMBER_0_POINT_85]);
+    assert.deepEqual(sizes, [
+      {
+        width: 1280,
+        height: 720
+      },
+      {
+        width: 2200,
+        height: 1237
+      }
+    ]);
+    assert.deepEqual(
+      requests.map(request => request.quality),
+      [NUMBER_0_POINT_7, NUMBER_0_POINT_85]
+    );
   });
 
   it("does not start a grab until the previous frame is encoded, because the buffer is shared", async () => {
@@ -170,7 +184,7 @@ describe("screen capture", () => {
           width: 100,
           height: 100
         },
-        detail: ScreenDetail.light
+        detail: ScreenDetail.LIGHT
       }),
       screenCapture.grab({
         monitor: MONITOR,
@@ -180,7 +194,7 @@ describe("screen capture", () => {
           width: 200,
           height: 100
         },
-        detail: ScreenDetail.light
+        detail: ScreenDetail.LIGHT
       })
     ]);
     assert.deepEqual(order, ["capture 100", "encoded 100", "capture 200", "encoded 200"]);
@@ -201,14 +215,16 @@ describe("screen capture", () => {
     await assert.rejects(
       failing.grab({
         monitor: MONITOR,
-        detail: ScreenDetail.light
-      }), /BitBlt failed/
+        detail: ScreenDetail.LIGHT
+      }),
+      /BitBlt failed/
     );
     await assert.rejects(
       failing.grab({
         monitor: MONITOR,
-        detail: ScreenDetail.light
-      }), /BitBlt failed/
+        detail: ScreenDetail.LIGHT
+      }),
+      /BitBlt failed/
     );
   });
 

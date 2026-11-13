@@ -7,11 +7,7 @@ import { releaseNative } from "@/media/winrt/release.ts";
 
 // `region` (in the picture's own pixels; the whole picture when it misses it) cut out of an encoded
 // frame and encoded again at `detail`: the circled part, as the frame Gemini sees.
-export async function cropJpeg({ jpeg, region, detail }: {
-  jpeg: Uint8Array;
-  region: Region;
-  detail: ScreenDetail;
-}) {
+export async function cropJpeg({ jpeg, region, detail }: { jpeg: Uint8Array; region: Region; detail: ScreenDetail }) {
   const picture = await openImage(jpeg);
   try {
     const area = clipToSurface({

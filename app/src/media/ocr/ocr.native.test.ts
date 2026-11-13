@@ -1,5 +1,9 @@
-import { lineText } from "./ocr-geometry.ts";
-import { readLines } from "./ocr.ts";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+
+import { roInitialize } from "@microsoft/dynwinrt";
+import { DynComRawMemory } from "@microsoft/dynwinrt/com/unsafe/raw";
+
 import { createJpegEncoder } from "@/media/screen/jpeg-encoder.ts";
 import {
   argHandle,
@@ -11,18 +15,10 @@ import {
   Win32Type,
   withMemory
 } from "@/win32/bind.ts";
-import {
-  createCompatibleDC,
-  createDIBSection,
-  deleteDC,
-  deleteObject,
-  getDC,
-  selectObject
-} from "@/win32/gdi.ts";
-import { roInitialize } from "@microsoft/dynwinrt";
-import { DynComRawMemory } from "@microsoft/dynwinrt/com/unsafe/raw";
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { createCompatibleDC, createDIBSection, deleteDC, deleteObject, getDC, selectObject } from "@/win32/gdi.ts";
+
+import { lineText } from "./ocr-geometry.ts";
+import { readLines } from "./ocr.ts";
 
 const NUMBER_200 = 200;
 const NUMBER_32 = 32;
@@ -58,24 +54,34 @@ const createFont = bindFunction({
   library: "gdi32.dll",
   entryPoint: "CreateFontW",
   parameters: [
-    Win32Type.i32, Win32Type.i32, Win32Type.i32, Win32Type.i32, Win32Type.i32,
-    Win32Type.u32, Win32Type.u32, Win32Type.u32, Win32Type.u32,
-    Win32Type.u32, Win32Type.u32, Win32Type.u32, Win32Type.u32,
-    Win32Type.pointer
+    Win32Type.I32,
+    Win32Type.I32,
+    Win32Type.I32,
+    Win32Type.I32,
+    Win32Type.I32,
+    Win32Type.U32,
+    Win32Type.U32,
+    Win32Type.U32,
+    Win32Type.U32,
+    Win32Type.U32,
+    Win32Type.U32,
+    Win32Type.U32,
+    Win32Type.U32,
+    Win32Type.POINTER
   ],
-  returns: Win32Type.handle
+  returns: Win32Type.HANDLE
 });
 const setBkMode = bindFunction({
   library: "gdi32.dll",
   entryPoint: "SetBkMode",
-  parameters: [Win32Type.handle, Win32Type.i32],
-  returns: Win32Type.i32
+  parameters: [Win32Type.HANDLE, Win32Type.I32],
+  returns: Win32Type.I32
 });
 const textOut = bindFunction({
   library: "gdi32.dll",
   entryPoint: "TextOutW",
-  parameters: [Win32Type.handle, Win32Type.i32, Win32Type.i32, Win32Type.pointer, Win32Type.i32],
-  returns: Win32Type.bool32
+  parameters: [Win32Type.HANDLE, Win32Type.I32, Win32Type.I32, Win32Type.POINTER, Win32Type.I32],
+  returns: Win32Type.BOOL32
 });
 // White page, black text, drawn by GDI into a DIB, then encoded by the same JPEG encoder the screen uses
 async function renderTextJpeg() {
@@ -83,8 +89,19 @@ async function renderTextJpeg() {
   const memoryDC = createCompatibleDC([argHandle(screen)]).address;
   const name = wideMemory("Arial");
   const font = createFont([
-    argI32(FONT_HEIGHT), argI32(0), argI32(0), argI32(0), argI32(FONT_WEIGHT),
-    argU32(0), argU32(0), argU32(0), argU32(0), argU32(0), argU32(0), argU32(ANTIALIASED_QUALITY), argU32(0),
+    argI32(FONT_HEIGHT),
+    argI32(0),
+    argI32(0),
+    argI32(0),
+    argI32(FONT_WEIGHT),
+    argU32(0),
+    argU32(0),
+    argU32(0),
+    argU32(0),
+    argU32(0),
+    argU32(0),
+    argU32(ANTIALIASED_QUALITY),
+    argU32(0),
     argPointer(name)
   ]).address;
   name.release();
@@ -150,7 +167,10 @@ describe("OCR on this machine", { skip: !IS_WINDOWS }, () => {
     roInitialize();
     const { jpeg } = await renderTextJpeg();
     const lines = await readLines({ image: jpeg });
-    assert.deepEqual(lines.map(line => lineText(line).toLowerCase()), ["gemini live reads this", "second line below"]);
+    assert.deepEqual(
+      lines.map(line => lineText(line).toLowerCase()),
+      ["gemini live reads this", "second line below"]
+    );
     const first = lines[0]?.words[0]?.bounds;
     assert.ok(first);
     assert.ok(Math.abs(first.x - FIRST_LINE.x) < POSITION_TOLERANCE, `x ${first.x}`);
@@ -169,7 +189,10 @@ describe("OCR on this machine", { skip: !IS_WINDOWS }, () => {
         height: HEIGHT - NUMBER_200
       }
     });
-    assert.deepEqual(lines.map(line => lineText(line).toLowerCase()), ["second line below"]);
+    assert.deepEqual(
+      lines.map(line => lineText(line).toLowerCase()),
+      ["second line below"]
+    );
     const box = lines[0]?.words[0]?.bounds;
     assert.ok(box);
     assert.ok(box.y >= SECOND_LINE.y - POSITION_TOLERANCE, `y ${box.y}`);
@@ -188,7 +211,13 @@ describe("OCR on this machine", { skip: !IS_WINDOWS }, () => {
         height: 80
       }
     });
-    assert.match(lines.map(line => lineText(line)).join(" ").toLowerCase(), /gemini/);
+    assert.match(
+      lines
+        .map(line => lineText(line))
+        .join(" ")
+        .toLowerCase(),
+      /gemini/
+    );
   });
 
   it("is empty for a region outside the picture", async () => {
@@ -203,7 +232,8 @@ describe("OCR on this machine", { skip: !IS_WINDOWS }, () => {
           width: 10,
           height: 10
         }
-      }), []
+      }),
+      []
     );
   });
 });

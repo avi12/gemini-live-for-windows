@@ -1,16 +1,19 @@
-import { cropJpeg } from "./crop-jpeg.ts";
 import type { Monitor, Region } from "@/contracts/monitor.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 import { ScreenDetail } from "@/media/screen/capture-geometry.ts";
 import type { ScreenCapture } from "@/media/screen/screen-capture.ts";
 import type { CircleScreen, FrozenScreen, OcrLine } from "@/overlays/ports.ts";
 
+import { cropJpeg } from "./crop-jpeg.ts";
+
+interface ReadLinesRequest {
+  image: Uint8Array;
+  region: Region | undefined;
+}
+
 export interface CircleScreenDeps {
   screenCapture: Pick<ScreenCapture, "grab">;
-  readLines: (request: {
-    image: Uint8Array;
-    region: Region | undefined;
-  }) => Promise<OcrLine[]>;
+  readLines: (request: ReadLinesRequest) => Promise<OcrLine[]>;
   log: (message: string) => void;
 }
 
@@ -21,7 +24,7 @@ export function createCircleScreen({ screenCapture, readLines, log }: CircleScre
   async function freeze(monitor: Monitor) {
     const frame = await screenCapture.grab({
       monitor,
-      detail: ScreenDetail.frozen
+      detail: ScreenDetail.FROZEN
     });
     return {
       monitor,
@@ -31,21 +34,15 @@ export function createCircleScreen({ screenCapture, readLines, log }: CircleScre
     };
   }
 
-  function crop({ frozen, region }: {
-    frozen: FrozenScreen;
-    region: Region;
-  }) {
+  function crop({ frozen, region }: { frozen: FrozenScreen; region: Region }) {
     return cropJpeg({
       jpeg: frozen.jpeg,
       region,
-      detail: ScreenDetail.sharp
+      detail: ScreenDetail.SHARP
     });
   }
 
-  async function readText({ frozen, region }: {
-    frozen: FrozenScreen;
-    region: Region | undefined;
-  }) {
+  async function readText({ frozen, region }: { frozen: FrozenScreen; region: Region | undefined }) {
     try {
       return await readLines({
         image: frozen.jpeg,

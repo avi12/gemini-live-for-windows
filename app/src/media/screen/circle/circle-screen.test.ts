@@ -1,8 +1,10 @@
-import { createCircleScreen } from "./circle-screen.ts";
-import type { Monitor } from "@/contracts/monitor.ts";
-import { ScreenDetail } from "@/media/screen/capture-geometry.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+
+import type { Monitor } from "@/contracts/monitor.ts";
+import { ScreenDetail } from "@/media/screen/capture-geometry.ts";
+
+import { createCircleScreen } from "./circle-screen.ts";
 
 const NUMBER_2160 = 2160;
 const NUMBER_3840 = 3840;
@@ -36,7 +38,7 @@ function setup({ isOcrFailing = false }: { isOcrFailing?: boolean } = {}) {
         });
       }
     },
-    readLines: () => isOcrFailing ? Promise.reject(new Error("no language")) : Promise.resolve([]),
+    readLines: () => (isOcrFailing ? Promise.reject(new Error("no language")) : Promise.resolve([])),
     log: message => logs.push(message)
   });
   return {
@@ -50,10 +52,12 @@ describe("circle screen", () => {
   it("freezes the whole display at full resolution and keeps the monitor with it", async () => {
     const { circle, grabs } = setup();
     const frozen = await circle.freeze(MONITOR);
-    assert.deepEqual(grabs, [{
-      monitor: MONITOR,
-      detail: ScreenDetail.frozen
-    }]);
+    assert.deepEqual(grabs, [
+      {
+        monitor: MONITOR,
+        detail: ScreenDetail.FROZEN
+      }
+    ]);
     assert.equal(frozen.monitor, MONITOR);
     assert.deepEqual([frozen.width, frozen.height], [NUMBER_3840, NUMBER_2160]);
   });
@@ -65,7 +69,8 @@ describe("circle screen", () => {
       await circle.readText({
         frozen,
         region: undefined
-      }), []
+      }),
+      []
     );
     assert.deepEqual(logs, ["OCR failed: no language"]);
   });
