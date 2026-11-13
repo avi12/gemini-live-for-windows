@@ -1,11 +1,4 @@
-import {
-  argHandle,
-  argNull,
-  argPointer,
-  bindFunction,
-  Win32Type,
-  withMemory
-} from "./bind.ts";
+import { argHandle, argNull, argPointer, bindFunction, Win32Type, withMemory } from "./bind.ts";
 
 const DWORD_BYTES = 4;
 const POINT_BYTES = 8;
@@ -15,21 +8,21 @@ const getForegroundWindowCall = bindFunction({
   library: "user32.dll",
   entryPoint: "GetForegroundWindow",
   parameters: [],
-  returns: Win32Type.handle
+  returns: Win32Type.HANDLE
 });
 
 const getCursorPosCall = bindFunction({
   library: "user32.dll",
   entryPoint: "GetCursorPos",
-  parameters: [Win32Type.pointer],
-  returns: Win32Type.bool32
+  parameters: [Win32Type.POINTER],
+  returns: Win32Type.BOOL32
 });
 
 const getWindowThreadProcessIdCall = bindFunction({
   library: "user32.dll",
   entryPoint: "GetWindowThreadProcessId",
-  parameters: [Win32Type.handle, Win32Type.pointer],
-  returns: Win32Type.u32
+  parameters: [Win32Type.HANDLE, Win32Type.POINTER],
+  returns: Win32Type.U32
 });
 
 export function foregroundWindowHandle() {

@@ -7,10 +7,7 @@ export function createLoopback() {
     second: new Set<(envelope: unknown) => void>()
   };
 
-  function endpoint({ from, to }: {
-    from: "first" | "second";
-    to: "first" | "second";
-  }) {
+  function endpoint({ from, to }: { from: "first" | "second"; to: "first" | "second" }) {
     const transport = {
       post(envelope) {
         queueMicrotask(() => {

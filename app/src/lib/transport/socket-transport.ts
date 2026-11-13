@@ -1,6 +1,7 @@
-import type { Transport } from "@gemini-live/messaging";
 import type net from "node:net";
 import { createInterface } from "node:readline";
+
+import type { Transport } from "@gemini-live/messaging";
 
 function parseLine(line: string) {
   try {

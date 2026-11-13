@@ -2,10 +2,10 @@
   "name": "@gemini-live/app",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
   "description": "Gemini Live for Windows: the whole app in TypeScript on winui-svelte.",
   "license": "Apache-2.0",
   "author": "Avi (https://avi12.com)",
+  "type": "module",
   "sideEffects": false,
   "scripts": {
     "svelte:check": "svelte-check --tsconfig ./tsconfig.json",

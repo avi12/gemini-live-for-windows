@@ -13,8 +13,8 @@ import type { DynWin32Value } from "@microsoft/dynwinrt/win32/unsafe";
  *   const getDpiForWindow = bindFunction({
  *     library: "user32.dll",
  *     entryPoint: "GetDpiForWindow",
- *     parameters: [Win32Type.handle],
- *     returns: Win32Type.u32
+ *     parameters: [Win32Type.HANDLE],
+ *     returns: Win32Type.U32
  *   });
  *   const dpi = getDpiForWindow([argHandle(hwnd)]).number;
  *
@@ -40,14 +40,14 @@ import type { DynWin32Value } from "@microsoft/dynwinrt/win32/unsafe";
  */
 
 export const Win32Type = {
-  handle: "handle",
-  pointer: "pointer",
-  i32: "i32",
-  u32: "u32",
-  i64: "i64",
-  u64: "u64",
-  bool32: "bool32",
-  void: "void"
+  HANDLE: "handle",
+  POINTER: "pointer",
+  I32: "i32",
+  U32: "u32",
+  I64: "i64",
+  U64: "u64",
+  BOOL32: "bool32",
+  VOID: "void"
 } as const;
 
 export type Win32Type = (typeof Win32Type)[keyof typeof Win32Type];
@@ -66,15 +66,12 @@ const WIDE_CHAR_BYTES = 2;
 const POINTER_ALIGNMENT = 8;
 const NO_ADDRESS = 0n;
 const NO_NUMBER = 0;
-const NULLABLE_TYPES: readonly Win32Type[] = [Win32Type.pointer, Win32Type.handle];
-const NUMBER_TYPES: readonly Win32Type[] = [Win32Type.i32, Win32Type.u32, Win32Type.bool32];
-const BIGINT_TYPES: readonly Win32Type[] = [Win32Type.i64, Win32Type.u64];
-const ADDRESS_TYPES: readonly Win32Type[] = [Win32Type.pointer, Win32Type.handle];
+const NULLABLE_TYPES: readonly Win32Type[] = [Win32Type.POINTER, Win32Type.HANDLE];
+const NUMBER_TYPES: readonly Win32Type[] = [Win32Type.I32, Win32Type.U32, Win32Type.BOOL32];
+const BIGINT_TYPES: readonly Win32Type[] = [Win32Type.I64, Win32Type.U64];
+const ADDRESS_TYPES: readonly Win32Type[] = [Win32Type.POINTER, Win32Type.HANDLE];
 
-function toNumber({ value, type }: {
-  value: DynWin32Value | null;
-  type: Win32Type;
-}) {
+function toNumber({ value, type }: { value: DynWin32Value | null; type: Win32Type }) {
   const isAbsent = value === null || !NUMBER_TYPES.includes(type);
   if (isAbsent) {
     return NO_NUMBER;
@@ -83,10 +80,7 @@ function toNumber({ value, type }: {
   return DynWin32.toNumber(value);
 }
 
-function toBigint({ value, type }: {
-  value: DynWin32Value | null;
-  type: Win32Type;
-}) {
+function toBigint({ value, type }: { value: DynWin32Value | null; type: Win32Type }) {
   const isAbsent = value === null || !BIGINT_TYPES.includes(type);
   if (isAbsent) {
     return NO_ADDRESS;
@@ -95,16 +89,13 @@ function toBigint({ value, type }: {
   return DynWin32.toBigint(value);
 }
 
-function toAddress({ value, type }: {
-  value: DynWin32Value | null;
-  type: Win32Type;
-}) {
+function toAddress({ value, type }: { value: DynWin32Value | null; type: Win32Type }) {
   const isAbsent = value === null || !ADDRESS_TYPES.includes(type);
   if (isAbsent) {
     return NO_ADDRESS;
   }
 
-  const isHandle = type === Win32Type.handle;
+  const isHandle = type === Win32Type.HANDLE;
   if (!isHandle) {
     return DynWin32Unsafe.pointerAddress(value);
   }
@@ -220,7 +211,11 @@ export function wideMemory(text: string) {
   return memory;
 }
 
-export function readWideString({ memory, offset = 0, maxChars }: {
+export function readWideString({
+  memory,
+  offset = 0,
+  maxChars
+}: {
   memory: DynComRawMemory;
   offset?: number;
   maxChars: number;
@@ -231,7 +226,11 @@ export function readWideString({ memory, offset = 0, maxChars }: {
   return end === -1 ? text : text.slice(0, end);
 }
 
-export function withMemory<T>({ size, alignment = POINTER_ALIGNMENT, use }: {
+export function withMemory<T>({
+  size,
+  alignment = POINTER_ALIGNMENT,
+  use
+}: {
   size: number;
   alignment?: number;
   use: (memory: DynComRawMemory) => T;

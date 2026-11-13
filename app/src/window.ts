@@ -1,6 +1,8 @@
-import { uiWorkerDataSchema } from "@/wiring/ui-thread/ui-worker-data.ts";
 import { workerData } from "node:worker_threads";
+
 import { runOnUiThread } from "winui-svelte/thread";
+
+import { uiWorkerDataSchema } from "@/wiring/ui-thread/ui-worker-data.ts";
 
 // The UI-thread worker: everything WinUI lives here, and the main thread owns the state it shows
 await runOnUiThread(async () => {

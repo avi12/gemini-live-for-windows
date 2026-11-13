@@ -1,3 +1,6 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+
 import {
   argHandle,
   argPointer,
@@ -8,8 +11,6 @@ import {
   Win32Type,
   withMemory
 } from "./bind.ts";
-import assert from "node:assert/strict";
-import { test } from "node:test";
 
 const MAX_CHARS = 512;
 const NO_HANDLE = 0n;
@@ -19,35 +20,35 @@ const getTickCount = bindFunction({
   library: "kernel32.dll",
   entryPoint: "GetTickCount",
   parameters: [],
-  returns: Win32Type.u32
+  returns: Win32Type.U32
 });
 
 const getCurrentProcessId = bindFunction({
   library: "kernel32.dll",
   entryPoint: "GetCurrentProcessId",
   parameters: [],
-  returns: Win32Type.u32
+  returns: Win32Type.U32
 });
 
 const getCurrentDirectory = bindFunction({
   library: "kernel32.dll",
   entryPoint: "GetCurrentDirectoryW",
-  parameters: [Win32Type.u32, Win32Type.pointer],
-  returns: Win32Type.u32
+  parameters: [Win32Type.U32, Win32Type.POINTER],
+  returns: Win32Type.U32
 });
 
 const getDesktopWindow = bindFunction({
   library: "user32.dll",
   entryPoint: "GetDesktopWindow",
   parameters: [],
-  returns: Win32Type.handle
+  returns: Win32Type.HANDLE
 });
 
 const isWindow = bindFunction({
   library: "user32.dll",
   entryPoint: "IsWindow",
-  parameters: [Win32Type.handle],
-  returns: Win32Type.bool32
+  parameters: [Win32Type.HANDLE],
+  returns: Win32Type.BOOL32
 });
 
 test("GetCurrentProcessId matches process.pid", () => {
@@ -65,7 +66,8 @@ test("wide strings round trip through memory", () => {
       readWideString({
         memory,
         maxChars: 16
-      }), "Gemini"
+      }),
+      "Gemini"
     );
   } finally {
     memory.release();

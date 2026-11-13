@@ -8,10 +8,7 @@ export function linkedTransports() {
     second?: TransportListener;
   } = {};
 
-  function endOf({ self, other }: {
-    self: "first" | "second";
-    other: "first" | "second";
-  }) {
+  function endOf({ self, other }: { self: "first" | "second"; other: "first" | "second" }) {
     const transport: Transport = {
       send(frame) {
         queueMicrotask(() => listeners[other]?.message(JSON.parse(JSON.stringify(frame)) satisfies Json));

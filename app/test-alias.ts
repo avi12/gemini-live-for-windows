@@ -1,6 +1,7 @@
-import { resolveAliasTarget } from "./alias.ts";
 import { registerHooks } from "node:module";
 import { fileURLToPath, pathToFileURL } from "node:url";
+
+import { resolveAliasTarget } from "./alias.ts";
 
 registerHooks({
   resolve(specifier, context, nextResolve) {
