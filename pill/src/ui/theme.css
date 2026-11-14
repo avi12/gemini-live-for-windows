@@ -37,14 +37,17 @@
   --live-edge: rgb(0 0 0 / 0.1);
   --live-card-surface: rgb(243 237 247 / 0.94);
   --live-brand-blue: #4285f4;
-  --circle-secondary: var(--live-mic-control);
-  --circle-secondary-hover: var(--live-mic-control-hover);
-  --circle-secondary-pressed: var(--live-mic-control-hover);
-  --circle-on-secondary: var(--live-text);
-  --circle-primary: var(--live-primary);
-  --circle-primary-hover: #0842a0;
-  --circle-primary-pressed: #073a8c;
-  --circle-on-primary: #ffffff;
+  /* Circle's bar is one fixed light look in both themes: the theme dictionaries mix light and dark
+     values for it otherwise */
+  --circle-surface: #e1d5df;
+  --circle-secondary: #cdc2cd;
+  --circle-secondary-hover: #c0b4c1;
+  --circle-secondary-pressed: #c0b4c1;
+  --circle-on-secondary: #1d1b20;
+  --circle-primary: #d3e3fd;
+  --circle-primary-hover: #c2d3ef;
+  --circle-primary-pressed: #becfeb;
+  --circle-on-primary: #041e49;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -76,9 +79,6 @@
     --live-pressed-layer: rgb(227 227 227 / 0.1);
     --live-edge: rgb(138 180 248 / 0.33);
     --live-card-surface: rgb(47 47 49 / 0.88);
-    --circle-primary-hover: #9bbbef;
-    --circle-primary-pressed: #98b8ec;
-    --circle-on-primary: #062e6f;
   }
 }
 
@@ -146,9 +146,7 @@ text-block {
   border-radius: 38px;
 }
 
-.live-pill-base,
-.circle-bar,
-.circle-hint {
+.live-pill-base {
   border-radius: 38px;
   background-image: linear-gradient(to bottom, #e8dfe6, #dacbd8);
 }
@@ -165,9 +163,7 @@ text-block {
 }
 
 @media (prefers-color-scheme: dark) {
-  .live-pill-base,
-  .circle-bar,
-  .circle-hint {
+  .live-pill-base {
     background-image: linear-gradient(to bottom, #0a1420, #133251);
   }
 
@@ -216,6 +212,12 @@ text-block {
   --button-background-pressed: var(--live-control-hover);
 }
 
+.live-round-button:focus-visible,
+.circle-action:focus-visible {
+  outline: 2px solid var(--circle-on-secondary);
+  outline-offset: 2px;
+}
+
 .live-accent-round {
   background-color: var(--live-mic-control);
   --button-background: var(--live-mic-control);
@@ -238,11 +240,20 @@ text-block {
   --button-foreground-pressed: var(--live-on-share);
 }
 
-.circle-bar {
+.circle-bar,
+.circle-hint {
+  border-radius: 38px;
+  cursor: default;
   border-width: 0;
+  background-color: var(--circle-surface);
 }
 
 .circle-action {
+  cursor: default;
+  background-color: var(--circle-secondary);
+  --button-border-brush: transparent;
+  --button-border-brush-pointer-over: transparent;
+  --button-border-brush-pressed: transparent;
   --button-background: var(--circle-secondary);
   --button-background-pointer-over: var(--circle-secondary-hover);
   --button-background-pressed: var(--circle-secondary-pressed);
@@ -251,17 +262,18 @@ text-block {
   --button-foreground-pressed: var(--circle-on-secondary);
 }
 
+/* Material 3 Expressive: big, fully rounded targets, medium-weight labels */
 .circle-round,
 .circle-labelled,
 .circle-chip-button {
-  height: 40px;
+  height: 48px;
   padding: 0;
   border-width: 0;
   border-radius: 24px;
 }
 
 .circle-round {
-  width: 40px;
+  width: 48px;
 }
 
 .circle-labelled {
@@ -278,15 +290,16 @@ text-block {
   .circle-round,
   .circle-labelled,
   .circle-chip-button {
-    height: 48px;
+    height: 56px;
   }
 
   .circle-round {
-    width: 48px;
+    width: 56px;
   }
 }
 
 .circle-action-primary {
+  background-color: var(--circle-primary);
   --button-background: var(--circle-primary);
   --button-background-pointer-over: var(--circle-primary-hover);
   --button-background-pressed: var(--circle-primary-pressed);
@@ -300,12 +313,13 @@ text-block {
   opacity: 0.3;
 }
 
+/* The selection has no outline of its own: the glow and the white corners draw its edge */
 .circle-root {
-  --accent-fill-color-default: var(--live-primary);
+  --accent-fill-color-default: transparent;
 }
 
 .circle-hint-text {
-  color: var(--live-text);
+  color: var(--circle-on-secondary);
 }
 
 .circle-words,
@@ -315,6 +329,10 @@ text-block {
 
 .circle-sparkle {
   fill: var(--circle-on-primary);
+}
+
+.circle-icon {
+  color: var(--circle-on-secondary);
 }
 
 .circle-primary-ink {
@@ -328,6 +346,17 @@ text-block {
 .circle-edge,
 .circle-edge-glow {
   border-color: var(--live-primary);
+}
+
+.circle-glow-layer {
+  filter: blur(14px);
+}
+
+.circle-bracket {
+  stroke: #ffffff;
+  stroke-width: 6px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .circle-stroke-glow {

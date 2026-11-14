@@ -1,21 +1,22 @@
 import { SelectionPhase } from "winui-svelte/selection";
 import type { SelectorState } from "winui-svelte/selection";
 
-// The loop belongs to the drawing: only a loop being drawn, or one still fading after release,
-// may show. A selection that moves or resizes, or whose loop has faded, keeps no stroke
-export function withoutStaleStroke({ state, isStrokeFaded }: {
-  state: SelectorState;
-  isStrokeFaded: boolean;
-}) {
+// The loop belongs to the drawing: only a loop being drawn may show. The moment it is released the
+// selection takes its place, so the loop goes at once rather than lingering under the region. The
+// overlay repaints a stroke it is handed but ignores an empty one, so what replaces the loop is one
+// point beyond the screen
+const OFF_SCREEN = -10_000;
+export function withoutStaleStroke(state: SelectorState) {
   const isDrawing = state.phase === SelectionPhase.draw;
-  const isFading = state.phase === SelectionPhase.idle && !isStrokeFaded;
-  const isShown = isDrawing || isFading;
-  if (isShown) {
+  if (isDrawing) {
     return state;
   }
 
   return {
     ...state,
-    stroke: []
+    stroke: [{
+      x: OFF_SCREEN,
+      y: OFF_SCREEN
+    }]
   };
 }

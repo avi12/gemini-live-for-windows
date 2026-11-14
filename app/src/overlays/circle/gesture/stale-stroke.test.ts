@@ -27,47 +27,18 @@ function stateIn(phase: SelectionPhase) {
 describe("withoutStaleStroke", () => {
   it("keeps the loop while drawing", () => {
     const state = stateIn(SelectionPhase.draw);
-    assert.equal(
-      withoutStaleStroke({
-        state,
-        isStrokeFaded: true
-      }).stroke,
-      STROKE
-    );
+    assert.equal(withoutStaleStroke(state).stroke, STROKE);
   });
 
-  it("keeps the loop while it fades after release", () => {
+  it("drops the loop the moment it is released", () => {
     const state = stateIn(SelectionPhase.idle);
-    assert.equal(
-      withoutStaleStroke({
-        state,
-        isStrokeFaded: false
-      }).stroke,
-      STROKE
-    );
-  });
-
-  it("drops the loop once it has faded", () => {
-    const state = stateIn(SelectionPhase.idle);
-    assert.deepEqual(
-      withoutStaleStroke({
-        state,
-        isStrokeFaded: true
-      }).stroke,
-      []
-    );
+    assert.ok(withoutStaleStroke(state).stroke.every(point => point.x < 0 && point.y < 0));
   });
 
   it("drops the loop when the selection moves or resizes", () => {
     for (const phase of [SelectionPhase.move, SelectionPhase.resize]) {
       const state = stateIn(phase);
-      assert.deepEqual(
-        withoutStaleStroke({
-          state,
-          isStrokeFaded: false
-        }).stroke,
-        []
-      );
+      assert.ok(withoutStaleStroke(state).stroke.every(point => point.x < 0 && point.y < 0));
     }
   });
 });
