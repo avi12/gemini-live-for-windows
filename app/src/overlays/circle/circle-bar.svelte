@@ -1,7 +1,7 @@
 <script lang="ts">
   import CircleCancel from "@/overlays/circle/circle-cancel.svelte";
   import { barPlacement, BarSide } from "@/overlays/circle/gesture/geometry.ts";
-  import { riseIn } from "@/overlays/motion/transitions.ts";
+  import { riseIn, riseOut } from "@/overlays/motion/transitions.ts";
   import type { Rect, Size } from "@/overlays/shapes.ts";
   import "@gemini-live/pill/theme.css";
   import type { Snippet } from "svelte";
@@ -70,6 +70,13 @@
     });
   }
 
+  const leave = $derived(
+    riseOut({
+      rise: -SIDE_RISE[placement.side],
+      scaleTo: BAR_SCALE_FROM,
+      isReduced: reducedMotion.matches
+    })
+  );
   const enter = $derived(
     riseIn({
       rise: SIDE_RISE[placement.side],
@@ -89,6 +96,7 @@
   onpointerdown={(event: PointerEvent) => event.stopPropagation()}
   role="presentation"
   in:enter
+  out:leave
 >
   <StackPanel orientation="Horizontal" spacing={BUTTON_GAP}>
     {@render children()}

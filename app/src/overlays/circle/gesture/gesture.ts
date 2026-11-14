@@ -76,6 +76,7 @@ export const GestureEventKind = {
   leaveText: "leaveText",
   copy: "copy",
   copyDone: "copyDone",
+  searchText: "searchText",
   searchFailed: "searchFailed"
 } as const;
 
@@ -108,6 +109,8 @@ export type GestureEvent =
   | { readonly kind: typeof GestureEventKind.textFailed }
   | { readonly kind: typeof GestureEventKind.leaveText }
   | { readonly kind: typeof GestureEventKind.copy }
+  // Searches the web for the words picked in text mode
+  | { readonly kind: typeof GestureEventKind.searchText }
   | {
     readonly kind: typeof GestureEventKind.copyDone;
     readonly isCopied: boolean;
@@ -120,6 +123,7 @@ export const GestureEffectKind = {
   finish: "finish",
   readText: "readText",
   copyText: "copyText",
+  searchText: "searchText",
   say: "say",
   hideHint: "hideHint",
   snapIn: "snapIn",
@@ -140,6 +144,10 @@ export type GestureEffect =
   }
   | {
     readonly kind: typeof GestureEffectKind.copyText;
+    readonly text: string;
+  }
+  | {
+    readonly kind: typeof GestureEffectKind.searchText;
     readonly text: string;
   }
   | {
@@ -616,6 +624,22 @@ function copyPicked(state: GestureState) {
   };
 }
 
+function searchPicked(state: GestureState) {
+  const chosen = textSelection(state.text);
+  const isNothingToSearch = !state.isTextMode || chosen === undefined;
+  if (isNothingToSearch) {
+    return stay(state);
+  }
+
+  return {
+    state,
+    effects: [{
+      kind: GestureEffectKind.searchText,
+      text: chosen.text
+    }]
+  };
+}
+
 export function reduceGesture({ state, event }: {
   state: GestureState;
   event: GestureEvent;
@@ -659,6 +683,8 @@ export function reduceGesture({ state, event }: {
       return leaveText(state);
     case GestureEventKind.copy:
       return copyPicked(state);
+    case GestureEventKind.searchText:
+      return searchPicked(state);
     case GestureEventKind.searchFailed:
       return searchWasNotOpened(state);
     case GestureEventKind.copyDone:

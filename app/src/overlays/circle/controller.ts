@@ -14,6 +14,7 @@ import {
 } from "@/overlays/circle/gesture/gesture.ts";
 import type { GestureEffect, GestureEvent, GestureState } from "@/overlays/circle/gesture/gesture.ts";
 import { ocrWords } from "@/overlays/circle/gesture/ocr-words.ts";
+import { textSearchUri } from "@/overlays/circle/search-engines.ts";
 import type { OcrLine, OverlayLog } from "@/overlays/ports.ts";
 import { isSearchAction } from "@/overlays/protocol.ts";
 import type { CircleAction, CircleOutcome, SearchCircle } from "@/overlays/protocol.ts";
@@ -22,7 +23,6 @@ import { pixelRegion, SelectionPhase } from "winui-svelte/selection";
 
 // How long after opening a deactivation is still just Windows settling, not the user leaving
 export const CIRCLE_SETTLE_MILLISECONDS = 800;
-
 export interface CircleHintView {
   readonly text: string;
   readonly isVisible: boolean;
@@ -49,7 +49,7 @@ export interface CircleView {
 export interface CircleWorld {
   // OCR of the still inside the region (the still's pixels), or all of it
   readText(region: Region | null): Promise<readonly OcrLine[]>;
-  // Searches the web for the region (the still's pixels); whether the search page opened
+  // Searches the web for the region (the still's pixels); whether the result page opened or showed
   searchImage(options: SearchCircle): Promise<boolean>;
   // The decoded text of each QR code inside the region (the still's pixels)
   scanCodes(region: Region): Promise<readonly string[]>;
@@ -164,6 +164,21 @@ function createCircleTasks({ window, still, world, regionOf, dispatch }: {
     dispatch({ kind: GestureEventKind.searchFailed });
   }
 
+  // Opens a web page the overlay chose, such as the search for the picked text; when it does not
+  // open the overlay stays and says so
+  async function openPage(uri: string) {
+    const isDone = await closeWhenDone({
+      attempt: world.openUri(uri),
+      failure: "opening the search failed",
+      world
+    });
+    if (isDone) {
+      return;
+    }
+
+    dispatch({ kind: GestureEventKind.searchFailed });
+  }
+
   function finish({ action, selection }: {
     action: CircleAction;
     selection: Rect;
@@ -224,7 +239,8 @@ function createCircleTasks({ window, still, world, regionOf, dispatch }: {
   return {
     finish,
     readText,
-    copyText
+    copyText,
+    openPage
   };
 }
 
@@ -250,6 +266,9 @@ function performEffect({ effect, world, tasks, hint, onSnapIn }: {
       return;
     case GestureEffectKind.copyText:
       void tasks.copyText(effect.text);
+      return;
+    case GestureEffectKind.searchText:
+      void tasks.openPage(textSearchUri(effect.text));
       return;
     case GestureEffectKind.say:
       hint.say(effect);

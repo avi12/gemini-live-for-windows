@@ -3,7 +3,7 @@ import { SEARCH_ENGINES } from "@/overlays/circle/search-engines.ts";
 import type { CropFrame, OverlayLog } from "@/overlays/ports.ts";
 import type { CircleAction } from "@/overlays/protocol.ts";
 import { isSearchAction } from "@/overlays/protocol.ts";
-import { openImageSearch } from "winui-svelte/image-search";
+import { imageSearchUrl } from "winui-svelte/image-search";
 import type { ImageSearchEngine, ImageSearchOptions } from "winui-svelte/image-search";
 
 const CROP_MIME_TYPE = "image/jpeg";
@@ -17,28 +17,27 @@ export function searchEngineOf(action: CircleAction) {
   return SEARCH_ENGINES[action].engine;
 }
 
-// Reverse image search on the crop: the engine takes the upload, and the user's browser opens on
-// the result page it answers with. It says whether the page opened: the overlay is long gone, so a
-// failure is logged here and the caller decides what the user hears
-export function createImageSearch({ log, open = openImageSearch }: {
+// Reverse image search on the crop: the engine takes the upload and answers with the address of its
+// result page, which the results panel shows. A failure is logged here and gives no address; the
+// caller decides what the user hears
+export function createImageSearch({ log, resolve = imageSearchUrl }: {
   log: OverlayLog;
-  open?: (options: ImageSearchOptions) => Promise<string>;
+  resolve?: (options: ImageSearchOptions) => Promise<string>;
 }) {
   async function search({ engine, crop }: {
     engine: ImageSearchEngine;
     crop: CropFrame;
   }) {
     try {
-      await open({
+      return await resolve({
         engine,
         image: {
           blob: new Blob([crop.jpeg.slice()], { type: CROP_MIME_TYPE })
         }
       });
-      return true;
     } catch (error) {
       log.write(`${engine} search failed: ${errorMessage(error)}`);
-      return false;
+      return undefined;
     }
   }
 

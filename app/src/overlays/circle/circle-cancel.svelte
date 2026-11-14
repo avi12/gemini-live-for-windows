@@ -19,7 +19,7 @@
   onclick={onpress}
   toolTip="{CANCEL_LABEL} ({keyName(CircleKeyCombination.escape)})"
 >
-  <TextBlock class="circle-cancel-icon" text={OverlayGlyph.close} />
+  <TextBlock class="circle-icon circle-cancel-icon" text={OverlayGlyph.close} />
 </Button>
 
 <style>

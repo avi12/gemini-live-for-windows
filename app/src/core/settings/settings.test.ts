@@ -52,8 +52,7 @@ describe("settings store", () => {
       voice: "Kore",
       protectedApiKey: null,
       microphoneId: null,
-      checkForUpdates: true,
-      circleSearch: "lens"
+      checkForUpdates: true
     });
   });
 
@@ -65,24 +64,8 @@ describe("settings store", () => {
       voice: "Puck",
       protectedApiKey: "c2VhbGVk",
       microphoneId: null,
-      checkForUpdates: false,
-      circleSearch: "lens"
+      checkForUpdates: false
     });
-  });
-
-  it("keeps the circle's image search engine across a save and a load", async () => {
-    const settings = await store().load();
-    settings.circleSearch = "bing";
-    await store().save(settings);
-    assert.equal((await store().load()).circleSearch, "bing");
-  });
-
-  it("falls back to Lens for an engine it does not know, keeping the rest of the file", async () => {
-    await fs.writeFile(path.join(dir, "settings.json"), `{"Voice":"Aoede","CircleSearch":"yahoo"}`);
-    const settings = await store().load();
-    assert.equal(settings.circleSearch, "lens");
-    assert.equal(settings.voice, "Aoede");
-    assert.deepEqual(logs, []);
   });
 
   it("reads enum names in any casing, as .NET does", async () => {
@@ -118,8 +101,7 @@ describe("settings store", () => {
         "  \"Voice\": \"Kore\",",
         "  \"ProtectedApiKey\": null,",
         "  \"MicrophoneId\": null,",
-        "  \"CheckForUpdates\": true,",
-        "  \"CircleSearch\": \"lens\"",
+        "  \"CheckForUpdates\": true",
         "}"
       ].join("\n")
     );

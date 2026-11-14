@@ -7,7 +7,8 @@ import {
   OverlayMessage,
   readCircleTextSchema,
   scanCircleCodesSchema,
-  searchCircleSchema
+  searchCircleSchema,
+  searchRegionSchema
 } from "@/overlays/protocol.ts";
 import type {
   OcrLines,
@@ -15,7 +16,8 @@ import type {
   OverlayProtocol,
   ReadCircleText,
   ScanCircleCodes,
-  SearchCircle
+  SearchCircle,
+  SearchRegion
 } from "@/overlays/protocol.ts";
 import type { Point } from "@/overlays/shapes.ts";
 import { defineMessaging } from "winui-svelte/messaging";
@@ -31,7 +33,9 @@ export interface OverlayControllerEvents {
   // OCR of the frozen still the open circle overlay shows, inside the region or all of it
   readCircleText(options: ReadCircleText): Promise<OcrLines>;
   // Reverse image search on the circled part of the frozen still: whether the page opened
-  searchCircle(options: SearchCircle): Promise<boolean>;
+  searchCircle(options: SearchCircle): Promise<string>;
+  // The same for the region of the live screen the region frame sits over
+  searchRegion(options: SearchRegion): Promise<string>;
   // The decoded text of each QR code inside the region of the frozen still
   scanCircleCodes(options: ScanCircleCodes): Promise<string[]>;
 }
@@ -78,6 +82,14 @@ function listenForEvents({ messaging, events }: {
     }
 
     return events.searchCircle(parsed.data);
+  });
+  messaging.onMessage(OverlayMessage.searchRegion, async message => {
+    const parsed = searchRegionSchema.safeParse(message.data);
+    if (!parsed.success) {
+      throw new Error(parsed.error.message);
+    }
+
+    return events.searchRegion(parsed.data);
   });
   messaging.onMessage(OverlayMessage.scanCircleCodes, async message => {
     const parsed = scanCircleCodesSchema.safeParse(message.data);

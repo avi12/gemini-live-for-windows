@@ -40,20 +40,20 @@ describe("searchEngineOf", () => {
 });
 
 describe("createImageSearch", () => {
-  it("uploads the crop as a JPEG and opens the result page", async () => {
+  it("uploads the crop as a JPEG and gives the result page", async () => {
     const asked: ImageSearchOptions[] = [];
     const search = createImageSearch({
       log: silentLog(),
-      open(options) {
+      resolve(options) {
         asked.push(options);
         return Promise.resolve(RESULT_URL);
       }
     });
-    const isOpened = await search.search({
+    const url = await search.search({
       engine: ImageSearchEngine.GOOGLE_LENS,
       crop: CROP
     });
-    assert.equal(isOpened, true);
+    assert.equal(url, RESULT_URL);
     const [options] = asked;
     assert.equal(options?.engine, ImageSearchEngine.GOOGLE_LENS);
     const image = options?.image;
@@ -62,17 +62,17 @@ describe("createImageSearch", () => {
     assert.deepEqual([...new Uint8Array(await image.blob.arrayBuffer())], [...CROP.jpeg]);
   });
 
-  it("only logs when the engine refuses, and says it did not open", async () => {
+  it("only logs when the engine refuses, and gives no page", async () => {
     const log = silentLog();
     const search = createImageSearch({
       log,
-      open: () => Promise.reject(new Error("bing answered 403"))
+      resolve: () => Promise.reject(new Error("bing answered 403"))
     });
-    const isOpened = await search.search({
+    const url = await search.search({
       engine: ImageSearchEngine.BING,
       crop: CROP
     });
-    assert.equal(isOpened, false);
+    assert.equal(url, undefined);
     assert.deepEqual(log.lines, ["bing search failed: bing answered 403"]);
   });
 });

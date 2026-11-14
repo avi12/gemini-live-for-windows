@@ -2,7 +2,7 @@ import { createGlicHost } from "./glic/glic-host.ts";
 import { createGoogleEngine } from "./google-engine.ts";
 import { createHomeHost } from "./home-host.ts";
 import type { LinkPublisher, Logger, MediaPort, SecretSealer } from "./ports.ts";
-import { createSessionStore } from "./session/cookies.ts";
+import { createSessionStore, SESSION_FILE } from "./session/cookies.ts";
 import type { SessionStore } from "./session/cookies.ts";
 import { createSessionLink } from "./session/session-link.ts";
 import type { SessionSource } from "./session/session-link.ts";
@@ -13,7 +13,6 @@ import { createWinUiWebViewFactory } from "./web-host/winui-web-view.ts";
 import type { Monitor } from "@/contracts/monitor.ts";
 import path from "node:path";
 
-const SESSION_FILE = "google-session.bin";
 const GLIC_PROFILE = "WebView2";
 const HOME_PROFILE = "WebView2Home";
 const GLIC_WINDOW = {

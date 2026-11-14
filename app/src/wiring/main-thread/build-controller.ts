@@ -1,5 +1,4 @@
 import type { Settings } from "@/core/settings/settings-file.ts";
-import { saveSettings } from "@/core/settings/settings.ts";
 import { openExternal } from "@/core/shell/open-external.ts";
 import { createUpdateChecker } from "@/core/updates/update-checker.ts";
 import { connectGoogle } from "@/google/remote/google-client.ts";
@@ -19,7 +18,6 @@ import {
   createPreviousAppPort,
   createUpdatesPort
 } from "@/wiring/main-thread/pill-ports.ts";
-import { createSearchChoice } from "@/wiring/main-thread/search-choice.ts";
 import type { ShippedFiles } from "@/wiring/main-thread/shipped-files.ts";
 
 // The pill controller over the real devices, engines and windows. The UI worker's ends of the
@@ -52,11 +50,6 @@ export function buildController({ settings, installedVersion, files, channels, q
     transport: channels.transports.overlays,
     media,
     controller: () => controller,
-    searchChoice: createSearchChoice({
-      settings,
-      save: () => saveSettings(settings),
-      log
-    }),
     log
   });
   const checker = createUpdateChecker({

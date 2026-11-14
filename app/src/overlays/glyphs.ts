@@ -5,6 +5,7 @@ const CLOSE_CODE_POINT = 0xE5CD;
 const SEARCH_CODE_POINT = 0xEF7A;
 const TEXT_SELECT_CODE_POINT = 0xF735;
 const EXPAND_MORE_CODE_POINT = 0xE5CF;
+const LINK_CODE_POINT = 0xE250;
 
 export const OverlayGlyph = {
   // content_copy
@@ -15,6 +16,8 @@ export const OverlayGlyph = {
   search: String.fromCodePoint(SEARCH_CODE_POINT),
   // text_select_start: Circle to Search's "Select text"
   textSelect: String.fromCodePoint(TEXT_SELECT_CODE_POINT),
-  // expand_more: the chevron on "More"
-  more: String.fromCodePoint(EXPAND_MORE_CODE_POINT)
+  // expand_more: the chevron of a drop-down
+  more: String.fromCodePoint(EXPAND_MORE_CODE_POINT),
+  // link: the results panel's "open in your browser"
+  openInBrowser: String.fromCodePoint(LINK_CODE_POINT)
 } as const;

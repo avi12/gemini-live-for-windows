@@ -1,4 +1,6 @@
+import { createSessionStore, SESSION_FILE } from "@/google/session/cookies.ts";
 import { copyTextWithPowerShell } from "@/lib/clipboard.ts";
+import { dataDir } from "@/lib/paths.ts";
 import type { Clipboard } from "@/overlays/ports.ts";
 import {
   createCursorApi,
@@ -7,6 +9,8 @@ import {
   prepareOverlayWindows,
   serveOverlayWindows
 } from "@/overlays/worker.ts";
+import { sealer } from "@/wiring/ui-thread/secret-sealer.ts";
+import path from "node:path";
 import type { MessagePort } from "node:worker_threads";
 import { launchUri } from "winui-svelte/data-transfer";
 import { windowsDisplaySource } from "winui-svelte/devices/display";
@@ -29,15 +33,20 @@ const clipboard: Clipboard = {
 
 // The share border, the focus chip, the circle overlay and every global hotkey: all of them are
 // windows or message-pump hooks, so they live here and the main thread drives them over the link
-export async function startOverlayWindows({ port, isDebugging, log }: {
+export async function startOverlayWindows({ port, log }: {
   port: MessagePort;
-  isDebugging: boolean;
   log: (message: string) => void;
 }) {
   await prepareOverlayWindows();
   const register = await loadRegisterHotkey();
   const overlayLog = { write: log };
   const cursor = createCursorApi();
+  // The Google account's saved session, the one the hidden Google pages start from
+  const sessionStore = createSessionStore({
+    filePath: path.join(dataDir(), SESSION_FILE),
+    sealer,
+    log: overlayLog
+  });
 
   serveOverlayWindows({
     transport: createMessagePortTransport({ port }),
@@ -50,8 +59,8 @@ export async function startOverlayWindows({ port, isDebugging, log }: {
         cursor,
         clipboard,
         launchUri,
+        loadCookies: sessionStore.load,
         log: overlayLog,
-        isDebugging,
         displayAreas: () => windowsDisplaySource().list(),
         schedule({ callback, milliseconds }) {
           const timer = setTimeout(callback, milliseconds);

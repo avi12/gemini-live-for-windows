@@ -4,7 +4,6 @@ import type { Media } from "@/media/media.ts";
 import { circlePhase, circleToggle, CircleToggleAction } from "@/overlays/circle/circle-toggle.ts";
 import type { createCircleSession } from "@/overlays/circle/session.ts";
 import type { PillController } from "@/pill/controller.ts";
-import type { SearchChoice } from "@/wiring/main-thread/search-choice.ts";
 
 export type CircleEntryController = Pick<
   PillController,
@@ -20,11 +19,10 @@ export type CircleEntrySession = Pick<ReturnType<typeof createCircleSession>, "c
 // Freezes the display under the pointer for the user to circle something, then sends the crop to
 // Gemini as what it sees, starting a conversation if none is running. A reverse image search is
 // answered while the overlay is still up (see searchCircle), so it can say when it fails
-async function startCircle({ media, controller, session, searchChoice, log }: {
+async function startCircle({ media, controller, session, log }: {
   media: CircleEntryMedia;
   controller: () => CircleEntryController;
   session: CircleEntrySession;
-  searchChoice: SearchChoice;
   log: (message: string) => void;
 }) {
   try {
@@ -34,8 +32,7 @@ async function startCircle({ media, controller, session, searchChoice, log }: {
     // While Live runs, the loop itself is the request: no buttons, it focuses on release
     const selection = await session.select({
       monitor,
-      isAskOnRelease: isRunning,
-      preferredSearch: searchChoice.current()
+      isAskOnRelease: isRunning
     });
     if (!selection) {
       return;
@@ -53,11 +50,10 @@ async function startCircle({ media, controller, session, searchChoice, log }: {
 // The one entry Win+Alt+C and the pill's button share, a toggle: it closes the overlay when it is
 // open, else hands Gemini the whole active display back while it watches a circled region, else
 // starts Circle to Search
-export function createCircleEntry({ media, controller, session, searchChoice, log }: {
+export function createCircleEntry({ media, controller, session, log }: {
   media: CircleEntryMedia;
   controller: () => CircleEntryController;
   session: CircleEntrySession;
-  searchChoice: SearchChoice;
   log: (message: string) => void;
 }) {
   return async function circle() {
@@ -80,7 +76,6 @@ export function createCircleEntry({ media, controller, session, searchChoice, lo
           media,
           controller,
           session,
-          searchChoice,
           log
         });
         return;

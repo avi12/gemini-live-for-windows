@@ -842,6 +842,37 @@ describe("selecting words", () => {
   });
 });
 
+describe("searching the picked text", () => {
+  it("searches the picked words as one text", () => {
+    const { effects } = run({
+      state: inTextMode(),
+      events: [down({
+        x: 120,
+        y: 110
+      }), move({
+        x: 120,
+        y: 150
+      }), RELEASE, { kind: GestureEventKind.searchText }]
+    });
+    assert.deepEqual(effects.at(-1), {
+      kind: GestureEffectKind.searchText,
+      text: "alpha beta\ngamma"
+    });
+  });
+
+  it("does nothing with no picked words or outside text mode", () => {
+    for (const state of [inTextMode(), selected()]) {
+      const step = reduceGesture({
+        state,
+        event: {
+          kind: GestureEventKind.searchText
+        }
+      });
+      assert.deepEqual(step.effects, []);
+    }
+  });
+});
+
 describe("copying", () => {
   it("copies the picked words as text", () => {
     const { effects } = run({

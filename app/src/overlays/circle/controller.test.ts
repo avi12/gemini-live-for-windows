@@ -95,6 +95,7 @@ function setup({
     },
     async searchImage(options) {
       searched.push(options);
+
       return isSearchOpening;
     },
     async scanCodes() {

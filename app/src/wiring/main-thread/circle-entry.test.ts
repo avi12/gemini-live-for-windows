@@ -1,5 +1,5 @@
 import type { Monitor } from "@/contracts/monitor.ts";
-import { CircleAction, SearchAction } from "@/overlays/protocol.ts";
+import { CircleAction } from "@/overlays/protocol.ts";
 import { createCircleEntry } from "@/wiring/main-thread/circle-entry.ts";
 import type { CircleEntryController, CircleEntrySession } from "@/wiring/main-thread/circle-entry.ts";
 import assert from "node:assert/strict";
@@ -63,10 +63,6 @@ function setup({ isOverlayOpen = false, isRegionFocused = false, isRunning = fal
     },
     controller: () => controller,
     session,
-    searchChoice: {
-      current: () => SearchAction.lens,
-      remember: () => undefined
-    },
     log: () => undefined
   });
   return {

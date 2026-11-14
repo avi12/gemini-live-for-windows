@@ -17,7 +17,8 @@ import type {
   OverlayProtocol,
   ReadCircleText,
   ScanCircleCodes,
-  SearchCircle
+  SearchCircle,
+  SearchRegion
 } from "@/overlays/protocol.ts";
 import type { Point } from "@/overlays/shapes.ts";
 import { defineMessaging } from "winui-svelte/messaging";
@@ -43,7 +44,8 @@ export interface OverlayWindowEvents {
   chipDragged(travelled: Point): void;
   circleKeyPressed(): void;
   readCircleText(options: ReadCircleText): Promise<OcrLines>;
-  searchCircle(options: SearchCircle): Promise<boolean>;
+  searchCircle(options: SearchCircle): Promise<string>;
+  searchRegion(options: SearchRegion): Promise<string>;
   scanCircleCodes(options: ScanCircleCodes): Promise<string[]>;
 }
 
@@ -86,8 +88,12 @@ export function serveOverlayWindows({ transport, createHost, log }: {
       return ocrLinesSchema.parse(lines);
     },
     async searchCircle(options) {
-      const isOpened = await messaging.sendMessage(OverlayMessage.searchCircle, options);
-      return z.boolean().parse(isOpened);
+      const url = await messaging.sendMessage(OverlayMessage.searchCircle, options);
+      return z.string().parse(url);
+    },
+    async searchRegion(options) {
+      const url = await messaging.sendMessage(OverlayMessage.searchRegion, options);
+      return z.string().parse(url);
     },
     async scanCircleCodes(options) {
       const texts = await messaging.sendMessage(OverlayMessage.scanCircleCodes, options);

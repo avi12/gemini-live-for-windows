@@ -182,11 +182,11 @@ describe("createOverlayKeys", () => {
     };
   }
 
-  it("holds Esc, Enter, L, B and T only while open", () => {
+  it("holds Esc, Enter, L, O, B and T only while open", () => {
     const { system, keys } = overlay();
     assert.equal(system.owned.size, 0);
     keys.hold(true);
-    assert.deepEqual([...system.owned.keys()].toSorted(), ["b", "enter", "escape", "l", "t"]);
+    assert.deepEqual([...system.owned.keys()].toSorted(), ["b", "enter", "escape", "l", "o", "t"]);
     keys.hold(false);
     assert.equal(system.owned.size, 0);
   });
@@ -197,9 +197,10 @@ describe("createOverlayKeys", () => {
     system.press(CircleKeyCombination.escape);
     system.press(CircleKeyCombination.askGemini);
     system.press(CircleKeyCombination.lens);
+    system.press(CircleKeyCombination.lensInBrowser);
     system.press(CircleKeyCombination.bing);
     system.press(CircleKeyCombination.selectText);
-    assert.deepEqual(calls, ["escape", CircleAction.askGemini, CircleAction.lens, CircleAction.bing, "text"]);
+    assert.deepEqual(calls, ["escape", CircleAction.askGemini, CircleAction.lens, CircleAction.lensInBrowser, CircleAction.bing, "text"]);
   });
 
   it("cannot take Esc while the focus Esc is still held", () => {

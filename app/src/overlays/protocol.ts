@@ -23,6 +23,7 @@ export const OverlayMessage = {
   circleKeyPressed: "overlay/circleKeyPressed",
   readCircleText: "overlay/readCircleText",
   searchCircle: "overlay/searchCircle",
+  searchRegion: "overlay/searchRegion",
   scanCircleCodes: "overlay/scanCircleCodes"
 } as const;
 
@@ -30,6 +31,7 @@ export const OverlayMessage = {
 // engine, a label and a key for each
 export const SearchAction = {
   lens: "lens",
+  lensInBrowser: "lensInBrowser",
   bing: "bing"
 } as const;
 export type SearchAction = typeof SearchAction[keyof typeof SearchAction];
@@ -77,9 +79,7 @@ export const openCircleSchema = z.object({
   stillJpegBase64: z.string().regex(BASE64_PATTERN),
   stillWidth: z.number().int().positive(),
   stillHeight: z.number().int().positive(),
-  isAskOnRelease: z.boolean(),
-  // The engine the user searched with last, offered first
-  preferredSearch: z.enum(SearchAction)
+  isAskOnRelease: z.boolean()
 });
 export type OpenCircle = z.infer<typeof openCircleSchema>;
 
@@ -107,6 +107,22 @@ export const searchCircleSchema = z.object({
   region: regionSchema
 });
 export type SearchCircle = z.infer<typeof searchCircleSchema>;
+
+// The same search for a region of the screen as it is now, not of a frozen still: what the moved or
+// resized region frame sits over
+export const searchRegionSchema = z.object({
+  action: z.enum(SearchAction),
+  monitor: monitorSchema,
+  // In the display's physical pixels
+  region: regionSchema
+}).refine(
+  ({ monitor, region }) => region.x >= 0
+    && region.y >= 0
+    && region.x + region.width <= monitor.width
+    && region.y + region.height <= monitor.height,
+  { message: "The region must lie within its display" }
+);
+export type SearchRegion = z.infer<typeof searchRegionSchema>;
 
 export const scanCircleCodesSchema = z.object({ region: regionSchema });
 export type ScanCircleCodes = z.infer<typeof scanCircleCodesSchema>;
@@ -146,8 +162,11 @@ export interface OverlayProtocol {
   [OverlayMessage.chipDragged]: ProtocolWithReturn<ChipDragged, void>;
   [OverlayMessage.circleKeyPressed]: ProtocolWithReturn<void, void>;
   [OverlayMessage.readCircleText]: ProtocolWithReturn<ReadCircleText, OcrLines>;
-  // Whether the search page opened: the overlay stays up and says so when it did not
-  [OverlayMessage.searchCircle]: ProtocolWithReturn<SearchCircle, boolean>;
+  // The address of the result page, which the results panel shows; empty when the search failed,
+  // and the overlay stays up and says so
+  [OverlayMessage.searchCircle]: ProtocolWithReturn<SearchCircle, string>;
+  // The address of the result page for what the region sits over now; empty when the search failed
+  [OverlayMessage.searchRegion]: ProtocolWithReturn<SearchRegion, string>;
   // The decoded text of each QR code inside the region
   [OverlayMessage.scanCircleCodes]: ProtocolWithReturn<ScanCircleCodes, string[]>;
 }

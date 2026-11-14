@@ -13,6 +13,7 @@ export const CircleKeyCombination = {
   escape: "escape",
   askGemini: "enter",
   lens: SEARCH_ENGINES[SearchAction.lens].keys,
+  lensInBrowser: SEARCH_ENGINES[SearchAction.lensInBrowser].keys,
   bing: SEARCH_ENGINES[SearchAction.bing].keys,
   selectText: "t",
   copy: "ctrl+c"
@@ -25,6 +26,7 @@ const KEY_NAMES: Record<CircleKeyCombination, string> = {
   [CircleKeyCombination.escape]: "Esc",
   [CircleKeyCombination.askGemini]: "Enter",
   [CircleKeyCombination.lens]: "L",
+  [CircleKeyCombination.lensInBrowser]: "O",
   [CircleKeyCombination.bing]: "B",
   [CircleKeyCombination.selectText]: "T",
   [CircleKeyCombination.copy]: "Ctrl+C"

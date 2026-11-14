@@ -37,6 +37,27 @@ export function riseIn({ rise, scaleFrom = 1, isReduced, origin = TransformOrigi
   });
 }
 
+// The way out of `riseIn`: fades while sinking `rise` px and shrinking to `scaleTo`, so a set of
+// buttons flies out as the next one flies in
+export function riseOut({ rise, scaleTo = 1, isReduced, origin = TransformOrigin.bottom }: {
+  rise: number;
+  scaleTo?: number;
+  isReduced: boolean;
+  origin?: TransformOrigin;
+}) {
+  return (_node: unknown) => ({
+    duration: duration({
+      milliseconds: OverlayMotion.exitMilliseconds,
+      isReduced
+    }),
+    css(progress: number) {
+      const eased = standardEase(progress);
+      const scale = scaleTo + (1 - scaleTo) * eased;
+      return `opacity: ${eased}; translate: 0 ${(1 - eased) * rise}px; scale: ${scale}; transform-origin: ${origin}`;
+    }
+  });
+}
+
 // A white sheen that starts at `from` and fades to nothing
 export function sheenIn({ from, isReduced }: {
   from: number;

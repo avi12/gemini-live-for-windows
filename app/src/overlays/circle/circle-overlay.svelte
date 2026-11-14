@@ -13,20 +13,33 @@
   import { movePoints, pointerPoint } from "@/overlays/circle/gesture/pointer-points.ts";
   import { createPointerTracker, PressVerdict } from "@/overlays/circle/gesture/pointer-tracker.ts";
   import { withoutStaleStroke } from "@/overlays/circle/gesture/stale-stroke.ts";
-  import { CORE_SEARCH_ACTION, extraSearchActions, SEARCH_ENGINES } from "@/overlays/circle/search-engines.ts";
+  import {
+    bracketPath,
+    GLOW_GRADIENTS,
+    GLOW_LAYERS,
+    GlowSide,
+    glowSidePaths,
+    outsetRect
+  } from "@/overlays/circle/glow-geometry.ts";
+  import { CORE_SEARCH_ACTION, SEARCH_ENGINES } from "@/overlays/circle/search-engines.ts";
   import { OverlayGlyph } from "@/overlays/glyphs.ts";
   import { fadeOut, riseIn, sheenIn, TransformOrigin } from "@/overlays/motion/transitions.ts";
-  import { CircleAction as CircleActionName } from "@/overlays/protocol.ts";
-  import type { SearchAction } from "@/overlays/protocol.ts";
+  import { CircleAction as CircleActionName, SearchAction as SearchActionName } from "@/overlays/protocol.ts";
   import type { Size } from "@/overlays/shapes.ts";
   import { CircleKeyCombination, keyName } from "@/overlays/window/hotkeys.ts";
   import { reassertTopmost } from "@/overlays/window/topmost.ts";
   import { windowTheme } from "@/overlays/window/window-theme.svelte.ts";
+  import { setWindowOpacity } from "@/win32/index.ts";
   import "@gemini-live/pill/theme.css";
   import { elementSize } from "winui-svelte";
   import {
     Border,
+    Button,
     Canvas,
+    GradientStop,
+    LinearGradientBrush,
+    MenuFlyout,
+    MenuFlyoutItem,
     Path,
     SelectionOverlay,
     TextBlock,
@@ -40,16 +53,15 @@
   import { mediaQuery, startTimer } from "winui-svelte/window";
 
   interface Props {
+    // Which use of the window this is: 0 while it stands by hidden, a new number for each use. The
+    // window is made once and reused, since a new one flashes white for a moment as it appears
+    session: number;
     // The display the window covers exactly, by the id Windows lists it under
     displayId: bigint;
     // The frozen display, a JPEG
     still: Uint8Array;
     // Undefined until the window knows its size and the controller exists
     view: CircleView | undefined;
-    // The engine searched with last: the bar lists it first
-    preferredSearch: SearchAction;
-    // False in debug runs, so the overlay shows in screenshots
-    isExcludedFromCapture: boolean;
     dispatch: (event: GestureEvent) => void;
     // A button on a chip was pressed
     onchip: (action: ChipAction) => void;
@@ -62,11 +74,10 @@
   }
 
   const {
+    session,
     displayId,
     still,
     view,
-    preferredSearch,
-    isExcludedFromCapture,
     dispatch,
     onchip,
     onsized,
@@ -75,15 +86,23 @@
     onfailed
   }: Props = $props();
 
+  // The window's own opacity while it is laid out unseen, and once it is shown
+  const INVISIBLE = 0;
+  const OPAQUE = 255;
+  // How long the window is shown at start-up, unseen, to draw its first frame
+  const WARM_UP_MILLISECONDS = 800;
+  // How long the covering window gets to load and paint its still, unseen, before it is shown
+  const PAINT_SETTLE_MILLISECONDS = 250;
+  // How long the measured size must stay the same before the controller is built on it
+  const SIZE_SETTLE_MILLISECONDS = 120;
   // The white sheen that sweeps the selection the moment it lands
   const FLASH_OPACITY = 0.45;
   // The how-to at top centre drops in from slightly above
   const HINT_DROP = -12;
   // How long a notice ("Copied") stays in the hint chip before it fades
   const NOTICE_MILLISECONDS = 1600;
-  // The overlay fades the loop over 260 ms after release
-  const STROKE_FADE_MILLISECONDS = 400;
   // Gemini's four-point sparkle, in an 18-unit box (the C# draws it in 24 and scales)
+  const GLOW_SIDES = Object.values(GlowSide);
   const SPARKLE = "M9,0 C9,4.95 13.05,9 18,9 C13.05,9 9,13.05 9,18 C9,13.05 4.95,9 0,9 C4.95,9 9,4.95 9,0 Z";
 
   const screen = elementSize();
@@ -94,15 +113,22 @@
   const windowRef: { handle: WindowHandle | undefined } = $state({ handle: undefined });
   const pointer: { cursor: CircleCursor } = $state({ cursor: CircleCursor.draw });
   const fadedHintRevision: { value: number | undefined } = $state({ value: undefined });
-  const strokeFade: { isDone: boolean } = $state({ isDone: false });
-  const placement: { isCovered: boolean } = $state({ isCovered: false });
+  const placement: {
+    isCovered: boolean;
+    isSettled: boolean;
+  } = $state({
+    isCovered: false,
+    isSettled: false
+  });
+  // A window that has never been shown draws nothing until its first show, so a blank frame would
+  // follow it onto the display: it is shown once at start-up, unseen and without focus, then hidden
+  const warmUp: { isDone: boolean } = $state({ isDone: false });
 
+  const isInUse = $derived(session > 0);
   const isReduced = $derived(reducedMotion.matches);
   const gesture = $derived(view?.gesture);
   const selection = $derived(gesture?.selector.selection);
   const isTextMode = $derived(gesture?.isTextMode === true);
-  const extraActions = $derived(extraSearchActions(preferredSearch));
-  const chooser = $state({ isOpen: false });
   const screenSize = $derived({
     width: screen.width,
     height: screen.height
@@ -111,10 +137,7 @@
   // Before the controller exists the window shows the still alone: a selector with nothing in it
   const selector = $derived(gesture?.selector ?? createSelector({ bounds: screenSize }));
   const overlayState = $derived(
-    withoutStaleStroke({
-      state: selector,
-      isStrokeFaded: strokeFade.isDone
-    })
+    withoutStaleStroke(selector)
   );
   const picked = $derived.by(() => {
     const isUnstarted = gesture === undefined;
@@ -250,44 +273,80 @@
     });
   });
 
-  // The loop fades by itself after release (the overlay's own transition); once it has, the
-  // stroke is dropped, and a press that moves or resizes the selection drops it at once
   $effect(() => {
-    const isFading = selector.phase === SelectionPhase.idle && selector.selection !== undefined;
-    if (!isFading) {
-      strokeFade.isDone = false;
+    // Only once the window was shown and covered the display again: until then it has its default
+    // size, not the display's. The size must also hold still for a moment, since the layout
+    // follows the window's resize a beat late
+    const isMeasured = placement.isSettled && screen.width > 0 && screen.height > 0;
+    if (!isMeasured) {
       return;
     }
 
+    const size = {
+      width: screen.width,
+      height: screen.height
+    };
     return startTimer({
-      milliseconds: STROKE_FADE_MILLISECONDS,
+      milliseconds: SIZE_SETTLE_MILLISECONDS,
       isRepeating: false,
       onTick() {
-        strokeFade.isDone = true;
+        onsized(size);
       }
     });
   });
 
   $effect(() => {
-    // Only once covered: before that the window has its default size, not the display's
-    const isMeasured = placement.isCovered && screen.width > 0 && screen.height > 0;
-    if (isMeasured) {
-      onsized({
-        width: screen.width,
-        height: screen.height
-      });
+    const handle = windowRef.handle;
+    const isWarming = handle !== undefined && !warmUp.isDone;
+    if (!isWarming) {
+      return;
     }
+
+    setWindowOpacity({
+      hwnd: handle.appWindow.id.value,
+      opacity: INVISIBLE
+    });
+    return startTimer({
+      milliseconds: WARM_UP_MILLISECONDS,
+      isRepeating: false,
+      onTick() {
+        warmUp.isDone = true;
+      }
+    });
+  });
+
+  // A window moved to a display with another scale takes that move at the old display's scale, so
+  // it ends up the wrong size; covering again, now that it sits there, sizes it right
+  function coverDisplay(handle: WindowHandle) {
+    handle.cover({ display: displayId });
+    handle.cover({ display: displayId });
+  }
+
+  // Each use starts from a clean window: nothing covered, no loop fading, no notice
+  $effect.pre(() => {
+    void session;
+    placement.isCovered = false;
+    placement.isSettled = false;
+    fadedHintRevision.value = undefined;
+    pointer.cursor = CircleCursor.draw;
   });
 
   $effect(() => {
     const handle = windowRef.handle;
-    const isPlaced = handle !== undefined && !placement.isCovered;
+    const isPlaced = handle !== undefined && isInUse && !placement.isCovered;
     if (!isPlaced) {
       return;
     }
 
+    // Invisible before anything can show it: Windows paints a blank surface on a window's first
+    // frames, which nobody must see
+    const hwnd = handle.appWindow.id.value;
+    setWindowOpacity({
+      hwnd,
+      opacity: INVISIBLE
+    });
     try {
-      handle.cover({ display: displayId });
+      coverDisplay(handle);
     } catch (error) {
       onfailed(errorMessage(error));
       return;
@@ -295,17 +354,67 @@
 
     reassertTopmost(handle.presenter);
     placement.isCovered = true;
-    onready(handle.appWindow.id.value);
+  });
+
+  // Revealed once it has had a moment to paint, then raised: Windows only brings a visible window to
+  // the front
+  $effect(() => {
+    const handle = windowRef.handle;
+    const isReady = handle !== undefined && placement.isCovered;
+    if (!isReady) {
+      return;
+    }
+
+    return startTimer({
+      milliseconds: PAINT_SETTLE_MILLISECONDS,
+      isRepeating: false,
+      onTick() {
+        const hwnd = handle.appWindow.id.value;
+        // A window shown for the first time is put back at its default size and place by that first
+        // activation, so it covers the display again now that it has been shown, still unseen
+        try {
+          coverDisplay(handle);
+        } catch (error) {
+          onfailed(errorMessage(error));
+          return;
+        }
+
+        reassertTopmost(handle.presenter);
+        placement.isSettled = true;
+        setWindowOpacity({
+          hwnd,
+          opacity: OPAQUE
+        });
+        onready(hwnd);
+      }
+    });
   });
 </script>
 
+{#snippet destinationFlyout()}
+  <MenuFlyout>
+    <MenuFlyoutItem
+      onclick={() => dispatch({
+        kind: GestureEventKind.finish,
+        action: CORE_SEARCH_ACTION
+      })}
+      text="Open in the side panel"
+    />
+    <MenuFlyoutItem
+      onclick={() => dispatch({
+        kind: GestureEventKind.finish,
+        action: SearchActionName.lensInBrowser
+      })}
+      text="Open in your browser"
+    />
+  </MenuFlyout>
+{/snippet}
+
 <Window
-  activate
-  backdrop="transparent"
+  activate={isInUse}
   isAlwaysOnTop
   isBorderless
-  {isExcludedFromCapture}
-  isHidden={!placement.isCovered}
+  isHidden={warmUp.isDone && !placement.isCovered}
   isResizable={false}
   isToolWindow
   onactivechanged={isActive => {
@@ -330,7 +439,9 @@
     onpointerup={pressUp}
     role="presentation"
   >
-    <SelectionOverlay image={still} state={overlayState} />
+    {#if isInUse}
+      <SelectionOverlay arm={0} image={still} state={overlayState} />
+    {/if}
     <Border class="circle-tint" isHitTestVisible={false} />
     <Border class="circle-edge-glow" isHitTestVisible={false} />
     <Border class="circle-edge" isHitTestVisible={false} />
@@ -349,6 +460,43 @@
               in:sheen
             ></border>
           {/key}
+        {/if}
+
+        {#if selection !== undefined}
+          {#each GLOW_LAYERS as layer (layer.width)}
+            {@const sides = glowSidePaths(
+              outsetRect({
+                rect: selection,
+                radius: cornerRadius(selection),
+                width: layer.width
+              })
+            )}
+            {#each GLOW_SIDES as side (side)}
+              <Path
+                class="circle-glow"
+                data={sides[side]}
+                isHitTestVisible={false}
+                opacity={layer.opacity}
+                strokeThickness={layer.width}
+              >
+                {#snippet stroke()}
+                  <LinearGradientBrush endPoint={GLOW_GRADIENTS[side].end} startPoint={GLOW_GRADIENTS[side].start}>
+                    {#each GLOW_GRADIENTS[side].stops as stop (stop.offset)}
+                      <GradientStop color={stop.color} offset={stop.offset} />
+                    {/each}
+                  </LinearGradientBrush>
+                {/snippet}
+              </Path>
+            {/each}
+          {/each}
+          <Path
+            class="circle-bracket"
+            data={bracketPath({
+              rect: selection,
+              radius: cornerRadius(selection)
+            })}
+            isHitTestVisible={false}
+          />
         {/if}
 
         {#if isTextMode}
@@ -403,6 +551,17 @@
               {/snippet}
             </CircleAction>
             <CircleAction
+              isDisabled={picked.length === 0}
+              isLabelled={false}
+              isPrimary={false}
+              label="Search the web for the text"
+              onpress={() => dispatch({ kind: GestureEventKind.searchText })}
+            >
+              {#snippet icon()}
+                <TextBlock class="circle-icon" text={OverlayGlyph.search} />
+              {/snippet}
+            </CircleAction>
+            <CircleAction
               isLabelled={false}
               isPrimary={false}
               label="Done"
@@ -447,6 +606,14 @@
                 <TextBlock class="circle-icon" text={SEARCH_ENGINES[CORE_SEARCH_ACTION].glyph} />
               {/snippet}
             </CircleAction>
+            <Button
+              class="circle-action circle-round"
+              automationName="Where to open the results"
+              flyout={destinationFlyout}
+              toolTip="Open the results in the side panel or your browser"
+            >
+              <TextBlock class="circle-icon" text={OverlayGlyph.more} />
+            </Button>
             <CircleAction
               isDisabled={view.gesture.isReading}
               isLabelled={false}
@@ -459,37 +626,6 @@
                 <TextBlock class="circle-icon" text={OverlayGlyph.textSelect} />
               {/snippet}
             </CircleAction>
-            <!-- Other engines: one small button opens the list, so the core actions stay alone -->
-            <CircleAction
-              isLabelled={false}
-              isPrimary={false}
-              label="More"
-              onpress={() => {
-                chooser.isOpen = !chooser.isOpen;
-              }}
-            >
-              {#snippet icon()}
-                <TextBlock class="circle-icon" text={OverlayGlyph.more} />
-              {/snippet}
-            </CircleAction>
-            {#if chooser.isOpen}
-              {#each extraActions as action (action)}
-                <CircleAction
-                  isLabelled
-                  isPrimary={false}
-                  label={SEARCH_ENGINES[action].label}
-                  onpress={() => dispatch({
-                    kind: GestureEventKind.finish,
-                    action
-                  })}
-                  shortcut={keyName(SEARCH_ENGINES[action].keys)}
-                >
-                  {#snippet icon()}
-                    <TextBlock class="circle-icon" text={SEARCH_ENGINES[action].glyph} />
-                  {/snippet}
-                </CircleAction>
-              {/each}
-            {/if}
           </CircleBar>
         {/if}
       {/if}
@@ -498,8 +634,9 @@
 </Window>
 
 <style>
+  /* The still covers all of it; until that paints, the window shows black (a dimming starting), not white */
   .circle-root {
-    background-color: transparent;
+    background-color: #000000;
   }
 
   .circle-edge {

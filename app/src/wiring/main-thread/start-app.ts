@@ -128,9 +128,10 @@ function triggerOf(activation: Activation) {
   return activation.kind === ActivationKind.key ? activation.trigger : KeyTrigger.tap;
 }
 
-// A launch at sign-in only readies the app; any other start is a press of the key
+// A launch at sign-in, or a restart after a crash, only readies the app; any other start is a press of the key
 function firstTriggerOf(activation: Activation) {
-  return activation.kind === ActivationKind.startup ? undefined : triggerOf(activation);
+  const isReadyOnly = activation.kind === ActivationKind.startup || activation.kind === ActivationKind.recovered;
+  return isReadyOnly ? undefined : triggerOf(activation);
 }
 
 // The whole app: the first copy claims the single-instance pipe (a later copy hands over its press
@@ -162,6 +163,7 @@ export async function startApp({ files }: { files: ShippedFiles }) {
     args: userArguments(process.argv),
     packagedKind: isPackaged ? await readPackagedKind() : undefined
   });
+  writeLog(`activation: ${activation.kind} (packaged: ${isPackaged}, args: ${userArguments(process.argv).join(" ")})`);
   void refreshInstalledExtension({ shippedDir: files.extensionDirectory });
   const channels = openChannels();
   const controller = buildController({

@@ -1,7 +1,7 @@
 import type { Monitor } from "@/contracts/monitor.ts";
 import { linkedTransports } from "@/lib/transport/linked-transports.ts";
 import { connectOverlayWindows } from "@/overlays/controller-link.ts";
-import { CircleAction, SearchAction } from "@/overlays/protocol.ts";
+import { CircleAction } from "@/overlays/protocol.ts";
 import type { CircleOutcome, OpenCircle } from "@/overlays/protocol.ts";
 import { serveOverlayWindows } from "@/overlays/window/window-link.ts";
 import type { OverlayWindowEvents, OverlayWindowHost } from "@/overlays/window/window-link.ts";
@@ -31,8 +31,7 @@ const OPEN: OpenCircle = {
   stillJpegBase64: "AQID",
   stillWidth: 1920,
   stillHeight: 1080,
-  isAskOnRelease: false,
-  preferredSearch: SearchAction.lens
+  isAskOnRelease: false
 };
 
 async function settle() {
@@ -96,7 +95,10 @@ function setup({ outcome = CANCELLED }: { outcome?: CircleOutcome } = {}) {
       },
       async searchCircle({ action }) {
         heard.push(`search:${action}`);
-        return true;
+        return "https://result.example/";
+      },
+      async searchRegion() {
+        return "https://region.example/";
       },
       async scanCircleCodes({ region }) {
         heard.push(`scan:${region.width}`);
@@ -189,13 +191,13 @@ describe("the overlay link", () => {
     assert.deepEqual(heard, ["read:300"]);
   });
 
-  it("asks the controller to search and gets whether the page opened", async () => {
+  it("asks the controller to search and gets the result page", async () => {
     const { events, heard } = setup();
     assert.equal(
       await events()?.searchCircle({
         action: CircleAction.bing,
         region: REGION
-      }), true
+      }), "https://result.example/"
     );
     assert.deepEqual(heard, ["search:bing"]);
   });
@@ -238,7 +240,8 @@ describe("the overlay link", () => {
         chipDragged: () => undefined,
         circleKeyPressed: () => undefined,
         readCircleText: async () => [],
-        searchCircle: async () => false,
+        searchCircle: async () => "",
+        searchRegion: async () => "",
         scanCircleCodes: async () => []
       }
     });
@@ -282,7 +285,8 @@ describe("the overlay link", () => {
         chipDragged: () => undefined,
         circleKeyPressed: () => undefined,
         readCircleText: async () => [],
-        searchCircle: async () => false,
+        searchCircle: async () => "",
+        searchRegion: async () => "",
         scanCircleCodes: async () => []
       }
     });

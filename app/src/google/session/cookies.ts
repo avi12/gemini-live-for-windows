@@ -63,6 +63,9 @@ export function decodeSession(plain: Uint8Array) {
   return parsed.data;
 }
 
+// The file the sealed copy of the session lives in, inside the app's data folder
+export const SESSION_FILE = "google-session.bin";
+
 // The sealed copy of the browser's session, so a restart is signed in before the extension
 // reconnects. The same file and format the C# app wrote: sealed JSON of the cookie list.
 export function createSessionStore({ filePath, sealer, log }: {
