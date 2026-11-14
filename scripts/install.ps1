@@ -96,6 +96,10 @@ if (-not $buildsOnly) {
 }
 
 Write-Host '== publish'
+# The browser's extension starts a host again while the steps above run, and it holds the layout
+if (-not $buildsOnly) {
+    Get-Process GeminiLiveHost -ErrorAction SilentlyContinue | Stop-Process -Force
+}
 if (Test-Path $layout) { Remove-Item $layout -Recurse -Force }
 Invoke-Native 'app build' { pnpm --dir $root --filter '@gemini-live/app' build }
 New-Item -ItemType Directory $layout | Out-Null
@@ -225,4 +229,39 @@ else {
 
 $pkg = Get-AppxPackage $name
 Write-Host "Installed $($pkg.PackageFullName) ($($pkg.SignatureKind))"
+# The install stops the running app, and its global hotkeys (Win+Alt+C) exist only while it runs. It
+# comes back the way it does after a crash (no conversation, no sound), not as a Win+C press
+Write-Host '== launch'
+$launcherSource = @'
+using System;
+using System.Runtime.InteropServices;
+[ComImport, Guid("2e941141-7f97-4756-ba1d-9decde894a3d"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+interface IApplicationActivationManager {
+    int ActivateApplication([MarshalAs(UnmanagedType.LPWStr)] string appUserModelId, [MarshalAs(UnmanagedType.LPWStr)] string arguments, int options, out uint processId);
+}
+[ComImport, Guid("45BA127D-10A8-46EA-8AB7-56EA9078943C")] class ApplicationActivationManager { }
+public static class AppLauncher {
+    public static uint Launch(string appUserModelId, string arguments) {
+        uint processId;
+        ((IApplicationActivationManager) new ApplicationActivationManager()).ActivateApplication(appUserModelId, arguments, 0, out processId);
+        return processId;
+    }
+}
+'@
+$aumid = "$($pkg.PackageFamilyName)!GeminiLive"
+# WebView2 fails to start in an app launched from this shell's process tree (Claude's tools, an IDE
+# terminal), so a shortcut that explorer opens runs the activation from outside it
+$launchScript = Join-Path $env:TEMP 'gemini-live-launch.ps1'
+Set-Content $launchScript -Value @(
+    "Add-Type -TypeDefinition @'",
+    $launcherSource,
+    "'@",
+    "[AppLauncher]::Launch('$aumid', '--recovered') | Out-Null"
+)
+$shortcutPath = Join-Path $env:TEMP 'gemini-live-launch.lnk'
+$shortcut = (New-Object -ComObject WScript.Shell).CreateShortcut($shortcutPath)
+$shortcut.TargetPath = (Get-Command pwsh).Source
+$shortcut.Arguments = "-NoProfile -WindowStyle Hidden -File `"$launchScript`""
+$shortcut.Save()
+Start-Process explorer.exe $shortcutPath
 Write-Host 'Now: Settings > Personalization > Text input > Customize Copilot key on keyboard > Gemini Live'
