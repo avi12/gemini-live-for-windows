@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { OverlayMotion } from "@/overlays/motion/motion.ts";
-import { riseIn, settleIn, sheenIn, TransformOrigin } from "@/overlays/motion/transitions.ts";
+import { riseIn, sheenIn, TransformOrigin } from "@/overlays/motion/transitions.ts";
 
 const MIDDLE = 0.5;
 const RISE = 24;
@@ -61,19 +61,6 @@ describe("riseIn", () => {
 
   it("never uses the transform shorthand", () => {
     assert.equal(/(^|[^-])transform:/.test(configOf(transition).css(MIDDLE)), false);
-  });
-});
-
-describe("settleIn", () => {
-  it("settles about the centre without moving", () => {
-    const css = configOf(
-      settleIn({
-        scaleFrom: SCALE_FROM,
-        isReduced: false
-      })
-    ).css(0);
-    assert.ok(css.includes("translate: 0 0px"));
-    assert.ok(css.endsWith(TransformOrigin.CENTER));
   });
 });
 

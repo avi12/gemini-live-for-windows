@@ -336,14 +336,14 @@ describe("createScreenFocus", () => {
     calls.length = 0;
     focus.setCircling(true);
     focus.setCircling(false);
-    assert.deepEqual(calls, ["escape:false", "escape:true"]);
+    assert.deepEqual(calls, ["escape:false", "hideChip", "escape:true", "chip:100,200"]);
   });
 
   it("never holds Esc for the circle overlay without a region", () => {
     const { calls, focus } = setup();
     focus.setCircling(true);
     focus.setCircling(false);
-    assert.deepEqual(calls, ["escape:false", "escape:false"]);
+    assert.deepEqual(calls, ["escape:false", "hideChip", "escape:false"]);
   });
 
   it("moves the region with the chip drag and reframes it", () => {

@@ -168,7 +168,7 @@ The code follows the youtube-time-manager setup: oxlint for logic, ESLint for la
 
 ## Circle to Search
 
-Press **Win+Alt+C** to freeze the screen, circle something, and then ask Gemini about it, search it with Google Lens, or select its text and copy it. While Live runs, the circled area becomes what Gemini sees, until you press Esc to go back to the whole monitor.
+Press **Win+Alt+C** to freeze the screen, circle something, and then ask Gemini about it, search it with Google Lens or Bing, or select its text and copy it. While Live runs, the circled area becomes what Gemini sees, until you press Esc to go back to the whole monitor.
 
 Inspired by [AKS-Labs/CircleToSearch](https://github.com/AKS-Labs/CircleToSearch), an Android app. Only its idea and look were carried over; it is GPL-3, and none of its code is used here.
 

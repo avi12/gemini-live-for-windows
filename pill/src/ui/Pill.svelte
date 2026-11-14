@@ -15,13 +15,15 @@
 
   const MIN_DISPLAYS_TO_PICK = 2;
   const PillColumn = {
-    SHARE: 0,
-    MIDDLE: 1,
-    MIC: 2,
-    GEAR: 3,
-    END: 4
+    share: 0,
+    middle: 1,
+    mic: 2,
+    circle: 3,
+    gear: 4,
+    end: 5
   } as const;
   const GLYPH_SIZE = 24;
+  const CIRCLE_LABEL = "Circle to Search (Win+Alt+C)";
 
   const hasDisplayPicker = $derived(view.displays.length >= MIN_DISPLAYS_TO_PICK);
 
@@ -86,7 +88,7 @@
 
 <grid class="live-pill pill" {@attach trackPart(PillPart.PILL)}>
   <GlyphButton
-    column={PillColumn.SHARE}
+    column={PillColumn.share}
     flyout={shareFlyout}
     glyph={Glyph.DISPLAY}
     glyphSize={GLYPH_SIZE}
@@ -113,7 +115,7 @@
   </grid>
 
   <GlyphButton
-    column={PillColumn.MIC}
+    column={PillColumn.mic}
     glyph={mic.glyph}
     glyphSize={GLYPH_SIZE}
     isMuted={view.isMuted}
@@ -124,7 +126,17 @@
     toolTip={mic.label}
   />
   <GlyphButton
-    column={PillColumn.GEAR}
+    column={PillColumn.circle}
+    glyph={Glyph.SEARCH}
+    glyphSize={GLYPH_SIZE}
+    kind={GlyphButtonKind.ROUND}
+    label={CIRCLE_LABEL}
+    onpress={() => sendAction({ kind: PillActionKind.CIRCLE_TO_SEARCH })}
+    part={PillPart.CIRCLE}
+    toolTip={CIRCLE_LABEL}
+  />
+  <GlyphButton
+    column={PillColumn.gear}
     flyout={gearFlyout}
     glyph={Glyph.GEAR}
     glyphSize={GLYPH_SIZE}
@@ -134,7 +146,7 @@
     toolTip="Settings"
   />
   <GlyphButton
-    column={PillColumn.END}
+    column={PillColumn.end}
     glyph={Glyph.CLOSE}
     glyphSize={GLYPH_SIZE}
     kind={GlyphButtonKind.ROUND}
@@ -148,7 +160,7 @@
 <style>
   .pill {
     display: grid;
-    grid-template-columns: auto 1fr auto auto auto;
+    grid-template-columns: auto 1fr auto auto auto auto;
     height: 76px;
     padding: 0 18px;
     column-gap: 12px;

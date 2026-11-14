@@ -5,22 +5,18 @@ export const PillPart = {
   PILL: "pill",
   SHARE: "share",
   MIC: "mic",
+  CIRCLE: "circle",
   GEAR: "gear",
   END: "end"
 } as const;
 export type PillPart = (typeof PillPart)[keyof typeof PillPart];
-
-interface TransformPointPoint {
-  x: number;
-  y: number;
-}
 
 interface MeasuredElement {
   actualWidth: number;
   actualHeight: number;
   xamlRoot: { content: object | null } | null;
   transformToVisual(visual: object): {
-    transformPoint(point: TransformPointPoint): {
+    transformPoint(point: { x: number; y: number }): {
       x: number;
       y: number;
     };

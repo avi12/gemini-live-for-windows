@@ -1,4 +1,5 @@
-import { distanceBetween } from "@/overlays/shapes.ts";
+import { distanceBetween } from "winui-svelte/selection";
+
 import type { Point } from "@/overlays/shapes.ts";
 
 // WinUI's pointer events carry no click count, so presses are counted here with Windows' default

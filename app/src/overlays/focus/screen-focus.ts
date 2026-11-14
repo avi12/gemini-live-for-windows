@@ -67,6 +67,18 @@ function createEscapeHold({
     setCircling(isCircling: boolean) {
       isOverlayUp = isCircling;
       update();
+
+      // The chip would show up in the Circle still, so it hides while the overlay is up and
+      // comes back after
+      const engine = currentEngine();
+      if (isCircling) {
+        windows.hideChip();
+      } else if (engine?.region !== undefined) {
+        windows.attachChip({
+          monitor: engine.monitor,
+          region: engine.region
+        });
+      }
     }
   };
 }

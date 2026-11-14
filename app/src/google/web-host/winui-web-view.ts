@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 import type { BrowserCookie } from "@gemini-live/protocol/link";
+import { createWebView2Environment, startWebView2 } from "winui-svelte/messaging/web-view2";
 import type { AppWindow } from "winui-svelte/window";
 
 import type { Logger } from "@/google/ports.ts";
@@ -18,12 +19,14 @@ import {
 
 // Parked off-screen reads as occluded, which would throttle the page's timers; the voice must also
 // play without a click inside the page. Both matter for glic and are harmless for Home.
-const CHROMIUM_ARGUMENTS =
-  "--autoplay-policy=no-user-gesture-required " +
-  "--disable-features=CalculateNativeWinOcclusion " +
-  "--disable-background-timer-throttling --disable-renderer-backgrounding";
+const CHROMIUM_ARGUMENTS = [
+  "--autoplay-policy=no-user-gesture-required",
+  "--disable-features=CalculateNativeWinOcclusion",
+  "--disable-background-timer-throttling",
+  "--disable-renderer-backgrounding"
+];
 // Port 0: Chromium picks a free port, so debugging never collides with another app's
-const DEBUG_ARGUMENT = " --remote-debugging-port=0";
+const DEBUG_ARGUMENT = "--remote-debugging-port=0";
 const PARKED_AT = -32_000;
 const NO_CONTENT = 204;
 
@@ -43,7 +46,6 @@ async function loadBindings() {
   const [
     webViewModule,
     environmentModule,
-    optionsModule,
     sameSiteModule,
     permissionKindModule,
     permissionStateModule,
@@ -54,7 +56,6 @@ async function loadBindings() {
   ] = await Promise.all([
     import("winui-svelte/bindings/microsoft/ui/xaml/controls/WebView2"),
     import("winui-svelte/bindings/microsoft/web/web-view2/core/CoreWebView2Environment"),
-    import("winui-svelte/bindings/microsoft/web/web-view2/core/CoreWebView2EnvironmentOptions"),
     import("winui-svelte/bindings/microsoft/web/web-view2/core/CoreWebView2CookieSameSiteKind"),
     import("winui-svelte/bindings/microsoft/web/web-view2/core/CoreWebView2PermissionKind"),
     import("winui-svelte/bindings/microsoft/web/web-view2/core/CoreWebView2PermissionState"),
@@ -66,7 +67,6 @@ async function loadBindings() {
   return {
     webViewClass: webViewModule.WebView2,
     environmentClass: environmentModule.CoreWebView2Environment,
-    optionsClass: optionsModule.CoreWebView2EnvironmentOptions,
     sameSiteKind: sameSiteModule.CoreWebView2CookieSameSiteKind,
     permissionKind: permissionKindModule.CoreWebView2PermissionKind,
     permissionState: permissionStateModule.CoreWebView2PermissionState,
@@ -81,7 +81,16 @@ type Bindings = Awaited<ReturnType<typeof loadBindings>>;
 type Core = InstanceType<Bindings["webViewClass"]>["coreWebView2"];
 type Environment = Awaited<ReturnType<Bindings["environmentClass"]["createWithOptionsAsync"]>>;
 
-function createCookieWriter({ core, bindings, log }: { core: Core; bindings: Bindings; log: Logger }) {
+// Writes the browser's cookies into a WebView2's own store; the results panel does the same
+export function createCookieWriter({
+  core,
+  bindings,
+  log
+}: {
+  core: Core;
+  bindings: Pick<Bindings, "sameSiteKind">;
+  log: Logger;
+}) {
   const sameSiteKinds = new Map<string, ValueOf<typeof bindings.sameSiteKind>>([
     [SameSite.STRICT, bindings.sameSiteKind.Strict],
     [SameSite.LAX, bindings.sameSiteKind.Lax],
@@ -305,11 +314,24 @@ export function createWinUiWebViewFactory({ spec, log }: { spec: WindowSpec; log
     });
     previous = host;
 
-    const options = bindings.optionsClass.create();
-    options.additionalBrowserArguments = CHROMIUM_ARGUMENTS + (isDebugging ? DEBUG_ARGUMENT : "");
-    const environment = await bindings.environmentClass.createWithOptionsAsync("", spec.profileDir, options);
-    await control.ensureCoreWebView2Async(environment);
+    // The library's start explains a failure (a profile folder another browser process holds, a
+    // runtime that is missing) where the bare control only leaves a null core behind
+    const environment = await createWebView2Environment({
+      userDataFolder: spec.profileDir,
+      additionalBrowserArguments: isDebugging ? [...CHROMIUM_ARGUMENTS, DEBUG_ARGUMENT] : CHROMIUM_ARGUMENTS
+    });
+    await startWebView2({
+      control,
+      environment
+    });
     const core = control.coreWebView2;
+    const isStarted = core !== null;
+    if (!isStarted) {
+      throw new Error(
+        `${spec.logTag}: the browser started without a page (environment in ${environment.userDataFolder})`
+      );
+    }
+
     core.settings.areDevToolsEnabled = isDebugging;
     core.settings.isStatusBarEnabled = false;
 

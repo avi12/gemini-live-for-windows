@@ -15,6 +15,7 @@ import { readLines } from "./ocr/ocr.ts";
 import { readForegroundWindow } from "./screen-text/foreground-window.ts";
 import { createOcrScreenTextReader, createUiaScreenTextReader } from "./screen-text/screen-text.ts";
 import { createCircleScreen } from "./screen/circle/circle-screen.ts";
+import { readQrTexts } from "./screen/circle/qr-codes.ts";
 import { createScreenCapture } from "./screen/screen-capture.ts";
 import { createScreenSource } from "./screen/screen-source.ts";
 
@@ -68,7 +69,7 @@ export function createMedia({
     circleScreen: createCircleScreen({
       screenCapture,
       readLines,
-      log
+      readCodes: readQrTexts
     }),
     mediaPort: createMediaPort({
       screenCapture,

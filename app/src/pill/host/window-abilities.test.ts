@@ -5,7 +5,6 @@ import { WindowMessage } from "@gemini-live/protocol/view";
 import { defineMessaging } from "winui-svelte/messaging";
 
 import { linkedTransports } from "@/lib/transport/linked-transports.ts";
-import type { ForegroundApi } from "@/overlays/ports.ts";
 import type { PillProtocol } from "@/pill/host/host-link.ts";
 import { serveWindowAbilities, WINDOW_NOT_UP } from "@/pill/host/window-abilities.ts";
 import type { ForegroundMemory, PillWindowSurface } from "@/pill/host/window-abilities.ts";
@@ -32,17 +31,6 @@ function setup({
 } = {}) {
   const transports = linkedTransports();
   const calls: string[] = [];
-  const foreground: ForegroundApi = {
-    foregroundWindow: () => APP_IN_FRONT,
-    isWindow: () => true,
-    classNameOf: () => "Window",
-    processIdOf: () => 1,
-    threadIdOf: () => 2,
-    currentThreadId: () => 2,
-    attachThreadInput: () => false,
-    bringWindowToTop: hwnd => calls.push(`top ${hwnd}`),
-    setForegroundWindow: hwnd => calls.push(`foreground ${hwnd}`)
-  };
   let position = {
     x: 100,
     y: 200
@@ -58,7 +46,6 @@ function setup({
   serveWindowAbilities({
     link: defineMessaging<PillProtocol>({ transport: transports.second }),
     surface: () => (isUp ? surface : undefined),
-    foreground,
     memory,
     bringToFrontOf(hwnd) {
       calls.push(`bring ${hwnd}`);
@@ -73,10 +60,10 @@ function setup({
 }
 
 describe("the pill window's abilities", () => {
-  it("raises the window past the foreground lock", async () => {
+  it("raises the pill window through the library", async () => {
     const { host, calls } = setup();
     await host.sendMessage(WindowMessage.BRING_TO_FRONT);
-    assert.deepEqual(calls, [`top ${PILL_WINDOW}`, `foreground ${PILL_WINDOW}`]);
+    assert.deepEqual(calls, [`bring ${PILL_WINDOW}`]);
   });
 
   it("puts the earlier app back when the shell holds the foreground", async () => {

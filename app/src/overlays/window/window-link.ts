@@ -1,9 +1,11 @@
 import { defineMessaging } from "winui-svelte/messaging";
 import type { Transport } from "winui-svelte/state/host";
+import { z } from "zod";
 
 import type { OverlayLog } from "@/overlays/ports.ts";
 import {
   attachChipSchema,
+  codeTextsSchema,
   coverBorderSchema,
   holdFocusEscapeSchema,
   ocrLinesSchema,
@@ -17,7 +19,10 @@ import type {
   OcrLines,
   OpenCircle,
   OverlayProtocol,
-  ReadCircleText
+  ReadCircleText,
+  ScanCircleCodes,
+  SearchCircle,
+  SearchRegion
 } from "@/overlays/protocol.ts";
 import type { Point } from "@/overlays/shapes.ts";
 
@@ -29,6 +34,7 @@ export interface OverlayWindowHost {
   hideChip(): void;
   holdFocusEscape(isHeld: boolean): void;
   openCircle(options: OpenCircle): Promise<CircleOutcome>;
+  closeCircle(): void;
 }
 
 // What the windows tell the controller
@@ -39,6 +45,9 @@ export interface OverlayWindowEvents {
   chipDragged(travelled: Point): void;
   circleKeyPressed(): void;
   readCircleText(options: ReadCircleText): Promise<OcrLines>;
+  searchCircle(options: SearchCircle): Promise<string>;
+  searchRegion(options: SearchRegion): Promise<string>;
+  scanCircleCodes(options: ScanCircleCodes): Promise<string[]>;
 }
 
 function parsed<T>(
@@ -87,6 +96,18 @@ export function serveOverlayWindows({
     async readCircleText(options) {
       const lines = await messaging.sendMessage(OverlayMessage.READ_CIRCLE_TEXT, options);
       return ocrLinesSchema.parse(lines);
+    },
+    async searchCircle(options) {
+      const url = await messaging.sendMessage(OverlayMessage.SEARCH_CIRCLE, options);
+      return z.string().parse(url);
+    },
+    async searchRegion(options) {
+      const url = await messaging.sendMessage(OverlayMessage.SEARCH_REGION, options);
+      return z.string().parse(url);
+    },
+    async scanCircleCodes(options) {
+      const texts = await messaging.sendMessage(OverlayMessage.SCAN_CIRCLE_CODES, options);
+      return codeTextsSchema.parse(texts);
     }
   });
 
@@ -108,6 +129,9 @@ export function serveOverlayWindows({
   messaging.onMessage(OverlayMessage.OPEN_CIRCLE, message =>
     host.openCircle(parsed(openCircleSchema.safeParse(message.data)))
   );
+  messaging.onMessage(OverlayMessage.CLOSE_CIRCLE, () => {
+    host.closeCircle();
+  });
 
   return () => messaging.close();
 }

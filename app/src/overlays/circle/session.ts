@@ -23,7 +23,8 @@ function openOptions({
 }) {
   return {
     monitor,
-    stillJpegBase64: Buffer.from(frozen.jpeg).toString("base64"),
+    // A view over the same memory: Buffer.from(bytes) would copy the whole still first
+    stillJpegBase64: Buffer.from(frozen.jpeg.buffer, frozen.jpeg.byteOffset, frozen.jpeg.byteLength).toString("base64"),
     stillWidth: frozen.width,
     stillHeight: frozen.height,
     isAskOnRelease
@@ -36,6 +37,8 @@ async function circleMonitor({
   setCircling,
   monitor,
   isAskOnRelease,
+  log,
+  isCancelRequested,
   onFrozen
 }: {
   screen: CircleScreen;
@@ -43,30 +46,48 @@ async function circleMonitor({
   setCircling: (isCircling: boolean) => void;
   monitor: Monitor;
   isAskOnRelease: boolean;
-  onFrozen: (frozen: FrozenScreen) => void;
+  log: OverlayLog;
+  // Win+Alt+C pressed while the display was still being captured: there is no window to close yet
+  isCancelRequested: () => boolean;
+  onFrozen: (frozen: FrozenScreen | undefined) => void;
 }) {
   // Captured before the window exists, so the still is the screen as the user last saw it
   const frozen = await screen.freeze(monitor);
-  onFrozen(frozen);
-  setCircling(true);
-  const options = openOptions({
-    monitor,
-    frozen,
-    isAskOnRelease
-  });
-  const outcome = await openOverlay(options);
-  setCircling(false);
-
-  if (outcome.isCancelled) {
+  if (isCancelRequested()) {
     return undefined;
   }
 
+  onFrozen(frozen);
+  setCircling(true);
+  // Not held in a variable: the base64 string is as big as the still and only the call needs it
+  const outcome = await openOverlay(
+    openOptions({
+      monitor,
+      frozen,
+      isAskOnRelease
+    })
+  );
+  setCircling(false);
+
+  if (outcome.isCancelled) {
+    onFrozen(undefined);
+
+    const hasFailed = outcome.error !== undefined;
+    if (hasFailed) {
+      log.write(`circle: the overlay failed: ${outcome.error}`);
+    }
+
+    return undefined;
+  }
+
+  const crop = await screen.crop({
+    frozen,
+    region: outcome.region
+  });
+  onFrozen(undefined);
   return {
     action: outcome.action,
-    crop: await screen.crop({
-      frozen,
-      region: outcome.region
-    }),
+    crop,
     region: outcome.region,
     monitor
   } satisfies CircleSelection;
@@ -98,15 +119,19 @@ async function readFrozen({
 export function createCircleSession({
   screen,
   openOverlay,
+  closeOverlay,
   setCircling,
   log
 }: {
   screen: CircleScreen;
   openOverlay: (options: OpenCircle) => Promise<CircleOutcome>;
+  // Closes the open overlay as a cancel
+  closeOverlay: () => void;
   setCircling: (isCircling: boolean) => void;
   log: OverlayLog;
 }) {
   let isOpen = false;
+  let isCancelRequested = false;
   let frozenNow: FrozenScreen | undefined;
 
   // Freezes `monitor` and lets the user circle part of it; the selection, or undefined when they
@@ -119,6 +144,7 @@ export function createCircleSession({
     }
 
     isOpen = true;
+    isCancelRequested = false;
     try {
       return await circleMonitor({
         screen,
@@ -126,6 +152,8 @@ export function createCircleSession({
         setCircling,
         monitor,
         isAskOnRelease,
+        log,
+        isCancelRequested: () => isCancelRequested,
         onFrozen(frozen) {
           frozenNow = frozen;
         }
@@ -140,6 +168,17 @@ export function createCircleSession({
     }
   }
 
+  // Backs out of Circle to Search: the open overlay closes and the selection is discarded; select
+  // resolves undefined, so nothing else changes
+  function cancel() {
+    if (!isOpen) {
+      return;
+    }
+
+    isCancelRequested = true;
+    closeOverlay();
+  }
+
   // OCR of the still the open overlay shows, inside `region` (its pixels) or all of it
   async function readText(region: Region | null) {
     return readFrozen({
@@ -149,8 +188,52 @@ export function createCircleSession({
     });
   }
 
+  // The sharp crop of the still the open overlay shows, or undefined when none is open
+  async function crop(region: Region) {
+    const frozen = frozenNow;
+    const isMissing = frozen === undefined;
+    if (isMissing) {
+      return undefined;
+    }
+
+    return screen.crop({
+      frozen,
+      region
+    });
+  }
+
+  // The sharp crop of `region` (the display's pixels) of the screen as it is now
+  async function cropLive({ monitor, region }: { monitor: Monitor; region: Region }) {
+    const frozen = await screen.freeze(monitor);
+    return screen.crop({
+      frozen,
+      region
+    });
+  }
+
+  // The decoded text of each QR code inside `region` of the still the open overlay shows
+  async function scanCodes(region: Region) {
+    const frozen = frozenNow;
+    const isMissing = frozen === undefined;
+    if (isMissing) {
+      return [];
+    }
+
+    return screen.scanCodes({
+      frozen,
+      region
+    });
+  }
+
   return {
+    get isOpen() {
+      return isOpen;
+    },
     select,
-    readText
+    cancel,
+    readText,
+    crop,
+    cropLive,
+    scanCodes
   };
 }

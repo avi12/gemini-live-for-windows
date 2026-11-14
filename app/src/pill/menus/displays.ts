@@ -4,7 +4,7 @@ import type { PillContext } from "@/pill/context.ts";
 import { runInBackground } from "@/pill/context.ts";
 import { refreshMicrophones } from "@/pill/menus/microphones.ts";
 
-function describeMonitor(monitor: Monitor) {
+export function describeMonitor(monitor: Monitor) {
   const primary = monitor.isPrimary ? " (primary)" : "";
   return `${monitorName(monitor)}${primary} · ${monitor.width}×${monitor.height}`;
 }
@@ -46,6 +46,14 @@ function share({ context, monitor }: { context: PillContext; monitor: Monitor })
   // Sharing a display shares all of it
   focus.unfocus();
   deps.log(`sharing ${describeMonitor(monitor)}`);
+}
+
+// Back to the whole display Gemini would start on: the one with the foreground window or the cursor
+export function shareActiveDisplay(context: PillContext) {
+  share({
+    context,
+    monitor: context.deps.displays.active()
+  });
 }
 
 export function shareDisplay({ context, displayId }: { context: PillContext; displayId: string }) {

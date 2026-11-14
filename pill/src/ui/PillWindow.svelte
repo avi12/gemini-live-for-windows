@@ -24,7 +24,7 @@
 
   const PILL_WIDTH = 504;
   const DOCK_INSET = 6;
-  const BUTTON_PARTS = [PillPart.SHARE, PillPart.MIC, PillPart.GEAR, PillPart.END] as const;
+  const BUTTON_PARTS = [PillPart.SHARE, PillPart.MIC, PillPart.CIRCLE, PillPart.GEAR, PillPart.END] as const;
 
   enableElementAnimation();
   holdVoiceLevel();

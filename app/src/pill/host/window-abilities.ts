@@ -3,16 +3,9 @@ import type { Messaging } from "winui-svelte/messaging";
 import { shouldRestore } from "winui-svelte/window/foreground";
 import type { ForegroundSnapshot } from "winui-svelte/window/foreground";
 
-import { bringToFront } from "@/overlays/focus/foreground.ts";
-import type { ForegroundApi } from "@/overlays/ports.ts";
 import type { PillProtocol } from "@/pill/host/host-link.ts";
 
 export const WINDOW_NOT_UP = "The pill's window isn't up yet";
-
-interface MoveToPosition {
-  x: number;
-  y: number;
-}
 
 // The pill's window as the abilities below need it, in physical screen pixels
 export interface PillWindowSurface {
@@ -21,7 +14,7 @@ export interface PillWindowSurface {
     x: number;
     y: number;
   };
-  moveTo(position: MoveToPosition): void;
+  moveTo(position: { x: number; y: number }): void;
 }
 
 // What the foreground tracker knows, as the abilities below read it
@@ -36,14 +29,12 @@ export interface ForegroundMemory {
 export function serveWindowAbilities({
   link,
   surface,
-  foreground,
   memory,
   bringToFrontOf,
   log
 }: {
   link: Pick<Messaging<PillProtocol>, "onMessage">;
   surface: () => PillWindowSurface | undefined;
-  foreground: ForegroundApi;
   memory: ForegroundMemory;
   bringToFrontOf: (hwnd: bigint) => boolean;
   log: (message: string) => void;
@@ -58,10 +49,7 @@ export function serveWindowAbilities({
   }
 
   link.onMessage(WindowMessage.BRING_TO_FRONT, () => {
-    bringToFront({
-      api: foreground,
-      hwnd: windowOrThrow().hwnd
-    });
+    bringToFrontOf(windowOrThrow().hwnd);
   });
   // Gives the keyboard back to the app the user was in: when Windows left the foreground on the shell
   // or a window of ours, the last real app returns; an app the user switched to is left alone

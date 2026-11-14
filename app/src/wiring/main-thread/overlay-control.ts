@@ -1,16 +1,14 @@
 import type { Transport } from "winui-svelte/state/host";
 
-import { monitorName } from "@/contracts/monitor.ts";
-import { openFile } from "@/core/shell/open-external.ts";
-import { errorMessage } from "@/lib/error-message.ts";
 import type { Media } from "@/media/media.ts";
-import { createLensSearch } from "@/overlays/circle/lens/lens-search.ts";
+import { createImageSearch, searchEngineOf } from "@/overlays/circle/image-search.ts";
 import { createCircleSession } from "@/overlays/circle/session.ts";
 import { connectOverlayWindows } from "@/overlays/controller-link.ts";
 import { createScreenFocus } from "@/overlays/focus/screen-focus.ts";
-import { CircleAction } from "@/overlays/protocol.ts";
-import type { PillController } from "@/pill/controller.ts";
+import type { SearchCircle } from "@/overlays/protocol.ts";
 import type { ScreenFocusOptions, ScreenFocusPort } from "@/pill/ports.ts";
+import { createCircleEntry } from "@/wiring/main-thread/circle-entry.ts";
+import type { CircleEntryController } from "@/wiring/main-thread/circle-entry.ts";
 
 function toCircleText(lines: Awaited<ReturnType<ReturnType<typeof createCircleSession>["readText"]>>) {
   return lines.map(line => ({
@@ -23,47 +21,28 @@ function toCircleText(lines: Awaited<ReturnType<ReturnType<typeof createCircleSe
   }));
 }
 
-// Freezes the display under the pointer for the user to circle something, then sends the crop
-// on: to Lens, or to Gemini as what it sees, starting a conversation if none is running
-async function runCircle({
-  media,
-  controller,
+async function searchCircle({
+  action,
+  region,
   session,
-  lens,
-  log
-}: {
-  media: Pick<Media, "monitors">;
-  controller: () => Pick<PillController, "focusRegion" | "isRunning">;
+  imageSearch
+}: SearchCircle & {
   session: ReturnType<typeof createCircleSession>;
-  lens: ReturnType<typeof createLensSearch>;
-  log: (message: string) => void;
+  imageSearch: ReturnType<typeof createImageSearch>;
 }) {
-  try {
-    const monitor = media.monitors.active();
-    const { isRunning } = controller();
-    log(`circle on ${monitorName(monitor)}${isRunning ? " (Live running)" : ""}`);
-    // While Live runs, the loop itself is the request: no buttons, it focuses on release
-    const selection = await session.select({
-      monitor,
-      isAskOnRelease: isRunning
-    });
-    if (!selection) {
-      return;
-    }
-
-    const isLens = selection.action === CircleAction.LENS;
-    if (isLens) {
-      await lens.search(selection.crop);
-      return;
-    }
-
-    await controller().focusRegion({
-      monitor: selection.monitor,
-      region: selection.region
-    });
-  } catch (error) {
-    log(`circle: ${errorMessage(error)}`);
+  const engine = searchEngineOf(action);
+  const crop = await session.crop(region);
+  const isSearchable = engine !== undefined && crop !== undefined;
+  if (!isSearchable) {
+    return "";
   }
+
+  return (
+    (await imageSearch.search({
+      engine,
+      crop
+    })) ?? ""
+  );
 }
 
 // The main thread's side of Circle to Search and the share border: the windows and hotkeys run on
@@ -77,7 +56,7 @@ export function createOverlayControl({
   transport: Transport;
   media: Pick<Media, "circleScreen" | "monitors">;
   // The controller is built over the focus this creates, so it is reached on demand
-  controller: () => Pick<PillController, "focusRegion" | "isRunning">;
+  controller: () => CircleEntryController;
   log: (message: string) => void;
 }) {
   const overlayLog = { write: log };
@@ -94,31 +73,49 @@ export function createOverlayControl({
       circleKeyPressed() {
         void circle();
       },
-      readCircleText: async ({ region }) => toCircleText(await session.readText(region))
+      readCircleText: async ({ region }) => toCircleText(await session.readText(region)),
+      searchCircle: options =>
+        searchCircle({
+          ...options,
+          session,
+          imageSearch
+        }),
+      async searchRegion({ action, monitor, region }) {
+        const engine = searchEngineOf(action);
+        const crop = await session.cropLive({
+          monitor,
+          region
+        });
+        const isSearchable = engine !== undefined;
+        if (!isSearchable) {
+          return "";
+        }
+
+        return (
+          (await imageSearch.search({
+            engine,
+            crop
+          })) ?? ""
+        );
+      },
+      scanCircleCodes: async ({ region }) => [...(await session.scanCodes(region))]
     }
   });
   const session = createCircleSession({
     screen: media.circleScreen,
     openOverlay: link.openCircle,
+    closeOverlay: link.closeCircle,
     setCircling: isCircling => focus?.setCircling(isCircling),
     log: overlayLog
   });
-  const lens = createLensSearch({
-    opener: {
-      openFile
-    },
-    log: overlayLog
-  });
+  const imageSearch = createImageSearch({ log: overlayLog });
 
-  function circle() {
-    return runCircle({
-      media,
-      controller,
-      session,
-      lens,
-      log
-    });
-  }
+  const circle = createCircleEntry({
+    media,
+    controller,
+    session,
+    log
+  });
 
   function createFocus({ currentEngine }: ScreenFocusOptions) {
     focus = createScreenFocus({
@@ -131,6 +128,7 @@ export function createOverlayControl({
   }
 
   return {
+    circle,
     createFocus,
     close: () => link.close()
   };

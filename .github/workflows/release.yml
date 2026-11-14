@@ -1,0 +1,76 @@
+# Builds the signed MSIX when a v* tag is pushed and attaches what a public download needs: the
+# .msix, the signing .cer, Install-GeminiLive.ps1 with Install-WindowsAppRuntime.ps1 and the
+# extension files. Then it writes docs/updates.json (the feed installed copies poll, served from
+# main) so the manifest only ever names a package that is already attached.
+#
+# Secrets: SIGNING_PFX_BASE64 (the one certificate every release is signed with, subject
+# CN=GeminiLiveForWindows, so installed copies keep trusting updates), SIGNING_PFX_PASSWORD and
+# CHROME_PEM (keys/chrome.pem, the extension's signing key).
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: The tag names the version in the manifest
+        shell: pwsh
+        run: |
+          [xml] $manifest = Get-Content package/AppxManifest.xml
+          $version = [version] $manifest.Package.Identity.Version
+          $short = '{0}.{1}.{2}' -f $version.Major, $version.Minor, $version.Build
+          if ("v$short" -ne $env:GITHUB_REF_NAME) {
+            throw "Tag $env:GITHUB_REF_NAME does not match the manifest's $short."
+          }
+      - name: Restore the signing certificate and the extension key
+        shell: pwsh
+        env:
+          PFX: ${{ secrets.SIGNING_PFX_BASE64 }}
+          PFX_PASSWORD: ${{ secrets.SIGNING_PFX_PASSWORD }}
+          CHROME_PEM: ${{ secrets.CHROME_PEM }}
+        run: |
+          $pfx = Join-Path $env:RUNNER_TEMP 'signing.pfx'
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:PFX))
+          Import-PfxCertificate -FilePath $pfx -CertStoreLocation Cert:\CurrentUser\My `
+            -Password (ConvertTo-SecureString $env:PFX_PASSWORD -AsPlainText -Force) | Out-Null
+          New-Item -ItemType Directory keys -Force | Out-Null
+          Set-Content keys/chrome.pem $env:CHROME_PEM
+      - name: Build and sign the release files
+        shell: pwsh
+        run: ./scripts/install.ps1 -Mode Release
+      - name: Attach them to the release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view $env:GITHUB_REF_NAME --json tagName 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $env:GITHUB_REF_NAME --title "Gemini Live $($env:GITHUB_REF_NAME.TrimStart('v'))" --generate-notes
+          }
+          gh release upload $env:GITHUB_REF_NAME (Get-ChildItem build/release -File).FullName --clobber
+      - name: Publish the update manifest
+        shell: pwsh
+        run: |
+          $package = (Get-ChildItem build/release -Filter 'GeminiLive-*.msix').FullName
+          ./scripts/Write-UpdateManifest.ps1 -Package $package
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/updates.json
+          git commit -m "chore(release): update manifest for $env:GITHUB_REF_NAME"
+          git push origin main

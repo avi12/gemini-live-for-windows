@@ -65,11 +65,6 @@ function startWindowsAppSdk({ isPackaged }: { isPackaged: boolean }) {
 }
 
 // After a crash, a hang or an update, Windows offers to start the app again, as a recovered copy
-interface OnEndedEvent {
-  exitCode: number;
-  ranMilliseconds: number;
-}
-
 // that comes up without a conversation. Failing to register only costs that offer.
 function registerCrashRestart() {
   try {
@@ -104,7 +99,7 @@ function startUiWorker({
 }: {
   files: ShippedFiles;
   data: UiWorkerData;
-  onEnded: (event: OnEndedEvent) => Promise<void>;
+  onEnded: (event: { exitCode: number; ranMilliseconds: number }) => Promise<void>;
 }) {
   const startedAt = Date.now();
   const worker = new Worker(files.uiWorker, {
@@ -140,9 +135,10 @@ function triggerOf(activation: Activation) {
   return activation.kind === ActivationKind.KEY ? activation.trigger : KeyTrigger.TAP;
 }
 
-// A launch at sign-in only readies the app; any other start is a press of the key
+// A launch at sign-in, or a restart after a crash, only readies the app; any other start is a press of the key
 function firstTriggerOf(activation: Activation) {
-  return activation.kind === ActivationKind.STARTUP ? undefined : triggerOf(activation);
+  const isReadyOnly = activation.kind === ActivationKind.STARTUP || activation.kind === ActivationKind.RECOVERED;
+  return isReadyOnly ? undefined : triggerOf(activation);
 }
 
 // The whole app: the first copy claims the single-instance pipe (a later copy hands over its press
@@ -175,6 +171,7 @@ export async function startApp({ files }: { files: ShippedFiles }) {
     args: userArguments(process.argv),
     packagedKind: isPackaged ? await readPackagedKind() : undefined
   });
+  writeLog(`activation: ${activation.kind} (packaged: ${isPackaged}, args: ${userArguments(process.argv).join(" ")})`);
   void refreshInstalledExtension({ shippedDir: files.extensionDirectory });
   const channels = openChannels();
   const controller = buildController({

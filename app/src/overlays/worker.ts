@@ -1,7 +1,7 @@
 // The overlay windows' entry on the UI worker: everything that must run after `runOnUiThread`, on
 // the thread whose message pump hears the hotkeys. The controller's side is `index.ts`.
 
-export { createCursorApi, createForegroundApi } from "@/overlays/window/win32-api.ts";
+export { createCursorApi } from "@/overlays/window/win32-api.ts";
 export { createOverlayWindowHost } from "@/overlays/window/window-host.ts";
 export type { OverlayWindowDeps } from "@/overlays/window/window-host.ts";
 export { serveOverlayWindows } from "@/overlays/window/window-link.ts";

@@ -1,10 +1,11 @@
 import type { MountedPill } from "@gemini-live/pill/mount";
+import { startTimer } from "winui-svelte/window";
 import { bringWindowToFront, trackForeground } from "winui-svelte/window/foreground";
 
 import { log } from "@/core/log/log.ts";
 import { keepRunningOnUnhandledErrors } from "@/core/log/unhandled-errors.ts";
 import { errorMessage } from "@/lib/error-message.ts";
-import { createForegroundApi } from "@/overlays/window/win32-api.ts";
+import { keepSurroundClear } from "@/overlays/window/surround.svelte.ts";
 import { loadMountPill } from "@/pill/host/dev-attach.ts";
 import { serveWindowAbilities } from "@/pill/host/window-abilities.ts";
 import type { PillWindowSurface } from "@/pill/host/window-abilities.ts";
@@ -39,13 +40,34 @@ async function attempt({ name, work }: { name: string; work: () => Promise<void>
   }
 }
 
+const PILL_WINDOW_POLL_MILLISECONDS = 100;
+
+// The pill's window exists a moment after the pump starts; once it does, the white around its drawing
+// is made clear
+function keepPillSurroundClear(pill: MountedPill) {
+  const stopPolling = startTimer({
+    milliseconds: PILL_WINDOW_POLL_MILLISECONDS,
+    isRepeating: true,
+    onTick() {
+      const handle = pill.window();
+      const isOpen = handle !== undefined;
+      if (!isOpen) {
+        return;
+      }
+
+      stopPolling();
+      keepSurroundClear(handle);
+    }
+  });
+}
+
 // Everything that has to live on the thread of the windows, started once the pump runs. One part
 // failing to start is logged and leaves the others up.
 function startUiServices({ pill, data }: { pill: MountedPill; data: UiWorkerData }) {
+  keepPillSurroundClear(pill);
   serveWindowAbilities({
     link: pill.messaging,
     surface: () => surfaceOf(pill.window()),
-    foreground: createForegroundApi(),
     memory: trackForeground(),
     bringToFrontOf: bringWindowToFront,
     log: writeLog
@@ -59,7 +81,6 @@ function startUiServices({ pill, data }: { pill: MountedPill; data: UiWorkerData
     work: () =>
       startOverlayWindows({
         port: data.ports.overlays,
-        isDebugging: data.isDebugging,
         log: writeLog
       })
   });

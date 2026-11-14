@@ -101,6 +101,8 @@ export interface PillDeps {
   previousApp: PreviousAppPort;
   window: PillWindowPort;
   updates: UpdatesPort;
+  // The one entry that toggles Circle to Search, shared with its Win+Alt+C hotkey
+  circleToSearch(): Promise<void>;
   openExternal(uri: string): void;
   quit(): void;
   log(message: string): void;

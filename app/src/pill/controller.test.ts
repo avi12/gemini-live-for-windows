@@ -395,6 +395,18 @@ describe("a start that fails", () => {
   });
 });
 
+describe("Circle to Search", () => {
+  it("runs the one shared entry when the pill button is pressed", async () => {
+    const pill = createFakePill();
+    await pill.controller.apply({ kind: PillActionKind.CIRCLE_TO_SEARCH });
+    await settle();
+    assert.deepEqual(
+      pill.calls.filter(call => call === "circleToSearch"),
+      ["circleToSearch"]
+    );
+  });
+});
+
 describe("the Copilot key", () => {
   it("ends the conversation on a tap while one runs, and hands focus back", async () => {
     const pill = await started();
@@ -942,6 +954,23 @@ describe("circling a region", () => {
     });
     assert.equal(pill.controller.isRunning, true);
     assert.equal(pill.calls.at(-1), "focusOn 2 300x200");
+  });
+
+  it("reports a focused region from the engine and hands the active display back whole", async () => {
+    const pill = await started();
+    assert.equal(pill.controller.isRegionFocused, false);
+    pill.engine.engine.region = {
+      x: 10,
+      y: 10,
+      width: 300,
+      height: 200
+    };
+    assert.equal(pill.controller.isRegionFocused, true);
+    pill.world.active = SECONDARY;
+    pill.controller.focusActiveDisplay();
+    const expectedCalls = ["cover 2", "unfocus"];
+    assert.deepEqual(pill.calls.slice(pill.calls.length - expectedCalls.length), expectedCalls);
+    assert.equal(pill.logs.at(-1), `sharing ${SECONDARY_NAME}`);
   });
 
   it("passes the screen focus the running engine", async () => {

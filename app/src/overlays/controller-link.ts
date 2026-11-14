@@ -4,8 +4,24 @@ import type { Transport } from "winui-svelte/state/host";
 import { errorMessage } from "@/lib/error-message.ts";
 import type { FocusWindows } from "@/overlays/focus/screen-focus.ts";
 import type { OverlayLog } from "@/overlays/ports.ts";
-import { chipDraggedSchema, circleOutcomeSchema, OverlayMessage, readCircleTextSchema } from "@/overlays/protocol.ts";
-import type { OcrLines, OpenCircle, OverlayProtocol, ReadCircleText } from "@/overlays/protocol.ts";
+import {
+  chipDraggedSchema,
+  circleOutcomeSchema,
+  OverlayMessage,
+  readCircleTextSchema,
+  scanCircleCodesSchema,
+  searchCircleSchema,
+  searchRegionSchema
+} from "@/overlays/protocol.ts";
+import type {
+  OcrLines,
+  OpenCircle,
+  OverlayProtocol,
+  ReadCircleText,
+  ScanCircleCodes,
+  SearchCircle,
+  SearchRegion
+} from "@/overlays/protocol.ts";
 import type { Point } from "@/overlays/shapes.ts";
 
 // What the windows tell the controller
@@ -17,6 +33,12 @@ export interface OverlayControllerEvents {
   circleKeyPressed(): void;
   // OCR of the frozen still the open circle overlay shows, inside the region or all of it
   readCircleText(options: ReadCircleText): Promise<OcrLines>;
+  // Reverse image search on the circled part of the frozen still: whether the page opened
+  searchCircle(options: SearchCircle): Promise<string>;
+  // The same for the region of the live screen the region frame sits over
+  searchRegion(options: SearchRegion): Promise<string>;
+  // The decoded text of each QR code inside the region of the frozen still
+  scanCircleCodes(options: ScanCircleCodes): Promise<string[]>;
 }
 
 function listenForEvents({
@@ -57,6 +79,30 @@ function listenForEvents({
 
     return events.readCircleText(parsed.data);
   });
+  messaging.onMessage(OverlayMessage.SEARCH_CIRCLE, async message => {
+    const parsed = searchCircleSchema.safeParse(message.data);
+    if (!parsed.success) {
+      throw new Error(parsed.error.message);
+    }
+
+    return events.searchCircle(parsed.data);
+  });
+  messaging.onMessage(OverlayMessage.SEARCH_REGION, async message => {
+    const parsed = searchRegionSchema.safeParse(message.data);
+    if (!parsed.success) {
+      throw new Error(parsed.error.message);
+    }
+
+    return events.searchRegion(parsed.data);
+  });
+  messaging.onMessage(OverlayMessage.SCAN_CIRCLE_CODES, async message => {
+    const parsed = scanCircleCodesSchema.safeParse(message.data);
+    if (!parsed.success) {
+      throw new Error(parsed.error.message);
+    }
+
+    return events.scanCircleCodes(parsed.data);
+  });
 }
 
 // The controller's end of the overlay link (main thread): the windows it drives, the circle overlay
@@ -95,7 +141,10 @@ export function connectOverlayWindows({
   async function openCircle(options: OpenCircle) {
     const answer = await messaging.sendMessage(OverlayMessage.OPEN_CIRCLE, options).catch((error: unknown) => {
       notifyFailure(error);
-      return { isCancelled: true } as const;
+      return {
+        isCancelled: true,
+        error: errorMessage(error)
+      } as const;
     });
     return circleOutcomeSchema.parse(answer);
   }
@@ -103,6 +152,7 @@ export function connectOverlayWindows({
   return {
     windows,
     openCircle,
+    closeCircle: () => messaging.notify(OverlayMessage.CLOSE_CIRCLE),
     close: () => messaging.close()
   };
 }

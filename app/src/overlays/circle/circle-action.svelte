@@ -4,42 +4,54 @@
 
   interface Props {
     label: string;
-    // The key that does the same, shown as the tooltip
-    shortcut: string;
+    // The key that does the same, shown in the tooltip; undefined when there is none
+    shortcut?: string;
+    // The one filled, labelled button of a bar
     isPrimary: boolean;
+    // Shows the label beside the icon; otherwise the button is a round icon like the pill's
+    isLabelled: boolean;
     isDisabled?: boolean;
     onpress: () => void;
     icon: Snippet;
   }
 
-  const { label, shortcut, isPrimary, isDisabled = false, onpress, icon }: Props = $props();
+  const { label, shortcut, isPrimary, isLabelled, isDisabled = false, onpress, icon }: Props = $props();
 
-  const buttonClass = $derived.by(() => {
-    if (isPrimary) {
-      return ["circle-action", "circle-action-primary", "circle-action-shape"];
+  const toolTip = $derived.by(() => {
+    const isUnbound = shortcut === undefined;
+    if (isUnbound) {
+      return label;
     }
 
-    return ["circle-action", "circle-action-shape"];
+    return `${label} (${shortcut})`;
+  });
+  const labelClass = $derived.by(() => {
+    if (isPrimary) {
+      return ["circle-action-label", "circle-primary-ink"];
+    }
+
+    return ["circle-action-label"];
+  });
+  const buttonClass = $derived.by(() => {
+    const shape = isLabelled ? "circle-labelled" : "circle-round";
+    if (isPrimary) {
+      return ["circle-action", "circle-action-primary", shape];
+    }
+
+    return ["circle-action", shape];
   });
 </script>
 
-<Button class={buttonClass} isEnabled={!isDisabled} onclick={onpress} toolTip={shortcut}>
+<Button class={buttonClass} automationName={label} isEnabled={!isDisabled} onclick={onpress} {toolTip}>
   <StackPanel orientation="Horizontal">
     {@render icon()}
-    <TextBlock class="circle-action-label" text={label} verticalAlignment="Center" />
+    {#if isLabelled}
+      <TextBlock class={labelClass} text={label} verticalAlignment="Center" />
+    {/if}
   </StackPanel>
 </Button>
 
 <style>
-  .circle-action-shape {
-    height: 48px;
-    padding: 0 20px;
-    border-width: 0;
-    border-radius: 24px;
-    font-weight: 500;
-    font-size: 16px;
-  }
-
   .circle-action-label {
     margin-left: 10px;
   }

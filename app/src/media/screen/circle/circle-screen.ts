@@ -1,26 +1,22 @@
 import type { Monitor, Region } from "@/contracts/monitor.ts";
-import { errorMessage } from "@/lib/error-message.ts";
 import { ScreenDetail } from "@/media/screen/capture-geometry.ts";
 import type { ScreenCapture } from "@/media/screen/screen-capture.ts";
 import type { CircleScreen, FrozenScreen, OcrLine } from "@/overlays/ports.ts";
 
 import { cropJpeg } from "./crop-jpeg.ts";
 
-interface ReadLinesRequest {
-  image: Uint8Array;
-  region: Region | undefined;
-}
-
 export interface CircleScreenDeps {
   screenCapture: Pick<ScreenCapture, "grab">;
-  readLines: (request: ReadLinesRequest) => Promise<OcrLine[]>;
-  log: (message: string) => void;
+  readLines: (request: { image: Uint8Array; region: Region | undefined }) => Promise<OcrLine[]>;
+  // The decoded text of each QR code in a JPEG
+  readCodes: (jpeg: Uint8Array) => Promise<readonly string[]>;
 }
 
 // What Circle to Search needs of the screen: a display frozen at full resolution the moment the key is
 // pressed (the overlay shows it and the user draws on it), the circled part cut out as the frame Gemini
-// gets, and the words under it for the chip. OCR never throws: a failure is logged and reads as no text.
-export function createCircleScreen({ screenCapture, readLines, log }: CircleScreenDeps) {
+// gets, and the words under it for the chip. A failed OCR rejects, so the overlay can say it failed
+// rather than that there was no text.
+export function createCircleScreen({ screenCapture, readLines, readCodes }: CircleScreenDeps) {
   async function freeze(monitor: Monitor) {
     const frame = await screenCapture.grab({
       monitor,
@@ -43,20 +39,24 @@ export function createCircleScreen({ screenCapture, readLines, log }: CircleScre
   }
 
   async function readText({ frozen, region }: { frozen: FrozenScreen; region: Region | undefined }) {
-    try {
-      return await readLines({
-        image: frozen.jpeg,
-        region
-      });
-    } catch (error) {
-      log(`OCR failed: ${errorMessage(error)}`);
-      return [];
-    }
+    return readLines({
+      image: frozen.jpeg,
+      region
+    });
+  }
+
+  async function scanCodes({ frozen, region }: { frozen: FrozenScreen; region: Region }) {
+    const frame = await crop({
+      frozen,
+      region
+    });
+    return readCodes(frame.jpeg);
   }
 
   return {
     freeze,
     crop,
-    readText
+    readText,
+    scanCodes
   } satisfies CircleScreen;
 }

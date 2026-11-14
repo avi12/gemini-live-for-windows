@@ -48,14 +48,14 @@ describe("createHeldKey", () => {
   it("takes the key only while held", () => {
     const system = fakeSystem();
     const key = createHeldKey({
-      keys: CircleKeyCombination.ESCAPE,
+      keys: CircleKeyCombination.escape,
       register: system.register,
       onPressed: () => undefined,
       log: system.log
     });
     assert.equal(system.owned.size, 0);
     key.hold(true);
-    assert.equal(system.owned.has(CircleKeyCombination.ESCAPE), true);
+    assert.equal(system.owned.has(CircleKeyCombination.escape), true);
     assert.equal(key.isHeld, true);
     key.hold(false);
     assert.equal(system.owned.size, 0);
@@ -65,7 +65,7 @@ describe("createHeldKey", () => {
   it("registers once however often it is held", () => {
     const system = fakeSystem();
     const key = createHeldKey({
-      keys: CircleKeyCombination.ESCAPE,
+      keys: CircleKeyCombination.escape,
       register: system.register,
       onPressed: () => undefined,
       log: system.log
@@ -78,7 +78,7 @@ describe("createHeldKey", () => {
   it("can be released twice", () => {
     const system = fakeSystem();
     const key = createHeldKey({
-      keys: CircleKeyCombination.ESCAPE,
+      keys: CircleKeyCombination.escape,
       register: system.register,
       onPressed: () => undefined,
       log: system.log
@@ -92,7 +92,7 @@ describe("createHeldKey", () => {
   it("can be taken again after a release", () => {
     const system = fakeSystem();
     const key = createHeldKey({
-      keys: CircleKeyCombination.ESCAPE,
+      keys: CircleKeyCombination.escape,
       register: system.register,
       onPressed: () => undefined,
       log: system.log
@@ -107,21 +107,21 @@ describe("createHeldKey", () => {
     const system = fakeSystem();
     let presses = 0;
     const key = createHeldKey({
-      keys: CircleKeyCombination.ESCAPE,
+      keys: CircleKeyCombination.escape,
       register: system.register,
       onPressed: () => presses++,
       log: system.log
     });
     key.hold(true);
-    system.press(CircleKeyCombination.ESCAPE);
+    system.press(CircleKeyCombination.escape);
     assert.equal(presses, 1);
   });
 
   it("only logs a key another app holds, and may retry", () => {
     const system = fakeSystem();
-    system.owned.set(CircleKeyCombination.ESCAPE, () => undefined);
+    system.owned.set(CircleKeyCombination.escape, () => undefined);
     const key = createHeldKey({
-      keys: CircleKeyCombination.ESCAPE,
+      keys: CircleKeyCombination.escape,
       register: system.register,
       onPressed: () => undefined,
       log: system.log
@@ -146,7 +146,7 @@ describe("holdCircleKey", () => {
     });
     assert.equal(key.isHeld, true);
     assert.deepEqual(system.registrations, ["win+alt+c"]);
-    system.press(CircleKeyCombination.CIRCLE);
+    system.press(CircleKeyCombination.circle);
     assert.equal(presses, 1);
   });
 });
@@ -183,11 +183,11 @@ describe("createOverlayKeys", () => {
     };
   }
 
-  it("holds Esc, Enter, L and T only while open", () => {
+  it("holds Esc, Enter, L, O, B and T only while open", () => {
     const { system, keys } = overlay();
     assert.equal(system.owned.size, 0);
     keys.hold(true);
-    assert.deepEqual([...system.owned.keys()].toSorted(), ["enter", "escape", "l", "t"]);
+    assert.deepEqual([...system.owned.keys()].toSorted(), ["b", "enter", "escape", "l", "o", "t"]);
     keys.hold(false);
     assert.equal(system.owned.size, 0);
   });
@@ -195,11 +195,20 @@ describe("createOverlayKeys", () => {
   it("maps each key to its action", () => {
     const { system, calls, keys } = overlay();
     keys.hold(true);
-    system.press(CircleKeyCombination.ESCAPE);
-    system.press(CircleKeyCombination.ASK_GEMINI);
-    system.press(CircleKeyCombination.LENS);
-    system.press(CircleKeyCombination.SELECT_TEXT);
-    assert.deepEqual(calls, ["escape", CircleAction.ASK_GEMINI, CircleAction.LENS, "text"]);
+    system.press(CircleKeyCombination.escape);
+    system.press(CircleKeyCombination.askGemini);
+    system.press(CircleKeyCombination.lens);
+    system.press(CircleKeyCombination.lensInBrowser);
+    system.press(CircleKeyCombination.bing);
+    system.press(CircleKeyCombination.selectText);
+    assert.deepEqual(calls, [
+      "escape",
+      CircleAction.askGemini,
+      CircleAction.LENS,
+      CircleAction.LENS_IN_BROWSER,
+      CircleAction.BING,
+      "text"
+    ]);
   });
 
   it("cannot take Esc while the focus Esc is still held", () => {
@@ -225,6 +234,6 @@ describe("createOverlayKeys", () => {
     focusEscape.hold(false);
     keys.hold(true);
     assert.deepEqual(system.lines, []);
-    assert.equal(system.owned.has(CircleKeyCombination.ESCAPE), true);
+    assert.equal(system.owned.has(CircleKeyCombination.escape), true);
   });
 });

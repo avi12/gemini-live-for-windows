@@ -1,6 +1,6 @@
+import { inflateRectangle, moveRegion } from "winui-svelte/selection";
+
 import type { Monitor, Region } from "@/contracts/monitor.ts";
-import { moved } from "@/overlays/circle/gesture/geometry.ts";
-import { inflateRect } from "@/overlays/shapes.ts";
 import type { Point } from "@/overlays/shapes.ts";
 
 // Around a circled region the frame sits just outside it, so it never covers what Gemini sees
@@ -22,8 +22,8 @@ export function borderBounds({ monitor, region }: { monitor: Monitor; region: Re
     };
   }
 
-  return inflateRect({
-    rect: {
+  return inflateRectangle({
+    rectangle: {
       x: monitor.x + region.x,
       y: monitor.y + region.y,
       width: region.width,
@@ -48,7 +48,7 @@ export function chipOrigin({ monitor, region, chipHeight }: { monitor: Monitor; 
 // The watched region moved with the chip by how far the pointer has travelled, never off the
 // display. Gemini follows live, as the engine reads the region on every frame
 export function regionAfterDrag({ start, travelled, monitor }: { start: Region; travelled: Point; monitor: Monitor }) {
-  const origin = moved({
+  const origin = moveRegion({
     selection: start,
     grip: {
       x: 0,
@@ -58,7 +58,7 @@ export function regionAfterDrag({ start, travelled, monitor }: { start: Region; 
       x: start.x + travelled.x,
       y: start.y + travelled.y
     },
-    screen: monitor
+    bounds: monitor
   });
   return {
     x: Math.trunc(origin.x),

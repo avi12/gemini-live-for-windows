@@ -132,6 +132,7 @@ export const PillActionKind = {
   QUIT: "quit",
   SET_FOCUSABLE: "setFocusable",
   MOVE_BY: "moveBy",
+  CIRCLE_TO_SEARCH: "circleToSearch",
   RESTORE_PREVIOUS_APP: "restorePreviousApp"
 } as const;
 
@@ -182,7 +183,8 @@ export const pillActionSchema = z.discriminatedUnion("kind", [
     kind: z.literal(PillActionKind.MOVE_BY),
     dx: z.number(),
     dy: z.number()
-  })
+  }),
+  z.object({ kind: z.literal(PillActionKind.CIRCLE_TO_SEARCH) })
 ]);
 
 export type PillAction = z.infer<typeof pillActionSchema>;

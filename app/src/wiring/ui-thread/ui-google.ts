@@ -3,17 +3,12 @@ import type { MessagePort } from "node:worker_threads";
 import { createMessagePortTransport } from "winui-svelte/state/host";
 
 import { publishNativeHost } from "@/core/link/native-host-registration.ts";
-import { userSecret } from "@/core/secret/user-secret.ts";
 import { createGoogleServices } from "@/google/google-services.ts";
-import type { LinkPublisher, SecretSealer } from "@/google/ports.ts";
+import type { LinkPublisher } from "@/google/ports.ts";
 import { serveGoogle } from "@/google/remote/google-server.ts";
 import { dataDir } from "@/lib/paths.ts";
 import { createMedia } from "@/media/media.ts";
-
-const sealer: SecretSealer = {
-  seal: plain => Promise.resolve(userSecret.seal({ plain })),
-  unseal: sealed => Promise.resolve(userSecret.unseal({ sealed }))
-};
+import { sealer } from "@/wiring/ui-thread/secret-sealer.ts";
 
 // The Google account's side: its hidden Gemini and Google Home pages are WebView2 controls, so they
 // are built here, on the UI thread; the main thread reaches the engine over the link. Resolves once

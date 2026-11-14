@@ -7,7 +7,7 @@ import { applyAction } from "@/pill/actions.ts";
 import { createCaptionLog } from "@/pill/captions/caption-log.ts";
 import { createPillState } from "@/pill/context.ts";
 import type { PillContext } from "@/pill/context.ts";
-import { onDisplaysChanged } from "@/pill/menus/displays.ts";
+import { onDisplaysChanged, shareActiveDisplay } from "@/pill/menus/displays.ts";
 import type { PillDeps } from "@/pill/ports.ts";
 import { endConversation, setMuted, startConversation } from "@/pill/session.ts";
 import { buildView } from "@/pill/view-builder.ts";
@@ -190,6 +190,10 @@ export function createPillController(deps: PillDeps) {
     get isRunning() {
       return state.conversation !== undefined;
     },
+    // Gemini is restricted to a circled region: the engine's region is the one source of that
+    get isRegionFocused() {
+      return state.conversation?.region !== undefined;
+    },
     subscribe,
     view() {
       return flush();
@@ -213,6 +217,9 @@ export function createPillController(deps: PillDeps) {
         monitor,
         region
       });
+    },
+    focusActiveDisplay() {
+      shareActiveDisplay(context);
     },
     async apply(action: PillAction) {
       await applyAction({

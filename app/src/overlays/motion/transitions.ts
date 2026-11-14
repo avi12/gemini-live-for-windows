@@ -6,8 +6,7 @@ import { emphasizedDecelerate, linearEase, OverlayMotion, standardEase } from "@
 
 export const TransformOrigin = {
   BOTTOM: "center bottom",
-  TOP: "center top",
-  CENTER: "center center"
+  TOP: "center top"
 } as const;
 export type TransformOrigin = (typeof TransformOrigin)[keyof typeof TransformOrigin];
 
@@ -40,13 +39,29 @@ export function riseIn({
   });
 }
 
-// The selection's brackets settle in from slightly larger, about the selection's centre
-export function settleIn({ scaleFrom, isReduced }: { scaleFrom: number; isReduced: boolean }) {
-  return riseIn({
-    rise: 0,
-    scaleFrom,
-    isReduced,
-    origin: TransformOrigin.CENTER
+// The way out of `riseIn`: fades while sinking `rise` px and shrinking to `scaleTo`, so a set of
+// buttons flies out as the next one flies in
+export function riseOut({
+  rise,
+  scaleTo = 1,
+  isReduced,
+  origin = TransformOrigin.BOTTOM
+}: {
+  rise: number;
+  scaleTo?: number;
+  isReduced: boolean;
+  origin?: TransformOrigin;
+}) {
+  return (_node: unknown) => ({
+    duration: duration({
+      milliseconds: OverlayMotion.EXIT_MILLISECONDS,
+      isReduced
+    }),
+    css(progress: number) {
+      const eased = standardEase(progress);
+      const scale = scaleTo + (1 - scaleTo) * eased;
+      return `opacity: ${eased}; translate: 0 ${(1 - eased) * rise}px; scale: ${scale}; transform-origin: ${origin}`;
+    }
   });
 }
 

@@ -121,6 +121,7 @@ function buildPillDeps({
     displays: createDisplaysPort(media),
     microphones: createMicrophonesPort(google),
     createFocus: overlays.createFocus,
+    circleToSearch: overlays.circle,
     previousApp: createPreviousAppPort({
       window: pillLink.windowPort,
       delay

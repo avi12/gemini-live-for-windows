@@ -1,17 +1,19 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import type { TextWord } from "@/overlays/circle/gesture/geometry.ts";
+import { SelectionPhase } from "winui-svelte/selection";
+import type { SelectableWord } from "winui-svelte/selection";
+
 import {
   CircleAction,
   CircleCursor,
   CircleHint,
   GestureEffectKind,
   GestureEventKind,
-  GesturePhase,
   hoverCursor,
   initialGesture,
   LINE_CLICK_COUNT,
+  pickedWords,
   reduceGesture
 } from "@/overlays/circle/gesture/gesture.ts";
 import type { GestureEffect, GestureEvent, GestureState } from "@/overlays/circle/gesture/gesture.ts";
@@ -22,7 +24,7 @@ const SCREEN = {
   height: 1080
 };
 
-const WORDS: readonly TextWord[] = [
+const WORDS: readonly SelectableWord[] = [
   {
     text: "alpha",
     bounds: {
@@ -80,6 +82,10 @@ const LOOP_SELECTION = {
   width: 232,
   height: 182
 };
+
+function picked(state: GestureState) {
+  return pickedWords(state).map(word => word.text);
+}
 
 function start(isAskOnRelease = false) {
   return initialGesture({
@@ -173,8 +179,8 @@ describe("a loop", () => {
         })
       ]
     });
-    assert.equal(state.phase, GesturePhase.STROKE);
-    assert.deepEqual(state.stroke, [
+    assert.equal(state.selector.phase, SelectionPhase.draw);
+    assert.deepEqual(state.selector.stroke, [
       {
         x: 10,
         y: 10
@@ -201,7 +207,7 @@ describe("a loop", () => {
         })
       ]
     });
-    assert.deepEqual(state.stroke, [
+    assert.deepEqual(state.selector.stroke, [
       {
         x: 0,
         y: 0
@@ -227,7 +233,7 @@ describe("a loop", () => {
         })
       ]
     });
-    assert.equal(state.stroke.length, 2);
+    assert.equal(state.selector.stroke.length, 2);
   });
 
   it("becomes a padded, landed selection on release", () => {
@@ -235,8 +241,8 @@ describe("a loop", () => {
       state: start(),
       events: drawLoop()
     });
-    assert.equal(state.phase, GesturePhase.IDLE);
-    assert.deepEqual(state.selection, LOOP_SELECTION);
+    assert.equal(state.selector.phase, SelectionPhase.idle);
+    assert.deepEqual(state.selector.selection, LOOP_SELECTION);
     assert.deepEqual(effects, [
       { kind: GestureEffectKind.HIDE_HINT },
       {
@@ -247,7 +253,7 @@ describe("a loop", () => {
   });
 
   it("keeps the drawn points to fade out after release", () => {
-    assert.equal(selected().stroke.length, LOOP.length);
+    assert.equal(selected().selector.stroke.length, LOOP.length);
   });
 
   it("ignores a click that is too small to be a circle", () => {
@@ -261,8 +267,8 @@ describe("a loop", () => {
         RELEASE
       ]
     });
-    assert.equal(state.selection, undefined);
-    assert.equal(state.phase, GesturePhase.IDLE);
+    assert.equal(state.selector.selection, undefined);
+    assert.equal(state.selector.phase, SelectionPhase.idle);
     assert.deepEqual(effects, [{ kind: GestureEffectKind.HIDE_HINT }]);
   });
 
@@ -274,7 +280,7 @@ describe("a loop", () => {
     assert.equal(state.isFinished, true);
     assert.deepEqual(effects.at(-1), {
       kind: GestureEffectKind.FINISH,
-      action: CircleAction.ASK_GEMINI,
+      action: CircleAction.askGemini,
       selection: LOOP_SELECTION
     });
     assert.equal(
@@ -293,8 +299,8 @@ describe("a loop", () => {
         })
       ]
     });
-    assert.equal(state.selection, undefined);
-    assert.equal(state.phase, GesturePhase.STROKE);
+    assert.equal(state.selector.selection, undefined);
+    assert.equal(state.selector.phase, SelectionPhase.draw);
   });
 
   it("ends the loop when the pointer is lost without a release", () => {
@@ -302,7 +308,7 @@ describe("a loop", () => {
       state: start(),
       events: [...drawLoop().slice(0, -1), RELEASE]
     });
-    assert.deepEqual(state.selection, LOOP_SELECTION);
+    assert.deepEqual(state.selector.selection, LOOP_SELECTION);
   });
 
   it("moving with nothing held changes nothing", () => {
@@ -341,8 +347,8 @@ describe("resizing", () => {
         })
       ]
     });
-    assert.equal(state.phase, GesturePhase.RESIZE);
-    assert.deepEqual(state.selection, {
+    assert.equal(state.selector.phase, SelectionPhase.resize);
+    assert.deepEqual(state.selector.selection, {
       x: 284,
       y: 284,
       width: 416,
@@ -364,7 +370,7 @@ describe("resizing", () => {
         })
       ]
     });
-    assert.deepEqual(state.selection, {
+    assert.deepEqual(state.selector.selection, {
       x: 284,
       y: 284,
       width: 20,
@@ -387,9 +393,9 @@ describe("resizing", () => {
         RELEASE
       ]
     });
-    assert.equal(state.phase, GesturePhase.IDLE);
-    assert.equal(state.resizeGrip, undefined);
-    assert.deepEqual(state.selection, {
+    assert.equal(state.selector.phase, SelectionPhase.idle);
+    assert.equal(state.selector.resizeGrip, undefined);
+    assert.deepEqual(state.selector.selection, {
       x: 284,
       y: 284,
       width: 416,
@@ -431,8 +437,8 @@ describe("moving", () => {
         })
       ]
     });
-    assert.equal(state.phase, GesturePhase.MOVE);
-    assert.deepEqual(state.selection, {
+    assert.equal(state.selector.phase, SelectionPhase.move);
+    assert.deepEqual(state.selector.selection, {
       x: 334,
       y: 304,
       width: 232,
@@ -451,7 +457,7 @@ describe("moving", () => {
         RELEASE
       ]
     });
-    assert.deepEqual(state.selection, LOOP_SELECTION);
+    assert.deepEqual(state.selector.selection, LOOP_SELECTION);
   });
 
   it("stops at the screen edge", () => {
@@ -468,7 +474,7 @@ describe("moving", () => {
         })
       ]
     });
-    assert.deepEqual(state.selection, {
+    assert.deepEqual(state.selector.selection, {
       x: 0,
       y: 0,
       width: 232,
@@ -503,7 +509,7 @@ describe("finishing", () => {
       state: start(),
       event: {
         kind: GestureEventKind.FINISH,
-        action: CircleAction.ASK_GEMINI
+        action: CircleAction.askGemini
       }
     });
     assert.deepEqual(step.effects, []);
@@ -520,7 +526,7 @@ describe("finishing", () => {
         },
         {
           kind: GestureEventKind.FINISH,
-          action: CircleAction.ASK_GEMINI
+          action: CircleAction.askGemini
         }
       ]
     });
@@ -662,7 +668,7 @@ describe("reading text", () => {
         y: 5
       })
     });
-    assert.equal(step.state.phase, GesturePhase.IDLE);
+    assert.equal(step.state.selector.phase, SelectionPhase.idle);
   });
 
   it("enters text mode when words were found", () => {
@@ -678,7 +684,7 @@ describe("reading text", () => {
     });
     assert.equal(state.isReading, false);
     assert.equal(state.isTextMode, true);
-    assert.deepEqual(state.words, WORDS);
+    assert.deepEqual(state.text.words, WORDS);
     assert.deepEqual(effects.slice(-LAST_TWO), [
       { kind: GestureEffectKind.HIDE_HINT },
       {
@@ -706,6 +712,23 @@ describe("reading text", () => {
       {
         kind: GestureEffectKind.SAY,
         message: CircleHint.NO_TEXT,
+        isLasting: false
+      }
+    ]);
+  });
+
+  it("says the read failed, not that no text was found", () => {
+    const { state, effects } = run({
+      state: start(),
+      events: [{ kind: GestureEventKind.SELECT_TEXT }, { kind: GestureEventKind.TEXT_FAILED }]
+    });
+    assert.equal(state.isTextMode, false);
+    assert.equal(state.isReading, false);
+    assert.deepEqual(effects.slice(-LAST_TWO), [
+      { kind: GestureEffectKind.HIDE_HINT },
+      {
+        kind: GestureEffectKind.SAY,
+        message: CircleHint.READ_FAILED,
         isLasting: false
       }
     ]);
@@ -739,8 +762,8 @@ describe("selecting words", () => {
         })
       ]
     });
-    assert.equal(state.phase, GesturePhase.TEXT_SELECT);
-    assert.deepEqual(state.picked, [0]);
+    assert.equal(state.isSelectingText, true);
+    assert.deepEqual(picked(state), ["alpha"]);
     assert.deepEqual(effects.at(-1), {
       kind: GestureEffectKind.SET_COPY_KEY,
       isRegistered: true
@@ -761,7 +784,7 @@ describe("selecting words", () => {
         })
       ]
     });
-    assert.deepEqual(state.picked, [0, 1, 2]);
+    assert.deepEqual(picked(state), ["alpha", "beta", "gamma"]);
   });
 
   it("extends backward in reading order", () => {
@@ -778,10 +801,10 @@ describe("selecting words", () => {
         })
       ]
     });
-    assert.deepEqual(state.picked, [0, 1, 2]);
+    assert.deepEqual(picked(state), ["alpha", "beta", "gamma"]);
   });
 
-  it("keeps the picked words while the drag is over empty space", () => {
+  it("extends to the nearest word while the drag is over empty space", () => {
     const { state } = run({
       state: inTextMode(),
       events: [
@@ -790,12 +813,12 @@ describe("selecting words", () => {
           y: 110
         }),
         move({
-          x: 800,
-          y: 800
+          x: 300,
+          y: 110
         })
       ]
     });
-    assert.deepEqual(state.picked, [0]);
+    assert.deepEqual(picked(state), ["alpha", "beta"]);
   });
 
   it("selects the whole line on a triple click", () => {
@@ -811,7 +834,7 @@ describe("selecting words", () => {
         })
       ]
     });
-    assert.deepEqual(state.picked, [0, 1]);
+    assert.deepEqual(picked(state), ["alpha", "beta"]);
   });
 
   it("selects one word on a double click", () => {
@@ -827,7 +850,7 @@ describe("selecting words", () => {
         })
       ]
     });
-    assert.deepEqual(state.picked, [0]);
+    assert.deepEqual(picked(state), ["alpha"]);
   });
 
   it("draws a rubber band from empty space", () => {
@@ -850,7 +873,7 @@ describe("selecting words", () => {
       width: 115,
       height: 35
     });
-    assert.deepEqual(state.picked, [0, 1]);
+    assert.deepEqual(picked(state), ["alpha", "beta"]);
   });
 
   it("puts the rubber band away on release", () => {
@@ -869,7 +892,7 @@ describe("selecting words", () => {
       ]
     });
     assert.equal(state.band, undefined);
-    assert.deepEqual(state.picked, [0, 1]);
+    assert.deepEqual(picked(state), ["alpha", "beta"]);
   });
 
   it("clears the picked words on a press in empty space", () => {
@@ -887,11 +910,47 @@ describe("selecting words", () => {
         })
       ]
     });
-    assert.deepEqual(state.picked, []);
+    assert.deepEqual(picked(state), []);
     assert.deepEqual(effects.at(-1), {
       kind: GestureEffectKind.SET_COPY_KEY,
       isRegistered: false
     });
+  });
+});
+
+describe("searching the picked text", () => {
+  it("searches the picked words as one text", () => {
+    const { effects } = run({
+      state: inTextMode(),
+      events: [
+        down({
+          x: 120,
+          y: 110
+        }),
+        move({
+          x: 120,
+          y: 150
+        }),
+        RELEASE,
+        { kind: GestureEventKind.SEARCH_TEXT }
+      ]
+    });
+    assert.deepEqual(effects.at(-1), {
+      kind: GestureEffectKind.SEARCH_TEXT,
+      text: "alpha beta\ngamma"
+    });
+  });
+
+  it("does nothing with no picked words or outside text mode", () => {
+    for (const state of [inTextMode(), selected()]) {
+      const step = reduceGesture({
+        state,
+        event: {
+          kind: GestureEventKind.SEARCH_TEXT
+        }
+      });
+      assert.deepEqual(step.effects, []);
+    }
   });
 });
 
@@ -971,7 +1030,7 @@ describe("copying", () => {
 });
 
 describe("escape in text mode", () => {
-  const picked = run({
+  const pickedState = run({
     state: inTextMode(),
     events: [
       down({
@@ -984,10 +1043,10 @@ describe("escape in text mode", () => {
 
   it("clears the picked words first and stays in text mode", () => {
     const { state, effects } = run({
-      state: picked,
+      state: pickedState,
       events: [ESCAPE]
     });
-    assert.deepEqual(state.picked, []);
+    assert.deepEqual(picked(state), []);
     assert.equal(state.isTextMode, true);
     assert.deepEqual(effects, [
       {
@@ -999,17 +1058,17 @@ describe("escape in text mode", () => {
 
   it("leaves text mode next", () => {
     const { state, effects } = run({
-      state: picked,
+      state: pickedState,
       events: [ESCAPE, ESCAPE]
     });
     assert.equal(state.isTextMode, false);
-    assert.deepEqual(state.words, []);
+    assert.deepEqual(state.text.words, []);
     assert.deepEqual(effects.at(-1), { kind: GestureEffectKind.HIDE_HINT });
   });
 
   it("cancels once out of text mode", () => {
     const { state, effects } = run({
-      state: picked,
+      state: pickedState,
       events: [ESCAPE, ESCAPE, ESCAPE]
     });
     assert.equal(state.isFinished, true);
@@ -1018,11 +1077,11 @@ describe("escape in text mode", () => {
 
   it("leaves text mode from the Done button", () => {
     const { state } = run({
-      state: picked,
+      state: pickedState,
       events: [{ kind: GestureEventKind.LEAVE_TEXT }]
     });
     assert.equal(state.isTextMode, false);
-    assert.deepEqual(state.picked, []);
+    assert.deepEqual(picked(state), []);
   });
 
   it("ignores Done outside text mode", () => {
@@ -1037,10 +1096,10 @@ describe("escape in text mode", () => {
 
   it("keeps the selection for the pill that returns", () => {
     const { state } = run({
-      state: picked,
+      state: pickedState,
       events: [ESCAPE, ESCAPE]
     });
-    assert.deepEqual(state.selection, LOOP_SELECTION);
+    assert.deepEqual(state.selector.selection, LOOP_SELECTION);
   });
 });
 
@@ -1054,7 +1113,7 @@ describe("hoverCursor", () => {
           y: 5
         }
       }),
-      CircleCursor.DRAW
+      CircleCursor.draw
     );
   });
 
@@ -1068,7 +1127,7 @@ describe("hoverCursor", () => {
           y: 284
         }
       }),
-      CircleCursor.RESIZE_FALLING
+      CircleCursor.resizeFalling
     );
     assert.equal(
       hoverCursor({
@@ -1078,7 +1137,7 @@ describe("hoverCursor", () => {
           y: 466
         }
       }),
-      CircleCursor.RESIZE_FALLING
+      CircleCursor.resizeFalling
     );
     assert.equal(
       hoverCursor({
@@ -1088,7 +1147,7 @@ describe("hoverCursor", () => {
           y: 284
         }
       }),
-      CircleCursor.RESIZE_RISING
+      CircleCursor.resizeRising
     );
     assert.equal(
       hoverCursor({
@@ -1098,7 +1157,7 @@ describe("hoverCursor", () => {
           y: 466
         }
       }),
-      CircleCursor.RESIZE_RISING
+      CircleCursor.resizeRising
     );
   });
 
@@ -1111,7 +1170,7 @@ describe("hoverCursor", () => {
           y: 375
         }
       }),
-      CircleCursor.MOVE
+      CircleCursor.move
     );
   });
 
@@ -1124,7 +1183,7 @@ describe("hoverCursor", () => {
           y: 800
         }
       }),
-      CircleCursor.DRAW
+      CircleCursor.draw
     );
   });
 
@@ -1138,7 +1197,7 @@ describe("hoverCursor", () => {
           y: 110
         }
       }),
-      CircleCursor.TEXT
+      CircleCursor.text
     );
     assert.equal(
       hoverCursor({
@@ -1148,7 +1207,112 @@ describe("hoverCursor", () => {
           y: 800
         }
       }),
-      CircleCursor.ARROW
+      CircleCursor.arrow
     );
+  });
+});
+
+describe("searching", () => {
+  it("is finished while the search runs, and usable again when it fails", () => {
+    const { state, effects } = run({
+      state: selected(),
+      events: [
+        {
+          kind: GestureEventKind.FINISH,
+          action: CircleAction.LENS
+        },
+        { kind: GestureEventKind.SEARCH_FAILED }
+      ]
+    });
+    assert.equal(state.isFinished, false);
+    assert.equal(state.isSearching, false);
+    assert.deepEqual(effects.at(-1), {
+      kind: GestureEffectKind.SAY,
+      message: CircleHint.SEARCH_FAILED,
+      isLasting: false
+    });
+  });
+
+  it("ignores a failure that is not a search", () => {
+    const step = reduceGesture({
+      state: selected(),
+      event: {
+        kind: GestureEventKind.SEARCH_FAILED
+      }
+    });
+    assert.deepEqual(step.effects, []);
+  });
+
+  it("does not search twice while one is running", () => {
+    const { effects } = run({
+      state: selected(),
+      events: [
+        {
+          kind: GestureEventKind.FINISH,
+          action: CircleAction.LENS
+        },
+        {
+          kind: GestureEventKind.FINISH,
+          action: CircleAction.BING
+        }
+      ]
+    });
+    assert.equal(effects.filter(effect => effect.kind === GestureEffectKind.FINISH).length, 1);
+  });
+});
+
+describe("right-to-left text", () => {
+  const hebrew: readonly SelectableWord[] = [
+    {
+      text: "שלום",
+      bounds: {
+        x: 200,
+        y: 100,
+        width: 50,
+        height: 20
+      },
+      line: 0
+    },
+    {
+      text: "עולם",
+      bounds: {
+        x: 140,
+        y: 100,
+        width: 50,
+        height: 20
+      },
+      line: 0
+    }
+  ];
+
+  it("copies in logical order, from the word on the right", () => {
+    const { effects } = run({
+      state: run({
+        state: selected(),
+        events: [
+          { kind: GestureEventKind.SELECT_TEXT },
+          {
+            kind: GestureEventKind.TEXT_READ,
+            words: hebrew
+          }
+        ]
+      }).state,
+      events: [
+        down({
+          x: 220,
+          y: 110
+        }),
+        move({
+          x: 160,
+          y: 110
+        }),
+        RELEASE,
+        { kind: GestureEventKind.COPY }
+      ]
+    });
+    assert.deepEqual(effects.at(-1), {
+      kind: GestureEffectKind.COPY_TEXT,
+      text: "שלום עולם"
+    });
   });
 });
