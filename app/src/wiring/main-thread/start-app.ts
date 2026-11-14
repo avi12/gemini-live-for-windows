@@ -53,7 +53,10 @@ function startWindowsAppSdk({ isPackaged }: { isPackaged: boolean }) {
   try {
     initWindowsAppSdk({
       major: WINDOWS_APP_SDK_MAJOR,
-      minor: WINDOWS_APP_SDK_MINOR
+      minor: WINDOWS_APP_SDK_MINOR,
+      // Every WebView2 here names its own profile folder; the variable would send them all to one
+      // folder, where the second browser with other options never starts
+      webViewUserDataFolder: false
     });
   } catch (error) {
     const isRefusedByIdentity = error instanceof Error && error.message.includes(NOT_SUPPORTED_HRESULT);
