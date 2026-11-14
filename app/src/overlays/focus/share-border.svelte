@@ -1,39 +1,47 @@
 <script lang="ts">
+  import { cutEmptyRegion, cutFrameRegion } from "@/overlays/focus/frame-region.ts";
   import type { Rect } from "@/overlays/shapes.ts";
   import { windowTheme } from "@/overlays/window/window-theme.svelte.ts";
   import "@gemini-live/pill/theme.css";
   import { Window } from "winui-svelte/components";
   import type { WindowHandle } from "winui-svelte/components";
 
+  // The frame's thickness and the corner radius of a circled region, in device-independent pixels
+  const FRAME_THICKNESS = 3;
+  const REGION_RADIUS = 8;
+
   interface Props {
     // Physical screen pixels: the display, or the circled region inflated; undefined hides it
     bounds: Rect | undefined;
     // A circled region rounds like Circle to Search's selection; a whole display is square
     isRegion: boolean;
-    // False in debug runs, so the frame shows in screenshots
-    isExcludedFromCapture: boolean;
   }
 
-  const { bounds, isRegion, isExcludedFromCapture }: Props = $props();
+  const { bounds, isRegion }: Props = $props();
 
   const windowRef: { handle: WindowHandle | undefined } = $state({ handle: undefined });
   const theme = windowTheme();
 
   const radius = $derived.by(() => {
     if (isRegion) {
-      return "8px";
+      return `${REGION_RADIUS}px`;
     }
 
     return "0px";
   });
 
-  function place() {
-    const isHidden = bounds === undefined;
-    if (isHidden) {
-      return;
-    }
+  // The window is never hidden or shown again: a plain window is white until it is cut down to its
+  // frame, so it stays shown and is clipped to nothing while there is nothing to frame. It opens
+  // hidden, and is shown once it has been clipped to nothing
+  const shown: { isReady: boolean } = $state({ isReady: false });
 
-    windowRef.handle?.appWindow.moveAndResize({
+  // Twice: a window moved to a display with another scale takes the first move at the old
+  // display's scale, so it only has its size right the second time
+  function moveOnce({ handle, bounds }: {
+    handle: WindowHandle;
+    bounds: Rect;
+  }) {
+    handle.appWindow.moveAndResize({
       x: bounds.x,
       y: bounds.y,
       width: bounds.width,
@@ -41,26 +49,62 @@
     });
   }
 
+  function moveTwice(target: {
+    handle: WindowHandle;
+    bounds: Rect;
+  }) {
+    moveOnce(target);
+    moveOnce(target);
+  }
+
+  function place() {
+    const handle = windowRef.handle;
+    const isUnplaceable = handle === undefined;
+    if (isUnplaceable) {
+      return;
+    }
+
+    const hwnd = handle.appWindow.id.value;
+    cutEmptyRegion(hwnd);
+    shown.isReady = true;
+    const isHidden = bounds === undefined;
+    if (isHidden) {
+      return;
+    }
+
+    moveTwice({
+      handle,
+      bounds
+    });
+    // The window is only its frame: a transparent window can show a white surface on some systems, so
+    // the middle is cut out of the window instead of being drawn clear
+    cutFrameRegion({
+      hwnd,
+      width: bounds.width,
+      height: bounds.height,
+      thickness: Math.ceil(FRAME_THICKNESS * handle.scale),
+      radius: isRegion ? Math.ceil(REGION_RADIUS * handle.scale) : 0
+    });
+  }
+
   $effect(() => {
     void bounds;
+    void windowRef.handle;
     place();
   });
 </script>
 
 <Window
   activate={false}
-  backdrop="transparent"
   isActivatable={false}
   isAlwaysOnTop
   isBorderless
   isClickThrough
-  {isExcludedFromCapture}
-  isHidden={bounds === undefined}
+  isHidden={!shown.isReady}
   isResizable={false}
   isShownInSwitchers={false}
   isToolWindow
   onscalechanged={place}
-  placement={bounds ?? null}
   theme={theme.current}
   title="Gemini sees this"
   bind:handle={() => windowRef.handle, handle => {

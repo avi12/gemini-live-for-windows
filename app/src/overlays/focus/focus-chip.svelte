@@ -3,6 +3,7 @@
   import { chipOrigin } from "@/overlays/focus/focus-layout.ts";
   import { OverlayGlyph } from "@/overlays/glyphs.ts";
   import type { Point } from "@/overlays/shapes.ts";
+  import { keepSurroundClear } from "@/overlays/window/surround.svelte.ts";
   import { windowTheme } from "@/overlays/window/window-theme.svelte.ts";
   import "@gemini-live/pill/theme.css";
   import { elementSize } from "winui-svelte";
@@ -19,7 +20,6 @@
   interface Props {
     // The region the chip labels; undefined hides the chip
     attached: AttachedRegion | undefined;
-    isExcludedFromCapture: boolean;
     // The pointer in physical screen pixels, read from the cursor rather than the chip, which
     // moves along with the drag
     cursorPosition: () => Point;
@@ -30,7 +30,6 @@
 
   const {
     attached,
-    isExcludedFromCapture,
     cursorPosition,
     ondismissed,
     ondragstarted,
@@ -71,6 +70,17 @@
     void content.height;
     place();
   });
+
+  // The white Windows draws round the chip where it should be clear is made clear
+  $effect(() => {
+    const handle = windowRef.handle;
+    const isOpen = handle !== undefined;
+    if (!isOpen) {
+      return;
+    }
+
+    return keepSurroundClear(handle);
+  });
 </script>
 
 <Window
@@ -79,7 +89,6 @@
   isActivatable={false}
   isAlwaysOnTop
   isBorderless
-  {isExcludedFromCapture}
   isHidden={attached === undefined}
   isResizable={false}
   isShownInSwitchers={false}

@@ -55,3 +55,31 @@ export const deleteDC = bindFunction({
   parameters: [Win32Type.handle],
   returns: Win32Type.bool32
 });
+
+export const createRectRgn = bindFunction({
+  library: "gdi32.dll",
+  entryPoint: "CreateRectRgn",
+  parameters: [Win32Type.i32, Win32Type.i32, Win32Type.i32, Win32Type.i32],
+  returns: Win32Type.handle
+});
+
+export const createRoundRectRgn = bindFunction({
+  library: "gdi32.dll",
+  entryPoint: "CreateRoundRectRgn",
+  parameters: [
+    Win32Type.i32,
+    Win32Type.i32,
+    Win32Type.i32,
+    Win32Type.i32,
+    Win32Type.i32,
+    Win32Type.i32
+  ],
+  returns: Win32Type.handle
+});
+
+export const combineRgn = bindFunction({
+  library: "gdi32.dll",
+  entryPoint: "CombineRgn",
+  parameters: [Win32Type.handle, Win32Type.handle, Win32Type.handle, Win32Type.i32],
+  returns: Win32Type.i32
+});
