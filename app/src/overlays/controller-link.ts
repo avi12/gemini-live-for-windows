@@ -30,6 +30,8 @@ export interface OverlayControllerEvents {
   chipDismissed(): void;
   chipDragStarted(): void;
   chipDragged(travelled: Point): void;
+  // OCR of the watched region as it is now, copied to the clipboard: whether any text was copied
+  readChipText(): Promise<boolean>;
   circleKeyPressed(): void;
   // OCR of the frozen still the open circle overlay shows, inside the region or all of it
   readCircleText(options: ReadCircleText): Promise<OcrLines>;
@@ -57,6 +59,7 @@ function listenForEvents({
   messaging.onMessage(OverlayMessage.CHIP_DRAG_STARTED, () => {
     events.chipDragStarted();
   });
+  messaging.onMessage(OverlayMessage.READ_CHIP_TEXT, () => events.readChipText());
   messaging.onMessage(OverlayMessage.CIRCLE_KEY_PRESSED, () => {
     events.circleKeyPressed();
   });

@@ -22,6 +22,7 @@ export const OverlayMessage = {
   CHIP_DISMISSED: "overlay/chipDismissed",
   CHIP_DRAG_STARTED: "overlay/chipDragStarted",
   CHIP_DRAGGED: "overlay/chipDragged",
+  READ_CHIP_TEXT: "overlay/readChipText",
   CIRCLE_KEY_PRESSED: "overlay/circleKeyPressed",
   READ_CIRCLE_TEXT: "overlay/readCircleText",
   SEARCH_CIRCLE: "overlay/searchCircle",
@@ -165,6 +166,8 @@ export interface OverlayProtocol {
   [OverlayMessage.CHIP_DISMISSED]: ProtocolWithReturn<void, void>;
   [OverlayMessage.CHIP_DRAG_STARTED]: ProtocolWithReturn<void, void>;
   [OverlayMessage.CHIP_DRAGGED]: ProtocolWithReturn<ChipDragged, void>;
+  // Reads the text under the watched region and copies it; whether any text was copied
+  [OverlayMessage.READ_CHIP_TEXT]: ProtocolWithReturn<void, boolean>;
   [OverlayMessage.CIRCLE_KEY_PRESSED]: ProtocolWithReturn<void, void>;
   [OverlayMessage.READ_CIRCLE_TEXT]: ProtocolWithReturn<ReadCircleText, OcrLines>;
   // The address of the result page, which the results panel shows; empty when the search failed,

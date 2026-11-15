@@ -211,6 +211,15 @@ export function createCircleSession({
     });
   }
 
+  // OCR of `region` (the display's pixels) of the screen as it is now
+  async function readLive({ monitor, region }: { monitor: Monitor; region: Region }) {
+    const frozen = await screen.freeze(monitor);
+    return screen.readText({
+      frozen,
+      region
+    });
+  }
+
   // The decoded text of each QR code inside `region` of the still the open overlay shows
   async function scanCodes(region: Region) {
     const frozen = frozenNow;
@@ -234,6 +243,7 @@ export function createCircleSession({
     readText,
     crop,
     cropLive,
+    readLive,
     scanCodes
   };
 }

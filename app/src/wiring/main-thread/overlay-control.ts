@@ -1,5 +1,6 @@
 import type { Transport } from "winui-svelte/state/host";
 
+import { copyTextWithPowerShell } from "@/lib/clipboard.ts";
 import type { Media } from "@/media/media.ts";
 import { createImageSearch, searchEngineOf } from "@/overlays/circle/image-search.ts";
 import { createCircleSession } from "@/overlays/circle/session.ts";
@@ -61,6 +62,7 @@ export function createOverlayControl({
 }) {
   const overlayLog = { write: log };
   let focus: ReturnType<typeof createScreenFocus> | undefined;
+  let currentEngine: ScreenFocusOptions["currentEngine"] | undefined;
 
   const link = connectOverlayWindows({
     transport,
@@ -70,6 +72,27 @@ export function createOverlayControl({
       chipDismissed: () => focus?.events.chipDismissed(),
       chipDragStarted: () => focus?.events.chipDragStarted(),
       chipDragged: travelled => focus?.events.chipDragged(travelled),
+      async readChipText() {
+        const engine = currentEngine?.();
+        const region = engine?.region;
+        const isNothingWatched = engine === undefined || region === undefined;
+        if (isNothingWatched) {
+          return false;
+        }
+
+        const lines = await session.readLive({
+          monitor: engine.monitor,
+          region
+        });
+        const text = lines.map(line => line.words.map(word => word.text).join(" ")).join("\n");
+        const isEmpty = text.trim() === "";
+        if (isEmpty) {
+          return false;
+        }
+
+        await copyTextWithPowerShell(text);
+        return true;
+      },
       circleKeyPressed() {
         void circle();
       },
@@ -117,10 +140,11 @@ export function createOverlayControl({
     log
   });
 
-  function createFocus({ currentEngine }: ScreenFocusOptions) {
+  function createFocus(options: ScreenFocusOptions) {
+    currentEngine = options.currentEngine;
     focus = createScreenFocus({
       windows: link.windows,
-      currentEngine,
+      currentEngine: options.currentEngine,
       log: overlayLog
     });
     const port: ScreenFocusPort = focus;

@@ -66,7 +66,8 @@ function mountFocusChip({ cursor, events }: { cursor: CursorApi; events: Overlay
     cursorPosition: cursor.cursorPosition,
     ondismissed: events.chipDismissed,
     ondragstarted: events.chipDragStarted,
-    ondragged: events.chipDragged
+    ondragged: events.chipDragged,
+    onreadtext: events.readChipText
   };
   return mountControl({
     component: FocusChip,

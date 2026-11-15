@@ -43,6 +43,7 @@ export interface OverlayWindowEvents {
   chipDismissed(): void;
   chipDragStarted(): void;
   chipDragged(travelled: Point): void;
+  readChipText(): Promise<boolean>;
   circleKeyPressed(): void;
   readCircleText(options: ReadCircleText): Promise<OcrLines>;
   searchCircle(options: SearchCircle): Promise<string>;
@@ -92,6 +93,10 @@ export function serveOverlayWindows({
         dx: travelled.x,
         dy: travelled.y
       }),
+    async readChipText() {
+      const isCopied = await messaging.sendMessage(OverlayMessage.READ_CHIP_TEXT);
+      return z.boolean().parse(isCopied);
+    },
     circleKeyPressed: () => messaging.notify(OverlayMessage.CIRCLE_KEY_PRESSED),
     async readCircleText(options) {
       const lines = await messaging.sendMessage(OverlayMessage.READ_CIRCLE_TEXT, options);
