@@ -136,6 +136,7 @@ export function createOverlayControl({
         monitor: engine.monitor,
         region
       });
+      log(`select text: ${lines.length} lines in ${region.width}×${region.height}`);
       link.regionText.show({
         monitor: engine.monitor,
         region,

@@ -25,6 +25,9 @@
   const WORD_REACH = 6;
   const PRIMARY_BUTTON = 0;
   const ESCAPE_KEY = "Escape";
+  // How long after showing a deactivation is still Windows settling, not the user leaving
+  const SETTLE_MILLISECONDS = 800;
+  const shownAt: { time: number } = $state({ time: 0 });
 
   const windowRef: { handle: WindowHandle | undefined } = $state({ handle: undefined });
   const theme = windowTheme();
@@ -92,6 +95,7 @@
     void target;
     pick.anchor = undefined;
     pick.head = undefined;
+    shownAt.time = performance.now();
   });
 
   function press(event: PointerEvent) {
@@ -188,7 +192,9 @@
   isShownInSwitchers={false}
   isToolWindow
   onactivechanged={isActive => {
-    if (!isActive && target !== undefined) {
+    // Not in the first moments, while Windows settles which window is in front
+    const isSettling = performance.now() - shownAt.time < SETTLE_MILLISECONDS;
+    if (!isActive && target !== undefined && !isSettling) {
       onclosed();
     }
   }}
@@ -208,7 +214,7 @@
     role="presentation"
   >
     {#if target !== undefined}
-      <Image isHitTestVisible={false} source={target.still} stretch="Fill" />
+      <Image source={target.still} stretch="Fill" />
     {/if}
     <Canvas class="region-text-layer" isHitTestVisible={false}>
       <Path class="circle-words" data={wordsPath} isHitTestVisible={false} />
@@ -219,6 +225,7 @@
 
 <style>
   .region-text-root {
+    background-color: #000000;
     cursor: text;
   }
 
