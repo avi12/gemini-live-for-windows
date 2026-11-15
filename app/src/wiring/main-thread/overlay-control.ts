@@ -1,5 +1,6 @@
 import type { Transport } from "winui-svelte/state/host";
 
+import { errorMessage } from "@/lib/error-message.ts";
 import type { Media } from "@/media/media.ts";
 import { createImageSearch, searchEngineOf } from "@/overlays/circle/image-search.ts";
 import { createCircleSession } from "@/overlays/circle/session.ts";
@@ -7,7 +8,7 @@ import { connectOverlayWindows } from "@/overlays/controller-link.ts";
 import { createScreenFocus } from "@/overlays/focus/screen-focus.ts";
 import type { SearchCircle } from "@/overlays/protocol.ts";
 import type { ScreenFocusOptions, ScreenFocusPort } from "@/pill/ports.ts";
-import { createCircleEntry, startCircle } from "@/wiring/main-thread/circle-entry.ts";
+import { createCircleEntry } from "@/wiring/main-thread/circle-entry.ts";
 import type { CircleEntryController } from "@/wiring/main-thread/circle-entry.ts";
 
 function toCircleText(lines: Awaited<ReturnType<ReturnType<typeof createCircleSession>["readText"]>>) {
@@ -72,21 +73,7 @@ export function createOverlayControl({
       chipDragStarted: () => focus?.events.chipDragStarted(),
       chipDragged: travelled => focus?.events.chipDragged(travelled),
       chipSelectTextPressed() {
-        const engine = currentEngine?.();
-        const textRegion = engine?.region;
-        const isNothingWatched = engine === undefined || textRegion === undefined;
-        if (isNothingWatched) {
-          return;
-        }
-
-        void startCircle({
-          media,
-          controller,
-          session,
-          log,
-          monitor: engine.monitor,
-          textRegion
-        });
+        void showRegionText();
       },
       circleKeyPressed() {
         void circle();
@@ -134,6 +121,31 @@ export function createOverlayControl({
     session,
     log
   });
+
+  // The watched region as a still of its own over the live screen, its words ready to pick
+  async function showRegionText() {
+    const engine = currentEngine?.();
+    const region = engine?.region;
+    const isNothingWatched = engine === undefined || region === undefined;
+    if (isNothingWatched) {
+      return;
+    }
+
+    try {
+      const { crop, lines } = await session.grabLive({
+        monitor: engine.monitor,
+        region
+      });
+      link.regionText.show({
+        monitor: engine.monitor,
+        region,
+        jpegBase64: Buffer.from(crop.jpeg.buffer, crop.jpeg.byteOffset, crop.jpeg.byteLength).toString("base64"),
+        lines: toCircleText(lines)
+      });
+    } catch (error) {
+      log(`select text: ${errorMessage(error)}`);
+    }
+  }
 
   function createFocus(options: ScreenFocusOptions) {
     currentEngine = options.currentEngine;

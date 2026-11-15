@@ -20,7 +20,8 @@ import type {
   ReadCircleText,
   ScanCircleCodes,
   SearchCircle,
-  SearchRegion
+  SearchRegion,
+  ShowRegionText
 } from "@/overlays/protocol.ts";
 import type { Point } from "@/overlays/shapes.ts";
 
@@ -153,8 +154,15 @@ export function connectOverlayWindows({
     return circleOutcomeSchema.parse(answer);
   }
 
+  // The region's own still, with its words ready to pick, shown over the live screen
+  const regionText = {
+    show: (options: ShowRegionText) => messaging.notify(OverlayMessage.SHOW_REGION_TEXT, options),
+    hide: () => messaging.notify(OverlayMessage.HIDE_REGION_TEXT)
+  };
+
   return {
     windows,
+    regionText,
     openCircle,
     closeCircle: () => messaging.notify(OverlayMessage.CLOSE_CIRCLE),
     close: () => messaging.close()

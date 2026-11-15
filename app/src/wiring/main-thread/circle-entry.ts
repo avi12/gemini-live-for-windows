@@ -1,5 +1,4 @@
 import { monitorName } from "@/contracts/monitor.ts";
-import type { Monitor, Region } from "@/contracts/monitor.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 import type { Media } from "@/media/media.ts";
 import { circlePhase, circleToggle, CircleToggleAction } from "@/overlays/circle/circle-toggle.ts";
@@ -20,34 +19,25 @@ export type CircleEntrySession = Pick<ReturnType<typeof createCircleSession>, "c
 // Freezes the display under the pointer for the user to circle something, then sends the crop to
 // Gemini as what it sees, starting a conversation if none is running. A reverse image search is
 // answered while the overlay is still up (see searchCircle), so it can say when it fails
-export async function startCircle({
+async function startCircle({
   media,
   controller,
   session,
-  log,
-  monitor = media.monitors.active(),
-  textRegion = null
+  log
 }: {
   media: CircleEntryMedia;
   controller: () => CircleEntryController;
   session: CircleEntrySession;
   log: (message: string) => void;
-  // The display to freeze: the active one unless the caller names one
-  monitor?: Monitor;
-  // Opens straight into picking words inside this part of the display, as Select text does
-  textRegion?: Region | null;
 }) {
   try {
+    const monitor = media.monitors.active();
     const { isRunning } = controller();
-    const isSelectingText = textRegion !== null;
-    log(
-      `circle on ${monitorName(monitor)}${isRunning ? " (Live running)" : ""}${isSelectingText ? " (select text)" : ""}`
-    );
+    log(`circle on ${monitorName(monitor)}${isRunning ? " (Live running)" : ""}`);
     // While Live runs, the loop itself is the request: no buttons, it focuses on release
     const selection = await session.select({
       monitor,
-      isAskOnRelease: isRunning && !isSelectingText,
-      textRegion
+      isAskOnRelease: isRunning
     });
     if (!selection) {
       return;

@@ -26,7 +26,7 @@
     ondismissed: () => void;
     ondragstarted: () => void;
     ondragged: (travelled: Point) => void;
-    // Opens the screen with its words ready to pick
+    // Shows the region's words ready to pick, in place
     onselecttext: () => void;
   }
 

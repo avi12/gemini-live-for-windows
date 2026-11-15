@@ -10,7 +10,8 @@ import {
   holdFocusEscapeSchema,
   ocrLinesSchema,
   openCircleSchema,
-  OverlayMessage
+  OverlayMessage,
+  showRegionTextSchema
 } from "@/overlays/protocol.ts";
 import type {
   AttachChip,
@@ -22,7 +23,8 @@ import type {
   ReadCircleText,
   ScanCircleCodes,
   SearchCircle,
-  SearchRegion
+  SearchRegion,
+  ShowRegionText
 } from "@/overlays/protocol.ts";
 import type { Point } from "@/overlays/shapes.ts";
 
@@ -35,6 +37,8 @@ export interface OverlayWindowHost {
   holdFocusEscape(isHeld: boolean): void;
   openCircle(options: OpenCircle): Promise<CircleOutcome>;
   closeCircle(): void;
+  showRegionText(options: ShowRegionText): void;
+  hideRegionText(): void;
 }
 
 // What the windows tell the controller
@@ -133,6 +137,12 @@ export function serveOverlayWindows({
   );
   messaging.onMessage(OverlayMessage.CLOSE_CIRCLE, () => {
     host.closeCircle();
+  });
+  messaging.onMessage(OverlayMessage.SHOW_REGION_TEXT, message => {
+    host.showRegionText(parsed(showRegionTextSchema.safeParse(message.data)));
+  });
+  messaging.onMessage(OverlayMessage.HIDE_REGION_TEXT, () => {
+    host.hideRegionText();
   });
 
   return () => messaging.close();

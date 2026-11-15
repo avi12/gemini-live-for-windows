@@ -17,6 +17,8 @@ export const OverlayMessage = {
   HOLD_FOCUS_ESCAPE: "overlay/holdFocusEscape",
   OPEN_CIRCLE: "overlay/openCircle",
   CLOSE_CIRCLE: "overlay/closeCircle",
+  SHOW_REGION_TEXT: "overlay/showRegionText",
+  HIDE_REGION_TEXT: "overlay/hideRegionText",
   // Windows to controller
   FOCUS_ESCAPE_PRESSED: "overlay/focusEscapePressed",
   CHIP_DISMISSED: "overlay/chipDismissed",
@@ -82,9 +84,7 @@ export const openCircleSchema = z.object({
   stillJpegBase64: z.string().regex(BASE64_PATTERN),
   stillWidth: z.number().int().positive(),
   stillHeight: z.number().int().positive(),
-  isAskOnRelease: z.boolean(),
-  // Opens straight into picking words inside this part of the display (its physical pixels)
-  textRegion: regionSchema.nullable()
+  isAskOnRelease: z.boolean()
 });
 export type OpenCircle = z.infer<typeof openCircleSchema>;
 
@@ -154,6 +154,19 @@ export const ocrLinesSchema = z.array(
 );
 export type OcrLines = z.infer<typeof ocrLinesSchema>;
 
+// The watched region as a still of its own, drawn in place over the live screen, with the words in
+// it ready to pick: no full-screen overlay
+export const showRegionTextSchema = z.object({
+  monitor: monitorSchema,
+  // In the display's physical pixels
+  region: regionSchema,
+  // The region's pixels as a JPEG, base64
+  jpegBase64: z.string().regex(BASE64_PATTERN),
+  // The words found in the region, in the display's physical pixels
+  lines: ocrLinesSchema
+});
+export type ShowRegionText = z.infer<typeof showRegionTextSchema>;
+
 export interface OverlayProtocol {
   [OverlayMessage.COVER_BORDER]: ProtocolWithReturn<CoverBorder, void>;
   [OverlayMessage.HIDE_BORDER]: ProtocolWithReturn<void, void>;
@@ -168,8 +181,9 @@ export interface OverlayProtocol {
   [OverlayMessage.CHIP_DISMISSED]: ProtocolWithReturn<void, void>;
   [OverlayMessage.CHIP_DRAG_STARTED]: ProtocolWithReturn<void, void>;
   [OverlayMessage.CHIP_DRAGGED]: ProtocolWithReturn<ChipDragged, void>;
-  // Opens the screen with its words ready to pick, on the display Gemini watches
   [OverlayMessage.SELECT_CHIP_TEXT]: ProtocolWithReturn<void, void>;
+  [OverlayMessage.SHOW_REGION_TEXT]: ProtocolWithReturn<ShowRegionText, void>;
+  [OverlayMessage.HIDE_REGION_TEXT]: ProtocolWithReturn<void, void>;
   [OverlayMessage.CIRCLE_KEY_PRESSED]: ProtocolWithReturn<void, void>;
   [OverlayMessage.READ_CIRCLE_TEXT]: ProtocolWithReturn<ReadCircleText, OcrLines>;
   // The address of the result page, which the results panel shows; empty when the search failed,

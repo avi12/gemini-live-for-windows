@@ -32,8 +32,7 @@ const OPEN: OpenCircle = {
   stillJpegBase64: "AQID",
   stillWidth: 1920,
   stillHeight: 1080,
-  isAskOnRelease: false,
-  textRegion: null
+  isAskOnRelease: false
 };
 
 async function settle() {
@@ -58,7 +57,9 @@ function setup({ outcome = CANCELLED }: { outcome?: CircleOutcome } = {}) {
       calls.push(`open:${options.stillWidth}`);
       return outcome;
     },
-    closeCircle: () => calls.push("closeCircle")
+    closeCircle: () => calls.push("closeCircle"),
+    showRegionText: () => calls.push("showRegionText"),
+    hideRegionText: () => calls.push("hideRegionText")
   };
   serveOverlayWindows({
     transport: transports.second,
@@ -232,6 +233,8 @@ describe("the overlay link", () => {
         hideChip: () => undefined,
         holdFocusEscape: () => undefined,
         closeCircle: () => undefined,
+        showRegionText: () => undefined,
+        hideRegionText: () => undefined,
         async openCircle() {
           throw new Error("window died");
         }
@@ -277,6 +280,8 @@ describe("the overlay link", () => {
         hideChip: () => undefined,
         holdFocusEscape: () => undefined,
         closeCircle: () => undefined,
+        showRegionText: () => undefined,
+        hideRegionText: () => undefined,
         async openCircle(options) {
           opened.push(options);
           return { isCancelled: true };

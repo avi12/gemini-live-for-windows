@@ -17,7 +17,15 @@ import { borderBounds } from "@/overlays/focus/focus-layout.ts";
 import ShareBorder from "@/overlays/focus/share-border.svelte";
 import type { Clipboard, CursorApi, OverlayLog } from "@/overlays/ports.ts";
 import { isSearchAction } from "@/overlays/protocol.ts";
-import type { AttachChip, CircleOutcome, OpenCircle, SearchAction, SearchCircle } from "@/overlays/protocol.ts";
+import type {
+  AttachChip,
+  CircleOutcome,
+  OpenCircle,
+  SearchAction,
+  SearchCircle,
+  ShowRegionText
+} from "@/overlays/protocol.ts";
+import RegionText from "@/overlays/region/region-text.svelte";
 import SearchRegion from "@/overlays/region/search-region.svelte";
 import type { ResultsTarget } from "@/overlays/results/results-layout.ts";
 import ResultsPanel from "@/overlays/results/results-panel.svelte";
@@ -109,6 +117,18 @@ function mountSearchRegion({ cursor, onchanged }: { cursor: CursorApi; onchanged
   };
   return mountControl({
     component: SearchRegion,
+    props
+  });
+}
+
+function mountRegionText({ oncopy, onclosed }: { oncopy: (text: string) => Promise<boolean>; onclosed: () => void }) {
+  const props: ComponentProps<typeof RegionText> = {
+    target: undefined,
+    oncopy,
+    onclosed
+  };
+  return mountControl({
+    component: RegionText,
     props
   });
 }
@@ -390,20 +410,6 @@ function openCircleWindow({
         });
         keys.hold(true);
         lifecycle.started();
-
-        const { textRegion } = options;
-        if (textRegion !== null) {
-          // The region's physical pixels on the still, as the overlay's own DIPs
-          controller.dispatch({
-            kind: GestureEventKind.SELECT_TEXT,
-            area: {
-              x: (textRegion.x * size.width) / options.stillWidth,
-              y: (textRegion.y * size.height) / options.stillHeight,
-              width: (textRegion.width * size.width) / options.stillWidth,
-              height: (textRegion.height * size.height) / options.stillHeight
-            }
-          });
-        }
       },
       ondeactivated: () => controller?.deactivated()
     })
@@ -453,9 +459,26 @@ export function createOverlayWindowHost({ events, deps }: { events: OverlayWindo
       void researchRegion(region);
     }
   });
+  const regionText = mountRegionText({
+    oncopy: text => deps.clipboard.writeText(text),
+    onclosed: hideRegionText
+  });
   const circleOverlay = mountCircleOverlay(deps);
   let circleSessions = NO_SESSION;
   let closeOpenCircle: (() => void) | undefined;
+
+  function hideRegionText() {
+    regionText.set({ target: undefined });
+  }
+
+  function showRegionText(options: ShowRegionText) {
+    regionText.set({
+      target: {
+        ...options,
+        still: Buffer.from(options.jpegBase64, "base64")
+      }
+    });
+  }
 
   function showResults(target: ResultsTarget) {
     results.set({ target });
@@ -560,6 +583,8 @@ export function createOverlayWindowHost({ events, deps }: { events: OverlayWindo
     hideChip: () => chip.set({ attached: undefined }),
     holdFocusEscape: isHeld => focusEscape.hold(isHeld),
     openCircle,
-    closeCircle: () => closeOpenCircle?.()
+    closeCircle: () => closeOpenCircle?.(),
+    showRegionText,
+    hideRegionText
   } satisfies OverlayWindowHost;
 }
