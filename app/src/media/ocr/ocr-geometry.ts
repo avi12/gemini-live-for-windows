@@ -84,6 +84,69 @@ export function sortLines(lines: readonly OcrLine[]) {
   return lines.filter(line => line.words.length > 0).toSorted((first, second) => topOf(first) - topOf(second));
 }
 
+// Two lines count as the same text when the smaller one lies mostly inside the other
+const SAME_LINE_OVERLAP = 0.5;
+
+function boxOf(line: OcrLine) {
+  const left = Math.min(...line.words.map(word => word.bounds.x));
+  const top = Math.min(...line.words.map(word => word.bounds.y));
+  const right = Math.max(...line.words.map(word => word.bounds.x + word.bounds.width));
+  const bottom = Math.max(...line.words.map(word => word.bounds.y + word.bounds.height));
+  return {
+    left,
+    top,
+    right,
+    bottom
+  };
+}
+
+function isSameLine({ first, second }: { first: OcrLine; second: OcrLine }) {
+  const one = boxOf(first);
+  const other = boxOf(second);
+  const overlapWidth = Math.min(one.right, other.right) - Math.max(one.left, other.left);
+  const overlapHeight = Math.min(one.bottom, other.bottom) - Math.max(one.top, other.top);
+  const isApart = overlapWidth <= 0 || overlapHeight <= 0;
+  if (isApart) {
+    return false;
+  }
+
+  const smaller = Math.min(
+    (one.right - one.left) * (one.bottom - one.top),
+    (other.right - other.left) * (other.bottom - other.top)
+  );
+  return (overlapWidth * overlapHeight) / smaller >= SAME_LINE_OVERLAP;
+}
+
+function characterCount(line: OcrLine) {
+  return lineText(line).replaceAll(/\s/gu, "").length;
+}
+
+// The lines of several recognizers read the same picture, each in its own language: a page that
+// mixes scripts gets every language's lines. Where two recognizers read the same place, the one that
+// found more characters wins (a wrong-language reading finds few or none); on a tie the earlier pass
+// (the user's own language) stays.
+export function mergeLines(passes: readonly (readonly OcrLine[])[]) {
+  const kept: OcrLine[] = [];
+  for (const pass of passes) {
+    for (const found of pass) {
+      const iSame = kept.findIndex(line =>
+        isSameLine({
+          first: line,
+          second: found
+        })
+      );
+      const same = kept[iSame];
+      if (same === undefined) {
+        kept.push(found);
+      } else if (characterCount(found) > characterCount(same)) {
+        kept[iSame] = found;
+      }
+    }
+  }
+
+  return sortLines(kept);
+}
+
 // The user's own languages first, then every installed recognizer language, so a Hebrew or English
 // screen is read whichever the profile lacks. Each tag once.
 export function engineTagOrder({

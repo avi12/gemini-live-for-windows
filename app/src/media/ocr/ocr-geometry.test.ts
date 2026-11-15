@@ -1,7 +1,15 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { engineTagOrder, lineText, MIN_OCR_EDGE, planScan, sortLines, toSourceBounds } from "./ocr-geometry.ts";
+import {
+  engineTagOrder,
+  lineText,
+  mergeLines,
+  MIN_OCR_EDGE,
+  planScan,
+  sortLines,
+  toSourceBounds
+} from "./ocr-geometry.ts";
 import type { OcrLine } from "./ocr-geometry.ts";
 
 const NUMBER_0_POINT_5 = 0.5;
@@ -268,5 +276,47 @@ describe("engine order", () => {
       }),
       []
     );
+  });
+});
+
+const ENGLISH_LINE = line({
+  top: 0,
+  words: ["Hello", "world"]
+});
+const HEBREW_LINE = line({
+  top: 100,
+  words: ["שלום", "עולם"]
+});
+const HEBREW_GUESS = line({
+  top: 100,
+  words: ["ש"]
+});
+const FIRST_READING = line({
+  top: 0,
+  words: ["abc"]
+});
+const SECOND_READING = line({
+  top: 0,
+  words: ["xyz"]
+});
+
+describe("merge lines", () => {
+  it("keeps the lines of every language when the page mixes them", () => {
+    const merged = mergeLines([[ENGLISH_LINE], [HEBREW_LINE]]);
+    assert.deepEqual(merged.map(lineText), ["Hello world", "שלום עולם"]);
+  });
+
+  it("keeps the reading with more characters where two engines read the same place", () => {
+    const merged = mergeLines([[HEBREW_GUESS], [HEBREW_LINE]]);
+    assert.deepEqual(merged.map(lineText), ["שלום עולם"]);
+  });
+
+  it("keeps the earlier engine's reading on a tie", () => {
+    const merged = mergeLines([[FIRST_READING], [SECOND_READING]]);
+    assert.deepEqual(merged.map(lineText), ["abc"]);
+  });
+
+  it("is empty when nothing was read", () => {
+    assert.deepEqual(mergeLines([[], []]), []);
   });
 });

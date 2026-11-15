@@ -2,6 +2,7 @@ import type { Transport } from "winui-svelte/state/host";
 
 import { copyTextWithPowerShell } from "@/lib/clipboard.ts";
 import type { Media } from "@/media/media.ts";
+import { lineText } from "@/media/ocr/ocr-geometry.ts";
 import { createImageSearch, searchEngineOf } from "@/overlays/circle/image-search.ts";
 import { createCircleSession } from "@/overlays/circle/session.ts";
 import { connectOverlayWindows } from "@/overlays/controller-link.ts";
@@ -84,7 +85,7 @@ export function createOverlayControl({
           monitor: engine.monitor,
           region
         });
-        const text = lines.map(line => line.words.map(word => word.text).join(" ")).join("\n");
+        const text = lines.map(line => lineText(line)).join("\n");
         const isEmpty = text.trim() === "";
         if (isEmpty) {
           return false;

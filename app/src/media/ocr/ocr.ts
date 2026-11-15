@@ -7,7 +7,7 @@ import type { Region } from "@/contracts/monitor.ts";
 import { openImage } from "@/media/winrt/decoded-image.ts";
 import { releaseNative } from "@/media/winrt/release.ts";
 
-import { engineTagOrder, NoOcrLanguageError, planScan, sortLines, toSourceBounds } from "./ocr-geometry.ts";
+import { engineTagOrder, mergeLines, NoOcrLanguageError, planScan, sortLines, toSourceBounds } from "./ocr-geometry.ts";
 import type { OcrLine } from "./ocr-geometry.ts";
 
 function createEngines() {
@@ -58,7 +58,7 @@ function toLines({
   );
 }
 
-// The first engine that finds any text wins
+// Every engine reads the picture and their lines are merged, so a page mixing languages is read in all
 async function recognize({
   engines,
   bitmap,
@@ -73,23 +73,22 @@ async function recognize({
   };
   scale: number;
 }) {
+  const passes: OcrLine[][] = [];
   for (const engine of engines) {
-    const lines = toLines({
-      result: await engine.recognizeAsync(bitmap),
-      origin,
-      scale
-    });
-    const hasLines = lines.length > 0;
-    if (hasLines) {
-      return lines;
-    }
+    passes.push(
+      toLines({
+        result: await engine.recognizeAsync(bitmap),
+        origin,
+        scale
+      })
+    );
   }
-  return [];
+  return mergeLines(passes);
 }
 
 // All text lines in `region` (the whole picture when undefined) of an encoded image (JPEG, PNG, BMP),
 // top to bottom. Boxes are in the picture's own pixels. Reads with the user-profile languages first, then
-// every installed one, and stops at the first that finds text.
+// every installed one, and merges what they find.
 // @throws NoOcrLanguageError when Windows has no OCR language installed
 export async function readLines({ image, region }: { image: Uint8Array; region?: Region | undefined }) {
   const engines = createEngines();
