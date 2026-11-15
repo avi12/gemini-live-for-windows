@@ -16,12 +16,12 @@ function openOptions({
   monitor,
   frozen,
   isAskOnRelease,
-  isSelectingText
+  textRegion
 }: {
   monitor: Monitor;
   frozen: FrozenScreen;
   isAskOnRelease: boolean;
-  isSelectingText: boolean;
+  textRegion: Region | null;
 }) {
   return {
     monitor,
@@ -30,7 +30,7 @@ function openOptions({
     stillWidth: frozen.width,
     stillHeight: frozen.height,
     isAskOnRelease,
-    isSelectingText
+    textRegion
   } satisfies OpenCircle;
 }
 
@@ -40,7 +40,7 @@ async function circleMonitor({
   setCircling,
   monitor,
   isAskOnRelease,
-  isSelectingText,
+  textRegion,
   log,
   isCancelRequested,
   onFrozen
@@ -50,7 +50,7 @@ async function circleMonitor({
   setCircling: (isCircling: boolean) => void;
   monitor: Monitor;
   isAskOnRelease: boolean;
-  isSelectingText: boolean;
+  textRegion: Region | null;
   log: OverlayLog;
   // Win+Alt+C pressed while the display was still being captured: there is no window to close yet
   isCancelRequested: () => boolean;
@@ -70,7 +70,7 @@ async function circleMonitor({
       monitor,
       frozen,
       isAskOnRelease,
-      isSelectingText
+      textRegion
     })
   );
   setCircling(false);
@@ -147,11 +147,12 @@ export function createCircleSession({
   async function select({
     monitor,
     isAskOnRelease,
-    isSelectingText = false
+    textRegion = null
   }: {
     monitor: Monitor;
     isAskOnRelease: boolean;
-    isSelectingText?: boolean;
+    // Opens straight into picking words inside this part of the display
+    textRegion?: Region | null;
   }) {
     if (isOpen) {
       return undefined;
@@ -166,7 +167,7 @@ export function createCircleSession({
         setCircling,
         monitor,
         isAskOnRelease,
-        isSelectingText,
+        textRegion,
         log,
         isCancelRequested: () => isCancelRequested,
         onFrozen(frozen) {

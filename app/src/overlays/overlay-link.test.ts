@@ -33,7 +33,7 @@ const OPEN: OpenCircle = {
   stillWidth: 1920,
   stillHeight: 1080,
   isAskOnRelease: false,
-  isSelectingText: false
+  textRegion: null
 };
 
 async function settle() {

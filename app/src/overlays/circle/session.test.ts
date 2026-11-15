@@ -179,7 +179,7 @@ describe("createCircleSession", () => {
       stillWidth: 1920,
       stillHeight: 1080,
       isAskOnRelease: false,
-      isSelectingText: false
+      textRegion: null
     });
   });
 

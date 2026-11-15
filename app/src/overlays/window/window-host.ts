@@ -391,8 +391,18 @@ function openCircleWindow({
         keys.hold(true);
         lifecycle.started();
 
-        if (options.isSelectingText) {
-          controller.dispatch({ kind: GestureEventKind.SELECT_TEXT });
+        const { textRegion } = options;
+        if (textRegion !== null) {
+          // The region's physical pixels on the still, as the overlay's own DIPs
+          controller.dispatch({
+            kind: GestureEventKind.SELECT_TEXT,
+            area: {
+              x: (textRegion.x * size.width) / options.stillWidth,
+              y: (textRegion.y * size.height) / options.stillHeight,
+              width: (textRegion.width * size.width) / options.stillWidth,
+              height: (textRegion.height * size.height) / options.stillHeight
+            }
+          });
         }
       },
       ondeactivated: () => controller?.deactivated()

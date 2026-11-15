@@ -83,8 +83,8 @@ export const openCircleSchema = z.object({
   stillWidth: z.number().int().positive(),
   stillHeight: z.number().int().positive(),
   isAskOnRelease: z.boolean(),
-  // Opens straight into picking words off the screen
-  isSelectingText: z.boolean()
+  // Opens straight into picking words inside this part of the display (its physical pixels)
+  textRegion: regionSchema.nullable()
 });
 export type OpenCircle = z.infer<typeof openCircleSchema>;
 

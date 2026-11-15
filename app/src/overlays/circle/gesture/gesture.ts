@@ -101,7 +101,11 @@ export type GestureEvent =
       readonly kind: typeof GestureEventKind.FINISH;
       readonly action: CircleAction;
     }
-  | { readonly kind: typeof GestureEventKind.SELECT_TEXT }
+  | {
+      readonly kind: typeof GestureEventKind.SELECT_TEXT;
+      // Reads only this part of the screen (the overlay's DIPs) instead of the selection or all of it
+      readonly area?: Rect;
+    }
   | {
       readonly kind: typeof GestureEventKind.TEXT_READ;
       readonly words: readonly SelectableWord[];
@@ -483,7 +487,7 @@ function escape(state: GestureState) {
   return leaveText(state);
 }
 
-function requestText(state: GestureState) {
+function requestText({ state, area }: { state: GestureState; area: Rect | undefined }) {
   const isIgnored = state.isAskOnRelease || state.isFinished || state.isReading || state.isTextMode;
   if (isIgnored) {
     return stay(state);
@@ -502,7 +506,7 @@ function requestText(state: GestureState) {
       },
       {
         kind: GestureEffectKind.READ_TEXT,
-        selection: state.selector.selection
+        selection: area ?? state.selector.selection
       }
     ]
   };
@@ -646,7 +650,10 @@ export function reduceGesture({ state, event }: { state: GestureState; event: Ge
         action: event.action
       });
     case GestureEventKind.SELECT_TEXT:
-      return requestText(state);
+      return requestText({
+        state,
+        area: event.area
+      });
     case GestureEventKind.TEXT_READ:
       return textWasRead({
         state,

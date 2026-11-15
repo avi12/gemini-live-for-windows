@@ -1,5 +1,5 @@
 import { monitorName } from "@/contracts/monitor.ts";
-import type { Monitor } from "@/contracts/monitor.ts";
+import type { Monitor, Region } from "@/contracts/monitor.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 import type { Media } from "@/media/media.ts";
 import { circlePhase, circleToggle, CircleToggleAction } from "@/overlays/circle/circle-toggle.ts";
@@ -26,7 +26,7 @@ export async function startCircle({
   session,
   log,
   monitor = media.monitors.active(),
-  isSelectingText = false
+  textRegion = null
 }: {
   media: CircleEntryMedia;
   controller: () => CircleEntryController;
@@ -34,11 +34,12 @@ export async function startCircle({
   log: (message: string) => void;
   // The display to freeze: the active one unless the caller names one
   monitor?: Monitor;
-  // Opens straight into picking words off the screen, as the overlay's Select text does
-  isSelectingText?: boolean;
+  // Opens straight into picking words inside this part of the display, as Select text does
+  textRegion?: Region | null;
 }) {
   try {
     const { isRunning } = controller();
+    const isSelectingText = textRegion !== null;
     log(
       `circle on ${monitorName(monitor)}${isRunning ? " (Live running)" : ""}${isSelectingText ? " (select text)" : ""}`
     );
@@ -46,7 +47,7 @@ export async function startCircle({
     const selection = await session.select({
       monitor,
       isAskOnRelease: isRunning && !isSelectingText,
-      isSelectingText
+      textRegion
     });
     if (!selection) {
       return;

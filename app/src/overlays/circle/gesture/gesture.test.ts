@@ -619,6 +619,28 @@ describe("reading text", () => {
     ]);
   });
 
+  it("reads only the given area when one is named", () => {
+    const area = {
+      x: 10,
+      y: 20,
+      width: 300,
+      height: 200
+    };
+    const { effects } = run({
+      state: start(),
+      events: [
+        {
+          kind: GestureEventKind.SELECT_TEXT,
+          area
+        }
+      ]
+    });
+    assert.deepEqual(effects.at(-1), {
+      kind: GestureEffectKind.READ_TEXT,
+      selection: area
+    });
+  });
+
   it("reads the whole screen when there is no selection", () => {
     const { effects } = run({
       state: start(),

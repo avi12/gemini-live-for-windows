@@ -72,8 +72,9 @@ export function createOverlayControl({
       chipDragStarted: () => focus?.events.chipDragStarted(),
       chipDragged: travelled => focus?.events.chipDragged(travelled),
       chipSelectTextPressed() {
-        const monitor = currentEngine?.()?.monitor;
-        const isNothingWatched = monitor === undefined;
+        const engine = currentEngine?.();
+        const textRegion = engine?.region;
+        const isNothingWatched = engine === undefined || textRegion === undefined;
         if (isNothingWatched) {
           return;
         }
@@ -83,8 +84,8 @@ export function createOverlayControl({
           controller,
           session,
           log,
-          monitor,
-          isSelectingText: true
+          monitor: engine.monitor,
+          textRegion
         });
       },
       circleKeyPressed() {
