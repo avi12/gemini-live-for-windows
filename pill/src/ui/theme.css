@@ -60,11 +60,11 @@
     --live-outline: #8e918f;
     --live-selected-container: #004a77;
     --live-on-selected-container: #c2e7ff;
-    --live-control: rgb(255 255 255 / 0.55);
-    --live-control-hover: #9cc8f7;
-    --live-mic-control: rgb(255 255 255 / 0.55);
-    --live-mic-control-hover: #9cc8f7;
-    --live-on-mic: #1d1b20;
+    --live-control: rgb(255 255 255 / 0.16);
+    --live-control-hover: rgb(255 255 255 / 0.32);
+    --live-mic-control: rgb(255 255 255 / 0.16);
+    --live-mic-control-hover: rgb(255 255 255 / 0.32);
+    --live-on-mic: #ffffff;
     --live-wave: #d6e3fb;
     --live-primary: #a8c7fa;
     --live-share: #a8c7fa;
