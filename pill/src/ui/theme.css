@@ -17,11 +17,11 @@
   --live-outline: #79747e;
   --live-selected-container: #c2e7ff;
   --live-on-selected-container: #001d35;
-  --live-control: rgb(73 69 79 / 0.08);
-  --live-control-hover: rgb(73 69 79 / 0.16);
-  --live-mic-control: #a9d1f2;
-  --live-mic-control-hover: #96c5ec;
-  --live-on-mic: #0a3a63;
+  --live-control: rgb(255 255 255 / 0.55);
+  --live-control-hover: #9cc8f7;
+  --live-mic-control: rgb(255 255 255 / 0.55);
+  --live-mic-control-hover: #9cc8f7;
+  --live-on-mic: #1d1b20;
   --live-wave: #79747e;
   --live-primary: #0b57d0;
   --live-share: #d3e3fd;
@@ -60,11 +60,11 @@
     --live-outline: #8e918f;
     --live-selected-container: #004a77;
     --live-on-selected-container: #c2e7ff;
-    --live-control: rgb(17 31 57 / 0.9);
-    --live-control-hover: rgb(31 52 90 / 0.95);
-    --live-mic-control: #1e365a;
-    --live-mic-control-hover: #29467a;
-    --live-on-mic: #ffffff;
+    --live-control: rgb(255 255 255 / 0.55);
+    --live-control-hover: #9cc8f7;
+    --live-mic-control: rgb(255 255 255 / 0.55);
+    --live-mic-control-hover: #9cc8f7;
+    --live-on-mic: #1d1b20;
     --live-wave: #d6e3fb;
     --live-primary: #a8c7fa;
     --live-share: #a8c7fa;
@@ -148,18 +148,18 @@ text-block {
 
 .live-pill-base {
   border-radius: 38px;
-  background-image: linear-gradient(to bottom, #e8dfe6, #dacbd8);
+  background-image: linear-gradient(to bottom, #f3e8f4, #e4d3ea);
 }
 
 .live-glow,
 .circle-tint {
   border-radius: 38px;
-  background-image: linear-gradient(to top, rgb(0 140 236 / 0.4) 0%, rgb(0 140 236 / 0.2) 18%, transparent 55%);
+  background-image: linear-gradient(to top, rgb(96 170 244 / 0.85) 0%, rgb(124 182 246 / 0.5) 35%, transparent 85%);
 }
 
 .live-glow-highlight {
   border-radius: 38px;
-  background-image: radial-gradient(ellipse at 88% 100%, rgb(121 198 254 / 0.6) 0%, transparent 45%);
+  background-image: radial-gradient(ellipse at 60% 110%, rgb(150 208 255 / 0.7) 0%, transparent 55%);
 }
 
 @media (prefers-color-scheme: dark) {
