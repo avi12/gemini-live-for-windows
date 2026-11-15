@@ -73,12 +73,19 @@ export function createOverlayControl({
       chipDragStarted: () => focus?.events.chipDragStarted(),
       chipDragged: travelled => focus?.events.chipDragged(travelled),
       chipSelectTextPressed() {
+        log("select text pressed on the chip");
         void showRegionText();
       },
       circleKeyPressed() {
         void circle();
       },
-      readCircleText: async ({ region }) => toCircleText(await session.readText(region)),
+      async readCircleText({ region }) {
+        const lines = await session.readText(region);
+        log(
+          `circle: read ${lines.length} lines of text${region === null ? "" : ` in ${region.width}×${region.height}`}`
+        );
+        return toCircleText(lines);
+      },
       searchCircle: options =>
         searchCircle({
           ...options,
