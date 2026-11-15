@@ -178,7 +178,8 @@ describe("createCircleSession", () => {
       stillJpegBase64: STILL_BYTES.toString("base64"),
       stillWidth: 1920,
       stillHeight: 1080,
-      isAskOnRelease: false
+      isAskOnRelease: false,
+      isSelectingText: false
     });
   });
 

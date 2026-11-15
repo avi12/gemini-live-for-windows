@@ -22,7 +22,7 @@ export const OverlayMessage = {
   CHIP_DISMISSED: "overlay/chipDismissed",
   CHIP_DRAG_STARTED: "overlay/chipDragStarted",
   CHIP_DRAGGED: "overlay/chipDragged",
-  READ_CHIP_TEXT: "overlay/readChipText",
+  SELECT_CHIP_TEXT: "overlay/selectChipText",
   CIRCLE_KEY_PRESSED: "overlay/circleKeyPressed",
   READ_CIRCLE_TEXT: "overlay/readCircleText",
   SEARCH_CIRCLE: "overlay/searchCircle",
@@ -82,7 +82,9 @@ export const openCircleSchema = z.object({
   stillJpegBase64: z.string().regex(BASE64_PATTERN),
   stillWidth: z.number().int().positive(),
   stillHeight: z.number().int().positive(),
-  isAskOnRelease: z.boolean()
+  isAskOnRelease: z.boolean(),
+  // Opens straight into picking words off the screen
+  isSelectingText: z.boolean()
 });
 export type OpenCircle = z.infer<typeof openCircleSchema>;
 
@@ -166,8 +168,8 @@ export interface OverlayProtocol {
   [OverlayMessage.CHIP_DISMISSED]: ProtocolWithReturn<void, void>;
   [OverlayMessage.CHIP_DRAG_STARTED]: ProtocolWithReturn<void, void>;
   [OverlayMessage.CHIP_DRAGGED]: ProtocolWithReturn<ChipDragged, void>;
-  // Reads the text under the watched region and copies it; whether any text was copied
-  [OverlayMessage.READ_CHIP_TEXT]: ProtocolWithReturn<void, boolean>;
+  // Opens the screen with its words ready to pick, on the display Gemini watches
+  [OverlayMessage.SELECT_CHIP_TEXT]: ProtocolWithReturn<void, void>;
   [OverlayMessage.CIRCLE_KEY_PRESSED]: ProtocolWithReturn<void, void>;
   [OverlayMessage.READ_CIRCLE_TEXT]: ProtocolWithReturn<ReadCircleText, OcrLines>;
   // The address of the result page, which the results panel shows; empty when the search failed,

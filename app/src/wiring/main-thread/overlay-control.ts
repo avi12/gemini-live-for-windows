@@ -1,15 +1,13 @@
 import type { Transport } from "winui-svelte/state/host";
 
-import { copyTextWithPowerShell } from "@/lib/clipboard.ts";
 import type { Media } from "@/media/media.ts";
-import { lineText } from "@/media/ocr/ocr-geometry.ts";
 import { createImageSearch, searchEngineOf } from "@/overlays/circle/image-search.ts";
 import { createCircleSession } from "@/overlays/circle/session.ts";
 import { connectOverlayWindows } from "@/overlays/controller-link.ts";
 import { createScreenFocus } from "@/overlays/focus/screen-focus.ts";
 import type { SearchCircle } from "@/overlays/protocol.ts";
 import type { ScreenFocusOptions, ScreenFocusPort } from "@/pill/ports.ts";
-import { createCircleEntry } from "@/wiring/main-thread/circle-entry.ts";
+import { createCircleEntry, startCircle } from "@/wiring/main-thread/circle-entry.ts";
 import type { CircleEntryController } from "@/wiring/main-thread/circle-entry.ts";
 
 function toCircleText(lines: Awaited<ReturnType<ReturnType<typeof createCircleSession>["readText"]>>) {
@@ -73,26 +71,21 @@ export function createOverlayControl({
       chipDismissed: () => focus?.events.chipDismissed(),
       chipDragStarted: () => focus?.events.chipDragStarted(),
       chipDragged: travelled => focus?.events.chipDragged(travelled),
-      async readChipText() {
-        const engine = currentEngine?.();
-        const region = engine?.region;
-        const isNothingWatched = engine === undefined || region === undefined;
+      chipSelectTextPressed() {
+        const monitor = currentEngine?.()?.monitor;
+        const isNothingWatched = monitor === undefined;
         if (isNothingWatched) {
-          return false;
+          return;
         }
 
-        const lines = await session.readLive({
-          monitor: engine.monitor,
-          region
+        void startCircle({
+          media,
+          controller,
+          session,
+          log,
+          monitor,
+          isSelectingText: true
         });
-        const text = lines.map(line => lineText(line)).join("\n");
-        const isEmpty = text.trim() === "";
-        if (isEmpty) {
-          return false;
-        }
-
-        await copyTextWithPowerShell(text);
-        return true;
       },
       circleKeyPressed() {
         void circle();

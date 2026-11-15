@@ -15,11 +15,13 @@ export interface CircleSelection {
 function openOptions({
   monitor,
   frozen,
-  isAskOnRelease
+  isAskOnRelease,
+  isSelectingText
 }: {
   monitor: Monitor;
   frozen: FrozenScreen;
   isAskOnRelease: boolean;
+  isSelectingText: boolean;
 }) {
   return {
     monitor,
@@ -27,7 +29,8 @@ function openOptions({
     stillJpegBase64: Buffer.from(frozen.jpeg.buffer, frozen.jpeg.byteOffset, frozen.jpeg.byteLength).toString("base64"),
     stillWidth: frozen.width,
     stillHeight: frozen.height,
-    isAskOnRelease
+    isAskOnRelease,
+    isSelectingText
   } satisfies OpenCircle;
 }
 
@@ -37,6 +40,7 @@ async function circleMonitor({
   setCircling,
   monitor,
   isAskOnRelease,
+  isSelectingText,
   log,
   isCancelRequested,
   onFrozen
@@ -46,6 +50,7 @@ async function circleMonitor({
   setCircling: (isCircling: boolean) => void;
   monitor: Monitor;
   isAskOnRelease: boolean;
+  isSelectingText: boolean;
   log: OverlayLog;
   // Win+Alt+C pressed while the display was still being captured: there is no window to close yet
   isCancelRequested: () => boolean;
@@ -64,7 +69,8 @@ async function circleMonitor({
     openOptions({
       monitor,
       frozen,
-      isAskOnRelease
+      isAskOnRelease,
+      isSelectingText
     })
   );
   setCircling(false);
@@ -138,7 +144,15 @@ export function createCircleSession({
   // cancel. The overlay is gone before this resolves, so whatever runs next sees the real screen
   // again. With `isAskOnRelease` (Gemini Live is already running) there are no buttons: the first
   // loop the user finishes is the answer, as askGemini
-  async function select({ monitor, isAskOnRelease }: { monitor: Monitor; isAskOnRelease: boolean }) {
+  async function select({
+    monitor,
+    isAskOnRelease,
+    isSelectingText = false
+  }: {
+    monitor: Monitor;
+    isAskOnRelease: boolean;
+    isSelectingText?: boolean;
+  }) {
     if (isOpen) {
       return undefined;
     }
@@ -152,6 +166,7 @@ export function createCircleSession({
         setCircling,
         monitor,
         isAskOnRelease,
+        isSelectingText,
         log,
         isCancelRequested: () => isCancelRequested,
         onFrozen(frozen) {
@@ -211,15 +226,6 @@ export function createCircleSession({
     });
   }
 
-  // OCR of `region` (the display's pixels) of the screen as it is now
-  async function readLive({ monitor, region }: { monitor: Monitor; region: Region }) {
-    const frozen = await screen.freeze(monitor);
-    return screen.readText({
-      frozen,
-      region
-    });
-  }
-
   // The decoded text of each QR code inside `region` of the still the open overlay shows
   async function scanCodes(region: Region) {
     const frozen = frozenNow;
@@ -243,7 +249,6 @@ export function createCircleSession({
     readText,
     crop,
     cropLive,
-    readLive,
     scanCodes
   };
 }

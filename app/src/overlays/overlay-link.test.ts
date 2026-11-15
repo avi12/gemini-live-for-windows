@@ -32,7 +32,8 @@ const OPEN: OpenCircle = {
   stillJpegBase64: "AQID",
   stillWidth: 1920,
   stillHeight: 1080,
-  isAskOnRelease: false
+  isAskOnRelease: false,
+  isSelectingText: false
 };
 
 async function settle() {
@@ -79,10 +80,7 @@ function setup({ outcome = CANCELLED }: { outcome?: CircleOutcome } = {}) {
       chipDismissed: () => heard.push("dismissed"),
       chipDragStarted: () => heard.push("dragStarted"),
       chipDragged: travelled => heard.push(`dragged:${travelled.x},${travelled.y}`),
-      async readChipText() {
-        heard.push("readChipText");
-        return true;
-      },
+      chipSelectTextPressed: () => heard.push("selectText"),
       circleKeyPressed: () => heard.push("circleKey"),
       async readCircleText({ region }) {
         heard.push(`read:${region === null ? "all" : region.width}`);
@@ -252,7 +250,7 @@ describe("the overlay link", () => {
         chipDismissed: () => undefined,
         chipDragStarted: () => undefined,
         chipDragged: () => undefined,
-        readChipText: async () => false,
+        chipSelectTextPressed: () => undefined,
         circleKeyPressed: () => undefined,
         readCircleText: async () => [],
         searchCircle: async () => "",
@@ -298,7 +296,7 @@ describe("the overlay link", () => {
         chipDismissed: () => undefined,
         chipDragStarted: () => undefined,
         chipDragged: () => undefined,
-        readChipText: async () => false,
+        chipSelectTextPressed: () => undefined,
         circleKeyPressed: () => undefined,
         readCircleText: async () => [],
         searchCircle: async () => "",

@@ -26,8 +26,8 @@
     ondismissed: () => void;
     ondragstarted: () => void;
     ondragged: (travelled: Point) => void;
-    // Reads the text in the region and copies it: whether any text was copied
-    onreadtext: () => Promise<boolean>;
+    // Opens the screen with its words ready to pick
+    onselecttext: () => void;
   }
 
   const {
@@ -36,27 +36,13 @@
     ondismissed,
     ondragstarted,
     ondragged,
-    onreadtext
+    onselecttext
   }: Props = $props();
 
   const LABEL = "Gemini sees this area";
   const CLOSE_TOOL_TIP = "Show Gemini the whole screen (Esc)";
-  const READ_TOOL_TIP = "Copy the text in this area";
+  const SELECT_TEXT_TOOL_TIP = "Select text";
   const PRIMARY_BUTTON = 0;
-  const COPIED_MILLISECONDS = 1500;
-  const ocr: { isCopied: boolean } = $state({ isCopied: false });
-
-  async function readText() {
-    const isCopied = await onreadtext().catch(() => false);
-    if (!isCopied) {
-      return;
-    }
-
-    ocr.isCopied = true;
-    setTimeout(() => {
-      ocr.isCopied = false;
-    }, COPIED_MILLISECONDS);
-  }
 
   const windowRef: { handle: WindowHandle | undefined } = $state({ handle: undefined });
   const content = elementSize();
@@ -160,10 +146,10 @@
       <TextBlock class="focus-chip-label" text={LABEL} verticalAlignment="Center" />
       <Button
         class="focus-chip-close"
-        onclick={() => void readText()}
-        toolTip={READ_TOOL_TIP}
+        onclick={onselecttext}
+        toolTip={SELECT_TEXT_TOOL_TIP}
       >
-        <TextBlock class="focus-chip-icon" text={ocr.isCopied ? OverlayGlyph.copy : OverlayGlyph.textSelect} />
+        <TextBlock class="focus-chip-icon" text={OverlayGlyph.textSelect} />
       </Button>
       <Button
         class="focus-chip-close"

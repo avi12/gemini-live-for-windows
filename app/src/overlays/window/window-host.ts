@@ -67,7 +67,7 @@ function mountFocusChip({ cursor, events }: { cursor: CursorApi; events: Overlay
     ondismissed: events.chipDismissed,
     ondragstarted: events.chipDragStarted,
     ondragged: events.chipDragged,
-    onreadtext: events.readChipText
+    onselecttext: events.chipSelectTextPressed
   };
   return mountControl({
     component: FocusChip,
@@ -390,6 +390,10 @@ function openCircleWindow({
         });
         keys.hold(true);
         lifecycle.started();
+
+        if (options.isSelectingText) {
+          controller.dispatch({ kind: GestureEventKind.SELECT_TEXT });
+        }
       },
       ondeactivated: () => controller?.deactivated()
     })
