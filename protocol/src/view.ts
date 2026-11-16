@@ -39,7 +39,9 @@ const linkSchema = z.object({
   title: z.string(),
   uri: z.url(),
   address: z.string(),
-  isSearch: z.boolean()
+  // A search results page wears the search icon; any other page its site's icon, from `faviconUri`
+  isSearch: z.boolean(),
+  faviconUri: z.url()
 });
 
 const namedSchema = z.object({

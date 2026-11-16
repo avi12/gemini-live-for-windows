@@ -253,14 +253,16 @@ describe("the engine's events", () => {
         title: "example.com",
         uri: "https://example.com",
         address: "example.com",
-        isSearch: false
+        isSearch: false,
+        faviconUri: "https://www.google.com/s2/favicons?domain=example.com&sz=32"
       },
       {
         id: "link-3",
         title: "Weather",
         uri: "https://weather.example.com/tlv",
         address: "weather.example.com/tlv",
-        isSearch: false
+        isSearch: false,
+        faviconUri: "https://www.google.com/s2/favicons?domain=weather.example.com&sz=32"
       }
     ]);
     assert.deepEqual(pill.logs, ["trigger Tap", "link: https://example.com", "link: https://weather.example.com/tlv"]);

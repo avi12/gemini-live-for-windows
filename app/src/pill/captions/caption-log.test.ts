@@ -161,7 +161,8 @@ describe("caption log links", () => {
         title: "example.com",
         uri: "https://example.com",
         address: "example.com",
-        isSearch: false
+        isSearch: false,
+        faviconUri: "https://www.google.com/s2/favicons?domain=example.com&sz=32"
       }
     ]);
   });
@@ -193,7 +194,8 @@ describe("caption log links", () => {
         title: "Weather",
         uri: "https://weather.example.com/tlv",
         address: "weather.example.com/tlv",
-        isSearch: false
+        isSearch: false,
+        faviconUri: "https://www.google.com/s2/favicons?domain=weather.example.com&sz=32"
       }
     ]);
   });

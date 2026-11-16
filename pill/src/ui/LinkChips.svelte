@@ -1,14 +1,13 @@
 <script lang="ts">
   import "./theme.css";
   import { sendAction, view } from "@/lib/view.svelte.ts";
-  import { Glyph } from "@/ui/glyph/glyphs.ts";
+  import LinkIcon from "@/ui/LinkIcon.svelte";
   import LinkMenu from "@/ui/menu/LinkMenu.svelte";
   import { Motion } from "@/ui/motion/motion.ts";
   import { PillActionKind } from "@gemini-live/protocol/view";
   import { scale } from "svelte/transition";
   import {
     Button,
-    FontIcon,
     InlineUIContainer,
     Paragraph,
     RichTextBlock,
@@ -16,7 +15,6 @@
     TextBlock
   } from "winui-svelte/components";
 
-  const CHIP_ICON_SIZE = 18;
   const CHIP_SCALE_FROM = 0.9;
   const TRAY_GAP_BELOW_TRANSCRIPT = 10;
 
@@ -29,14 +27,6 @@
 
     return 0;
   });
-
-  function glyphOf(isSearch: boolean) {
-    if (isSearch) {
-      return Glyph.SEARCH;
-    }
-
-    return Glyph.LINK;
-  }
 
   function open(uri: string) {
     sendAction({
@@ -67,7 +57,7 @@
               <LinkMenu uri={link.uri} />
             {/snippet}
             <StackPanel class="chip-face">
-              <FontIcon class="live-icon chip-icon" fontSize={CHIP_ICON_SIZE} glyph={glyphOf(link.isSearch)} />
+              <LinkIcon {link} />
               <TextBlock class="live-label chip-title" textTrimming="CharacterEllipsis">{link.title}</TextBlock>
             </StackPanel>
           </Button>
@@ -78,8 +68,11 @@
 </RichTextBlock>
 
 <style>
+  /* The tray's text and its buttons each ask for a cursor, and where they overlap it flickers between
+     them: the tray says arrow, the chips say hand */
   .tray {
     margin-bottom: -8px;
+    cursor: default;
   }
 
   .slot {
@@ -89,17 +82,13 @@
 
   .chip {
     height: 32px;
+    cursor: pointer;
   }
 
   .chip-face {
     display: flex;
     flex-direction: row;
     gap: 8px;
-  }
-
-  .chip-icon {
-    align-self: center;
-    color: var(--live-primary);
   }
 
   .chip-title {

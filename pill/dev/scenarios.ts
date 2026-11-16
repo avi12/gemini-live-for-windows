@@ -99,14 +99,16 @@ const CAPTIONS: PillView = {
       title: "Burj Khalifa",
       uri: "https://en.wikipedia.org/wiki/Burj_Khalifa",
       address: "en.wikipedia.org",
-      isSearch: false
+      isSearch: false,
+      faviconUri: "https://www.google.com/s2/favicons?domain=en.wikipedia.org&sz=32"
     },
     {
       id: "link-2",
       title: "tallest buildings",
       uri: "https://www.google.com/search?q=tallest+buildings",
       address: "google.com",
-      isSearch: true
+      isSearch: true,
+      faviconUri: "https://www.google.com/s2/favicons?domain=www.google.com&sz=32"
     }
   ],
   glow: {

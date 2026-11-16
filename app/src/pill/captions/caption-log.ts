@@ -1,6 +1,7 @@
 import type { FoundLink } from "@/contracts/live-engine.ts";
 import { findLinks, shortTitle } from "@/pill/captions/link-extractor.ts";
 import type { ExtractedLink } from "@/pill/captions/link-extractor.ts";
+import { faviconUri, isSearchPage } from "@/pill/captions/link-kind.ts";
 import type { PillLine, PillLink } from "@/pill/types.ts";
 
 export const MAX_LINES = 6;
@@ -104,7 +105,8 @@ function createLinkBook({
             title: link.title,
             uri: link.uri,
             address: shortTitle(link.uri),
-            isSearch: link.isSearch
+            isSearch: link.isSearch || isSearchPage(link.uri),
+            faviconUri: faviconUri(link.uri)
           }
         ];
         onLinkAdded?.(link.uri);
