@@ -43,6 +43,8 @@ const WINDOWS_APP_SDK_MAJOR = 2;
 const WINDOWS_APP_SDK_MINOR = 2;
 const NOT_SUPPORTED_HRESULT = "0x80070032";
 const HOST_EXECUTABLE = "GeminiLiveHost.exe";
+// How often a restart waiting for the pill to be put away looks again
+const IDLE_POLL_MILLISECONDS = 2000;
 
 function writeLog(message: string) {
   log.write(message);
@@ -98,10 +100,13 @@ function startAgain(rapidRestarts: number) {
 function startUiWorker({
   files,
   data,
+  isInUse,
   onEnded
 }: {
   files: ShippedFiles;
   data: UiWorkerData;
+  // The pill is up or a conversation runs
+  isInUse: () => boolean;
   onEnded: (event: { exitCode: number; ranMilliseconds: number }) => Promise<void>;
 }) {
   const startedAt = Date.now();
@@ -117,8 +122,29 @@ function startUiWorker({
     void worker.terminate();
   }
 
+  // A saved file waits for the pill to be put away, so it never closes on someone using it
+  const restart = { isWaiting: false };
+  function endWindowWhenIdle() {
+    if (isInUse()) {
+      setTimeout(endWindowWhenIdle, IDLE_POLL_MILLISECONDS);
+      return;
+    }
+
+    restart.isWaiting = false;
+    endWindow();
+  }
+
   watchPillDevMarker({ onChanged: endWindow });
-  watchDevSources({ onChanged: endWindow });
+  watchDevSources({
+    onChanged() {
+      if (restart.isWaiting) {
+        return;
+      }
+
+      restart.isWaiting = true;
+      endWindowWhenIdle();
+    }
+  });
   worker.on("exit", exitCode => {
     onEnded({
       exitCode,
@@ -218,6 +244,7 @@ export async function startApp({ files }: { files: ShippedFiles }) {
       uiaWorkerUrl: files.uiaWorkerUrl.href,
       isDebugging: log.isDebugging
     },
+    isInUse: () => controller.isRunning || controller.view()?.isShown === true,
     async onEnded({ exitCode, ranMilliseconds }) {
       controller.dispose();
       const isRestarting = await superviseUiWorker({
