@@ -932,6 +932,15 @@ describe("window actions", () => {
     assert.equal(pill.calls.at(-1), "open https://example.com/");
   });
 
+  it("hands text to be copied to the clipboard as it is", async () => {
+    const pill = createFakePill();
+    await pill.controller.apply({
+      kind: PillActionKind.COPY_TEXT,
+      text: "שלום, hello"
+    });
+    assert.equal(pill.calls.at(-1), "copy שלום, hello");
+  });
+
   it("ends the conversation and quits", async () => {
     const pill = await started();
     await pill.controller.apply({ kind: PillActionKind.QUIT });

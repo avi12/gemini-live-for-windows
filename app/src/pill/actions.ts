@@ -150,7 +150,11 @@ async function applyInputAction({ context, action }: { context: PillContext; act
       connectExtension(context);
       return true;
     case PillActionKind.OPEN_LINK:
+      context.deps.log(`open link: ${action.uri}`);
       context.deps.openExternal(new URL(action.uri).href);
+      return true;
+    case PillActionKind.COPY_TEXT:
+      await context.deps.copyText(action.text);
       return true;
     default:
       return false;

@@ -401,6 +401,10 @@ function createFakeHost({
       return Promise.resolve();
     },
     openExternal: uri => calls.push(`open ${uri}`),
+    copyText(text) {
+      calls.push(`copy ${text}`);
+      return Promise.resolve();
+    },
     quit: () => calls.push("quit"),
     log: message => logs.push(message),
     delay: () => Promise.resolve()

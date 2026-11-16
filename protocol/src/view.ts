@@ -128,6 +128,7 @@ export const PillActionKind = {
   CANCEL_KEY: "cancelKey",
   CONNECT_EXTENSION: "connectExtension",
   OPEN_LINK: "openLink",
+  COPY_TEXT: "copyText",
   UPDATE: "update",
   CHECK_FOR_UPDATES: "checkForUpdates",
   SET_AUTO_UPDATE: "setAutoUpdate",
@@ -169,6 +170,10 @@ export const pillActionSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal(PillActionKind.OPEN_LINK),
     uri: z.url()
+  }),
+  z.object({
+    kind: z.literal(PillActionKind.COPY_TEXT),
+    text: z.string()
   }),
   z.object({ kind: z.literal(PillActionKind.UPDATE) }),
   z.object({ kind: z.literal(PillActionKind.CHECK_FOR_UPDATES) }),

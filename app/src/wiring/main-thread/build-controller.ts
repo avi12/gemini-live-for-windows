@@ -3,6 +3,8 @@ import { openExternal } from "@/core/shell/open-external.ts";
 import { createUpdateChecker } from "@/core/updates/update-checker.ts";
 import { connectGoogle } from "@/google/remote/google-client.ts";
 import { delay } from "@/google/web-host/timeout.ts";
+import { copyTextWithPowerShell } from "@/lib/clipboard.ts";
+import { errorMessage } from "@/lib/error-message.ts";
 import { createMedia } from "@/media/media.ts";
 import { createPillController } from "@/pill/controller.ts";
 import { openPillLink } from "@/pill/host/host-link.ts";
@@ -132,6 +134,10 @@ function buildPillDeps({
       installed: installedVersion
     }),
     openExternal: uri => openExternal({ uri }),
+    copyText: text =>
+      copyTextWithPowerShell(text).catch((error: unknown) => {
+        log(`clipboard busy: ${errorMessage(error)}`);
+      }),
     quit,
     log,
     delay

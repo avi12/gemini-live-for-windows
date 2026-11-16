@@ -106,6 +106,19 @@ radio-menu-flyout-item {
   font-family: "Google Sans", "Segoe UI Variable Text", "Segoe UI";
 }
 
+/* A menu item under the pointer: the same state layers as the chips, as the menu is drawn in the pill's own
+   surface and WinUI's subtle fill is too faint on it to be seen */
+menu-flyout-item {
+  --menu-flyout-item-background-pointer-over: var(--live-hover-layer);
+  --menu-flyout-item-background-pressed: var(--live-pressed-layer);
+}
+
+toggle-menu-flyout-item,
+radio-menu-flyout-item {
+  --toggle-menu-flyout-item-background-pointer-over: var(--live-hover-layer);
+  --toggle-menu-flyout-item-background-pressed: var(--live-pressed-layer);
+}
+
 text-block {
   color: var(--live-text);
 }

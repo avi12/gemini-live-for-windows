@@ -1,10 +1,9 @@
 <script lang="ts">
   import { menuOf } from "./menu.ts";
   import { sendAction } from "@/lib/view.svelte.ts";
+  import { Glyph } from "@/ui/glyph/glyphs.ts";
   import { PillActionKind } from "@gemini-live/protocol/view";
-  import { MenuFlyout, MenuFlyoutItem } from "winui-svelte/components";
-  import { clipboard } from "winui-svelte/data-transfer";
-
+  import { FontIcon, MenuFlyout, MenuFlyoutItem } from "winui-svelte/components";
   interface Props {
     uri: string;
   }
@@ -20,6 +19,20 @@
       uri: props.uri
     })}
     text="Open link"
-  />
-  <MenuFlyoutItem onclick={() => clipboard.writeText(props.uri)} text="Copy link address" />
+  >
+    {#snippet icon()}
+      <FontIcon class="live-icon" glyph={Glyph.LINK} />
+    {/snippet}
+  </MenuFlyoutItem>
+  <MenuFlyoutItem
+    onclick={() => sendAction({
+      kind: PillActionKind.COPY_TEXT,
+      text: props.uri
+    })}
+    text="Copy link address"
+  >
+    {#snippet icon()}
+      <FontIcon class="live-icon" glyph={Glyph.COPY} />
+    {/snippet}
+  </MenuFlyoutItem>
 </MenuFlyout>
