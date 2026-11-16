@@ -2,7 +2,7 @@ import { MessagePort, workerData } from "node:worker_threads";
 
 import { z } from "zod";
 
-import { servePillModules } from "./module-server.ts";
+import { serveAppModules } from "./module-server.ts";
 
 const workerDataSchema = z.object({ modules: z.instanceof(MessagePort) });
 
@@ -11,4 +11,4 @@ if (!parsedData.success) {
   throw new Error("the module server was given no port");
 }
 
-await servePillModules({ port: parsedData.data.modules });
+await serveAppModules({ port: parsedData.data.modules });

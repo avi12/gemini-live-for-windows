@@ -9,7 +9,7 @@
   "sideEffects": false,
   "exports": {
     "./theme.css": "./src/ui/theme.css",
-    "./dev-mount": "./dev/dev-mount.ts",
+    "./dev-modules": "./dev/dev-modules.ts",
     "./relay": "./src/lib/relay.ts",
     "./mount": {
       "types": "./mount.d.ts",

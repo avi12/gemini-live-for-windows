@@ -1,3 +1,4 @@
+import { mountPill } from "@gemini-live/pill/mount";
 import type { MountedPill } from "@gemini-live/pill/mount";
 import { startTimer } from "winui-svelte/window";
 import { bringWindowToFront, trackForeground } from "winui-svelte/window/foreground";
@@ -6,7 +7,6 @@ import { log } from "@/core/log/log.ts";
 import { keepRunningOnUnhandledErrors } from "@/core/log/unhandled-errors.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 import { keepSurroundClear } from "@/overlays/window/surround.svelte.ts";
-import { loadMountPill } from "@/pill/host/dev-attach.ts";
 import { serveWindowAbilities } from "@/pill/host/window-abilities.ts";
 import type { PillWindowSurface } from "@/pill/host/window-abilities.ts";
 import { startKeyTriggers } from "@/wiring/ui-thread/ui-entry.ts";
@@ -102,7 +102,6 @@ function startUiServices({ pill, data }: { pill: MountedPill; data: UiWorkerData
 // The UI-thread worker's whole job: the pill window, and what else needs this thread
 export async function startUi(data: UiWorkerData) {
   keepRunningOnUnhandledErrors();
-  const mountPill = await loadMountPill();
   await mountPill({
     port: data.ports.pill,
     onStart: pill =>

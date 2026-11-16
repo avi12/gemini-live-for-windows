@@ -2,6 +2,7 @@ import { workerData } from "node:worker_threads";
 
 import { runOnUiThread } from "winui-svelte/thread";
 
+import { loadStartUi } from "@/pill/host/dev-attach.ts";
 import { uiWorkerDataSchema } from "@/wiring/ui-thread/ui-worker-data.ts";
 
 // The UI-thread worker: everything WinUI lives here, and the main thread owns the state it shows
@@ -11,6 +12,6 @@ await runOnUiThread(async () => {
     throw new Error(`the main thread passed the UI worker bad data: ${parsedData.error.message}`);
   }
 
-  const { startUi } = await import("@/wiring/ui-thread/start-ui.ts");
+  const startUi = await loadStartUi();
   await startUi(parsedData.data);
 });

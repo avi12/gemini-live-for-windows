@@ -1,4 +1,6 @@
+import { loadStartApp } from "@/pill/host/dev-attach.ts";
 import { shippedFiles } from "@/wiring/main-thread/shipped-files.ts";
-import { startApp } from "@/wiring/main-thread/start-app.ts";
 
+// While `pnpm dev` runs, the app's code comes from the repo's source rather than this bundle
+const startApp = await loadStartApp();
 await startApp({ files: shippedFiles({ directory: import.meta.dirname }) });
