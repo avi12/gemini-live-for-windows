@@ -57,7 +57,8 @@ test("webSearchPrompt adds the screen, Gemini's last line and the ask", () => {
   });
   assert.ok(prompt.startsWith("find the source (On my screen: a window titled"));
   assert.ok(prompt.includes('(You just told me: "Cats nap.".)'));
-  assert.ok(prompt.endsWith("link the exact pages you used.)"));
+  assert.ok(prompt.includes("link the exact pages you used."));
+  assert.ok(prompt.endsWith("not the language of this note.)"));
 });
 
 test("webSearchPrompt without context is the request and the ask", () => {

@@ -2,10 +2,12 @@ import { BlockKind, type ScreenView } from "@/google/protocols/glic.ts";
 
 // Added to a web request so the text turn searches and cites, in whatever language it was asked.
 // It also says what NOT to do: a text turn starts a fresh chat, and without it asks the user for
-// details they have already given. The screen context above is what "this" refers to.
+// details they have already given. The screen context above is what "this" refers to. The wrapper is
+// English, which pulls the answer into English even for a Hebrew request, so it names the language.
 const WEB_SEARCH_ASK =
   "(This is a new chat, so use only the context above. Don't ask me for details: search the web," +
-  " find the original source, and link the exact pages you used.)";
+  " find the original source, and link the exact pages you used. Answer in the language of my request" +
+  " above, not the language of this note.)";
 const MAX_CONTEXT_CHARS = 300;
 const SCREEN_HEADINGS = 3;
 const SCREEN_TEXT_CHARS = 600;
