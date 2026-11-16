@@ -211,8 +211,8 @@ export function createCircleSession({
     });
   }
 
-  // The sharp crop and the words of `region` (the display's pixels) of the screen as it is now, from
-  // one capture so the words sit exactly on the picture
+  // The sharp crop of `region` (the display's pixels) of the screen as it is now, at once, and the
+  // reading of its words, from the same capture so they sit exactly on the picture
   async function grabLive({ monitor, region }: { monitor: Monitor; region: Region }) {
     const frozen = await screen.freeze(monitor);
     return {
@@ -220,10 +220,11 @@ export function createCircleSession({
         frozen,
         region
       }),
-      lines: await screen.readText({
-        frozen,
-        region
-      })
+      readLines: () =>
+        screen.readText({
+          frozen,
+          region
+        })
     };
   }
 

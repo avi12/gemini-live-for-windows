@@ -22,12 +22,18 @@ import type { Point, Rect, Size } from "@/overlays/shapes.ts";
 // winui-svelte's selector, held in `selector`. It touches no window; whatever the outside world
 // has to do comes back as effects.
 export { CircleAction };
+// What the Copy button says: it answers a copy itself, rather than a hint saying so
+export const CopyLabel = {
+  COPY: "Copy",
+  COPIED: "Copied"
+} as const;
 export const CircleHint = {
   READING_TEXT: "Reading text…",
   NO_TEXT: "No text found",
   READ_FAILED: "Couldn't read the text",
   SELECT_TEXT: "Drag across the text to select it  ·  Esc to go back",
-  COPIED: "Copied",
+  // For a chip's copy, which has no Copy button to answer it
+  COPIED: CopyLabel.COPIED,
   COPY_FAILED: "Couldn't copy",
   OPEN_FAILED: "Couldn't open it",
   SEARCH_FAILED: "Couldn't open the image search  ·  Try again or pick another",
@@ -55,6 +61,8 @@ export interface GestureState {
   readonly isSearching: boolean;
   readonly isReading: boolean;
   readonly isTextMode: boolean;
+  // What is picked was copied, until the pick changes
+  readonly isCopied: boolean;
   // A press in text mode is down: a word drag or a rubber band
   readonly isSelectingText: boolean;
   // The OCR words and the run the user picked among them (winui-svelte's text selector)
@@ -176,6 +184,7 @@ export function initialGesture({ screen, isAskOnRelease }: { screen: Size; isAsk
     isSearching: false,
     isReading: false,
     isTextMode: false,
+    isCopied: false,
     isSelectingText: false,
     text: createTextSelector([]),
     textOrigin: undefined,
@@ -205,7 +214,8 @@ function retext({ state, text }: { state: GestureState; text: TextSelectorState 
   return {
     state: {
       ...state,
-      text
+      text,
+      isCopied: false
     },
     effects: [
       {
@@ -666,6 +676,17 @@ export function reduceGesture({ state, event }: { state: GestureState; event: Ge
     case GestureEventKind.SEARCH_FAILED:
       return searchWasNotOpened(state);
     case GestureEventKind.COPY_DONE:
+      // In text mode the Copy button answers a copy; elsewhere (a chip) a hint does
+      if (event.isCopied && state.isTextMode) {
+        return {
+          state: {
+            ...state,
+            isCopied: true
+          },
+          effects: []
+        };
+      }
+
       return {
         state,
         effects: [

@@ -412,7 +412,7 @@ describe("createCircleController", () => {
     controller.dispatch({ kind: GestureEventKind.COPY });
     await settleAsync();
     assert.deepEqual(copied, ["hello"]);
-    assert.equal(view()?.hint.text, CircleHint.COPIED);
+    assert.equal(view()?.gesture.isCopied, true);
   });
 
   it("says it could not copy when the clipboard is locked", async () => {

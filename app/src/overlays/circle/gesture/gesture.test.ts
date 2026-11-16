@@ -997,7 +997,7 @@ describe("copying", () => {
     assert.deepEqual(step.effects, []);
   });
 
-  it("says copied or that it could not", () => {
+  it("lets the Copy button say copied, and says it could not copy", () => {
     const copied = reduceGesture({
       state: inTextMode(),
       event: {
@@ -1012,13 +1012,8 @@ describe("copying", () => {
         isCopied: false
       }
     });
-    assert.deepEqual(copied.effects, [
-      {
-        kind: GestureEffectKind.SAY,
-        message: CircleHint.COPIED,
-        isLasting: false
-      }
-    ]);
+    assert.equal(copied.state.isCopied, true);
+    assert.deepEqual(copied.effects, []);
     assert.deepEqual(failed.effects, [
       {
         kind: GestureEffectKind.SAY,

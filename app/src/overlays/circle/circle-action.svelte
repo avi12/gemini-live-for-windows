@@ -12,7 +12,8 @@
     isLabelled: boolean;
     isDisabled?: boolean;
     onpress: () => void;
-    icon: Snippet;
+    // Left out for a button that is only its label
+    icon?: Snippet;
   }
 
   const { label, shortcut, isPrimary, isLabelled, isDisabled = false, onpress, icon }: Props = $props();
@@ -26,11 +27,8 @@
     return `${label} (${shortcut})`;
   });
   const labelClass = $derived.by(() => {
-    if (isPrimary) {
-      return ["circle-action-label", "circle-primary-ink"];
-    }
-
-    return ["circle-action-label"];
+    const classes = icon === undefined ? [] : ["circle-action-label"];
+    return isPrimary ? [...classes, "circle-primary-ink"] : classes;
   });
   const buttonClass = $derived.by(() => {
     const shape = isLabelled ? "circle-labelled" : "circle-round";
@@ -44,7 +42,7 @@
 
 <Button class={buttonClass} automationName={label} isEnabled={!isDisabled} onclick={onpress} {toolTip}>
   <StackPanel orientation="Horizontal">
-    {@render icon()}
+    {@render icon?.()}
     {#if isLabelled}
       <TextBlock class={labelClass} text={label} verticalAlignment="Center" />
     {/if}

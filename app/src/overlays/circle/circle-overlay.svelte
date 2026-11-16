@@ -8,7 +8,13 @@
   import type { CircleView } from "@/overlays/circle/controller.ts";
   import { createClickCounter } from "@/overlays/circle/gesture/click-counter.ts";
   import { cornerRadius, roundedRectsPath, WORD_RADIUS } from "@/overlays/circle/gesture/geometry.ts";
-  import { CircleCursor, GestureEventKind, hoverCursor, pickedWords } from "@/overlays/circle/gesture/gesture.ts";
+  import {
+    CircleCursor,
+    CopyLabel,
+    GestureEventKind,
+    hoverCursor,
+    pickedWords
+  } from "@/overlays/circle/gesture/gesture.ts";
   import type { GestureEvent } from "@/overlays/circle/gesture/gesture.ts";
   import { movePoints, pointerPoint } from "@/overlays/circle/gesture/pointer-points.ts";
   import { createPointerTracker, PressVerdict } from "@/overlays/circle/gesture/pointer-tracker.ts";
@@ -49,7 +55,7 @@
   import "winui-svelte/css/environment";
   import { releasePointerCapture, setPointerCapture } from "winui-svelte/input";
   import type { PointerEvent } from "winui-svelte/input";
-  import { createSelector, SelectionPhase } from "winui-svelte/selection";
+  import { createSelector, SelectionPhase, textSelection } from "winui-svelte/selection";
   import { mediaQuery, startTimer } from "winui-svelte/window";
 
   interface Props {
@@ -147,6 +153,9 @@
 
     return pickedWords(gesture);
   });
+
+  // What a copy would take, shown above the bar's buttons
+  const preview = $derived(gesture === undefined ? undefined : textSelection(gesture.text)?.text);
 
   const wordsPath = $derived(
     roundedRectsPath({
@@ -537,12 +546,12 @@
     <Canvas class="circle-layer">
       {#if view !== undefined && selection !== undefined}
         {#if isTextMode}
-          <CircleBar oncancel={cancel} screen={screenSize} {selection}>
+          <CircleBar oncancel={cancel} {preview} screen={screenSize} {selection}>
             <CircleAction
               isDisabled={picked.length === 0}
               isLabelled
               isPrimary
-              label="Copy"
+              label={gesture?.isCopied ? CopyLabel.COPIED : CopyLabel.COPY}
               onpress={() => dispatch({ kind: GestureEventKind.COPY })}
               shortcut={keyName(CircleKeyCombination.copy)}
             >
@@ -561,17 +570,14 @@
                 <TextBlock class="circle-icon" text={OverlayGlyph.search} />
               {/snippet}
             </CircleAction>
+            <!-- Done goes back to circling; the bar's own X, after it, cancels the whole overlay -->
             <CircleAction
-              isLabelled={false}
+              isLabelled
               isPrimary={false}
               label="Done"
               onpress={() => dispatch({ kind: GestureEventKind.LEAVE_TEXT })}
               shortcut={keyName(CircleKeyCombination.escape)}
-            >
-              {#snippet icon()}
-                <TextBlock class="circle-icon" text={OverlayGlyph.close} />
-              {/snippet}
-            </CircleAction>
+            />
           </CircleBar>
         {:else if !view.gesture.isAskOnRelease}
           {#if view.chips.length > 0}

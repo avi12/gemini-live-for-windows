@@ -162,8 +162,10 @@ export const showRegionTextSchema = z.object({
   region: regionSchema,
   // The region's pixels as a JPEG, base64
   jpegBase64: z.string().regex(BASE64_PATTERN),
-  // The words found in the region, in the display's physical pixels
-  lines: ocrLinesSchema
+  // The words found in the region, in the display's physical pixels; none while they are being read
+  lines: ocrLinesSchema,
+  // The still is up while its words are still being read: sent again with them when they are ready
+  isReading: z.boolean()
 });
 export type ShowRegionText = z.infer<typeof showRegionTextSchema>;
 

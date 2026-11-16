@@ -139,19 +139,31 @@ export function createOverlayControl({
     }
 
     try {
-      const { crop, lines } = await session.grabLive({
+      const { crop, readLines } = await session.grabLive({
         monitor: engine.monitor,
         region
       });
-      log(`select text: ${lines.length} lines in ${region.width}×${region.height}`);
-      link.regionText.show({
+      const shown = {
         monitor: engine.monitor,
         region,
-        jpegBase64: Buffer.from(crop.jpeg.buffer, crop.jpeg.byteOffset, crop.jpeg.byteLength).toString("base64"),
-        lines: toCircleText(lines)
+        jpegBase64: Buffer.from(crop.jpeg.buffer, crop.jpeg.byteOffset, crop.jpeg.byteLength).toString("base64")
+      };
+      // The picture first, so the press answers at once; its words follow when they are read
+      link.regionText.show({
+        ...shown,
+        lines: [],
+        isReading: true
+      });
+      const lines = await readLines();
+      log(`select text: ${lines.length} lines in ${region.width}×${region.height}`);
+      link.regionText.show({
+        ...shown,
+        lines: toCircleText(lines),
+        isReading: false
       });
     } catch (error) {
       log(`select text: ${errorMessage(error)}`);
+      link.regionText.hide();
     }
   }
 

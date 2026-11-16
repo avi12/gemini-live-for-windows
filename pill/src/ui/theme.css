@@ -37,8 +37,8 @@
   --live-edge: rgb(0 0 0 / 0.1);
   --live-card-surface: rgb(243 237 247 / 0.94);
   --live-brand-blue: #4285f4;
-  /* Circle's bar is one fixed light look in both themes: the theme dictionaries mix light and dark
-     values for it otherwise */
+  /* Circle's bar, hints and the Select text window's buttons: the light set here, the dark set below.
+     They are plain custom properties because the theme dictionaries mix light and dark values */
   --circle-surface: #e1d5df;
   --circle-secondary: #cdc2cd;
   --circle-secondary-hover: #c0b4c1;
@@ -48,6 +48,9 @@
   --circle-primary-hover: #c2d3ef;
   --circle-primary-pressed: #becfeb;
   --circle-on-primary: #041e49;
+  /* Material 3's disabled button: the text colour at 12% for the container and 38% for the label */
+  --circle-disabled: rgb(29 27 32 / 0.12);
+  --circle-on-disabled: rgb(29 27 32 / 0.38);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -79,6 +82,18 @@
     --live-pressed-layer: rgb(227 227 227 / 0.1);
     --live-edge: rgb(138 180 248 / 0.33);
     --live-card-surface: rgb(47 47 49 / 0.88);
+    --circle-surface: #2f2f31;
+    --circle-secondary: #444746;
+    /* Material 3 state layers over the container: 8% of the label colour on hover, 10% pressed */
+    --circle-secondary-hover: #515453;
+    --circle-secondary-pressed: #565958;
+    --circle-on-secondary: #e3e3e3;
+    --circle-primary: #a8c7fa;
+    --circle-primary-hover: #9bbbef;
+    --circle-primary-pressed: #98b8ec;
+    --circle-on-primary: #062e6f;
+    --circle-disabled: rgb(227 227 227 / 0.12);
+    --circle-on-disabled: rgb(227 227 227 / 0.38);
   }
 }
 
@@ -260,6 +275,9 @@ text-block {
   --button-foreground: var(--circle-on-secondary);
   --button-foreground-pointer-over: var(--circle-on-secondary);
   --button-foreground-pressed: var(--circle-on-secondary);
+  --button-border-brush-disabled: transparent;
+  --button-background-disabled: var(--circle-disabled);
+  --button-foreground-disabled: var(--circle-on-disabled);
 }
 
 /* Material 3 Expressive: big, fully rounded targets, medium-weight labels */

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import BarPreview from "@/overlays/circle/bar-preview.svelte";
   import CircleCancel from "@/overlays/circle/circle-cancel.svelte";
   import { barPlacement, BarSide } from "@/overlays/circle/gesture/geometry.ts";
   import { riseIn, riseOut } from "@/overlays/motion/transitions.ts";
@@ -17,10 +18,12 @@
     screen: Size;
     // The X after the actions: closes the overlay and drops the selection
     oncancel: () => void;
+    // The text a copy would take, shown above the buttons; undefined when there is none to show
+    preview?: string | undefined;
     children: Snippet;
   }
 
-  const { selection, screen, oncancel, children }: Props = $props();
+  const { selection, screen, oncancel, preview, children }: Props = $props();
 
   // How far the bar's entrance travels: up into place below or inside the selection, down into
   // place above it, and no slide beside it (a vertical rise there would read as drifting)
@@ -98,9 +101,12 @@
   in:enter
   out:leave
 >
-  <StackPanel orientation="Horizontal" spacing={BUTTON_GAP}>
-    {@render children()}
-    <CircleCancel onpress={oncancel} />
+  <StackPanel orientation="Vertical">
+    <BarPreview text={preview} />
+    <StackPanel orientation="Horizontal" spacing={BUTTON_GAP}>
+      {@render children()}
+      <CircleCancel onpress={oncancel} />
+    </StackPanel>
   </StackPanel>
 </border>
 
