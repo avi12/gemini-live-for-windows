@@ -77,6 +77,9 @@ importers:
       '@gemini-live/protocol':
         specifier: workspace:*
         version: link:../protocol
+      '@litertjs/core':
+        specifier: 2.6.0
+        version: 2.6.0
       '@microsoft/dynwinrt':
         specifier: 0.1.0-preview.23
         version: 0.1.0-preview.23
@@ -799,6 +802,12 @@ packages:
 
   '@keyv/serialize@1.1.1':
     resolution: {integrity: sha512-dXn3FZhPv0US+7dtJsIi2R+c7qWYiReoEh5zUntWCf4oSpMNib8FDhSoed6m3QyZdx5hK7iLFkYk3rNxwt8vTA==}
+
+  '@litertjs/core@2.6.0':
+    resolution: {integrity: sha512-TH6/5zLq57YzyZH6q+vO8be1SvTH76uDFe+CiL0wWtRNTUDhc2GAWm2YCohhnyt4fPvefSNztg5PKFZGAYL0cw==}
+
+  '@litertjs/wasm-utils@2.6.0':
+    resolution: {integrity: sha512-rxARtl8owf+aPV2TsMiAClYDBaEDemML3PjrzBxIpGCvv6POswR7068Kt0sIkrK5XvKkY2Z+JLcm3a9CHmvuUg==}
 
   '@microsoft/dynwinrt@0.1.0-preview.23':
     resolution: {integrity: sha512-PTvLCL1CwnZiV38PyOaJFHMQ2WabxAAQkvC4ObgfF0zDgUqcvuvIRSGE0DKvkAQfNQNN1miWMT4MxIx+Q7buDQ==}
@@ -4209,6 +4218,12 @@ snapshots:
       keyv: 5.6.0
 
   '@keyv/serialize@1.1.1': {}
+
+  '@litertjs/core@2.6.0':
+    dependencies:
+      '@litertjs/wasm-utils': 2.6.0
+
+  '@litertjs/wasm-utils@2.6.0': {}
 
   '@microsoft/dynwinrt@0.1.0-preview.23': {}
 

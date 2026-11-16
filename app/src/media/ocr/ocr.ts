@@ -4,9 +4,13 @@ import { OcrEngine } from "winui-svelte/bindings/windows/media/ocr/OcrEngine";
 import type { OcrResult } from "winui-svelte/bindings/windows/media/ocr/OcrResult";
 
 import type { Region } from "@/contracts/monitor.ts";
+import { log } from "@/core/log/log.ts";
+import { lensModelsDir } from "@/lib/paths.ts";
 import { openImage } from "@/media/winrt/decoded-image.ts";
 import { releaseNative } from "@/media/winrt/release.ts";
 
+import { readHebrewLines } from "./lens/hebrew-ocr.ts";
+import { hebrewRecognizer } from "./lens/lens-model.ts";
 import { engineTagOrder, mergeLines, NoOcrLanguageError, planScan, sortLines, toSourceBounds } from "./ocr-geometry.ts";
 import type { OcrLine } from "./ocr-geometry.ts";
 
@@ -83,6 +87,31 @@ async function recognize({
       })
     );
   }
+
+  // Hebrew, which Windows has no OCR pack for here: read by Google's own recogniser when it is installed
+  const hebrew = await hebrewRecognizer({
+    directory: lensModelsDir(),
+    log: message => log.write(message)
+  });
+  if (hebrew !== undefined) {
+    const lines = await readHebrewLines({
+      bitmap,
+      recognizer: hebrew
+    });
+    passes.push(
+      lines.map(line => ({
+        words: line.words.map(word => ({
+          text: word.text,
+          bounds: toSourceBounds({
+            bounds: word.bounds,
+            origin,
+            scale
+          })
+        }))
+      }))
+    );
+  }
+
   return mergeLines(passes);
 }
 

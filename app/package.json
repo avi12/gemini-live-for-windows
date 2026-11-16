@@ -16,6 +16,7 @@
     "@gemini-live/messaging": "workspace:*",
     "@gemini-live/pill": "workspace:*",
     "@gemini-live/protocol": "workspace:*",
+    "@litertjs/core": "2.6.0",
     "@microsoft/dynwinrt": "0.1.0-preview.23",
     "svelte": "5.57.3",
     "winui-svelte": "^0.0.16",
