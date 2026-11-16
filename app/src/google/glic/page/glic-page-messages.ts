@@ -75,6 +75,8 @@ export function registerGlicPageMessages({
       return;
     }
 
+    // Each change of Live's state is told once: a pause the bridge resumes shows as resuming, then listening
+    log.write(`glic: state ${parsed.data}`);
     events.emit({
       kind: GlicHostEventKind.STATE,
       isListening: parsed.data === glicStateSchema.enum.listening
@@ -92,6 +94,9 @@ export function registerGlicPageMessages({
       isUser: parsed.data.direction === Direction.USER,
       index: parsed.data.index
     });
+  });
+  messenger.onMessage(GlicMessage.DIAGNOSTIC, message => {
+    log.write(`glic page: ${String(message.data)}`);
   });
   messenger.onMessage(GlicMessage.ERROR, message => {
     const parsed = z.string().nullable().safeParse(message.data);

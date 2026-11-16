@@ -19,7 +19,8 @@ export const GlicMessage = {
   TRANSCRIPT: "transcript",
   ERROR: "error",
   CAPTURE: "capture",
-  READ: "read"
+  READ: "read",
+  DIAGNOSTIC: "diagnostic"
 } as const;
 
 // The failures the page reports by code; anything else is a message to show
@@ -113,4 +114,6 @@ export interface GlicProtocolMap {
   [GlicMessage.CAPTURE](): Picture | null;
   // An exact text copy of the window on the shared display; null when there is none
   [GlicMessage.READ](): ScreenView | null;
+  // What the page found about itself, for the log
+  [GlicMessage.DIAGNOSTIC](text: unknown): void;
 }

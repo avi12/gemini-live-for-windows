@@ -18,7 +18,8 @@ export enum GlicMessage {
   TRANSCRIPT = "transcript",
   ERROR = "error",
   CAPTURE = "capture",
-  READ = "read"
+  READ = "read",
+  DIAGNOSTIC = "diagnostic"
 }
 
 /**
@@ -108,4 +109,6 @@ export interface GlicProtocolMap {
   [GlicMessage.CAPTURE](): Picture | null;
   /** An exact text copy of the window on the shared display; null when there is none. */
   [GlicMessage.READ](): ScreenView | null;
+  /** What the page found about itself, for the host's log. */
+  [GlicMessage.DIAGNOSTIC](text: string): void;
 }

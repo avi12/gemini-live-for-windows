@@ -38,6 +38,7 @@ import { ErrorMessage, GlicMessage, type GlicProtocolMap, State } from "./glic_p
 import { patchLiveTimeouts } from "./live_timeouts";
 import { tapLiveTranscript } from "./live_wire";
 import { openTextEditor, submitAndRead } from "./text_action";
+import { muteTones } from "./tone_gate";
 import { transcriptRelay } from "./transcript";
 
 const REQUEST_TIMEOUT_MS = 3000;
@@ -57,6 +58,8 @@ const BROKEN_AFTER_MS = 15_000;
 // Live can hang without showing anything: the user's words are transcribed, the mic keeps
 // streaming, yet Gemini never answers. Pausing and resuming opens a fresh Live session.
 const NO_REPLY_MS = 12_000;
+// How long Live's tones may play after the user starts or ends it
+const TONE_WINDOW_MS = 4000;
 
 declare global {
   interface Window {
@@ -109,6 +112,7 @@ if (IS_FIRST_INSTALL_IN_TOP_WINDOW) {
   // ===========================================================================
 
   keepPageVisible();
+  const tones = muteTones();
 
   /** Restarts a running Live, which reopens the microphone. */
   function reopenMic() {
@@ -181,6 +185,8 @@ if (IS_FIRST_INSTALL_IN_TOP_WINDOW) {
   /** Live breaking was reported; the host reloads us, so say it once. */
   let isBrokenReported = false;
   let isConsentAccepted = false;
+  /** A text turn paused Live, and the next start only resumes it. */
+  let isActionPending = false;
   let monitorTimer: ReturnType<typeof setInterval> | undefined;
   let startTimer: ReturnType<typeof setInterval> | undefined;
 
@@ -191,6 +197,7 @@ if (IS_FIRST_INSTALL_IN_TOP_WINDOW) {
 
     resumeTries++;
     lastResume = now;
+    report(app.sendMessage(GlicMessage.DIAGNOSTIC, "resuming a pause"));
     clickButton(...RESUME_BUTTONS);
   }
 
@@ -342,6 +349,7 @@ if (IS_FIRST_INSTALL_IN_TOP_WINDOW) {
 
   /** Pauses Live for a Google-apps text turn (text_action.ts); C# resumes it with Start. */
   function beginAction() {
+    isActionPending = true;
     isSessionActive = false;
     clearInterval(startTimer);
     clearInterval(monitorTimer);
@@ -353,8 +361,21 @@ if (IS_FIRST_INSTALL_IN_TOP_WINDOW) {
   // Commands from GlicHost.
   // ===========================================================================
 
-  app.onMessage(GlicMessage.START, () => start());
-  app.onMessage(GlicMessage.STOP, () => stop());
+  // The tones play for the user's own start and end; the restart after a text turn, and Live's pauses
+  // that the bridge resumes, stay quiet
+  app.onMessage(GlicMessage.START, () => {
+    if (!isActionPending) {
+      tones.allowFor(TONE_WINDOW_MS);
+    }
+
+    isActionPending = false;
+    start();
+  });
+  app.onMessage(GlicMessage.STOP, () => {
+    tones.allowFor(TONE_WINDOW_MS);
+    isActionPending = false;
+    stop();
+  });
   app.onMessage(GlicMessage.SET_MUTED, ({ data }) => mic.setMuted(data));
   app.onMessage(GlicMessage.LIST_MICS, () => mic.listMics());
   app.onMessage(GlicMessage.SET_MIC, ({ data }) => mic.setMic(data));
