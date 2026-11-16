@@ -33,7 +33,10 @@ describe("openExternal", () => {
     );
     assert.deepEqual(
       launched.map(command => command.args),
-      [["https://example.com/a%20b"], ["http://example.com/"]]
+      [
+        ["url.dll,FileProtocolHandler", "https://example.com/a%20b"],
+        ["url.dll,FileProtocolHandler", "http://example.com/"]
+      ]
     );
   });
 
