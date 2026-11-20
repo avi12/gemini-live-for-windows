@@ -3,13 +3,13 @@ import { describe, test } from "node:test";
 
 import { PermissionDecision, PermissionKind } from "@/google/web-host/web-view-port.ts";
 
-import { decideGlicPermission, isGoogleNavigation } from "./policies.ts";
+import { decideHiddenPagePermission, isGoogleNavigation } from "./policies.ts";
 
-describe("decideGlicPermission", () => {
-  test("allows the microphone, denies the camera, leaves the rest", () => {
-    assert.equal(decideGlicPermission(PermissionKind.MICROPHONE), PermissionDecision.ALLOW);
-    assert.equal(decideGlicPermission(PermissionKind.CAMERA), PermissionDecision.DENY);
-    assert.equal(decideGlicPermission(PermissionKind.OTHER), PermissionDecision.DEFAULT);
+describe("decideHiddenPagePermission", () => {
+  test("denies the camera, allows everything else", () => {
+    assert.equal(decideHiddenPagePermission(PermissionKind.MICROPHONE), PermissionDecision.ALLOW);
+    assert.equal(decideHiddenPagePermission(PermissionKind.CAMERA), PermissionDecision.DENY);
+    assert.equal(decideHiddenPagePermission(PermissionKind.OTHER), PermissionDecision.ALLOW);
   });
 });
 

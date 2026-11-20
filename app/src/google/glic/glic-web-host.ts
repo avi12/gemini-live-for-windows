@@ -3,7 +3,7 @@ import type { createEmitter } from "@/google/emitter.ts";
 import type { Logger } from "@/google/ports.ts";
 import type { GlicProtocolMap } from "@/google/protocols/glic.ts";
 import type { SessionSource } from "@/google/session/session-link.ts";
-import { decideGlicPermission, isGoogleNavigation } from "@/google/web-host/guards/policies.ts";
+import { decideHiddenPagePermission, isGoogleNavigation } from "@/google/web-host/guards/policies.ts";
 import { createWebHost, RecoveryFailure } from "@/google/web-host/web-host.ts";
 import type { WebViewFactory } from "@/google/web-host/web-view-port.ts";
 
@@ -41,7 +41,7 @@ export function createGlicWebHost({
     messageTimeoutMs: SUBMIT_TIMEOUT_MS,
     isDebugging,
     isNavigationAllowed: isGoogleNavigation,
-    decidePermission: decideGlicPermission,
+    decidePermission: decideHiddenPagePermission,
     log,
     now,
     onCoreReady(core) {
