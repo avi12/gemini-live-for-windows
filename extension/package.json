@@ -12,7 +12,7 @@
     "zip": "wxt zip",
     "pack:crx": "node scripts/pack-crx.mjs",
     "release": "wxt build && wxt zip && node scripts/pack-crx.mjs",
-    "compile": "tsc --noEmit",
+    "compile": "tsrs --noEmit",
     "postinstall": "wxt prepare"
   },
   "dependencies": {
@@ -22,7 +22,8 @@
   "devDependencies": {
     "@types/chrome": "^0.2.2",
     "crx3": "^2.0.0",
-    "typescript": "^5.7.0",
+    "tsrs": "0.25.0-ts7.1.0-beta",
+    "typescript": "^6.0.3",
     "wxt": "^0.20.27"
   },
   "packageManager": "pnpm@11.13.1"

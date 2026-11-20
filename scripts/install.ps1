@@ -74,7 +74,7 @@ Write-Host '== install'
 Invoke-Native 'pnpm install' { pnpm --dir $root install --silent }
 
 Write-Host '== messaging'
-Invoke-Pnpm 'messaging' 'typecheck'
+Invoke-Pnpm 'messaging' 'compile'
 
 Write-Host '== extension'
 # A release also zips the extension and signs its .crx.

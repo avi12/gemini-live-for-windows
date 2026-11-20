@@ -7,14 +7,15 @@
   "author": "Avi (https://avi12.com)",
   "type": "module",
   "scripts": {
-    "typecheck": "tsc --noEmit",
-    "build": "tsc --noEmit && node build.mjs"
+    "build": "tsrs --noEmit && node build.mjs",
+    "compile": "tsrs --noEmit"
   },
   "dependencies": {
     "@gemini-live/messaging": "workspace:*"
   },
   "devDependencies": {
     "esbuild": "^0.24.2",
-    "typescript": "^5.7.0"
+    "tsrs": "0.25.0-ts7.1.0-beta",
+    "typescript": "^6.0.3"
   }
 }

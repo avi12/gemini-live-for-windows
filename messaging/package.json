@@ -9,13 +9,14 @@
   "sideEffects": false,
   "exports": "./src/index.ts",
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "compile": "tsrs --noEmit"
   },
   "dependencies": {
     "@webext-core/messaging": "^4.0.0"
   },
   "devDependencies": {
-    "typescript": "^5.7.0"
+    "tsrs": "0.25.0-ts7.1.0-beta",
+    "typescript": "^6.0.3"
   },
   "packageManager": "pnpm@11.13.1"
 }
