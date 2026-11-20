@@ -60,8 +60,8 @@ export function ensureLinkConnected() {
 /** Pushes the session once a burst of cookie changes has settled. */
 export function pushSessionSoon() {
   clearTimeout(pendingPush);
-  pendingPush = setTimeout(() => {
-    void pushSession();
+  pendingPush = setTimeout(async () => {
+    await pushSession();
   }, ROTATION_DEBOUNCE_MS);
 }
 
@@ -100,9 +100,26 @@ function socketTransport(socket: WebSocket) {
   } satisfies Transport;
 }
 
+// Everything the browser would send to these pages. A domain query can miss cookies the browser
+// still sends (the non-Secure SID, HSID and APISID in particular), which signs the app out.
+const GOOGLE_COOKIE_URLS = [
+  "https://gemini.google.com/",
+  "https://accounts.google.com/",
+  "https://www.google.com/",
+  "http://www.google.com/"
+];
+
+function cookieKey(cookie: Browser.cookies.Cookie) {
+  return `${cookie.domain}|${cookie.path}|${cookie.name}`;
+}
+
 async function collectCookies() {
-  const cookies = await browser.cookies.getAll({ domain: GOOGLE_COOKIE_DOMAIN });
-  return cookies.map(cookie => ({
+  const batches = await Promise.all([
+    browser.cookies.getAll({ domain: GOOGLE_COOKIE_DOMAIN }),
+    ...GOOGLE_COOKIE_URLS.map(url => browser.cookies.getAll({ url }))
+  ]);
+  const unique = new Map(batches.flat().map(cookie => [cookieKey(cookie), cookie]));
+  return [...unique.values()].map(cookie => ({
     name: cookie.name,
     value: cookie.value,
     domain: cookie.domain,
@@ -187,7 +204,7 @@ function open({ link, info }: { link: Link; info: LinkInfo }) {
     });
     link.messenger = messenger;
 
-    messenger.onMessage(LinkMessage.HELLO, ({ data: token }) => {
+    messenger.onMessage(LinkMessage.HELLO, async ({ data: token }) => {
       const isStaleLink = connection.current !== link || token !== info.token;
       if (isStaleLink) {
         closeLink(link);
@@ -196,7 +213,7 @@ function open({ link, info }: { link: Link; info: LinkInfo }) {
 
       clearTimeout(helloTimer);
       link.trusted = true;
-      void pushSession();
+      await pushSession();
     });
     // The app wants the current session now (e.g. it has none yet).
     messenger.onMessage(LinkMessage.QUERY, () => {
@@ -205,10 +222,10 @@ function open({ link, info }: { link: Link; info: LinkInfo }) {
     });
     // The app's copy stopped working (Gemini says signed out / unavailable). Send what we have,
     // and refresh it; the refreshed cookies follow through the cookie-change push.
-    messenger.onMessage(LinkMessage.REFRESH, () => {
+    messenger.onMessage(LinkMessage.REFRESH, async () => {
       requireTrusted(link);
-      void pushSession();
-      void refreshGoogleSession();
+      await pushSession();
+      await refreshGoogleSession();
     });
     // The app pings every ~20 s; the reply is the keepalive that holds this service worker awake.
     messenger.onMessage(LinkMessage.PING, () => requireTrusted(link));

@@ -8,6 +8,9 @@
 
 const REFRESH_URL = "https://gemini.google.com/app";
 
+// Where Google sends a request that has no valid session
+const SIGN_IN_HOST = "accounts.google.com";
+
 // Long enough for the page to load and rotate its cookies.
 const REFRESH_PAGE_MS = 15_000;
 
@@ -29,9 +32,25 @@ export async function refreshGoogleSession() {
     state: "minimized",
     focused: false
   });
-  setTimeout(() => {
-    if (opened?.id !== undefined) {
-      void browser.windows.remove(opened.id).catch(() => undefined); // the user may have closed it
-    }
+  setTimeout(async () => {
+    await finishRefresh(opened);
   }, REFRESH_PAGE_MS);
+}
+
+/** Closes the refresh window; if Google sent it to a sign-in page, the session is gone, so ask the user. */
+async function finishRefresh(opened: Browser.windows.Window | undefined) {
+  if (opened?.id === undefined) {
+    return;
+  }
+
+  const [tab] = opened.tabs ?? [];
+  const current = tab?.id === undefined ? undefined : await browser.tabs.get(tab.id).catch(() => undefined);
+  const isSignedOut = current?.url !== undefined && new URL(current.url).hostname === SIGN_IN_HOST;
+
+  await browser.windows.remove(opened.id).catch(() => undefined); // the user may have closed it
+
+  if (isSignedOut) {
+    // Only the user can sign in: show the page where they do, in a normal focused tab
+    await browser.tabs.create({ url: REFRESH_URL });
+  }
 }
