@@ -72,5 +72,10 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add docs/updates.json
+          if ($LASTEXITCODE) { throw 'git add failed' }
+          # A refused commit must fail the release: a push after it says "up-to-date" and installed
+          # copies would never see the new version
           git commit -m "chore(release): update manifest for $env:GITHUB_REF_NAME"
+          if ($LASTEXITCODE) { throw 'The update manifest commit failed' }
           git push origin main
+          if ($LASTEXITCODE) { throw 'Pushing the update manifest failed' }

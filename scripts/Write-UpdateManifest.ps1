@@ -40,6 +40,9 @@ $update = [ordered]@{
     sha256  = (Get-FileHash $path -Algorithm SHA256).Hash
 }
 $target = Join-Path $root 'docs\updates.json'
-($update | ConvertTo-Json) + "`n" | Set-Content $target -Encoding utf8NoBOM -NoNewline
+# Two-space indent and LF, what the repo's formatter (the pre-commit lint) accepts; ConvertTo-Json's
+# four spaces make that hook refuse the release bot's commit.
+$json = ($update | ConvertTo-Json) -replace '(?m)^    ', '  ' -replace "`r`n", "`n"
+$json + "`n" | Set-Content $target -Encoding utf8NoBOM -NoNewline
 Write-Host "wrote $target"
 Get-Content $target
