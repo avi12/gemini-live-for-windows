@@ -82,11 +82,12 @@ describe("fingerprint", () => {
 });
 
 describe("sameSiteOf", () => {
-  test("anything but strict and lax is none", () => {
+  test("only an explicit no_restriction is none; no attribute is lax", () => {
     assert.equal(sameSiteOf("strict"), "strict");
     assert.equal(sameSiteOf("lax"), "lax");
     assert.equal(sameSiteOf("no_restriction"), "none");
-    assert.equal(sameSiteOf(null), "none");
+    assert.equal(sameSiteOf("unspecified"), "lax");
+    assert.equal(sameSiteOf(null), "lax");
   });
 });
 

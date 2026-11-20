@@ -30,6 +30,9 @@ export const SameSite = {
   NONE: "none"
 } as const;
 
+// The extension API's spelling of an explicit SameSite=None
+const NO_RESTRICTION = "no_restriction";
+
 export function isAuthCookie(name: string) {
   const hasAuthPrefix = AUTH_COOKIE_PREFIXES.some(prefix => name.startsWith(prefix));
   return hasAuthPrefix || AUTH_COOKIE_NAMES.has(name);
@@ -50,13 +53,19 @@ export function fingerprint(cookies: readonly BrowserCookie[]) {
   return createHash("sha256").update(lines.join("\n")).digest("hex");
 }
 
+// The browser reports "no_restriction" for an explicit SameSite=None and "unspecified" (or nothing)
+// for a cookie with no attribute, which Chromium treats as Lax. Mapping "unspecified" to None would
+// make the non-Secure ones (SID, HSID, APISID, SIDCC) invalid, since None requires Secure.
 export function sameSiteOf(value: string | null | undefined) {
-  const isRestrictive = value === SameSite.STRICT || value === SameSite.LAX;
-  if (isRestrictive) {
-    return value;
+  if (value === SameSite.STRICT) {
+    return SameSite.STRICT;
   }
 
-  return SameSite.NONE;
+  if (value === NO_RESTRICTION) {
+    return SameSite.NONE;
+  }
+
+  return SameSite.LAX;
 }
 
 export function encodeSession(cookies: readonly BrowserCookie[]) {
