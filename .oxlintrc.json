@@ -24,6 +24,12 @@
       }
     },
     {
+      "files": ["**/*.test.ts"],
+      "rules": {
+        "typescript/no-floating-promises": "off"
+      }
+    },
+    {
       "files": ["extension/src/entrypoints/**"],
       "rules": {
         "no-restricted-exports": "off"
