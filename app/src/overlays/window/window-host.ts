@@ -87,14 +87,14 @@ function mountResultsPanel({ deps, onclosed }: { deps: OverlayWindowDeps; onclos
   const props: ComponentProps<typeof ResultsPanel> = {
     target: undefined,
     loadCookies: deps.loadCookies,
-    onopenbrowser(url) {
+    onopenbrowser(url: string) {
       void deps.launchUri(url);
     },
-    oncopyurl(url) {
+    oncopyurl(url: string) {
       void deps.clipboard.writeText(url);
     },
     ondismissed: onclosed,
-    onfailed: message => deps.log.write(`results: ${message}`)
+    onfailed: (message: string) => deps.log.write(`results: ${message}`)
   };
   return mountControl({
     component: ResultsPanel,
@@ -280,7 +280,7 @@ function circleOverlayProps({
     onchip,
     onsized,
     ondeactivated,
-    onready: hwnd =>
+    onready: (hwnd: bigint) =>
       raise({
         hwnd,
         deps

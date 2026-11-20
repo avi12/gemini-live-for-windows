@@ -46,7 +46,7 @@ export interface Clipboard {
 }
 
 export interface CursorApi {
-  cursorPosition(): {
+  cursorPosition: () => {
     x: number;
     y: number;
   };

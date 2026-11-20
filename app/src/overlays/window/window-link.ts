@@ -43,12 +43,12 @@ export interface OverlayWindowHost {
 
 // What the windows tell the controller
 export interface OverlayWindowEvents {
-  focusEscapePressed(): void;
-  chipDismissed(): void;
-  chipDragStarted(): void;
-  chipDragged(travelled: Point): void;
-  chipSelectTextPressed(): void;
-  circleKeyPressed(): void;
+  focusEscapePressed: () => void;
+  chipDismissed: () => void;
+  chipDragStarted: () => void;
+  chipDragged: (travelled: Point) => void;
+  chipSelectTextPressed: () => void;
+  circleKeyPressed: () => void;
   readCircleText(options: ReadCircleText): Promise<OcrLines>;
   searchCircle(options: SearchCircle): Promise<string>;
   searchRegion(options: SearchRegion): Promise<string>;
