@@ -44,7 +44,8 @@ export function buildController({
     log,
     microphoneId: () => settings.microphoneId,
     audioWorkerUrl: files.audioWorkerUrl,
-    uiaWorkerUrl: files.uiaWorkerUrl
+    uiaWorkerUrl: files.uiaWorkerUrl,
+    screenCaptureWorkerUrl: files.screenCaptureWorkerUrl
   });
   const google = connectGoogle({
     transport: channels.transports.google,
@@ -132,8 +133,8 @@ function buildPillDeps({
       installed: installedVersion
     }),
     openExternal: uri => openExternal({ uri }),
-    copyText: text =>
     pageTitle: url => fetchPageTitle({ url }),
+    copyText: text =>
       copyTextWithPowerShell(text).catch((error: unknown) => {
         log(`clipboard busy: ${errorMessage(error)}`);
       }),

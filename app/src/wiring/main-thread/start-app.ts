@@ -242,6 +242,7 @@ export async function startApp({ files }: { files: ShippedFiles }) {
       nativeHostPath: nativeHostPathOf({ isPackaged }),
       audioWorkerUrl: files.audioWorkerUrl.href,
       uiaWorkerUrl: files.uiaWorkerUrl.href,
+      screenCaptureWorkerUrl: files.screenCaptureWorkerUrl.href,
       isDebugging: log.isDebugging
     },
     isInUse: () => controller.isRunning || controller.view()?.isShown === true,

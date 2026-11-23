@@ -14,7 +14,8 @@ const LITERT_FOLDER = "litert";
 
 // main.js starts the app, window.js is the UI thread (it carries the pill, the overlays and the
 // Google pages), host.js is the browsers' native messaging host, audio-worker.js is the audio
-// thread each conversation starts, and uia-worker.js is the thread that reads another window's text
+// thread each conversation starts, uia-worker.js is the thread that reads another window's text, and
+// screen-capture-worker.js is the thread that grabs and encodes the screen frames
 await buildWinuiApp({
   buildApp,
   root: import.meta.dirname,
@@ -23,7 +24,8 @@ await buildWinuiApp({
     window: "window.ts",
     host: "host.ts",
     "audio-worker": "media/audio/audio-worker.ts",
-    "uia-worker": "media/screen-text/uia-worker.ts"
+    "uia-worker": "media/screen-text/uia-worker.ts",
+    "screen-capture-worker": "media/screen/screen-capture-worker.ts"
   },
   config: {
     plugins: [aliasPlugin()]

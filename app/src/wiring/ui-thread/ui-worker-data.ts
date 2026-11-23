@@ -16,6 +16,7 @@ export const uiWorkerDataSchema = z.object({
   nativeHostPath: z.string(),
   audioWorkerUrl: z.string(),
   uiaWorkerUrl: z.string(),
+  screenCaptureWorkerUrl: z.string(),
   isDebugging: z.boolean()
 });
 

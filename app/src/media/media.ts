@@ -11,13 +11,10 @@ import { systemClock } from "./clock.ts";
 import { createDisplayNative } from "./display/display-native.ts";
 import { createMonitors, watchDisplays } from "./display/monitors.ts";
 import { createMediaPort } from "./media-port.ts";
-import { readLines } from "./ocr/ocr.ts";
 import { readForegroundWindow } from "./screen-text/foreground-window.ts";
 import { createOcrScreenTextReader, createUiaScreenTextReader } from "./screen-text/screen-text.ts";
-import { createCircleScreen } from "./screen/circle/circle-screen.ts";
-import { readQrTexts } from "./screen/circle/qr-codes.ts";
-import { createScreenCapture } from "./screen/screen-capture.ts";
 import { createScreenSource } from "./screen/screen-source.ts";
+import { createScreenCaptureWorker } from "./screen/worker/screen-capture-worker-link.ts";
 
 // The real devices behind every consumer's port, built once. The process must already be per-monitor DPI
 // aware (ensureDpiAware, first thing on the main thread) and the WinRT runtime initialised on this thread.
@@ -26,6 +23,7 @@ export function createMedia({
   microphoneId,
   audioWorkerUrl,
   uiaWorkerUrl,
+  screenCaptureWorkerUrl,
   ownProcessId = process.pid
 }: {
   log: (message: string) => void;
@@ -35,11 +33,17 @@ export function createMedia({
   audioWorkerUrl: URL;
   // The bundled UI Automation worker's file; screen text is read on its thread
   uiaWorkerUrl: URL;
+  // The bundled screen capture worker's file; every screen grab, its JPEG encode and the OCR fallback's
+  // text recognition run on its thread
+  screenCaptureWorkerUrl: URL;
   ownProcessId?: number;
 }) {
   const native = createDisplayNative();
   const monitors = createMonitors({ native });
-  const screenCapture = createScreenCapture();
+  const screenCapture = createScreenCaptureWorker({
+    spawn: () => new Worker(screenCaptureWorkerUrl),
+    log
+  });
   const foreground = {
     foregroundWindow: readForegroundWindow,
     foregroundDisplayName: native.foregroundDisplayName,
@@ -58,7 +62,7 @@ export function createMedia({
     fallback: createOcrScreenTextReader({
       ...foreground,
       grab: request => screenCapture.grab(request),
-      readLines
+      readLines: request => screenCapture.readLines(request)
     }),
     log
   });
@@ -66,11 +70,6 @@ export function createMedia({
   return {
     monitors,
     screenSource: createScreenSource({ screenCapture }),
-    circleScreen: createCircleScreen({
-      screenCapture,
-      readLines,
-      readCodes: readQrTexts
-    }),
     mediaPort: createMediaPort({
       screenCapture,
       screenText,

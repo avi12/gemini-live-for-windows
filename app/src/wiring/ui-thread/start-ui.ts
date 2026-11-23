@@ -109,6 +109,7 @@ function startUiServices({ pill, data }: { pill: MountedPill; data: UiWorkerData
         uiaWorkerUrl: new URL(data.uiaWorkerUrl),
         nativeHostPath: data.nativeHostPath,
         isDebugging: data.isDebugging,
+        screenCaptureWorkerUrl: new URL(data.screenCaptureWorkerUrl),
         log: writeLog
       })
   });

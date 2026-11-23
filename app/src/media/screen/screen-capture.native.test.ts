@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
+import { once } from "node:events";
 import { describe, it } from "node:test";
+import { Worker } from "node:worker_threads";
 
 import { roInitialize } from "@microsoft/dynwinrt";
 
@@ -8,6 +10,7 @@ import { createMonitors } from "@/media/display/monitors.ts";
 
 import { ScreenDetail } from "./capture-geometry.ts";
 import { createScreenCapture } from "./screen-capture.ts";
+import { createScreenCaptureWorker } from "./worker/screen-capture-worker-link.ts";
 
 const NUMBER_3 = 3;
 const HEX_FF = 0xff;
@@ -55,5 +58,34 @@ describe("screen capture on this machine", { skip: !IS_WINDOWS }, () => {
     } finally {
       screenCapture.dispose();
     }
+  });
+
+  it("grabs a display as a JPEG on the worker thread", async () => {
+    const monitor = createMonitors({ native: createDisplayNative() }).active();
+    const worker = new Worker(new URL("./screen-capture-worker.ts", import.meta.url));
+    const exited = once(worker, "exit");
+    const screenCapture = createScreenCaptureWorker({
+      spawn: () => worker,
+      log: message => assert.fail(message)
+    });
+    try {
+      const frame = await screenCapture.grab({
+        monitor,
+        detail: ScreenDetail.LIGHT
+      });
+      assert.deepEqual([...frame.jpeg.subarray(0, NUMBER_3)], JPEG_MAGIC);
+      assert.equal(
+        Math.max(frame.width, frame.height),
+        Math.min(LIGHT_MAX_EDGE, Math.max(monitor.width, monitor.height))
+      );
+
+      // Whatever the screen shows, the worker's OCR reads it without failing
+      const lines = await screenCapture.readLines({ image: frame.jpeg });
+      assert.ok(Array.isArray(lines));
+    } finally {
+      screenCapture.dispose();
+    }
+
+    await exited;
   });
 });

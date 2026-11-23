@@ -18,6 +18,7 @@ export async function startGoogle({
   bridgesDirectory,
   audioWorkerUrl,
   uiaWorkerUrl,
+  screenCaptureWorkerUrl,
   nativeHostPath,
   isDebugging,
   log
@@ -26,6 +27,7 @@ export async function startGoogle({
   bridgesDirectory: string;
   audioWorkerUrl: URL;
   uiaWorkerUrl: URL;
+  screenCaptureWorkerUrl: URL;
   nativeHostPath: string;
   isDebugging: boolean;
   log: (message: string) => void;
@@ -42,7 +44,8 @@ export async function startGoogle({
     log,
     microphoneId: () => null,
     audioWorkerUrl,
-    uiaWorkerUrl
+    uiaWorkerUrl,
+    screenCaptureWorkerUrl
   });
   const services = await createGoogleServices({
     dataDir: dataDir(),

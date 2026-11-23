@@ -9,6 +9,18 @@ import type { EncodedFrame, EncodeRequest } from "./jpeg-encoder.ts";
 
 export type { EncodedFrame };
 
+export interface GrabRequest {
+  monitor: Monitor;
+  region?: Region | undefined;
+  detail: ScreenDetail;
+}
+
+// What every caller holds: the in-thread capture below, or the worker thread's (screen-capture-worker-link.ts)
+export interface ScreenCapture {
+  grab(request: GrabRequest): Promise<EncodedFrame>;
+  dispose(): void;
+}
+
 interface CaptureRequest {
   area: PixelRect;
   size: PixelSize;
@@ -76,7 +88,7 @@ export function createScreenCapture({
 } = {}) {
   let queue: Promise<unknown> = Promise.resolve();
 
-  function grab(request: { monitor: Monitor; region?: Region | undefined; detail: ScreenDetail }) {
+  function grab(request: GrabRequest) {
     const next = queue.then(() =>
       captureArea({
         grabber,
@@ -96,7 +108,5 @@ export function createScreenCapture({
   return {
     grab,
     dispose
-  };
+  } satisfies ScreenCapture;
 }
-
-export type ScreenCapture = ReturnType<typeof createScreenCapture>;
