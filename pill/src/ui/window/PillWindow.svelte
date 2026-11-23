@@ -13,7 +13,7 @@
   import { PillPart, trackPart } from "@/ui/window/places.svelte.ts";
   import { themeRebuilds } from "@/ui/window/theme-rebuild.svelte.ts";
   import { clipToShownPart } from "@/ui/window/window-clip.svelte.ts";
-  import { dockPillWindow } from "@/ui/window/window-dock.ts";
+  import { dockPillWindow, followDisplayChanges } from "@/ui/window/window-dock.ts";
   import { PillActionKind } from "@gemini-live/protocol/view";
   import { elementSize } from "winui-svelte";
   import { Window } from "winui-svelte/components";
@@ -38,10 +38,13 @@
   // content taller still makes it grow.
   const WINDOW_HEIGHT = 480;
 
-  // Clipped only once the entrance is over (see clipToShownPart)
+  // Clipped only once the entrance is over (see clipToShownPart). The scale is kept as state so a change
+  // of resolution or scaling clips the window again in its new physical pixels.
   let isEntered = $state(false);
+  let windowScale = $state(1);
   clipToShownPart({
     handle: () => windowRef.handle,
+    scale: () => windowScale,
     isEntered: () => isEntered
   });
 
@@ -74,6 +77,21 @@
     return dockPillWindow(windowRef.handle);
   }
 
+  // A display changed (a new resolution, the taskbar moved): back to the corner at once while shown
+  $effect(() =>
+    followDisplayChanges(() => {
+      if (view.isShown) {
+        dock();
+      }
+    }));
+
+  // A new scale (scaling changed, or the window reached a display with another): back to its corner,
+  // and clipped again in the new pixels
+  function rescale(scale: number) {
+    windowScale = scale;
+    dock();
+  }
+
   function dropFocusable(isActive: boolean) {
     const isKeepingFocus = isActive || view.isKeyPromptShown || !view.isFocusable;
     if (isKeepingFocus) {
@@ -102,7 +120,7 @@
   minHeight={WINDOW_HEIGHT}
   onactivechanged={dropFocusable}
   onclosed={exitApplication}
-  onscalechanged={dock}
+  onscalechanged={rescale}
   passthroughRegions={regions.passthroughRegions}
   sizeToContent="both"
   theme={settings.isDarkTheme ? WindowTheme.dark : WindowTheme.light}

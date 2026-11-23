@@ -1,4 +1,5 @@
 import type { WindowHandle } from "winui-svelte/components";
+import { windowsDisplaySource } from "winui-svelte/devices/display";
 import { DockDisplay, WindowAnchor } from "winui-svelte/window";
 
 import { view } from "@/lib/view.svelte.ts";
@@ -32,4 +33,22 @@ export function dockPillWindow(handle: WindowHandle | undefined) {
   });
   handle.presenter.isAlwaysOnTop = true;
   return true;
+}
+
+/**
+ * Calls `onChange` the moment a display is attached, detached, moved or resized (a new resolution, the
+ * taskbar moving), so the pill goes back to its corner at once; the app's own display list follows a
+ * couple of seconds later and docks it again, on its exact display.
+ *
+ * @param onChange - What to do on each change.
+ * @returns A function that stops listening.
+ */
+export function followDisplayChanges(onChange: () => void) {
+  // WinUI's display area watcher: an event per display added, removed or updated, no polling
+  const stops = windowsDisplaySource().subscriptions.map(subscribe => subscribe(onChange));
+  return () => {
+    for (const stop of stops) {
+      stop();
+    }
+  };
 }
