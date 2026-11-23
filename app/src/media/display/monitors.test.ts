@@ -419,6 +419,27 @@ describe("display watcher", () => {
     assert.deepEqual(changes, [2, 1]);
   });
 
+  it("skips a moment with no displays, as Windows shows during a driver reset", () => {
+    const { native, state } = createNative({ displays: [MAIN] });
+    const manual = createManualClock();
+    const changes: number[] = [];
+    watchDisplays({
+      monitors: createMonitors({ native }),
+      clock: manual.clock,
+      onChange: current => changes.push(current.length)
+    });
+    state.displays = [];
+    manual.fire();
+    state.displays = [MAIN];
+    manual.fire();
+    assert.deepEqual(changes, []);
+    state.displays = [];
+    manual.fire();
+    state.displays = [MAIN, LEFT];
+    manual.fire();
+    assert.deepEqual(changes, [2]);
+  });
+
   it("stops when told to", () => {
     const { native } = createNative({ displays: [MAIN] });
     const manual = createManualClock();

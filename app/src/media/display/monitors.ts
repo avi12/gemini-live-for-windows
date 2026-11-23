@@ -57,7 +57,9 @@ export function createMonitors({ native }: { native: DisplayNative }) {
 export type Monitors = ReturnType<typeof createMonitors>;
 
 // Displays are plugged and unplugged without any callback reaching us, so the list is read every couple
-// of seconds and compared; `onChange` gets the new list only when something moved.
+// of seconds and compared; `onChange` gets the new list only when something moved. An empty list is
+// Windows in the middle of reconfiguring (a graphics driver install or reset), never a state to act on,
+// so it is skipped and the list that follows is compared with the last real one.
 export function watchDisplays({
   monitors,
   clock,
@@ -72,6 +74,11 @@ export function watchDisplays({
   let known = monitors.all();
   return clock.setInterval(() => {
     const current = monitors.all();
+    const isReconfiguring = current.length === 0;
+    if (isReconfiguring) {
+      return;
+    }
+
     if (
       !haveDisplaysChanged({
         before: known,
