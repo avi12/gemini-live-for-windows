@@ -126,11 +126,14 @@ export function installDesktopMic(reopen: () => void) {
     setMuted(value) {
       isMuted = value;
       for (const gate of micGates) {
-        if (gate.stream.getAudioTracks().some(track => track.readyState === "live")) {
-          gate.setOpen(!value);
-        } else {
+        // A capture Glic has stopped is done with: drop its gate rather than open or close it.
+        const isCaptureLive = gate.stream.getAudioTracks().some(track => track.readyState === "live");
+        if (!isCaptureLive) {
           micGates.delete(gate);
+          continue;
         }
+
+        gate.setOpen(!value);
       }
     },
     setMic(id) {
