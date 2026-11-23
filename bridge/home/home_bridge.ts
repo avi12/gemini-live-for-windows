@@ -1,7 +1,6 @@
-import { defineMessaging } from "@gemini-live/messaging";
-
+import { BridgeFlag, claimTopWindow } from "@/shared/install_once";
 import { collapseWhitespace, labelAndText } from "@/shared/text";
-import { webViewTransport } from "@/shared/webview_transport";
+import { connectToApp } from "@/shared/webview_transport";
 
 // Injected at document-start into home.google.com inside our hidden WebView2 (bundled to
 // home_bridge.js by build.mjs). The Home web app is signed in with the browser's Google session and
@@ -19,18 +18,8 @@ const DISMISS_TEXT = /^(ok|got it|no thanks|not now|dismiss|done)$/i;
 const DISMISS_LABEL = /\b(close|dismiss)\b/i;
 // The page only answers HomeHost and never asks it anything, so this bounds nothing in practice.
 const MESSAGE_TIMEOUT_MS = 1000;
-
-declare global {
-  interface Window {
-    homeBridgeInstalled?: boolean;
-  }
-}
-
-// Top frame only, install once.
-const IS_FIRST_INSTALL_IN_TOP_WINDOW = !window.homeBridgeInstalled && window.top === window;
-if (IS_FIRST_INSTALL_IN_TOP_WINDOW) {
-  window.homeBridgeInstalled = true;
-  const app = defineMessaging<HomeProtocolMap>(webViewTransport(), { timeoutMs: MESSAGE_TIMEOUT_MS });
+if (claimTopWindow(BridgeFlag.HOME)) {
+  const app = connectToApp<HomeProtocolMap>(MESSAGE_TIMEOUT_MS);
 
   // Walk open shadow roots as well as the light DOM - the Home app is deep web components.
   function deepQuery({ root, selector }: { root: Document | ShadowRoot | Element; selector: string }) {

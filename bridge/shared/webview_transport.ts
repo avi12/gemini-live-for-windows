@@ -1,6 +1,6 @@
 // The WebView2 channel between a hidden page and the app, as a messaging transport. The app's end
 // is GoogleWebViewHost's Messenger (PostWebMessageAsJson down, WebMessageReceived up).
-import type { Transport } from "@gemini-live/messaging";
+import { defineMessaging, type ProtocolMap, type Transport } from "@gemini-live/messaging";
 
 interface WebViewChannel {
   postMessage(message: unknown): void;
@@ -14,7 +14,7 @@ declare global {
 }
 
 /** The transport to the app; one that goes nowhere outside a WebView2 (a page opened directly). */
-export function webViewTransport() {
+function webViewTransport() {
   const channel = window.chrome?.webview;
   return {
     post(envelope) {
@@ -28,4 +28,9 @@ export function webViewTransport() {
       channel?.addEventListener("message", event => receive(event.data));
     }
   } satisfies Transport;
+}
+
+/** The typed messenger to the app over the WebView2 channel. */
+export function connectToApp<TProtocolMap extends ProtocolMap>(timeoutMs: number) {
+  return defineMessaging<TProtocolMap>(webViewTransport(), { timeoutMs });
 }

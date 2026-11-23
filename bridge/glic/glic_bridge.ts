@@ -16,9 +16,8 @@
 // in a fixed order, before Glic's own scripts run: page visibility, the microphone, the host and
 // its bootstrap, then the Live wire tap.
 
-import { defineMessaging } from "@gemini-live/messaging";
-
-import { webViewTransport } from "@/shared/webview_transport";
+import { BridgeFlag, claimTopWindow } from "@/shared/install_once";
+import { connectToApp } from "@/shared/webview_transport";
 
 import { readCaptions } from "./captions";
 import { installDesktopMic } from "./desktop_mic";
@@ -60,18 +59,8 @@ const BROKEN_AFTER_MS = 15_000;
 const NO_REPLY_MS = 12_000;
 // How long Live's tones may play after the user starts or ends it
 const TONE_WINDOW_MS = 4000;
-
-declare global {
-  interface Window {
-    glicBridgeInstalled?: boolean;
-  }
-}
-
-// Top frame only, install once.
-const IS_FIRST_INSTALL_IN_TOP_WINDOW = !window.glicBridgeInstalled && window.top === window;
-if (IS_FIRST_INSTALL_IN_TOP_WINDOW) {
-  window.glicBridgeInstalled = true;
-  const app = defineMessaging<GlicProtocolMap>(webViewTransport(), { timeoutMs: REQUEST_TIMEOUT_MS });
+if (claimTopWindow(BridgeFlag.GLIC)) {
+  const app = connectToApp<GlicProtocolMap>(REQUEST_TIMEOUT_MS);
 
   // ===========================================================================
   // Session state, and reports to C#.
