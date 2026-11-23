@@ -8,7 +8,8 @@ import { createMessagePortTransport } from "winui-svelte/state/host";
 
 import { startDevWindow } from "./dev-window.ts";
 import { serveMockView } from "./mock-host.ts";
-import { isScenarioName, nextScenario, SCENARIO_ORDER, ScenarioName } from "./scenarios.ts";
+import { ScenarioName } from "./scenario-views.ts";
+import { isScenarioName, nextScenario, SCENARIO_ORDER } from "./scenarios.ts";
 
 const WINDOWS_APP_SDK_MAJOR = 2;
 const WINDOWS_APP_SDK_MINOR = 2;

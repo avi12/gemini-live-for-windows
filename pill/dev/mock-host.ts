@@ -4,7 +4,8 @@ import { defineMessaging } from "winui-svelte/messaging";
 import { diff, MessageType } from "winui-svelte/state/host";
 import type { StateProtocol, Transport } from "winui-svelte/state/host";
 
-import { ScenarioName, scenarioView } from "./scenarios.ts";
+import { ScenarioName } from "./scenario-views.ts";
+import { scenarioView } from "./scenarios.ts";
 
 type MockProtocol = StateProtocol<PillAction> & WindowProtocol;
 
