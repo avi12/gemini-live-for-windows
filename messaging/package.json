@@ -15,8 +15,7 @@
     "@webext-core/messaging": "^4.0.2"
   },
   "devDependencies": {
-    "tsrs": "0.25.0-ts7.1.0-beta",
-    "typescript": "^6.0.3"
+    "tsrs": "7.1.0-beta.tsrs4"
   },
   "packageManager": "pnpm@11.13.1"
 }
