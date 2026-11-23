@@ -12,7 +12,7 @@
     "compile": "tsrs --noEmit"
   },
   "dependencies": {
-    "@webext-core/messaging": "^4.0.0"
+    "@webext-core/messaging": "^4.0.2"
   },
   "devDependencies": {
     "tsrs": "0.25.0-ts7.1.0-beta",
