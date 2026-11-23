@@ -1,5 +1,5 @@
 import { errorMessage } from "@/lib/error-message.ts";
-import { createLevelThrottle } from "@/media/audio/signal/level-throttle.ts";
+import { createLevelThrottle } from "@/media/audio/signal/pacing/level-throttle.ts";
 import type { Clock } from "@/media/clock.ts";
 
 import { createMicPump } from "./mic-pump.ts";

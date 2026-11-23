@@ -1,7 +1,7 @@
 import { MIC_CHUNK_SAMPLES, MIC_RATE } from "@/live/api/constants.ts";
-import { createChunker } from "@/media/audio/signal/chunker.ts";
-import { floatsToPcm16, mixToMono, peakOf } from "@/media/audio/signal/pcm.ts";
-import { createResampler } from "@/media/audio/signal/resampler.ts";
+import { floatsToPcm16, mixToMono, peakOf } from "@/media/audio/signal/conversion/pcm.ts";
+import { createResampler } from "@/media/audio/signal/conversion/resampler.ts";
+import { createChunker } from "@/media/audio/signal/pacing/chunker.ts";
 
 const MAX_BACKLOG_SECONDS = 1;
 

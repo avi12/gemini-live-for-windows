@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
+import { concatenate, risingZeroCrossings, rootMeanSquare, sine } from "@/media/audio/signal/test-signals.ts";
+
 import { createResampler } from "./resampler.ts";
-import { concatenate, risingZeroCrossings, rootMeanSquare, sine } from "./test-signals.ts";
 
 const NUMBER_160 = 160;
 const NUMBER_480 = 480;

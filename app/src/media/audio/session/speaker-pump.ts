@@ -1,7 +1,7 @@
 import { SPEAKER_RATE } from "@/live/api/constants.ts";
 import { MILLISECONDS_PER_SECOND } from "@/media/audio/audio-format.ts";
-import { bytesToFloats, peakOf, spreadToChannels } from "@/media/audio/signal/pcm.ts";
-import { createResampler } from "@/media/audio/signal/resampler.ts";
+import { bytesToFloats, peakOf, spreadToChannels } from "@/media/audio/signal/conversion/pcm.ts";
+import { createResampler } from "@/media/audio/signal/conversion/resampler.ts";
 
 import { createSpeakerQueue } from "./speaker-queue.ts";
 

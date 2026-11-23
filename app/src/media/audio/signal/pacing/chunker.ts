@@ -1,4 +1,4 @@
-import { pcm16ToBytes } from "./pcm.ts";
+import { pcm16ToBytes } from "@/media/audio/signal/conversion/pcm.ts";
 
 // Cuts a stream of PCM16 samples into chunks of exactly `chunkSamples`, whatever size the pieces arrive in
 export function createChunker({ chunkSamples }: { chunkSamples: number }) {
