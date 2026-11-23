@@ -172,12 +172,12 @@ flowchart LR
     Relay --> Ctl["Pill controller"]
     Ctl --> Api["API key engine"]
     Ctl --> Media["Media: displays, capture, UIA text, OCR"]
-    Ctl --> Focus["Screen focus"]
+    Ctl --> Focus["Share border control"]
     Ctl --> Upd["Update checker"]
   end
   subgraph Ui["UI worker (window.js)"]
     Pill["Pill window (Svelte)"]
-    Ovl["Share border, chip, hotkeys"]
+    Ovl["Share border"]
     Fast["Copilot key fast path"]
     Goog["Google services: glic and Home pages, session link"]
   end
@@ -194,8 +194,8 @@ _Four `MessageChannel`s join the two threads, one per concern, and each carries 
 - **Why two threads.** WinUI's message loop never gives its thread back, and a `WebView2` control, a window and a global hotkey all belong to the thread that made them. So the pill window, the overlays, the Copilot key's hidden window and the two Google pages live on the UI worker. The pill controller, settings, media and the API key engine stay on the main thread, which is never blocked by painting.
 - **The Google engine crosses the link.** The glic page is a `WebView2`, so it runs on the UI worker. `google/remote/` is the link: `google-server.ts` runs the real engine there, and `google-client.ts` hands the controller a `LiveEngine` that looks like any other and forwards every call and event. Each message names its engine, since a stale one can still be winding down when the next starts.
 - **One engine contract.** `contracts/live-engine.ts` is what the pill controller sees of either engine, including `onExtensionNeeded` (a session is wanted but the extension never connected) and `useCamera`. The controller subscribes to the running engine, so nothing about the extension or the camera is global.
-- **Shared wire types.** `protocol/` holds what both `pill/` and `app/` read: the pill's `view` and `PillAction` schemas, the window messages, and the extension link. The window's own abilities (`bringToFront`, `moveBy`) travel on the pill's link and are answered on the UI worker (`pill/window-abilities.ts`).
-- **Composition is in `wiring/`.** `main.ts`, `window.ts` and `host.ts` are three lines each. `wiring/start-app.ts` claims the instance, starts the Windows App SDK and builds the controller; `wiring/start-ui.ts` mounts the pill and starts the rest of the UI worker's parts, each failing alone.
+- **Shared wire types.** `protocol/` holds what both `pill/` and `app/` read: the pill's `view` and `PillAction` schemas, the window messages, and the extension link. The window's own abilities (`bringToFront`, `moveBy`) travel on the pill's link and are answered on the UI worker (`pill/host/window/window-abilities.ts`).
+- **Composition is in `wiring/`.** `main.ts`, `window.ts` and `host.ts` are three lines each. `wiring/main-thread/start-app.ts` claims the instance, starts the Windows App SDK, builds the controller and launches the UI worker; `wiring/ui-thread/start-ui.ts` mounts the pill and starts the rest of the UI worker's parts, each failing alone.
 
 | Folder (`app/src/`) | Role                                                                                                                              |
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
@@ -205,12 +205,12 @@ _Four `MessageChannel`s join the two threads, one per concern, and each carries 
 | `google/`           | The Google engine: glic and Home hosts, the session link, detours, and `remote/`.                                                 |
 | `live/`             | The API key engine over the public Live API.                                                                                      |
 | `media/`            | Displays, screen capture, screen text (UI Automation, OCR as the fallback), camera, and the audio graph on its own worker thread. |
-| `overlays/`         | The share border, focus chip and hotkeys, and the controller's end of their link.                                                 |
+| `overlays/`         | The share border, and the controller's end of its link.                                                                           |
 | `core/`             | Settings, secrets, the log, updates, the single-instance pipe, the native host and extension setup.                               |
 | `entry/`            | How the process starts and hears the Copilot key: activation, DPI, the fast path.                                                 |
 | `win32/`, `lib/`    | Win32 binding helpers, and the small shared utilities.                                                                            |
 
-**Not proven without a packaged run on a real screen:** that the Copilot key's fast path is posted to the hidden window (checklist in `entry/index.ts`, spike in `scripts/Register-FastPathSpike.ps1`), that a `WebView2` parked off-screen on the UI worker keeps Chromium at full speed, that the SEA executable keeps its package identity and its per-monitor DPI, and that the overlays and hotkeys behave on the UI worker's message pump. The unit tests cover each part and each link.
+**Not proven without a packaged run on a real screen:** that the Copilot key's fast path is posted to the hidden window (checklist in `entry/index.ts`, spike in `scripts/Register-FastPathSpike.ps1`), that a `WebView2` parked off-screen on the UI worker keeps Chromium at full speed, that the SEA executable keeps its package identity and its per-monitor DPI, and that the share border behaves on the UI worker's message pump. The unit tests cover each part and each link.
 
 ## Key decisions
 
@@ -269,7 +269,7 @@ app/                   the whole app in TypeScript on winui-svelte (src/main.ts,
   src/google/          the Google engine: glic and Home hosts, detours, session link
   src/live/            the API key engine
   src/media/           displays, capture, screen text, camera, audio
-  src/overlays/        share border, focus chip, hotkeys
+  src/overlays/        share border
 pill/                  the pill's UI: Svelte on winui-svelte (src/, dev/, fonts/)
 protocol/              the wire shared by the pill, the app and the extension: the pill view and actions, the extension link
 bridge/                TypeScript injected into the hidden pages: glic/, home/, shared/ (built into dist/)
