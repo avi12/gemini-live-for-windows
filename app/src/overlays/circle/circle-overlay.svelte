@@ -121,9 +121,11 @@
   const fadedHintRevision: { value: number | undefined } = $state({ value: undefined });
   const placement: {
     isCovered: boolean;
+    isImageOpened: boolean;
     isSettled: boolean;
   } = $state({
     isCovered: false,
+    isImageOpened: false,
     isSettled: false
   });
   // A window that has never been shown draws nothing until its first show, so a blank frame would
@@ -335,6 +337,7 @@
   $effect.pre(() => {
     void session;
     placement.isCovered = false;
+    placement.isImageOpened = false;
     placement.isSettled = false;
     fadedHintRevision.value = undefined;
     pointer.cursor = CircleCursor.draw;
@@ -423,7 +426,7 @@
   activate={isInUse}
   isAlwaysOnTop
   isBorderless
-  isHidden={warmUp.isDone && !placement.isCovered}
+  isHidden={warmUp.isDone && !(placement.isCovered && placement.isImageOpened)}
   isResizable={false}
   isToolWindow
   onactivechanged={isActive => {
@@ -449,7 +452,15 @@
     role="presentation"
   >
     {#if isInUse}
-      <SelectionOverlay arm={0} image={still} state={overlayState} />
+      <SelectionOverlay
+        arm={0}
+        image={still}
+        onimagefailed={error => onfailed(error)}
+        onimageopened={() => {
+          placement.isImageOpened = true;
+        }}
+        state={overlayState}
+      />
     {/if}
     <Border class="circle-tint" isHitTestVisible={false} />
     <Border class="circle-edge-glow" isHitTestVisible={false} />
