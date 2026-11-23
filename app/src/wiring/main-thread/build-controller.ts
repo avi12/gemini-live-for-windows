@@ -6,6 +6,7 @@ import { delay } from "@/google/web-host/timeout.ts";
 import { copyTextWithPowerShell } from "@/lib/clipboard.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 import { createMedia } from "@/media/media.ts";
+import { fetchPageTitle } from "@/pill/captions/page-title.ts";
 import { createPillController } from "@/pill/controller.ts";
 import { openPillLink } from "@/pill/host/host-link.ts";
 import { createSettingsPort } from "@/pill/host/settings-port.ts";
@@ -132,6 +133,7 @@ function buildPillDeps({
     }),
     openExternal: uri => openExternal({ uri }),
     copyText: text =>
+    pageTitle: url => fetchPageTitle({ url }),
       copyTextWithPowerShell(text).catch((error: unknown) => {
         log(`clipboard busy: ${errorMessage(error)}`);
       }),

@@ -1,5 +1,5 @@
-import { pillViewSchema } from "@gemini-live/protocol/view";
-import type { PillAction, PillView } from "@gemini-live/protocol/view";
+import { isUntitledLink, pillViewSchema } from "@gemini-live/protocol/view";
+import type { PillAction, PillLink, PillView } from "@gemini-live/protocol/view";
 
 import type { Monitor } from "@/contracts/monitor.ts";
 import { KeyTrigger } from "@/core/instance/key-trigger.ts";
@@ -133,11 +133,31 @@ function createContext({ deps, changed }: { deps: PillDeps; changed: () => void 
     deps,
     captions: createCaptionLog({
       onChange: changed,
-      onLinkAdded: uri => deps.log(`link: ${uri}`)
+      onLinkAdded(link) {
+        deps.log(`link: ${link.uri}`);
+        void titleUntitled(link);
+      }
     }),
     focus: deps.createFocus({ currentEngine: () => state.conversation }),
     changed
   };
+
+  // A link Gemini gave only as a URL is titled by its address until the page's own title is read
+  async function titleUntitled(link: PillLink) {
+    const isTitled = !isUntitledLink(link) || link.isSearch;
+    if (isTitled) {
+      return;
+    }
+
+    const title = await deps.pageTitle(link.uri);
+    if (title !== undefined) {
+      context.captions.retitle({
+        id: link.id,
+        title
+      });
+    }
+  }
+
   return context;
 }
 

@@ -109,6 +109,19 @@ export const pillViewSchema = z.object({
 });
 
 export type PillView = z.infer<typeof pillViewSchema>;
+export type PillLine = PillView["lines"][number];
+export type PillLink = PillView["links"][number];
+
+// A link that has no title of its own (Gemini gave only its URL) is titled by its short address
+export function isUntitledLink(link: Pick<PillLink, "title" | "address">) {
+  return link.title === link.address;
+}
+export type PillNamed = PillView["microphones"][number];
+export type PillGlow = PillView["glow"];
+// A rectangle in physical pixels
+export type PillRegion = z.infer<typeof regionSchema>;
+// Shows only `region` of a window and takes clicks only there; null, all of it
+export type WindowClipper = (options: { hwnd: bigint; region: PillRegion | null }) => void;
 
 export function previewFramesPerSecond({ displays, pillDisplay }: Pick<PillView, "displays" | "pillDisplay">) {
   const own = displays.find(display => display.id === pillDisplay);

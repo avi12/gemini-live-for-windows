@@ -9,8 +9,8 @@ const LINE_ID_PREFIX = "line-";
 const LINK_ID_PREFIX = "link-";
 
 export interface CaptionLogOptions {
-  onChange(): void;
-  onLinkAdded?(uri: string): void;
+  onChange: () => void;
+  onLinkAdded?: (link: PillLink) => void;
 }
 
 function createIdSource() {
@@ -98,19 +98,37 @@ function createLinkBook({
         }
 
         addresses.add(key);
-        links = [
-          ...links,
-          {
-            id: takeId(LINK_ID_PREFIX),
-            title: link.title,
-            uri: link.uri,
-            address: shortTitle(link.uri),
-            isSearch: link.isSearch || isSearchPage(link.uri),
-            faviconUri: faviconUri(link.uri)
-          }
-        ];
-        onLinkAdded?.(link.uri);
+        const added: PillLink = {
+          id: takeId(LINK_ID_PREFIX),
+          title: link.title,
+          uri: link.uri,
+          address: shortTitle(link.uri),
+          isSearch: link.isSearch || isSearchPage(link.uri),
+          faviconUri: faviconUri(link.uri)
+        };
+        links = [...links, added];
+        onLinkAdded?.(added);
       }
+    },
+    // Gives a link the page's own title, once it is known; a link no longer shown is left alone
+    retitle({ id, title }: Pick<PillLink, "id" | "title">) {
+      const isShown = links.some(link => link.id === id);
+      if (!isShown) {
+        return false;
+      }
+
+      links = links.map(link => {
+        const isRetitled = link.id === id;
+        if (!isRetitled) {
+          return link;
+        }
+
+        return {
+          ...link,
+          title
+        };
+      });
+      return true;
     }
   };
 }
@@ -157,6 +175,12 @@ export function createCaptionLog({ onChange, onLinkAdded }: CaptionLogOptions) {
         }))
       );
       onChange();
+    },
+    retitle(options: Pick<PillLink, "id" | "title">) {
+      const isChanged = linkBook.retitle(options);
+      if (isChanged) {
+        onChange();
+      }
     },
     // A line of our own, like why the session ended, shown on Gemini's side
     addNote(text: string) {

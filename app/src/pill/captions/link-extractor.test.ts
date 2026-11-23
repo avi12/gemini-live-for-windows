@@ -35,6 +35,11 @@ describe("findLinks", () => {
     assert.equal(link?.uri, "https://example.com/a?b=1");
   });
 
+  it("leaves out the closing bracket of a URL written in brackets", () => {
+    const [link] = findLinks("Source: [https://www.example.com/news/2026/nov/20/story]");
+    assert.equal(link?.uri, "https://www.example.com/news/2026/nov/20/story");
+  });
+
   it("does not count a markdown link's URL a second time", () => {
     assert.equal(findLinks("[a](https://example.com/x) https://example.com/x").length, 1);
   });

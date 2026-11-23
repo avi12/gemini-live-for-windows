@@ -10,7 +10,7 @@ function createLog() {
     onChange() {
       changes += 1;
     },
-    onLinkAdded: uri => added.push(uri)
+    onLinkAdded: link => added.push(link.uri)
   });
   return {
     log,

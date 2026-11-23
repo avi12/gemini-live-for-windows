@@ -7,13 +7,15 @@ export interface ExtractedLink extends FoundLink {
 const MIN_QUOTED_TITLE = 12;
 const HEX_RADIX = 16;
 const SEARCH_URL = "https://www.google.com/search?q=";
-const TRAILING_PUNCTUATION = /[.,);:!?]+$/;
+// What text puts right after a URL without being part of it: a sentence's punctuation, and the
+// closing bracket of a URL written in brackets ("[https://…]")
+const TRAILING_PUNCTUATION = /[.,);:!?\]}]+$/;
 const TRAILING_SLASHES = /\/+$/;
 const RESERVED_MARKS = /[!'()*]/g;
 const MARKDOWN_LINK = /\[(?<title>[^\]]+)\]\((?<url>https?:\/\/[^)\s]+)\)/g;
 const URL_PATTERN = /https?:\/\/[^\s<>"']+/gi;
 const BARE_DOMAIN =
-  /\b(?:[a-z0-9-]+\.)+(?:com|org|net|io|ai|dev|app|co|uk|il|edu|gov|news|tv|me|info)(?:\/[^\s<>"']*[^\s<>"'.,;:!?)])?\b/gi;
+  /\b(?:[a-z0-9-]+\.)+(?:com|org|net|io|ai|dev|app|co|uk|il|edu|gov|news|tv|me|info)(?:\/[^\s<>"']*[^\s<>"'.,;:!?)\]}])?\b/gi;
 const QUOTED = /["“”](?<quoted>[^"“”]+)["“”]/g;
 
 // A "host/path" for a URL that parses, the URL itself otherwise: a link's readable address

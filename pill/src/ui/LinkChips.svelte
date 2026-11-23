@@ -4,7 +4,9 @@
   import LinkIcon from "@/ui/LinkIcon.svelte";
   import LinkMenu from "@/ui/menu/LinkMenu.svelte";
   import { Motion } from "@/ui/motion/motion.ts";
-  import { PillActionKind } from "@gemini-live/protocol/view";
+  import { isUntitledLink, PillActionKind } from "@gemini-live/protocol/view";
+  import type { PillLink } from "@gemini-live/protocol/view";
+  import { SvelteSet } from "svelte/reactivity";
   import { scale } from "svelte/transition";
   import {
     Button,
@@ -19,6 +21,26 @@
   const TRAY_GAP_BELOW_TRANSCRIPT = 10;
 
   const hasLines = $derived(view.lines.length > 0);
+
+  // The links whose title the chip cuts short: only those repeat the full title in the tooltip, above
+  // the URL; a title shown whole is not said twice
+  const trimmedTitles = new SvelteSet<string>();
+
+  function markTrimmed({ id, isTrimmed }: { id: string; isTrimmed: boolean }) {
+    if (isTrimmed) {
+      trimmedTitles.add(id);
+      return;
+    }
+
+    trimmedTitles.delete(id);
+  }
+
+  // The tooltip names the full URL, the one the chip opens and Copy link address copies, and above it
+  // the title when the chip cut it short. A page with no title of its own is titled by its short
+  // address, which the URL already says.
+  function isTitleInTip(link: PillLink) {
+    return !isUntitledLink(link) && trimmedTitles.has(link.id);
+  }
 
   const trayTop = $derived.by(() => {
     if (hasLines) {
@@ -51,14 +73,24 @@
           <Button
             class="live-chip chip"
             onclick={() => open(link.uri)}
-            toolTip={link.address}
           >
+            {#snippet toolTip()}
+              <StackPanel>
+                {#if isTitleInTip(link)}
+                  <TextBlock class="tip-title">{link.title}</TextBlock>
+                {/if}
+                <TextBlock class="tip-url">{link.uri}</TextBlock>
+              </StackPanel>
+            {/snippet}
             {#snippet contextFlyout()}
               <LinkMenu uri={link.uri} />
             {/snippet}
             <StackPanel class="chip-face">
               <LinkIcon {link} />
-              <TextBlock class="live-label chip-title" textTrimming="CharacterEllipsis">{link.title}</TextBlock>
+              <TextBlock class="live-label chip-title"                bind:isTextTrimmed={() => trimmedTitles.has(link.id), isTrimmed => markTrimmed({ id: link.id, isTrimmed })}
+              >
+                {link.title}
+              </TextBlock>
             </StackPanel>
           </Button>
         </border>
@@ -91,9 +123,21 @@
     gap: 8px;
   }
 
+  .tip-title {
+    text-wrap: wrap;
+  }
+
+  /* The address in the accent colour, a size down, so it reads apart from the title above it */
+  .tip-url {
+    color: var(--live-primary);
+    font-size: 12px;
+    text-wrap: wrap;
+  }
+
   .chip-title {
     align-self: center;
     max-width: 340px;
     font-weight: 500;
+    text-overflow: ellipsis;
   }
 </style>

@@ -1,11 +1,11 @@
 <script lang="ts">
   import "./theme.css";
   import { Glyph } from "@/ui/glyph/glyphs.ts";
-  import type { PillView } from "@gemini-live/protocol/view";
+  import type { PillLink } from "@gemini-live/protocol/view";
   import { FontIcon, Image } from "winui-svelte/components";
 
   interface Props {
-    link: PillView["links"][number];
+    link: PillLink;
   }
 
   const { link }: Props = $props();

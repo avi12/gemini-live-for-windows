@@ -21,7 +21,7 @@
     text="Open link"
   >
     {#snippet icon()}
-      <FontIcon class="live-icon" glyph={Glyph.LINK} />
+      <FontIcon class="live-icon" glyph={Glyph.LAUNCH} />
     {/snippet}
   </MenuFlyoutItem>
   <MenuFlyoutItem

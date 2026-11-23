@@ -398,6 +398,7 @@ function createFakeHost({
     }),
     openExternal: uri => calls.push(`open ${uri}`),
     copyText(text) {
+    pageTitle: () => Promise.resolve(undefined),
       calls.push(`copy ${text}`);
       return Promise.resolve();
     },

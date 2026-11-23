@@ -105,6 +105,8 @@ export interface PillDeps {
   // Puts text on the clipboard; the pill's own window cannot, as it never takes focus
   copyText(text: string): Promise<void>;
   quit(): void;
+  // A web page's own title, read from the page; undefined when it cannot be had
+  pageTitle(uri: string): Promise<string | undefined>;
   log(message: string): void;
   delay(milliseconds: number): Promise<void>;
 }
