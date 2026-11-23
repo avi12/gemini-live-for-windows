@@ -16,16 +16,16 @@ importers:
         version: 10.15.0(jiti@2.7.0)
       eslint-config-avi12:
         specifier: github:avi12/lint-config#v0.11.1&path:/packages/eslint-config
-        version: https://codeload.github.com/avi12/lint-config/tar.gz/a33a2e5f7b08a0f35d7dc49e29db6d116a47c9a9#path:/packages/eslint-config(@typescript-eslint/eslint-plugin@8.72.2(@typescript-eslint/parser@8.72.2(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(eslint-plugin-svelte@3.24.1(eslint@10.15.0(jiti@2.7.0))(svelte@5.57.3(@typescript-eslint/types@8.72.2)))(eslint@10.15.0(jiti@2.7.0))(svelte-eslint-parser@1.10.1(svelte@5.57.3(@typescript-eslint/types@8.72.2)))(typescript@6.0.3)
+        version: https://codeload.github.com/avi12/lint-config/tar.gz/a33a2e5f7b08a0f35d7dc49e29db6d116a47c9a9#path:/packages/eslint-config(@typescript-eslint/eslint-plugin@8.72.2(@typescript-eslint/parser@8.72.2(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(eslint-plugin-svelte@3.24.1(eslint@10.15.0(jiti@2.7.0))(svelte@5.57.3(@typescript-eslint/types@8.72.2)))(eslint@10.15.0(jiti@2.7.0))(svelte-eslint-parser@1.11.0(svelte@5.57.3(@typescript-eslint/types@8.72.2)))(typescript@6.0.3)
       eslint-plugin-svelte:
         specifier: 3.24.1
         version: 3.24.1(eslint@10.15.0(jiti@2.7.0))(svelte@5.57.3(@typescript-eslint/types@8.72.2))
       fallow:
-        specifier: 2.103.0
-        version: 2.103.0
+        specifier: 3.46.0
+        version: 3.46.0
       fallow-config-avi12:
         specifier: github:avi12/lint-config#v0.11.1&path:/packages/fallow-config
-        version: https://codeload.github.com/avi12/lint-config/tar.gz/a33a2e5f7b08a0f35d7dc49e29db6d116a47c9a9#path:/packages/fallow-config(fallow@2.103.0)
+        version: https://codeload.github.com/avi12/lint-config/tar.gz/a33a2e5f7b08a0f35d7dc49e29db6d116a47c9a9#path:/packages/fallow-config(fallow@3.46.0)
       oxfmt:
         specifier: ^0.79.0
         version: 0.79.0(svelte@5.57.3(@typescript-eslint/types@8.72.2))
@@ -42,26 +42,26 @@ importers:
         specifier: github:avi12/lint-config#v0.11.1&path:/packages/oxlint-plugin-naming
         version: https://codeload.github.com/avi12/lint-config/tar.gz/a33a2e5f7b08a0f35d7dc49e29db6d116a47c9a9#path:/packages/oxlint-plugin-naming(oxlint@1.94.0)
       postcss-html:
-        specifier: ^2.0.1
-        version: 2.0.1(postcss@8.5.31)
+        specifier: ^1.8.1
+        version: 1.8.1
       simple-git-hooks:
         specifier: ^2.14.0
         version: 2.14.0
       stylelint:
-        specifier: ^18.0.0
-        version: 18.0.0
+        specifier: ^17.16.0
+        version: 17.16.0(typescript@6.0.3)
       stylelint-config-avi12:
         specifier: github:avi12/lint-config#v0.11.1&path:/packages/stylelint-config
-        version: https://codeload.github.com/avi12/lint-config/tar.gz/a33a2e5f7b08a0f35d7dc49e29db6d116a47c9a9#path:/packages/stylelint-config(postcss-html@2.0.1(postcss@8.5.31))(stylelint@18.0.0)(typescript@6.0.3)
+        version: https://codeload.github.com/avi12/lint-config/tar.gz/a33a2e5f7b08a0f35d7dc49e29db6d116a47c9a9#path:/packages/stylelint-config(postcss-html@1.8.1)(stylelint@17.16.0(typescript@6.0.3))(typescript@6.0.3)
       stylelint-config-standard:
         specifier: ^40.0.0
-        version: 40.0.0(stylelint@18.0.0)
+        version: 40.0.0(stylelint@17.16.0(typescript@6.0.3))
       svelte:
         specifier: 5.57.3
         version: 5.57.3(@typescript-eslint/types@8.72.2)
       svelte-eslint-parser:
-        specifier: 1.10.1
-        version: 1.10.1(svelte@5.57.3(@typescript-eslint/types@8.72.2))
+        specifier: 1.11.0
+        version: 1.11.0(svelte@5.57.3(@typescript-eslint/types@8.72.2))
       tsrs:
         specifier: 0.25.0-ts7.1.0-beta
         version: 0.25.0-ts7.1.0-beta
@@ -736,43 +736,47 @@ packages:
     resolution: {integrity: sha512-IkO+/KEUvwbVpiURZg+P7zF74z5Jxe0UgJxVni+RtoHQ6IZieXaO02kmadomap/q+l6bc/jdPGGqTjhuZnuz1Q==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=24}
 
-  '@fallow-cli/darwin-arm64@2.103.0':
-    resolution: {integrity: sha512-uTZCHutYXzMYM0FHWgGbcuDNR/5ovlFy9oGzj+siZeedlhx9fDchNqqZnOhrQPrAHeY9qIC9fkg5EoF39bLpwA==}
+  '@fallow-cli/darwin-arm64@3.46.0':
+    resolution: {integrity: sha512-wvMkJxWmi5ApWqjoyd7Wm/f0WLGwtxr3VE4dz+E567hYN7RSC17yuzjnVr0PhTEnSgF36a5uw2TuDjACpYicFA==}
     cpu: [arm64]
     os: [darwin]
 
-  '@fallow-cli/darwin-x64@2.103.0':
-    resolution: {integrity: sha512-JqPyxaetUcWd0YalmeZB6XK18P9nrpuk8s9hFvjoKErqpbHec4rwUH/WGT5UAJKGxkb/u759DZ6QN5OCSZuc5w==}
+  '@fallow-cli/darwin-x64@3.46.0':
+    resolution: {integrity: sha512-42TT1ZSt0N6wyk6dYtI/aHBuI5DX86ab+v5B6iVvXeQOmwFLrbfaVWieRYtTmaA6Ls+S3om4hiVQ8EHwbzJ1bw==}
     cpu: [x64]
     os: [darwin]
 
-  '@fallow-cli/linux-arm64-gnu@2.103.0':
-    resolution: {integrity: sha512-SAECbDxorRi1JXmsoZDZPuAJKo8Ocm19AmPxlabWkBNv8TrwatcUXP2xLMYfX5JTPf1Lw8DIvZPI3KtGjqpHKQ==}
+  '@fallow-cli/linux-arm64-gnu@3.46.0':
+    resolution: {integrity: sha512-xYZb2EIkKwBddFfgibG6EvHRXGyQlNEjNwYD1OSRTm0v/MNkkvDe2dce31egkt/ocjLzo/ufi4gDe7KmvHSmWg==}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
-  '@fallow-cli/linux-arm64-musl@2.103.0':
-    resolution: {integrity: sha512-JNOliawVHRucrruFJ3DoxsjWrA+/epJW2JSIHJ+kWcXNon6Zyzav1rrHu/cDSSXHRs7p7+sdLQhaAOmw9Q9u1w==}
+  '@fallow-cli/linux-arm64-musl@3.46.0':
+    resolution: {integrity: sha512-OyVtlDmXV2GQ+g4pRAbaxQ1H9vyxDMmDfoi2wHBn8ZH5dA49kKTfzadJf/04u46+bpeNoNLpKOqZFVbqGZCraA==}
     cpu: [arm64]
     os: [linux]
+    libc: [musl]
 
-  '@fallow-cli/linux-x64-gnu@2.103.0':
-    resolution: {integrity: sha512-cB0+iSVqkqxtZ7jkpFPfLGyUeELurcGI4Dj+FnE6/oeRmn2qdKOh8TFAr7qFhrQv81vkKXk66EhF6FiZNUYNSA==}
+  '@fallow-cli/linux-x64-gnu@3.46.0':
+    resolution: {integrity: sha512-AsO67zA3or0bzWIgcR7AiaeplM6HyIek6em9BrL+s2a9SvbSuusjH66MLSIqFqkXk8s2IgsAunZWL9V8Fn9BnQ==}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
-  '@fallow-cli/linux-x64-musl@2.103.0':
-    resolution: {integrity: sha512-CKtGL1hsxO1AoEDnVAOSK4GRcgjOSfMB6KFHgBNtL/jLvlmDJJKKq+zSlKuN5txYRvOzgrhyGhCAzykRr6DBQg==}
+  '@fallow-cli/linux-x64-musl@3.46.0':
+    resolution: {integrity: sha512-NUpeUoGWRBB8Tds1BVNvN9CK24m2z3moONYhAUYAR7QThKMCp4x/y+pUEjKwESkEoHLriU8X2XD7pP6axJf5Tg==}
     cpu: [x64]
     os: [linux]
+    libc: [musl]
 
-  '@fallow-cli/win32-arm64-msvc@2.103.0':
-    resolution: {integrity: sha512-oyIxbQwDvwP+nA5EJUAJusg04X8kyooETLEpQTmRsf9X3tJe/U2SOXKfapvRJjRDxmyxfRPTYVQs2rwuFtRCZg==}
+  '@fallow-cli/win32-arm64-msvc@3.46.0':
+    resolution: {integrity: sha512-2ltJIwc9fwgqKYYeT/42U0rH6Z1qs87kcuHpY6vHnpZyIjIHsUwpLsEdYzkHb9x2GfbdV8ExRmr98Qo1JvlO9w==}
     cpu: [arm64]
     os: [win32]
 
-  '@fallow-cli/win32-x64-msvc@2.103.0':
-    resolution: {integrity: sha512-wOd8DujxESunwZWu7fBhd1IHoHvNnv1mHLtR68v4sJCtR9CS9ThuyHHmwlpTgUbtCJ3wWZtjT8DCyu1MApTeQA==}
+  '@fallow-cli/win32-x64-msvc@3.46.0':
+    resolution: {integrity: sha512-ekZqYupm9TZI4odbLwWQEp5phVrouCwvTmZl3Yx6ZTaZCcxi7fVeKwGiQPbP7dwWRV/3AyOoIwqSnL5c0QASvg==}
     cpu: [x64]
     os: [win32]
 
@@ -1452,9 +1456,6 @@ packages:
   argparse@2.0.1:
     resolution: {integrity: sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q==}
 
-  argparse@3.0.4:
-    resolution: {integrity: sha512-fwWK3Zq22l4XJJjx5mcBHGikIk+hJqO+32dPm0Jur7+rtG5x1scOjSfdT9ZKeWHPpsya/l0HHK4tDImBkTrtvA==}
-
   aria-query@5.3.1:
     resolution: {integrity: sha512-Z/ZeOgVl7bcSYZ/u/rh0fOpvEpq//LZmdbkXyc7syVzjPAhfOa9ebsdTSjEBDU4vs5nC98Kfduj1uFo0qyET3g==}
     engines: {node: '>= 0.4'}
@@ -1501,7 +1502,7 @@ packages:
     deprecated: Use @augment-vir/common, @augment-vir/node, @augment-vir/web, @augment-vir/test, or @augment-vir/assert instead.
 
   avi12-lint@https://codeload.github.com/avi12/lint-config/tar.gz/a33a2e5f7b08a0f35d7dc49e29db6d116a47c9a9#path:/packages/avi12-lint:
-    resolution: {gitHosted: true, integrity: sha512-jvSFmtFgYUebyqntVafh9XvsvkFgSvaJ3O0GEI3J2B3oYfGeQnBuey2ttTwvlG52mZH+LrziV0P+YjgtEE8EDA==, path: /packages/avi12-lint, tarball: https://codeload.github.com/avi12/lint-config/tar.gz/a33a2e5f7b08a0f35d7dc49e29db6d116a47c9a9}
+    resolution: {gitHosted: true, path: /packages/avi12-lint, tarball: https://codeload.github.com/avi12/lint-config/tar.gz/a33a2e5f7b08a0f35d7dc49e29db6d116a47c9a9}
     version: 0.11.1
     hasBin: true
 
@@ -1661,8 +1662,8 @@ packages:
   color@3.2.1:
     resolution: {integrity: sha512-aBl7dZI9ENN6fUGC7mWpMTPNHmWUSNan9tuWN6ahh5ZLNk9baLJOnSMlrQkHcrfFgz2/RigjUVAjdx36VcemKA==}
 
-  colord@2.10.0:
-    resolution: {integrity: sha512-AidJptpBJmjTclAp9BkLwJi0T93fo5epJnbaZslpg6QVzpHjAiveF55mE9AcUJiGMqRHgMDY8soMsQtuNYMHfw==}
+  colord@2.14.0:
+    resolution: {integrity: sha512-eSdMel9EBvdFxnchObp7gljRoqYQLr+zXhaxjkym7syVphw1FIhfQwgsA5Bv3jArflZPJEa1rmQtGpa7NRc7Rw==}
 
   colorguard-processor@2.0.36:
     resolution: {integrity: sha512-8DKNMPDI2pX3XzBPMwWwLGgsiWO6dwWaQbVDkzk0DVaZR7UycNXniqF6lTh7mbyDo1JJ5cdv+aIqvHka/ROYvQ==}
@@ -1709,10 +1710,6 @@ packages:
 
   core-util-is@1.0.3:
     resolution: {integrity: sha512-ZQBvi1DcpJ4GDqanjucZ2Hj3wEO5pZDS89BWbkcrvdxksJorwUDDZamX9ldFkp9aw2lmBDLgkObEA4DWNJ9FYQ==}
-
-  cosmiconfig@10.0.1:
-    resolution: {integrity: sha512-/zvGoYn0y27QTBmK+0B+oPdEPC4fKGUmJsMTQbDjqph00TrkqfVFW/M+C6ya54sYCgHC6QCwK/mI6djt8cEGHQ==}
-    engines: {node: ^22.18 || >= 24}
 
   cosmiconfig@9.0.2:
     resolution: {integrity: sha512-gtTZxTDau1wL7Y7zifc2dd8jHSK/k6BTx/2Xp/BpdlAdnlYWFVt7qhJqgwi7637yRwRQ3qL4ZidbB4I8tA5VOg==}
@@ -1949,7 +1946,7 @@ packages:
     engines: {node: '>=12'}
 
   eslint-config-avi12@https://codeload.github.com/avi12/lint-config/tar.gz/a33a2e5f7b08a0f35d7dc49e29db6d116a47c9a9#path:/packages/eslint-config:
-    resolution: {gitHosted: true, integrity: sha512-jvSFmtFgYUebyqntVafh9XvsvkFgSvaJ3O0GEI3J2B3oYfGeQnBuey2ttTwvlG52mZH+LrziV0P+YjgtEE8EDA==, path: /packages/eslint-config, tarball: https://codeload.github.com/avi12/lint-config/tar.gz/a33a2e5f7b08a0f35d7dc49e29db6d116a47c9a9}
+    resolution: {gitHosted: true, path: /packages/eslint-config, tarball: https://codeload.github.com/avi12/lint-config/tar.gz/a33a2e5f7b08a0f35d7dc49e29db6d116a47c9a9}
     version: 0.11.1
     peerDependencies:
       eslint: ^9.20.0 || ^10.0.0
@@ -2086,14 +2083,14 @@ packages:
     resolution: {integrity: sha512-kuzL9zherLQoqDeQaS55AiiIg1kb4KYXaSusTtgZTPlvKP2gGCI82LNmBNh5RjDVUXIcmgx+/Mx7vPwRzBbhJA==}
 
   fallow-config-avi12@https://codeload.github.com/avi12/lint-config/tar.gz/a33a2e5f7b08a0f35d7dc49e29db6d116a47c9a9#path:/packages/fallow-config:
-    resolution: {gitHosted: true, integrity: sha512-jvSFmtFgYUebyqntVafh9XvsvkFgSvaJ3O0GEI3J2B3oYfGeQnBuey2ttTwvlG52mZH+LrziV0P+YjgtEE8EDA==, path: /packages/fallow-config, tarball: https://codeload.github.com/avi12/lint-config/tar.gz/a33a2e5f7b08a0f35d7dc49e29db6d116a47c9a9}
+    resolution: {gitHosted: true, path: /packages/fallow-config, tarball: https://codeload.github.com/avi12/lint-config/tar.gz/a33a2e5f7b08a0f35d7dc49e29db6d116a47c9a9}
     version: 0.11.1
     peerDependencies:
       fallow: '>=2.103.0'
 
-  fallow@2.103.0:
-    resolution: {integrity: sha512-UWogn/6+R8yPqSjvCEQujFOqTwwhAbhNm5wC21LzNp2TiMGoIYLy39QzVpXLz6eimVWUAACcvwCQN7nbtTKzPA==}
-    engines: {node: '>=16'}
+  fallow@3.46.0:
+    resolution: {integrity: sha512-PXCxpJ45u6kcItpK+IDPCNvEdLRGZreFHBmNXcdNA3aaRfJrWq2qLjZLzWJLnSK16xdrrrMFIlsu6BSnxWB8gw==}
+    engines: {node: '>=22'}
     hasBin: true
 
   fast-deep-equal@3.1.3:
@@ -2308,15 +2305,8 @@ packages:
   htmlparser2@8.0.2:
     resolution: {integrity: sha512-GYdjWKDkbRLkZ5geuHs5NY1puJ+PXwP7+fHPRz06Eirsb9ugf6d8kkXav6ADhcODhFFPMIXyxkxSuMf3D6NCFA==}
 
-  htmlparser2@9.1.0:
-    resolution: {integrity: sha512-5zfg6mHUoaer/97TxnGpxmbR7zJtPwIYFMZ/H5ucTlPZhKvtum05yiPK3Mgai3a0DyVxv7qYqoweaEd2nrYQzQ==}
-
   ignore@5.3.2:
     resolution: {integrity: sha512-hsBTNUqQTDwkWtcdYI2i06Y/nUBEsNEDJKjWdigLvegy8kDuJAS8uRlpkkcQpyEXL0Z/pjDy5HBmMjRCJ2gq+g==}
-    engines: {node: '>= 4'}
-
-  ignore@7.0.13:
-    resolution: {integrity: sha512-2E8Q6rh+1RRSq/YdaGsNfXsEZy9FVqv6BSSrkmZJP7BnaoPnRfKL+YaofPvP+5rzdk144qSm6i4+hvPgUcbV4Q==}
     engines: {node: '>= 4'}
 
   ignore@7.0.16:
@@ -2482,10 +2472,6 @@ packages:
 
   js-yaml@4.3.2:
     resolution: {integrity: sha512-SFNOvSJ+Dgf/9An904Yx+CgSlIPCkIpao4qo51lpee25TIRejdH3rhR4EZMGoNx3/TP3O+wzWuiTFl4sqbltzA==}
-    hasBin: true
-
-  js-yaml@5.5.0:
-    resolution: {integrity: sha512-paNr4LFIFPjeeSmwNYdrb8FafLLG/Cr2Af3GjbsHJ5CxIjH4r0c2emlmRdAtpPAieP1gRVzk6buBbVP5gBMGAg==}
     hasBin: true
 
   jsdoc-type-pratt-parser@9.5.0:
@@ -2877,7 +2863,7 @@ packages:
     engines: {node: '>= 0.4.0'}
 
   oxfmt-config-avi12@https://codeload.github.com/avi12/lint-config/tar.gz/a33a2e5f7b08a0f35d7dc49e29db6d116a47c9a9#path:/packages/oxfmt-config:
-    resolution: {gitHosted: true, integrity: sha512-jvSFmtFgYUebyqntVafh9XvsvkFgSvaJ3O0GEI3J2B3oYfGeQnBuey2ttTwvlG52mZH+LrziV0P+YjgtEE8EDA==, path: /packages/oxfmt-config, tarball: https://codeload.github.com/avi12/lint-config/tar.gz/a33a2e5f7b08a0f35d7dc49e29db6d116a47c9a9}
+    resolution: {gitHosted: true, path: /packages/oxfmt-config, tarball: https://codeload.github.com/avi12/lint-config/tar.gz/a33a2e5f7b08a0f35d7dc49e29db6d116a47c9a9}
     version: 0.11.1
     peerDependencies:
       oxfmt: '>=0.78.0'
@@ -2899,13 +2885,13 @@ packages:
         optional: true
 
   oxlint-config-avi12@https://codeload.github.com/avi12/lint-config/tar.gz/a33a2e5f7b08a0f35d7dc49e29db6d116a47c9a9#path:/packages/oxlint-config:
-    resolution: {gitHosted: true, integrity: sha512-jvSFmtFgYUebyqntVafh9XvsvkFgSvaJ3O0GEI3J2B3oYfGeQnBuey2ttTwvlG52mZH+LrziV0P+YjgtEE8EDA==, path: /packages/oxlint-config, tarball: https://codeload.github.com/avi12/lint-config/tar.gz/a33a2e5f7b08a0f35d7dc49e29db6d116a47c9a9}
+    resolution: {gitHosted: true, path: /packages/oxlint-config, tarball: https://codeload.github.com/avi12/lint-config/tar.gz/a33a2e5f7b08a0f35d7dc49e29db6d116a47c9a9}
     version: 0.11.1
     peerDependencies:
       oxlint: '>=1.90.0'
 
   oxlint-plugin-naming@https://codeload.github.com/avi12/lint-config/tar.gz/a33a2e5f7b08a0f35d7dc49e29db6d116a47c9a9#path:/packages/oxlint-plugin-naming:
-    resolution: {gitHosted: true, integrity: sha512-jvSFmtFgYUebyqntVafh9XvsvkFgSvaJ3O0GEI3J2B3oYfGeQnBuey2ttTwvlG52mZH+LrziV0P+YjgtEE8EDA==, path: /packages/oxlint-plugin-naming, tarball: https://codeload.github.com/avi12/lint-config/tar.gz/a33a2e5f7b08a0f35d7dc49e29db6d116a47c9a9}
+    resolution: {gitHosted: true, path: /packages/oxlint-plugin-naming, tarball: https://codeload.github.com/avi12/lint-config/tar.gz/a33a2e5f7b08a0f35d7dc49e29db6d116a47c9a9}
     version: 0.11.1
     peerDependencies:
       oxlint: '>=1.90.0'
@@ -3012,12 +2998,6 @@ packages:
     resolution: {integrity: sha512-OLF6P7qctfAWayOhLpcVnTGqVeJzu2W3WpIYelfz2+JV5oGxfkcEvweN9U4XpeqE0P98dcD9ssusGwlF0TK0uQ==}
     engines: {node: ^12 || >=14}
 
-  postcss-html@2.0.1:
-    resolution: {integrity: sha512-FqutI3u6D7j28ZgviEFjGCbId174THaVxFAMe/yd6Y/+BSQidYYh2nRCxFk8btwEV64f3TvfNz7ureGnkzqtmA==}
-    engines: {node: ^22.12 || >=24}
-    peerDependencies:
-      postcss: ^8.5.0
-
   postcss-load-config@3.1.4:
     resolution: {integrity: sha512-6DiM4E7v4coTE4uzA8U//WhtPwyhiim3eyjEMFCnUpzbrkK9wJHgKDT2mR+HbtSrd/NubVaYTOpSpjUl8NQeRg==}
     engines: {node: '>= 10'}
@@ -3059,6 +3039,10 @@ packages:
     resolution: {integrity: sha512-wWBro/7hJ40ye6TPiXkUQoXKCw23xSsjriUvqd7Uls9Sso3oLiON1flc18cCdnjgCRXw4fBVqUJJeOdDTh3P3g==}
     engines: {node: '>=4'}
 
+  postcss-selector-parser@7.2.1:
+    resolution: {integrity: sha512-GwxlMgTTXwIom+ebC7an3k6RaJDwklRQQnfiXsLPGicu8FYV/k/+1/9YY2OU2+r938H2t4X0TDxoif+HP2rjzQ==}
+    engines: {node: '>=4'}
+
   postcss-sorting@10.0.0:
     resolution: {integrity: sha512-TXbU+h6vVRW+86c/+ewhWq9k7pr7ijASTnepVhCQiC87zAOTkvB1v2dHyWP+ggstSTX/PNvjzS+IOqzejndz9w==}
     peerDependencies:
@@ -3069,6 +3053,10 @@ packages:
 
   postcss@8.5.31:
     resolution: {integrity: sha512-YUbWYCgErwnMAVkjUnYa+KlMBzGpHwiIt/DE7f0G33AuX2LH9UcTk6KgWxd3zRU+pN3u/C+Xl3EnMLM4Hea7Sg==}
+    engines: {node: ^10 || ^12 || >=14}
+
+  postcss@8.5.33:
+    resolution: {integrity: sha512-RVHEU9/Pp1Fnjr/MpAJsZoADukCKhfIi15OunEYiGktIkYLkPVvC1sioWolGDS7XByMTx9m/IGbro0Js13zhnQ==}
     engines: {node: ^10 || ^12 || >=14}
 
   powershell-utils@0.2.1:
@@ -3410,7 +3398,7 @@ packages:
       stylelint: '>=8.0.0'
 
   stylelint-config-avi12@https://codeload.github.com/avi12/lint-config/tar.gz/a33a2e5f7b08a0f35d7dc49e29db6d116a47c9a9#path:/packages/stylelint-config:
-    resolution: {gitHosted: true, integrity: sha512-jvSFmtFgYUebyqntVafh9XvsvkFgSvaJ3O0GEI3J2B3oYfGeQnBuey2ttTwvlG52mZH+LrziV0P+YjgtEE8EDA==, path: /packages/stylelint-config, tarball: https://codeload.github.com/avi12/lint-config/tar.gz/a33a2e5f7b08a0f35d7dc49e29db6d116a47c9a9}
+    resolution: {gitHosted: true, path: /packages/stylelint-config, tarball: https://codeload.github.com/avi12/lint-config/tar.gz/a33a2e5f7b08a0f35d7dc49e29db6d116a47c9a9}
     version: 0.11.1
     peerDependencies:
       postcss-html: ^1.8.1
@@ -3515,11 +3503,6 @@ packages:
     engines: {node: '>=20.19.0'}
     hasBin: true
 
-  stylelint@18.0.0:
-    resolution: {integrity: sha512-kI10GsHXQvsH/AcklVZdQgwDuxtHi+A+h1Ujzd7h9LDf3e5jQiLQkWFlPtpynX3E6oVWHG1wo9v6dL0Mr+nnSA==}
-    engines: {node: ^22.22.2 || ^24.15.0 || >=26.0.0}
-    hasBin: true
-
   superlock@1.4.4:
     resolution: {integrity: sha512-BujQQrdZW9YRvj5sO6IStz1AjOvdqraMXU67ntcREEdV5ykjmMysLdwEn5EDMTI/C3P31J1vySNnKjMgd81Gzg==}
     engines: {node: '>= 14'}
@@ -3552,8 +3535,8 @@ packages:
       svelte: ^4.0.0 || ^5.0.0-next.0
       typescript: ^5.0.0 || ^6.0.0
 
-  svelte-eslint-parser@1.10.1:
-    resolution: {integrity: sha512-owYBhrNRp/m+hDaQCH0S683kc0TMFy2bB+qvsMQQZRsjSFD9xp/3FYgI8FZoOKA3xk62gwkUj1HpVek0p6WgNw==}
+  svelte-eslint-parser@1.11.0:
+    resolution: {integrity: sha512-THKSuH+05dzMjBg0CJcBSdWLMC0ujzViX0h5w4vwxoPvCsaHv6WJ0d15otuitUVeLFDAb7Ertf5dH9qx+h0WiQ==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0, pnpm: 10.34.6}
     peerDependencies:
       svelte: ^3.37.0 || ^4.0.0 || ^5.0.0
@@ -3858,10 +3841,6 @@ packages:
     resolution: {integrity: sha512-OTIk8iR8/aCRWBqvxrzxR0hgxWpnYBblY1S5hDWBQfk/VFmJwzmJgQFN3WsoUKHISv2eAwe+PpbUzyL1CKTLXg==}
     engines: {node: ^20.17.0 || >=22.9.0}
 
-  write-file-atomic@8.0.0:
-    resolution: {integrity: sha512-dYwyZredl67GyLLIHJnRM3h2PcOmN5SkcgC7eM5DPDEOEl6dLFqVrMg3F1Ea32usj4VSVZtd2H4MtKTNOf6nPg==}
-    engines: {node: ^22.22.2 || ^24.15.0 || >=26.0.0}
-
   ws@8.22.1:
     resolution: {integrity: sha512-oyL6OPYme/CmiFvNuGzeoxCJ4nOrZE2O1FwM9MWM1AsGri6nLXB2pg+lNA8aLeXMSav0J6eIVS1j6vUPzUtK9g==}
     engines: {node: '>=10.0.0'}
@@ -4027,17 +4006,17 @@ snapshots:
       '@csstools/css-parser-algorithms': 4.0.2(@csstools/css-tokenizer@4.0.2)
       '@csstools/css-tokenizer': 4.0.2
 
-  '@csstools/selector-resolve-nested@4.0.2(postcss-selector-parser@7.1.7)':
+  '@csstools/selector-resolve-nested@4.0.2(postcss-selector-parser@7.2.1)':
     dependencies:
-      postcss-selector-parser: 7.1.7
+      postcss-selector-parser: 7.2.1
 
-  '@csstools/selector-specificity@5.0.0(postcss-selector-parser@7.1.7)':
+  '@csstools/selector-specificity@5.0.0(postcss-selector-parser@7.2.1)':
     dependencies:
-      postcss-selector-parser: 7.1.7
+      postcss-selector-parser: 7.2.1
 
-  '@csstools/selector-specificity@6.0.1(postcss-selector-parser@7.1.7)':
+  '@csstools/selector-specificity@6.0.1(postcss-selector-parser@7.2.1)':
     dependencies:
-      postcss-selector-parser: 7.1.7
+      postcss-selector-parser: 7.2.1
 
   '@devicefarmer/adbkit-logcat@2.1.3': {}
 
@@ -4057,15 +4036,9 @@ snapshots:
 
   '@double-great/stylelint-a11y@3.8.3(stylelint@17.16.0(typescript@6.0.3))':
     dependencies:
-      postcss: 8.5.31
-      postcss-selector-parser: 7.1.7
+      postcss: 8.5.33
+      postcss-selector-parser: 7.2.1
       stylelint: 17.16.0(typescript@6.0.3)
-
-  '@double-great/stylelint-a11y@3.8.3(stylelint@18.0.0)':
-    dependencies:
-      postcss: 8.5.31
-      postcss-selector-parser: 7.1.7
-      stylelint: 18.0.0
 
   '@dual-bundle/import-meta-resolve@4.2.1': {}
 
@@ -4279,28 +4252,28 @@ snapshots:
       '@eslint/core': 1.2.1
       levn: 0.4.1
 
-  '@fallow-cli/darwin-arm64@2.103.0':
+  '@fallow-cli/darwin-arm64@3.46.0':
     optional: true
 
-  '@fallow-cli/darwin-x64@2.103.0':
+  '@fallow-cli/darwin-x64@3.46.0':
     optional: true
 
-  '@fallow-cli/linux-arm64-gnu@2.103.0':
+  '@fallow-cli/linux-arm64-gnu@3.46.0':
     optional: true
 
-  '@fallow-cli/linux-arm64-musl@2.103.0':
+  '@fallow-cli/linux-arm64-musl@3.46.0':
     optional: true
 
-  '@fallow-cli/linux-x64-gnu@2.103.0':
+  '@fallow-cli/linux-x64-gnu@3.46.0':
     optional: true
 
-  '@fallow-cli/linux-x64-musl@2.103.0':
+  '@fallow-cli/linux-x64-musl@3.46.0':
     optional: true
 
-  '@fallow-cli/win32-arm64-msvc@2.103.0':
+  '@fallow-cli/win32-arm64-msvc@3.46.0':
     optional: true
 
-  '@fallow-cli/win32-x64-msvc@2.103.0':
+  '@fallow-cli/win32-x64-msvc@3.46.0':
     optional: true
 
   '@humanfs/core@0.19.2':
@@ -4562,22 +4535,11 @@ snapshots:
       '@csstools/css-parser-algorithms': 4.0.2(@csstools/css-tokenizer@4.0.2)
       '@csstools/css-tokenizer': 4.0.2
       '@csstools/media-query-list-parser': 5.0.2(@csstools/css-parser-algorithms@4.0.2(@csstools/css-tokenizer@4.0.2))(@csstools/css-tokenizer@4.0.2)
-      postcss: 8.5.31
-      postcss-selector-parser: 7.1.7
+      postcss: 8.5.33
+      postcss-selector-parser: 7.2.1
       postcss-value-parser: 4.2.0
       style-search: 0.1.0
       stylelint: 17.16.0(typescript@6.0.3)
-
-  '@stylistic/stylelint-plugin@5.3.1(stylelint@18.0.0)':
-    dependencies:
-      '@csstools/css-parser-algorithms': 4.0.2(@csstools/css-tokenizer@4.0.2)
-      '@csstools/css-tokenizer': 4.0.2
-      '@csstools/media-query-list-parser': 5.0.2(@csstools/css-parser-algorithms@4.0.2(@csstools/css-tokenizer@4.0.2))(@csstools/css-tokenizer@4.0.2)
-      postcss: 8.5.31
-      postcss-selector-parser: 7.1.7
-      postcss-value-parser: 4.2.0
-      style-search: 0.1.0
-      stylelint: 18.0.0
 
   '@sveltejs/acorn-typescript@1.0.13(acorn@8.19.0)':
     dependencies:
@@ -4804,8 +4766,6 @@ snapshots:
 
   argparse@2.0.1: {}
 
-  argparse@3.0.4: {}
-
   aria-query@5.3.1: {}
 
   array-differ@3.0.0: {}
@@ -4996,7 +4956,7 @@ snapshots:
       color-convert: 1.9.3
       color-string: 1.9.1
 
-  colord@2.10.0: {}
+  colord@2.14.0: {}
 
   colorguard-processor@2.0.36: {}
 
@@ -5038,11 +4998,6 @@ snapshots:
   consola@3.4.2: {}
 
   core-util-is@1.0.3: {}
-
-  cosmiconfig@10.0.1:
-    dependencies:
-      env-paths: 2.2.1
-      js-yaml: 5.5.0
 
   cosmiconfig@9.0.2(typescript@6.0.3):
     dependencies:
@@ -5138,7 +5093,7 @@ snapshots:
       css-tokenize: 1.0.1
       duplexify: 4.1.3
       multimatch: 5.0.0
-      postcss: 8.5.31
+      postcss: 8.5.33
       source-map: 0.7.6
       yargs: 17.7.3
 
@@ -5296,7 +5251,7 @@ snapshots:
 
   escape-string-regexp@5.0.0: {}
 
-  eslint-config-avi12@https://codeload.github.com/avi12/lint-config/tar.gz/a33a2e5f7b08a0f35d7dc49e29db6d116a47c9a9#path:/packages/eslint-config(@typescript-eslint/eslint-plugin@8.72.2(@typescript-eslint/parser@8.72.2(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(eslint-plugin-svelte@3.24.1(eslint@10.15.0(jiti@2.7.0))(svelte@5.57.3(@typescript-eslint/types@8.72.2)))(eslint@10.15.0(jiti@2.7.0))(svelte-eslint-parser@1.10.1(svelte@5.57.3(@typescript-eslint/types@8.72.2)))(typescript@6.0.3):
+  eslint-config-avi12@https://codeload.github.com/avi12/lint-config/tar.gz/a33a2e5f7b08a0f35d7dc49e29db6d116a47c9a9#path:/packages/eslint-config(@typescript-eslint/eslint-plugin@8.72.2(@typescript-eslint/parser@8.72.2(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(eslint-plugin-svelte@3.24.1(eslint@10.15.0(jiti@2.7.0))(svelte@5.57.3(@typescript-eslint/types@8.72.2)))(eslint@10.15.0(jiti@2.7.0))(svelte-eslint-parser@1.11.0(svelte@5.57.3(@typescript-eslint/types@8.72.2)))(typescript@6.0.3):
     dependencies:
       eslint: 10.15.0(jiti@2.7.0)
       eslint-plugin-unused-imports: 4.4.1(@typescript-eslint/eslint-plugin@8.72.2(@typescript-eslint/parser@8.72.2(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(eslint@10.15.0(jiti@2.7.0))
@@ -5305,7 +5260,7 @@ snapshots:
       typescript-eslint: 8.72.2(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3)
     optionalDependencies:
       eslint-plugin-svelte: 3.24.1(eslint@10.15.0(jiti@2.7.0))(svelte@5.57.3(@typescript-eslint/types@8.72.2))
-      svelte-eslint-parser: 1.10.1(svelte@5.57.3(@typescript-eslint/types@8.72.2))
+      svelte-eslint-parser: 1.11.0(svelte@5.57.3(@typescript-eslint/types@8.72.2))
     transitivePeerDependencies:
       - '@typescript-eslint/eslint-plugin'
       - supports-color
@@ -5357,7 +5312,7 @@ snapshots:
       postcss-load-config: 3.1.4(postcss@8.5.31)
       postcss-safe-parser: 7.1.0(postcss@8.5.31)
       semver: 7.8.6
-      svelte-eslint-parser: 1.10.1(svelte@5.57.3(@typescript-eslint/types@8.72.2))
+      svelte-eslint-parser: 1.11.0(svelte@5.57.3(@typescript-eslint/types@8.72.2))
     optionalDependencies:
       svelte: 5.57.3(@typescript-eslint/types@8.72.2)
     transitivePeerDependencies:
@@ -5466,22 +5421,22 @@ snapshots:
 
   exsolve@1.1.3: {}
 
-  fallow-config-avi12@https://codeload.github.com/avi12/lint-config/tar.gz/a33a2e5f7b08a0f35d7dc49e29db6d116a47c9a9#path:/packages/fallow-config(fallow@2.103.0):
+  fallow-config-avi12@https://codeload.github.com/avi12/lint-config/tar.gz/a33a2e5f7b08a0f35d7dc49e29db6d116a47c9a9#path:/packages/fallow-config(fallow@3.46.0):
     dependencies:
-      fallow: 2.103.0
+      fallow: 3.46.0
 
-  fallow@2.103.0:
+  fallow@3.46.0:
     dependencies:
       detect-libc: 2.1.2
     optionalDependencies:
-      '@fallow-cli/darwin-arm64': 2.103.0
-      '@fallow-cli/darwin-x64': 2.103.0
-      '@fallow-cli/linux-arm64-gnu': 2.103.0
-      '@fallow-cli/linux-arm64-musl': 2.103.0
-      '@fallow-cli/linux-x64-gnu': 2.103.0
-      '@fallow-cli/linux-x64-musl': 2.103.0
-      '@fallow-cli/win32-arm64-msvc': 2.103.0
-      '@fallow-cli/win32-x64-msvc': 2.103.0
+      '@fallow-cli/darwin-arm64': 3.46.0
+      '@fallow-cli/darwin-x64': 3.46.0
+      '@fallow-cli/linux-arm64-gnu': 3.46.0
+      '@fallow-cli/linux-arm64-musl': 3.46.0
+      '@fallow-cli/linux-x64-gnu': 3.46.0
+      '@fallow-cli/linux-x64-musl': 3.46.0
+      '@fallow-cli/win32-arm64-msvc': 3.46.0
+      '@fallow-cli/win32-x64-msvc': 3.46.0
 
   fast-deep-equal@3.1.3: {}
 
@@ -5626,7 +5581,7 @@ snapshots:
     dependencies:
       '@sindresorhus/merge-streams': 4.0.0
       fast-glob: 3.3.3
-      ignore: 7.0.13
+      ignore: 7.0.16
       is-path-inside: 4.0.0
       micromatch: 4.0.8
       slash: 5.1.0
@@ -5682,16 +5637,7 @@ snapshots:
       domutils: 3.2.2
       entities: 4.5.0
 
-  htmlparser2@9.1.0:
-    dependencies:
-      domelementtype: 2.3.0
-      domhandler: 5.0.3
-      domutils: 3.2.2
-      entities: 4.5.0
-
   ignore@5.3.2: {}
-
-  ignore@7.0.13: {}
 
   ignore@7.0.16: {}
 
@@ -5806,10 +5752,6 @@ snapshots:
   js-yaml@4.3.2:
     dependencies:
       argparse: 2.0.1
-
-  js-yaml@5.5.0:
-    dependencies:
-      argparse: 3.0.4
 
   jsdoc-type-pratt-parser@9.5.0:
     dependencies:
@@ -6346,15 +6288,8 @@ snapshots:
     dependencies:
       htmlparser2: 8.0.2
       js-tokens: 9.0.1
-      postcss: 8.5.31
-      postcss-safe-parser: 6.0.0(postcss@8.5.31)
-
-  postcss-html@2.0.1(postcss@8.5.31):
-    dependencies:
-      htmlparser2: 9.1.0
-      js-tokens: 9.0.1
-      postcss: 8.5.31
-      postcss-safe-parser: 7.1.0(postcss@8.5.31)
+      postcss: 8.5.33
+      postcss-safe-parser: 6.0.0(postcss@8.5.33)
 
   postcss-load-config@3.1.4(postcss@8.5.31):
     dependencies:
@@ -6365,13 +6300,17 @@ snapshots:
 
   postcss-resolve-nested-selector@0.1.7: {}
 
-  postcss-safe-parser@6.0.0(postcss@8.5.31):
+  postcss-safe-parser@6.0.0(postcss@8.5.33):
     dependencies:
-      postcss: 8.5.31
+      postcss: 8.5.33
 
   postcss-safe-parser@7.1.0(postcss@8.5.31):
     dependencies:
       postcss: 8.5.31
+
+  postcss-safe-parser@7.1.0(postcss@8.5.33):
+    dependencies:
+      postcss: 8.5.33
 
   postcss-scss@4.0.9(postcss@8.5.31):
     dependencies:
@@ -6387,13 +6326,23 @@ snapshots:
       cssesc: 3.0.0
       util-deprecate: 1.0.2
 
-  postcss-sorting@10.0.0(postcss@8.5.31):
+  postcss-selector-parser@7.2.1:
     dependencies:
-      postcss: 8.5.31
+      util-deprecate: 1.0.2
+
+  postcss-sorting@10.0.0(postcss@8.5.33):
+    dependencies:
+      postcss: 8.5.33
 
   postcss-value-parser@4.2.0: {}
 
   postcss@8.5.31:
+    dependencies:
+      nanoid: 3.3.20
+      picocolors: 1.1.1
+      source-map-js: 1.2.2
+
+  postcss@8.5.33:
     dependencies:
       nanoid: 3.3.20
       picocolors: 1.1.1
@@ -6712,11 +6661,11 @@ snapshots:
 
   style-search@0.1.0: {}
 
-  stylehacks@8.0.4(postcss@8.5.31):
+  stylehacks@8.0.4(postcss@8.5.33):
     dependencies:
       browserslist: 4.29.5
-      postcss: 8.5.31
-      postcss-selector-parser: 7.1.7
+      postcss: 8.5.33
+      postcss-selector-parser: 7.2.1
 
   stylelint-color-format@1.1.0(stylelint@17.16.0(typescript@6.0.3)):
     dependencies:
@@ -6724,17 +6673,11 @@ snapshots:
       style-search: 0.1.0
       stylelint: 17.16.0(typescript@6.0.3)
 
-  stylelint-color-format@1.1.0(stylelint@18.0.0):
+  stylelint-config-avi12@https://codeload.github.com/avi12/lint-config/tar.gz/a33a2e5f7b08a0f35d7dc49e29db6d116a47c9a9#path:/packages/stylelint-config(postcss-html@1.8.1)(stylelint@17.16.0(typescript@6.0.3))(typescript@6.0.3):
     dependencies:
-      color: 3.2.1
-      style-search: 0.1.0
-      stylelint: 18.0.0
-
-  stylelint-config-avi12@https://codeload.github.com/avi12/lint-config/tar.gz/a33a2e5f7b08a0f35d7dc49e29db6d116a47c9a9#path:/packages/stylelint-config(postcss-html@2.0.1(postcss@8.5.31))(stylelint@18.0.0)(typescript@6.0.3):
-    dependencies:
-      postcss-html: 2.0.1(postcss@8.5.31)
-      stylelint: 18.0.0
-      stylelint-config-ccb: 3.32.0(stylelint@18.0.0)(typescript@6.0.3)
+      postcss-html: 1.8.1
+      stylelint: 17.16.0(typescript@6.0.3)
+      stylelint-config-ccb: 3.32.0(stylelint@17.16.0(typescript@6.0.3))(typescript@6.0.3)
     transitivePeerDependencies:
       - supports-color
       - typescript
@@ -6768,75 +6711,28 @@ snapshots:
       - supports-color
       - typescript
 
-  stylelint-config-ccb@3.32.0(stylelint@18.0.0)(typescript@6.0.3):
-    dependencies:
-      '@carlosjeurissen/stylelint-csstree-validator': 3.3.1(typescript@6.0.3)
-      '@double-great/stylelint-a11y': 3.8.3(stylelint@18.0.0)
-      '@stylistic/stylelint-plugin': 5.3.1(stylelint@18.0.0)
-      caniuse-lite: 1.0.30001793
-      doiuse: 6.0.6
-      lodash: 4.18.1
-      prettier: 3.9.10
-      stylelint: 18.0.0
-      stylelint-color-format: 1.1.0(stylelint@18.0.0)
-      stylelint-config-standard: 40.0.0(stylelint@18.0.0)
-      stylelint-declaration-block-no-ignored-properties: 3.0.0(stylelint@18.0.0)
-      stylelint-high-performance-animation: 2.0.0(stylelint@18.0.0)
-      stylelint-no-browser-hacks: 2.0.3(typescript@6.0.3)
-      stylelint-no-indistinguishable-colors: 2.3.1(stylelint@18.0.0)
-      stylelint-no-nested-media: 0.1.0
-      stylelint-no-unsupported-browser-features: 8.1.2(stylelint@18.0.0)
-      stylelint-order: 8.1.3(stylelint@18.0.0)
-      stylelint-plugin-import: 1.0.13
-      stylelint-prettier: 5.0.3(prettier@3.9.10)(stylelint@18.0.0)
-      stylelint-require-units: 2.0.0(stylelint@18.0.0)
-      stylelint-selector-no-empty: 1.0.9(stylelint@18.0.0)
-      stylelint-selector-pseudo-class-lvhfa: 3.2.0(stylelint@18.0.0)
-      stylelint-value-no-unknown-custom-properties: 6.1.1(stylelint@18.0.0)
-    transitivePeerDependencies:
-      - supports-color
-      - typescript
-
   stylelint-config-recommended@18.0.0(stylelint@17.16.0(typescript@6.0.3)):
     dependencies:
       stylelint: 17.16.0(typescript@6.0.3)
-
-  stylelint-config-recommended@18.0.0(stylelint@18.0.0):
-    dependencies:
-      stylelint: 18.0.0
 
   stylelint-config-standard@40.0.0(stylelint@17.16.0(typescript@6.0.3)):
     dependencies:
       stylelint: 17.16.0(typescript@6.0.3)
       stylelint-config-recommended: 18.0.0(stylelint@17.16.0(typescript@6.0.3))
 
-  stylelint-config-standard@40.0.0(stylelint@18.0.0):
-    dependencies:
-      stylelint: 18.0.0
-      stylelint-config-recommended: 18.0.0(stylelint@18.0.0)
-
   stylelint-declaration-block-no-ignored-properties@3.0.0(stylelint@17.16.0(typescript@6.0.3)):
     dependencies:
       stylelint: 17.16.0(typescript@6.0.3)
-
-  stylelint-declaration-block-no-ignored-properties@3.0.0(stylelint@18.0.0):
-    dependencies:
-      stylelint: 18.0.0
 
   stylelint-high-performance-animation@2.0.0(stylelint@17.16.0(typescript@6.0.3)):
     dependencies:
       postcss-value-parser: 4.2.0
       stylelint: 17.16.0(typescript@6.0.3)
 
-  stylelint-high-performance-animation@2.0.0(stylelint@18.0.0):
-    dependencies:
-      postcss-value-parser: 4.2.0
-      stylelint: 18.0.0
-
   stylelint-no-browser-hacks@2.0.3(typescript@6.0.3):
     dependencies:
-      postcss: 8.5.31
-      stylehacks: 8.0.4(postcss@8.5.31)
+      postcss: 8.5.33
+      stylehacks: 8.0.4(postcss@8.5.33)
       stylelint: 17.16.0(typescript@6.0.3)
     transitivePeerDependencies:
       - supports-color
@@ -6847,38 +6743,20 @@ snapshots:
       colorguard-processor: 2.0.36
       stylelint: 17.16.0(typescript@6.0.3)
 
-  stylelint-no-indistinguishable-colors@2.3.1(stylelint@18.0.0):
-    dependencies:
-      colorguard-processor: 2.0.36
-      stylelint: 18.0.0
-
   stylelint-no-nested-media@0.1.0: {}
 
   stylelint-no-unsupported-browser-features@8.1.2(stylelint@17.16.0(typescript@6.0.3)):
     dependencies:
       browserslist: 4.29.5
       doiuse: 6.0.6
-      postcss: 8.5.31
+      postcss: 8.5.33
       stylelint: 17.16.0(typescript@6.0.3)
-
-  stylelint-no-unsupported-browser-features@8.1.2(stylelint@18.0.0):
-    dependencies:
-      browserslist: 4.29.5
-      doiuse: 6.0.6
-      postcss: 8.5.31
-      stylelint: 18.0.0
 
   stylelint-order@8.1.3(stylelint@17.16.0(typescript@6.0.3)):
     dependencies:
-      postcss: 8.5.31
-      postcss-sorting: 10.0.0(postcss@8.5.31)
+      postcss: 8.5.33
+      postcss-sorting: 10.0.0(postcss@8.5.33)
       stylelint: 17.16.0(typescript@6.0.3)
-
-  stylelint-order@8.1.3(stylelint@18.0.0):
-    dependencies:
-      postcss: 8.5.31
-      postcss-sorting: 10.0.0(postcss@8.5.31)
-      stylelint: 18.0.0
 
   stylelint-plugin-import@1.0.13:
     dependencies:
@@ -6892,21 +6770,10 @@ snapshots:
       prettier-linter-helpers: 1.0.1
       stylelint: 17.16.0(typescript@6.0.3)
 
-  stylelint-prettier@5.0.3(prettier@3.9.10)(stylelint@18.0.0):
-    dependencies:
-      prettier: 3.9.10
-      prettier-linter-helpers: 1.0.1
-      stylelint: 18.0.0
-
   stylelint-require-units@2.0.0(stylelint@17.16.0(typescript@6.0.3)):
     dependencies:
       postcss-value-parser: 4.2.0
       stylelint: 17.16.0(typescript@6.0.3)
-
-  stylelint-require-units@2.0.0(stylelint@18.0.0):
-    dependencies:
-      postcss-value-parser: 4.2.0
-      stylelint: 18.0.0
 
   stylelint-rule-creator@5.1.0:
     dependencies:
@@ -6919,10 +6786,6 @@ snapshots:
     dependencies:
       stylelint: 17.16.0(typescript@6.0.3)
 
-  stylelint-selector-no-empty@1.0.9(stylelint@18.0.0):
-    dependencies:
-      stylelint: 18.0.0
-
   stylelint-selector-pseudo-class-lvhfa@3.2.0(stylelint@17.16.0(typescript@6.0.3)):
     dependencies:
       lodash.difference: 4.5.0
@@ -6930,24 +6793,11 @@ snapshots:
       postcss-selector-parser: 6.1.5
       stylelint: 17.16.0(typescript@6.0.3)
 
-  stylelint-selector-pseudo-class-lvhfa@3.2.0(stylelint@18.0.0):
-    dependencies:
-      lodash.difference: 4.5.0
-      lodash.without: 4.4.0
-      postcss-selector-parser: 6.1.5
-      stylelint: 18.0.0
-
   stylelint-value-no-unknown-custom-properties@6.1.1(stylelint@17.16.0(typescript@6.0.3)):
     dependencies:
       postcss-value-parser: 4.2.0
       resolve: 1.22.14
       stylelint: 17.16.0(typescript@6.0.3)
-
-  stylelint-value-no-unknown-custom-properties@6.1.1(stylelint@18.0.0):
-    dependencies:
-      postcss-value-parser: 4.2.0
-      resolve: 1.22.14
-      stylelint: 18.0.0
 
   stylelint@16.26.1(typescript@6.0.3):
     dependencies:
@@ -6955,10 +6805,10 @@ snapshots:
       '@csstools/css-syntax-patches-for-csstree': 1.1.16(css-tree@3.2.1)
       '@csstools/css-tokenizer': 3.0.4
       '@csstools/media-query-list-parser': 4.0.3(@csstools/css-parser-algorithms@3.0.5(@csstools/css-tokenizer@3.0.4))(@csstools/css-tokenizer@3.0.4)
-      '@csstools/selector-specificity': 5.0.0(postcss-selector-parser@7.1.7)
+      '@csstools/selector-specificity': 5.0.0(postcss-selector-parser@7.2.1)
       '@dual-bundle/import-meta-resolve': 4.2.1
       balanced-match: 2.0.0
-      colord: 2.10.0
+      colord: 2.14.0
       cosmiconfig: 9.0.2(typescript@6.0.3)
       css-functions-list: 3.3.3
       css-tree: 3.2.1
@@ -6970,7 +6820,7 @@ snapshots:
       globby: 11.1.0
       globjoin: 0.1.4
       html-tags: 3.3.1
-      ignore: 7.0.13
+      ignore: 7.0.16
       imurmurhash: 0.1.4
       is-plain-object: 5.1.0
       known-css-properties: 0.37.0
@@ -6979,10 +6829,10 @@ snapshots:
       micromatch: 4.0.8
       normalize-path: 3.0.0
       picocolors: 1.1.1
-      postcss: 8.5.31
+      postcss: 8.5.33
       postcss-resolve-nested-selector: 0.1.7
-      postcss-safe-parser: 7.1.0(postcss@8.5.31)
-      postcss-selector-parser: 7.1.7
+      postcss-safe-parser: 7.1.0(postcss@8.5.33)
+      postcss-selector-parser: 7.2.1
       postcss-value-parser: 4.2.0
       resolve-from: 5.0.0
       string-width: 4.2.3
@@ -7001,9 +6851,9 @@ snapshots:
       '@csstools/css-syntax-patches-for-csstree': 1.1.16(css-tree@3.2.1)
       '@csstools/css-tokenizer': 4.0.2
       '@csstools/media-query-list-parser': 5.0.2(@csstools/css-parser-algorithms@4.0.2(@csstools/css-tokenizer@4.0.2))(@csstools/css-tokenizer@4.0.2)
-      '@csstools/selector-resolve-nested': 4.0.2(postcss-selector-parser@7.1.7)
-      '@csstools/selector-specificity': 6.0.1(postcss-selector-parser@7.1.7)
-      colord: 2.10.0
+      '@csstools/selector-resolve-nested': 4.0.2(postcss-selector-parser@7.2.1)
+      '@csstools/selector-specificity': 6.0.1(postcss-selector-parser@7.2.1)
+      colord: 2.14.0
       cosmiconfig: 9.0.2(typescript@6.0.3)
       css-functions-list: 3.3.3
       css-tree: 3.2.1
@@ -7015,16 +6865,16 @@ snapshots:
       globby: 16.2.4
       globjoin: 0.1.4
       html-tags: 5.1.0
-      ignore: 7.0.13
+      ignore: 7.0.16
       import-meta-resolve: 4.2.0
       mathml-tag-names: 4.0.0
       meow: 14.1.0
       micromatch: 4.0.8
       normalize-path: 3.0.0
       picocolors: 1.1.1
-      postcss: 8.5.31
-      postcss-safe-parser: 7.1.0(postcss@8.5.31)
-      postcss-selector-parser: 7.1.7
+      postcss: 8.5.33
+      postcss-safe-parser: 7.1.0(postcss@8.5.33)
+      postcss-selector-parser: 7.2.1
       postcss-value-parser: 4.2.0
       string-width: 8.3.0
       supports-hyperlinks: 4.6.0
@@ -7034,28 +6884,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
       - typescript
-
-  stylelint@18.0.0:
-    dependencies:
-      '@csstools/css-calc': 3.4.3(@csstools/css-parser-algorithms@4.0.2(@csstools/css-tokenizer@4.0.2))(@csstools/css-tokenizer@4.0.2)
-      '@csstools/css-parser-algorithms': 4.0.2(@csstools/css-tokenizer@4.0.2)
-      '@csstools/css-syntax-patches-for-csstree': 1.1.16(css-tree@3.2.1)
-      '@csstools/css-tokenizer': 4.0.2
-      '@csstools/media-query-list-parser': 5.0.2(@csstools/css-parser-algorithms@4.0.2(@csstools/css-tokenizer@4.0.2))(@csstools/css-tokenizer@4.0.2)
-      '@csstools/selector-resolve-nested': 4.0.2(postcss-selector-parser@7.1.7)
-      '@csstools/selector-specificity': 6.0.1(postcss-selector-parser@7.1.7)
-      colord: 2.10.0
-      cosmiconfig: 10.0.1
-      css-tree: 3.2.1
-      ignore: 7.0.16
-      import-meta-resolve: 4.2.0
-      picomatch: 4.0.7
-      postcss: 8.5.31
-      postcss-safe-parser: 7.1.0(postcss@8.5.31)
-      postcss-selector-parser: 7.1.7
-      postcss-value-parser: 4.2.0
-      tinyglobby: 0.2.17
-      write-file-atomic: 8.0.0
 
   superlock@1.4.4: {}
 
@@ -7090,7 +6918,7 @@ snapshots:
     transitivePeerDependencies:
       - picomatch
 
-  svelte-eslint-parser@1.10.1(svelte@5.57.3(@typescript-eslint/types@8.72.2)):
+  svelte-eslint-parser@1.11.0(svelte@5.57.3(@typescript-eslint/types@8.72.2)):
     dependencies:
       eslint-scope: 8.4.0
       eslint-visitor-keys: 4.2.1
@@ -7404,10 +7232,6 @@ snapshots:
       signal-exit: 4.1.0
 
   write-file-atomic@7.0.1:
-    dependencies:
-      signal-exit: 4.1.0
-
-  write-file-atomic@8.0.0:
     dependencies:
       signal-exit: 4.1.0
 
