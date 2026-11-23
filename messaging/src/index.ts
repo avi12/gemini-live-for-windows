@@ -11,8 +11,6 @@
 
 import type { GetDataType, GetReturnType, MaybePromise, Message, RemoveListenerCallback } from "@webext-core/messaging";
 
-export type { RemoveListenerCallback };
-
 /**
  * Any protocol map: message type -> `(data) => return` declaration, as in the library. `object`
  * rather than a record: an interface of method signatures has no index signature, so it is not
@@ -46,7 +44,7 @@ export interface Transport {
   listen(receive: (envelope: unknown) => void): void;
 }
 
-export interface MessagingConfig {
+interface MessagingConfig {
   /**
    * How long sendMessage waits for the other end before rejecting. Our channels drop messages
    * while a page navigates or a socket reconnects, so nothing waits forever.

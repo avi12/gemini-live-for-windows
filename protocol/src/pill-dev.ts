@@ -10,11 +10,11 @@ import { z } from "zod";
 // the file's name and shape one for one.
 
 export const PILL_DEV_MARKER_FILE = "dev.json";
-export const APP_DATA_FOLDER = "GeminiLive";
+const APP_DATA_FOLDER = "GeminiLive";
 
 const PROCESS_DENIED_CODE = "EPERM";
 
-export const pillDevMarkerSchema = z.object({
+const pillDevMarkerSchema = z.object({
   pillDevEntry: z.string().min(1),
   repoRoot: z.string().min(1),
   pid: z.number().int().positive()

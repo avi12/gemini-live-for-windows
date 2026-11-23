@@ -16,7 +16,7 @@ export type LinkMessage = (typeof LinkMessage)[keyof typeof LinkMessage];
 export const NativeMessage = { LINK: "link" } as const;
 export type NativeMessage = (typeof NativeMessage)[keyof typeof NativeMessage];
 
-export const browserCookieSchema = z.object({
+const browserCookieSchema = z.object({
   name: z.string(),
   value: z.string(),
   domain: z.string(),

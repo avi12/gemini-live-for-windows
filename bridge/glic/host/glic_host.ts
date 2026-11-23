@@ -34,7 +34,7 @@ interface TabContext {
 }
 
 /** What the host needs from the session and the app. */
-export interface HostSession {
+interface HostSession {
   /** The user wants Live running; screen frames and text flow only while it does. */
   isActive(): boolean;
   /** A picture of the shared screen from the app; null if none comes in time. */
