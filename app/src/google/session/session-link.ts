@@ -69,7 +69,7 @@ export function createSessionLink({
     onCookies: listener => cookiesEmitter.subscribe(listener),
     onConnected: listener => connectedEmitter.subscribe(() => listener()),
     // Ask the extension for the current session right now
-    requestCookies: clients.requestCookies,
+    requestCookies: () => clients.requestCookies(),
     // The session we have stopped working: ask the extension to have the browser refresh it. The
     // refreshed cookies arrive like any rotation.
     requestRefresh: () => clients.broadcast(LinkMessage.REFRESH)
@@ -78,7 +78,7 @@ export function createSessionLink({
   return {
     source,
     start: server.start,
-    stop() {
+    stop(this: void) {
       server.stop();
       clients.clear();
     }

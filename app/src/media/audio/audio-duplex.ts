@@ -16,7 +16,7 @@ export interface AudioWorkerLink {
 function createListeners<T>() {
   const listeners = new Set<(value: T) => void>();
   return {
-    subscribe(listener: (value: T) => void) {
+    subscribe(this: void, listener: (value: T) => void) {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
@@ -166,7 +166,7 @@ function createLifecycle(link: AudioWorkerLink) {
   let graceTimer: NodeJS.Timeout | undefined;
 
   return {
-    play(pcm16: Uint8Array) {
+    play(this: void, pcm16: Uint8Array) {
       if (isDisposed) {
         return;
       }
@@ -176,7 +176,7 @@ function createLifecycle(link: AudioWorkerLink) {
         pcm16
       });
     },
-    dispose() {
+    dispose(this: void) {
       if (isDisposed) {
         return;
       }
@@ -184,7 +184,7 @@ function createLifecycle(link: AudioWorkerLink) {
       isDisposed = true;
       graceTimer = postDispose(link);
     },
-    terminate() {
+    terminate(this: void) {
       clearTimeout(graceTimer);
       void link.terminate();
     }

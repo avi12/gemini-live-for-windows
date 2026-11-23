@@ -120,7 +120,7 @@ function isLatinWord(text: string) {
 // words, its numbers and its dividers come in reverse; only a run of English words keeps its own left to
 // right order
 export function readingOrder<Word extends VisualWord>(words: readonly Word[]) {
-  const letters = [...words.map(word => word.text).join("")].filter(character => /\p{L}/u.test(character));
+  const letters = Array.from(words.map(word => word.text).join("")).filter(character => /\p{L}/u.test(character));
   const hebrewLetters = letters.filter(character => hasHebrew(character)).length;
   const isRightToLeft = hebrewLetters * 2 > letters.length;
   if (!isRightToLeft) {
@@ -151,11 +151,11 @@ export function withoutSpecks<Word extends VisualWord>(words: readonly Word[]) {
     return kept;
   }
 
-  return kept.filter(word => [...word.text].length > 1 || !/\p{L}/u.test(word.text));
+  return kept.filter(word => Array.from(word.text).length > 1 || !/\p{L}/u.test(word.text));
 }
 
 export function isMostlyHebrew(text: string) {
-  const letters = [...text].filter(character => /\p{L}/u.test(character));
+  const letters = Array.from(text).filter(character => /\p{L}/u.test(character));
   const hebrew = letters.filter(character => hasHebrew(character));
   return hebrew.length >= MIN_HEBREW_LETTERS && hebrew.length * 2 >= letters.length;
 }

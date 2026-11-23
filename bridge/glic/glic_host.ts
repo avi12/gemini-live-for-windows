@@ -361,7 +361,7 @@ export function installBootstrap({ host, events }: { host: object; events: BootE
   window.internalAutoGlicBoot = () => registry;
 
   const bootstrapHandlers: EventListener[] = [];
-  const originalAddEventListener = EventTarget.prototype.addEventListener;
+  const originalAddEventListener = EventTarget.prototype.addEventListener.bind(window);
   Object.defineProperty(window, "addEventListener", {
     configurable: true,
     writable: true,
@@ -370,7 +370,7 @@ export function installBootstrap({ host, events }: { host: object; events: BootE
         bootstrapHandlers.push(listener);
       }
 
-      originalAddEventListener.call(window, type, listener, options);
+      originalAddEventListener(type, listener, options);
     }
   });
   const bootstrapEvent = new MessageEvent("message", {

@@ -35,7 +35,7 @@ function setup(frames: readonly Uint8Array[]) {
     sent,
     logs,
     screen,
-    advance(elapsedMs: number) {
+    advance(this: void, elapsedMs: number) {
       clock += elapsedMs;
     }
   };

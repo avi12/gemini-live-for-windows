@@ -26,7 +26,7 @@ export const TEST_MONITOR: Monitor = {
 function createChannel<T>() {
   const listeners: ((value: T) => void)[] = [];
   return {
-    add(listener: (value: T) => void) {
+    add(this: void, listener: (value: T) => void) {
       listeners.push(listener);
     },
     emit(value: T) {

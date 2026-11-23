@@ -8,7 +8,9 @@ const TONE_SOURCE = /^https:\/\/gemini\.gstatic\.com\/.+\.ogg(?:$|\?)/;
 /** Holds back Live's tones. The gate is `allowFor`: tones may play for that many milliseconds. */
 export function muteTones() {
   const audible = { until: 0 };
-  const play = HTMLMediaElement.prototype.play;
+  // The original play, typed as a plain function so it can be kept apart from its prototype
+  const original: { play: (this: HTMLMediaElement) => Promise<void> } = HTMLMediaElement.prototype;
+  const { play } = original;
   HTMLMediaElement.prototype.play = function playGated(this: HTMLMediaElement) {
     const isTone = TONE_SOURCE.test(this.currentSrc);
     const isHeldBack = isTone && Date.now() > audible.until;

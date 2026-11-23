@@ -114,7 +114,7 @@ function setup({ saved = [] }: { saved?: BrowserCookie[] } = {}) {
     events,
     saves,
     requests,
-    adopt(cookies: BrowserCookie[]) {
+    adopt(this: void, cookies: BrowserCookie[]) {
       for (const listener of cookieListeners) {
         listener(cookies);
       }

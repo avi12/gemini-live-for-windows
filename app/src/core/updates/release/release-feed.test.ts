@@ -14,7 +14,7 @@ const GOOD = {
 function feedReturning({ body, status = HTTP_OK }: { body: unknown; status?: number }) {
   const requested: string[] = [];
   async function fetchFeed(input: Parameters<typeof fetch>[0]) {
-    requested.push(String(input));
+    requested.push(input instanceof Request ? input.url : String(input));
     return new Response(JSON.stringify(body), { status });
   }
   return {

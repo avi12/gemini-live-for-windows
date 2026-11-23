@@ -80,7 +80,12 @@ function connectExtension({ port, cookies }: { port: number; cookies: BrowserCoo
   const messenger = defineMessaging<LinkProtocolMap>(
     createFrameTransport({
       send: json => socket.send(json),
-      onFrame: listener => socket.on("message", data => listener(data.toString()))
+      onFrame: listener =>
+        socket.on("message", data => {
+          if (Buffer.isBuffer(data)) {
+            listener(data.toString("utf8"));
+          }
+        })
     }),
     { timeoutMs: 2000 }
   );

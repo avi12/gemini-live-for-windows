@@ -26,7 +26,7 @@ function setup() {
   });
   return {
     throttle,
-    advance(milliseconds: number) {
+    advance(this: void, milliseconds: number) {
       time += milliseconds;
     }
   };

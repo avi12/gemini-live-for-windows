@@ -59,11 +59,11 @@ function createPumps({
 }) {
   const micThrottle = createLevelThrottle({
     intervalMilliseconds: LEVEL_MILLISECONDS,
-    now: clock.now
+    now: () => clock.now()
   });
   const speakerThrottle = createLevelThrottle({
     intervalMilliseconds: LEVEL_MILLISECONDS,
-    now: clock.now
+    now: () => clock.now()
   });
   const mic = createMicPump({
     source: graph.micSource,

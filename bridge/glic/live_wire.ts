@@ -258,9 +258,12 @@ export function tapLiveTranscript(relay: (index: number, utterance: Utterance) =
     // Both of open's overloads in one signature, so the patch forwards exactly the arguments Glic
     // passed, whichever overload it called.
     type OpenRest = [async?: boolean, username?: string | null, password?: string | null];
-    const xhrOpen: (this: XMLHttpRequest, method: string, url: string | URL, ...rest: OpenRest) => void =
-      XMLHttpRequest.prototype.open;
-    const xhrSend = XMLHttpRequest.prototype.send;
+    // The originals, typed as plain functions so they can be kept apart from their prototype
+    const original: {
+      open: (this: XMLHttpRequest, method: string, url: string | URL, ...rest: OpenRest) => void;
+      send: (this: XMLHttpRequest, body?: Document | XMLHttpRequestBodyInit | null) => void;
+    } = XMLHttpRequest.prototype;
+    const { open: xhrOpen, send: xhrSend } = original;
     const downlinks = new WeakSet<XMLHttpRequest>();
     XMLHttpRequest.prototype.open = function (
       this: XMLHttpRequest,

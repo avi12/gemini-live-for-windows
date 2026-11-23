@@ -18,7 +18,7 @@ interface SettingsDependencies {
   dir: string;
   env: NodeJS.ProcessEnv;
   secret: UserSecret;
-  writeLog(message: string): void;
+  writeLog: (message: string) => void;
 }
 
 async function readText({ filePath, writeLog }: { filePath: string; writeLog: (message: string) => void }) {

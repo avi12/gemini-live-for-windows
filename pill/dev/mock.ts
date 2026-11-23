@@ -53,7 +53,7 @@ function readKeyStep(key: string) {
   return 0;
 }
 
-function watchKeys({ onPick, onQuit }: { onPick(name: ScenarioName): void; onQuit(): void }) {
+function watchKeys({ onPick, onQuit }: { onPick: (name: ScenarioName) => void; onQuit: () => void }) {
   const isInteractive = process.stdin.isTTY;
   if (!isInteractive) {
     return;
