@@ -1,151 +1,26 @@
-import path from "node:path";
-import { isSea } from "node:sea";
-import { Worker } from "node:worker_threads";
-
 import { roInitialize } from "@microsoft/dynwinrt";
-import { restartAfterCrash } from "winui-svelte/app";
-import { initWindowsAppSdk } from "winui-svelte/bootstrap";
 
 import { claimInstance } from "@/core/instance/instance.ts";
-import { KeyTrigger } from "@/core/instance/key-trigger.ts";
 import { refreshInstalledExtension } from "@/core/link/extension-setup.ts";
-import { packagedHostPath } from "@/core/link/native-host-registration.ts";
 import { log } from "@/core/log/log.ts";
 import { keepRunningOnUnhandledErrors } from "@/core/log/unhandled-errors.ts";
 import { loadSettings } from "@/core/settings/settings.ts";
 import { readInstalledVersion } from "@/core/updates/version/installed-version.ts";
-import {
-  ActivationKind,
-  describeActivation,
-  RECOVERED_ARGUMENT,
-  userArguments
-} from "@/entry/activation/activation.ts";
-import type { Activation } from "@/entry/activation/activation.ts";
+import { describeActivation, userArguments } from "@/entry/activation/activation.ts";
 import { readPackagedKind } from "@/entry/activation/packaged-activation.ts";
 import { KeySource, serveKeyTriggers } from "@/entry/activation/protocol.ts";
 import { ensureDpiAware } from "@/entry/dpi.ts";
 import { errorMessage } from "@/lib/error-message.ts";
-import { launchDetached } from "@/lib/launch.ts";
-import { restartOnDevChanges } from "@/wiring/dev/dev-restart.ts";
 import { buildController } from "@/wiring/main-thread/build-controller.ts";
 import { openChannels } from "@/wiring/main-thread/channels.ts";
 import type { ShippedFiles } from "@/wiring/main-thread/shipped-files.ts";
 import { createTriggerRelay } from "@/wiring/main-thread/trigger-relay.ts";
-import {
-  RAPID_RESTARTS_VARIABLE,
-  rapidRestartsOf,
-  restartCommand,
-  superviseUiWorker
-} from "@/wiring/main-thread/worker-supervisor.ts";
-import type { UiWorkerData } from "@/wiring/ui-thread/ui-worker-data.ts";
-
-const WINDOWS_APP_SDK_MAJOR = 2;
-const WINDOWS_APP_SDK_MINOR = 2;
-const NOT_SUPPORTED_HRESULT = "0x80070032";
-const HOST_EXECUTABLE = "GeminiLiveHost.exe";
+import { firstTriggerOf, triggerOf } from "@/wiring/main-thread/triggers/first-trigger.ts";
+import { launchUiWorker } from "@/wiring/main-thread/ui-worker/launch-ui-worker.ts";
+import { registerCrashRestart, startWindowsAppSdk } from "@/wiring/main-thread/windows-runtime.ts";
 
 function writeLog(message: string) {
   log.write(message);
-}
-
-// Inside a package the runtime comes from the package's dependency, and the bootstrap refuses
-function startWindowsAppSdk({ isPackaged }: { isPackaged: boolean }) {
-  try {
-    initWindowsAppSdk({
-      major: WINDOWS_APP_SDK_MAJOR,
-      minor: WINDOWS_APP_SDK_MINOR,
-      // Every WebView2 here names its own profile folder; the variable would send them all to one
-      // folder, where the second browser with other options never starts
-      webViewUserDataFolder: false
-    });
-  } catch (error) {
-    const isRefusedByIdentity = error instanceof Error && error.message.includes(NOT_SUPPORTED_HRESULT);
-    const isRuntimeFromPackage = isPackaged && isRefusedByIdentity;
-    if (!isRuntimeFromPackage) {
-      throw error;
-    }
-  }
-}
-
-// After a crash, a hang or an update, Windows offers to start the app again, as a recovered copy
-// that comes up without a conversation. Failing to register only costs that offer.
-function registerCrashRestart() {
-  try {
-    restartAfterCrash({ arguments: [RECOVERED_ARGUMENT] });
-  } catch (error) {
-    writeLog(`restart after a crash: ${errorMessage(error)}`);
-  }
-}
-
-// The UI worker owns every window, so when it ends the app has lost its pill: like PillHost.cs
-// restarting a dead pill, start the app again (it comes back up without a conversation), unless
-// the window keeps dying right after it starts
-function startAgain(rapidRestarts: number) {
-  launchDetached({
-    ...restartCommand({
-      isSingleExecutable: isSea(),
-      execPath: process.execPath,
-      execArgv: process.execArgv,
-      script: process.argv[1]
-    }),
-    env: {
-      ...process.env,
-      [RAPID_RESTARTS_VARIABLE]: String(rapidRestarts)
-    }
-  });
-}
-
-function startUiWorker({
-  files,
-  data,
-  isInUse,
-  onEnded
-}: {
-  files: ShippedFiles;
-  data: UiWorkerData;
-  // The pill is up or a conversation runs
-  isInUse: () => boolean;
-  onEnded: (event: { exitCode: number; ranMilliseconds: number }) => Promise<void>;
-}) {
-  const startedAt = Date.now();
-  const worker = new Worker(files.uiWorker, {
-    workerData: data,
-    transferList: Object.values(data.ports)
-  });
-  worker.on("error", error => {
-    writeLog(`ui worker: ${errorMessage(error)}`);
-  });
-  restartOnDevChanges({
-    endWindow() {
-      void worker.terminate();
-    },
-    isInUse
-  });
-  worker.on("exit", exitCode => {
-    onEnded({
-      exitCode,
-      ranMilliseconds: Date.now() - startedAt
-    }).catch((error: unknown) => {
-      writeLog(`restarting the window: ${errorMessage(error)}`);
-      process.exit(exitCode);
-    });
-  });
-}
-
-// Packaged, a browser can't start an exe inside the package folder, so the host goes through the
-// package's app execution alias; unpackaged, it sits beside the app
-function nativeHostPathOf({ isPackaged }: { isPackaged: boolean }) {
-  return isPackaged ? packagedHostPath() : path.join(path.dirname(process.execPath), HOST_EXECUTABLE);
-}
-
-function triggerOf(activation: Activation) {
-  return activation.kind === ActivationKind.KEY ? activation.trigger : KeyTrigger.TAP;
-}
-
-// A launch at sign-in, or a restart after a crash, only readies the app; any other start is a press of the key
-function firstTriggerOf(activation: Activation) {
-  const isReadyOnly = activation.kind === ActivationKind.STARTUP || activation.kind === ActivationKind.RECOVERED;
-  return isReadyOnly ? undefined : triggerOf(activation);
 }
 
 // The whole app: the first copy claims the single-instance pipe (a later copy hands over its press
@@ -210,33 +85,12 @@ export async function startApp({ files }: { files: ShippedFiles }) {
     });
   }
 
-  startUiWorker({
+  launchUiWorker({
     files,
-    data: {
-      ports: channels.workerPorts,
-      bridgesDirectory: files.bridgesDirectory,
-      nativeHostPath: nativeHostPathOf({ isPackaged }),
-      audioWorkerUrl: files.audioWorkerUrl.href,
-      uiaWorkerUrl: files.uiaWorkerUrl.href,
-      screenCaptureWorkerUrl: files.screenCaptureWorkerUrl.href,
-      isDebugging: log.isDebugging
-    },
+    workerPorts: channels.workerPorts,
+    isPackaged,
     isInUse: () => controller.isRunning || controller.view()?.isShown === true,
-    async onEnded({ exitCode, ranMilliseconds }) {
-      controller.dispose();
-      const isRestarting = await superviseUiWorker({
-        exitCode,
-        ranMilliseconds,
-        rapidRestarts: rapidRestartsOf(process.env),
-        release: () => claim.close(),
-        relaunch: startAgain,
-        delay: milliseconds =>
-          new Promise(resolve => {
-            setTimeout(resolve, milliseconds);
-          }),
-        log: writeLog
-      });
-      process.exit(isRestarting ? 0 : exitCode || 1);
-    }
+    onEnded: () => controller.dispose(),
+    release: () => claim.close()
   });
 }
