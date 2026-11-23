@@ -1,55 +1,30 @@
 import type { PillNamed } from "@gemini-live/protocol/view";
 
-import { EngineKind } from "@/contracts/live-engine.ts";
-import type { LiveEngine, LiveEvent, LiveEventListener } from "@/contracts/live-engine.ts";
+import type { EngineKind } from "@/contracts/live-engine.ts";
 import type { Monitor } from "@/contracts/monitor.ts";
 import { UpdateCheck } from "@/core/updates/update-checker.ts";
-import { createPillController } from "@/pill/controller.ts";
 import type { PillDeps } from "@/pill/ports.ts";
+import { createFakeEngine } from "@/pill/testing/fake-engine.ts";
+import type { FakeEngine } from "@/pill/testing/fake-engine.ts";
+import { PRIMARY, SECONDARY } from "@/pill/testing/fake-monitors.ts";
 
-export const PRIMARY: Monitor = {
-  deviceName: "\\\\.\\DISPLAY1",
-  index: 1,
-  isPrimary: true,
-  x: 0,
-  y: 0,
-  width: 1920,
-  height: 1080,
-  workRight: 1920,
-  workBottom: 1040,
-  refreshRateHertz: 60
+export const HEADSET: PillNamed = {
+  id: "mic-1",
+  name: "Headset"
+};
+export const DESK: PillNamed = {
+  id: "mic-2",
+  name: "Desk"
 };
 
-export const SECONDARY: Monitor = {
-  deviceName: "\\\\.\\DISPLAY2",
-  index: 2,
-  isPrimary: false,
-  x: 1920,
-  y: 0,
-  width: 2560,
-  height: 1440,
-  workRight: 4480,
-  workBottom: 1400,
-  refreshRateHertz: 120
-};
-
-const DEFAULT_MICROPHONES: readonly PillNamed[] = [
-  {
-    id: "mic-1",
-    name: "Headset"
-  },
-  {
-    id: "mic-2",
-    name: "Desk"
-  }
-];
-
-interface NextEngine {
+// How the next engine the pill creates behaves
+export interface NextEngine {
   fail?: Error | undefined;
   gate?: Promise<void> | undefined;
   reportsLevels?: boolean;
 }
 
+// Everything the fake ports read, which a test changes to stage what the devices and settings say
 interface FakeWorld {
   engineKind: EngineKind;
   hasApiKey: boolean;
@@ -63,117 +38,7 @@ interface FakeWorld {
   checkResult: UpdateCheck;
 }
 
-interface FakeStartControl {
-  fail: Error | undefined;
-  gate: Promise<void> | undefined;
-}
-
-function createFakeStartControl() {
-  const control: FakeStartControl = {
-    fail: undefined,
-    gate: undefined
-  };
-  return control;
-}
-
-async function waitForFakeStart(startControl: FakeStartControl) {
-  await startControl.gate;
-
-  const { fail } = startControl;
-  if (fail) {
-    throw fail;
-  }
-}
-
-function createFakeSubscriptions({
-  listeners,
-  extensionListeners
-}: {
-  listeners: Set<LiveEventListener>;
-  extensionListeners: Set<(isNeeded: boolean) => void>;
-}) {
-  return {
-    onEvent(listener) {
-      listeners.add(listener);
-      return () => {
-        listeners.delete(listener);
-      };
-    },
-    onExtensionNeeded(listener) {
-      extensionListeners.add(listener);
-      return () => extensionListeners.delete(listener);
-    }
-  } satisfies Pick<LiveEngine, "onEvent" | "onExtensionNeeded">;
-}
-
-export function createFakeEngine({
-  kind,
-  monitor,
-  hasLevels = false,
-  extensionListeners = new Set()
-}: {
-  kind: EngineKind;
-  monitor: Monitor;
-  hasLevels?: boolean;
-  extensionListeners?: Set<(isNeeded: boolean) => void>;
-}) {
-  const listeners = new Set<LiveEventListener>();
-  const startControl = createFakeStartControl();
-  const calls = {
-    started: 0,
-    disposed: 0
-  };
-
-  let shared = monitor;
-  let isCameraShared = false;
-  const engine: LiveEngine = {
-    kind,
-    reportsLevels: hasLevels,
-    get monitor() {
-      return shared;
-    },
-    get isCameraShared() {
-      return isCameraShared;
-    },
-    isMuted: true,
-    region: undefined,
-    ...createFakeSubscriptions({
-      listeners,
-      extensionListeners
-    }),
-    useCamera(isOn) {
-      isCameraShared = isOn;
-      return Promise.resolve(true);
-    },
-    start() {
-      calls.started += 1;
-      return waitForFakeStart(startControl);
-    },
-    share(next) {
-      engine.region = undefined;
-      shared = next;
-    },
-    dispose() {
-      calls.disposed += 1;
-      return Promise.resolve();
-    }
-  };
-
-  return {
-    engine,
-    calls,
-    startControl,
-    emit(event: LiveEvent) {
-      for (const listener of listeners) {
-        listener(event);
-      }
-    }
-  };
-}
-
-export type FakeEngine = ReturnType<typeof createFakeEngine>;
-
-function createFakeWorld({ engineKind, hasApiKey }: { engineKind: EngineKind; hasApiKey: boolean }) {
+export function createFakeWorld({ engineKind, hasApiKey }: { engineKind: EngineKind; hasApiKey: boolean }) {
   const world: FakeWorld = {
     engineKind,
     hasApiKey,
@@ -181,7 +46,7 @@ function createFakeWorld({ engineKind, hasApiKey }: { engineKind: EngineKind; ha
     isAutoUpdateOn: true,
     displays: [PRIMARY, SECONDARY],
     active: PRIMARY,
-    microphones: DEFAULT_MICROPHONES,
+    microphones: [HEADSET, DESK],
     readyVersion: undefined,
     isInstallOk: true,
     checkResult: UpdateCheck.UP_TO_DATE
@@ -189,18 +54,20 @@ function createFakeWorld({ engineKind, hasApiKey }: { engineKind: EngineKind; ha
   return world;
 }
 
+// The listeners the pill subscribes through the ports, for a test to call
 interface FakeListeners {
   displays: Set<() => void>;
   updates: Set<() => void>;
   extension: Set<(isNeeded: boolean) => void>;
 }
 
-function createFakeListeners() {
-  return {
-    displays: new Set<() => void>(),
-    updates: new Set<() => void>(),
-    extension: new Set<(isNeeded: boolean) => void>()
+export function createFakeListeners() {
+  const listeners: FakeListeners = {
+    displays: new Set(),
+    updates: new Set(),
+    extension: new Set()
   };
+  return listeners;
 }
 
 function createFakeSettings({ world, calls }: { world: FakeWorld; calls: string[] }) {
@@ -347,26 +214,23 @@ function createFakeEnginesPort({
   } satisfies PillDeps["engines"];
 }
 
-function lastFakeEngine(engines: readonly FakeEngine[]) {
-  const last = engines.at(-1);
-  if (!last) {
-    throw new Error("no engine was created");
-  }
-
-  return last;
-}
-
-function createFakeHost({
+// Every port the pill controller takes, over the fake world: what the pill asks of them lands in
+// `calls`, what it logs in `logs`, and each engine it creates in `engines`
+export function createFakeDeps({
   world,
+  engines,
   calls,
   logs,
   listeners,
+  queue,
   isPackaged
 }: {
   world: FakeWorld;
+  engines: FakeEngine[];
   calls: string[];
   logs: string[];
   listeners: FakeListeners;
+  queue: { next: NextEngine };
   isPackaged: boolean;
 }) {
   return {
@@ -388,6 +252,12 @@ function createFakeHost({
       listeners,
       isPackaged
     }),
+    engines: createFakeEnginesPort({
+      engines,
+      listeners,
+      queue
+    }),
+    shareBorder: createFakeShareBorder(calls),
     openExternal: uri => calls.push(`open ${uri}`),
     pageTitle: () => Promise.resolve(undefined),
     copyText(text) {
@@ -397,66 +267,5 @@ function createFakeHost({
     quit: () => calls.push("quit"),
     log: message => logs.push(message),
     delay: () => Promise.resolve()
-  } satisfies Omit<PillDeps, "engines" | "shareBorder">;
-}
-
-export function createFakePill({
-  engineKind = EngineKind.GOOGLE,
-  hasApiKey = true,
-  isPackaged = true
-}: {
-  engineKind?: EngineKind;
-  hasApiKey?: boolean;
-  isPackaged?: boolean;
-} = {}) {
-  const world = createFakeWorld({
-    engineKind,
-    hasApiKey
-  });
-  const engines: FakeEngine[] = [];
-  const logs: string[] = [];
-  const calls: string[] = [];
-  const listeners = createFakeListeners();
-  const queue: { next: NextEngine } = {
-    next: {}
-  };
-
-  const deps: PillDeps = {
-    ...createFakeHost({
-      world,
-      calls,
-      logs,
-      listeners,
-      isPackaged
-    }),
-    engines: createFakeEnginesPort({
-      engines,
-      listeners,
-      queue
-    }),
-    shareBorder: createFakeShareBorder(calls)
-  };
-
-  const controller = createPillController(deps);
-
-  return {
-    controller,
-    world,
-    engines,
-    logs,
-    calls,
-    listeners,
-    prepareNextEngine(options: NextEngine) {
-      queue.next = options;
-    },
-    get engine() {
-      return lastFakeEngine(engines);
-    }
-  };
-}
-
-export async function settle() {
-  await new Promise(resolve => {
-    setImmediate(resolve);
-  });
+  } satisfies PillDeps;
 }

@@ -10,7 +10,7 @@ import type { Json, StateProtocol } from "winui-svelte/state/host";
 import { KeyTrigger } from "@/core/instance/key-trigger.ts";
 import { linkedTransports } from "@/lib/transport/linked-transports.ts";
 import { openPillLink } from "@/pill/host/host-link.ts";
-import { createFakePill, settle } from "@/pill/test-fakes.ts";
+import { createFakePill, settle } from "@/pill/testing/fake-pill.ts";
 
 function connect() {
   const transports = linkedTransports();

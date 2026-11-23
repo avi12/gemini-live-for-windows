@@ -4,8 +4,10 @@ import { describe, it } from "node:test";
 import { EngineKind, LiveEventKind } from "@/contracts/live-engine.ts";
 import type { LiveEvent } from "@/contracts/live-engine.ts";
 import { linkedTransports } from "@/lib/transport/linked-transports.ts";
-import { createFakeEngine, PRIMARY, SECONDARY, settle } from "@/pill/test-fakes.ts";
-import type { FakeEngine } from "@/pill/test-fakes.ts";
+import { createFakeEngine } from "@/pill/testing/fake-engine.ts";
+import type { FakeEngine } from "@/pill/testing/fake-engine.ts";
+import { PRIMARY, SECONDARY } from "@/pill/testing/fake-monitors.ts";
+import { settle } from "@/pill/testing/fake-pill.ts";
 
 import { connectGoogle } from "./google-client.ts";
 import { serveGoogle } from "./google-server.ts";

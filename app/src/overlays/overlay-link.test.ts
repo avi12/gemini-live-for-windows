@@ -4,7 +4,7 @@ import { describe, it } from "node:test";
 import { linkedTransports } from "@/lib/transport/linked-transports.ts";
 import { connectOverlayWindows } from "@/overlays/controller-link.ts";
 import { serveOverlayWindows } from "@/overlays/window/window-link.ts";
-import { PRIMARY } from "@/pill/test-fakes.ts";
+import { PRIMARY } from "@/pill/testing/fake-monitors.ts";
 
 async function settle() {
   await new Promise(resolve => setImmediate(resolve));

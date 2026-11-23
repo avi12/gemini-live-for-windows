@@ -9,7 +9,9 @@ import type { Monitor } from "@/contracts/monitor.ts";
 import { KeyTrigger } from "@/core/instance/key-trigger.ts";
 import { UpdateCheck } from "@/core/updates/update-checker.ts";
 import { INSTALLER_NOTE, NO_UPDATE, UNPACKAGED } from "@/pill/menus/update-menu.ts";
-import { createFakePill, PRIMARY, SECONDARY, settle } from "@/pill/test-fakes.ts";
+import { DESK, HEADSET } from "@/pill/testing/fake-deps.ts";
+import { PRIMARY, SECONDARY } from "@/pill/testing/fake-monitors.ts";
+import { createFakePill, settle } from "@/pill/testing/fake-pill.ts";
 
 const SECONDARY_NAME = "Display 2 · 2560×1440";
 const CHECK_UPDATE: NonNullable<PillView["update"]> = {
@@ -60,14 +62,6 @@ function expectedView(overrides: Partial<PillView> = {}) {
   return view;
 }
 
-const HEADSET = {
-  id: "mic-1",
-  name: "Headset"
-};
-const DESK = {
-  id: "mic-2",
-  name: "Desk"
-};
 const LISTENING: Partial<PillView> = {
   status: LiveStatus.LISTENING,
   isShown: true,
