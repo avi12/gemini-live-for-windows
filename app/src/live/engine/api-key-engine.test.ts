@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { afterEach, describe, it, mock } from "node:test";
 
 import { EngineKind, type LiveEvent, LiveEventKind, LiveStatus } from "@/contracts/live-engine.ts";
-import { createApiKeyEngine } from "@/live/api-key-engine.ts";
 import { FRAME_INTERVAL_MS } from "@/live/api/constants.ts";
+import { createApiKeyEngine } from "@/live/engine/api-key-engine.ts";
 import {
   createFakeAudio,
   createFakeNetwork,

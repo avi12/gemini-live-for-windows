@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { appendFragment, EMPTY_UTTERANCE } from "@/live/utterance.ts";
+import { appendFragment, EMPTY_UTTERANCE } from "@/live/transcript/utterance.ts";
 
 describe("appendFragment", () => {
   it("grows the current utterance while the speaker stays the same", () => {

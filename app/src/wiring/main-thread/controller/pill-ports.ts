@@ -6,7 +6,7 @@ import type { UpdateChecker } from "@/core/updates/update-checker.ts";
 import { UpdateMessage } from "@/core/updates/update-protocol.ts";
 import type { connectGoogle } from "@/google/remote/google-client.ts";
 import { errorMessage } from "@/lib/error-message.ts";
-import { createApiKeyEngine } from "@/live/api-key-engine.ts";
+import { createApiKeyEngine } from "@/live/engine/api-key-engine.ts";
 import type { Media } from "@/media/media.ts";
 import type { DisplaysPort, EnginesPort, GooglePort, MicrophonesPort, UpdatesPort } from "@/pill/ports.ts";
 

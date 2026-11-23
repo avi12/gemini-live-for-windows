@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { micLevel, speakerLevel } from "@/live/level.ts";
+import { micLevel, speakerLevel } from "@/live/engine/level.ts";
 
 const LOUD = 0.8;
 const QUIET = 0.4;

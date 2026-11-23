@@ -5,10 +5,10 @@ import { noop } from "@/lib/noop.ts";
 import { FRAME_INTERVAL_MS } from "@/live/api/constants.ts";
 import { createLiveSession } from "@/live/api/live-session.ts";
 import { connectWebSocket, type SocketConnector } from "@/live/api/socket.ts";
-import { createFrameSender } from "@/live/frame-sender.ts";
-import { micLevel, speakerLevel } from "@/live/level.ts";
+import { micLevel, speakerLevel } from "@/live/engine/level.ts";
+import { createFrameSender } from "@/live/frames/frame-sender.ts";
 import type { AudioDuplex, LiveConfig, LogSink, ScreenSource } from "@/live/ports.ts";
-import { appendFragment, EMPTY_UTTERANCE } from "@/live/utterance.ts";
+import { appendFragment, EMPTY_UTTERANCE } from "@/live/transcript/utterance.ts";
 
 export interface ApiKeyEngineDeps {
   readonly config: LiveConfig;
