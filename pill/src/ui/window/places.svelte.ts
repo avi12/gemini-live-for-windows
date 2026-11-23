@@ -34,11 +34,16 @@ interface MeasuredElement {
   onLayoutUpdated(callback: () => void): () => void;
 }
 
-interface Place {
+// A part's rectangle in the window's root, in device-independent pixels
+export interface Place {
   x: number;
   y: number;
   width: number;
   height: number;
+}
+
+function isSamePlace({ first, second }: { first: Place; second: Place }) {
+  return first.x === second.x && first.y === second.y && first.width === second.width && first.height === second.height;
 }
 
 const places = new SvelteMap<PillPart, Place>();
@@ -79,10 +84,10 @@ export function trackPart(part: PillPart) {
       const known = untrack(() => places.get(part));
       const isSame =
         known !== undefined &&
-        known.x === place.x &&
-        known.y === place.y &&
-        known.width === place.width &&
-        known.height === place.height;
+        isSamePlace({
+          first: known,
+          second: place
+        });
       if (isSame) {
         return;
       }
