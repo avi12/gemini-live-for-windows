@@ -10,6 +10,7 @@ import { connectOverlayWindows } from "@/overlays/controller-link.ts";
 import { fetchPageTitle } from "@/pill/captions/page-title.ts";
 import { createPillController } from "@/pill/controller.ts";
 import { openPillLink } from "@/pill/host/host-link.ts";
+import { createPreviousApp } from "@/pill/host/previous-app.ts";
 import { createSettingsPort } from "@/pill/host/settings-port.ts";
 import type { PillDeps } from "@/pill/ports.ts";
 import type { Channels } from "@/wiring/main-thread/channels.ts";
@@ -18,7 +19,6 @@ import {
   createEnginesPort,
   createGooglePort,
   createMicrophonesPort,
-  createPreviousAppPort,
   createUpdatesPort
 } from "@/wiring/main-thread/pill-ports.ts";
 import type { ShippedFiles } from "@/wiring/main-thread/shipped-files.ts";
@@ -125,7 +125,7 @@ function buildPillDeps({
     displays: createDisplaysPort(media),
     microphones: createMicrophonesPort(google),
     shareBorder: overlays.shareBorder,
-    previousApp: createPreviousAppPort({
+    previousApp: createPreviousApp({
       window: pillLink.windowPort,
       delay
     }),

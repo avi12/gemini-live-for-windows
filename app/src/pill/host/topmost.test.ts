@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { reassertTopmost } from "@/overlays/window/topmost.ts";
+import { reassertTopmost } from "@/pill/host/topmost.ts";
 
 test("the topmost flag is turned off and on again, so Windows applies it", () => {
   const writes: boolean[] = [];

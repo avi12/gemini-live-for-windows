@@ -10,7 +10,7 @@ const SURROUND_BLACK = 0x00000000;
 
 /**
  * Keeps the plain colour around a window's drawing see-through, for as long as the window lives: a
- * window that should be clear around its shape (the pill, the focus chip) is otherwise a white or
+ * window that should be clear around its shape (the pill) is otherwise a white or
  * black rectangle on systems where the transparent backdrop fails. Windows can drop the setting when
  * the window is shown or moved again, so it is set again on every change, and when the theme changes.
  *

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { createPreviousApp, SETTLE_MILLISECONDS } from "@/overlays/focus/previous-app.ts";
+import { createPreviousApp, SETTLE_MILLISECONDS } from "@/pill/host/previous-app.ts";
 
 function setup() {
   const calls: string[] = [];

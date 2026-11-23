@@ -8,16 +8,7 @@ import type { connectGoogle } from "@/google/remote/google-client.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 import { createApiKeyEngine } from "@/live/api-key-engine.ts";
 import type { Media } from "@/media/media.ts";
-import { createPreviousApp } from "@/overlays/focus/previous-app.ts";
-import type {
-  DisplaysPort,
-  EnginesPort,
-  GooglePort,
-  MicrophonesPort,
-  PillWindowPort,
-  PreviousAppPort,
-  UpdatesPort
-} from "@/pill/ports.ts";
+import type { DisplaysPort, EnginesPort, GooglePort, MicrophonesPort, UpdatesPort } from "@/pill/ports.ts";
 
 type GoogleLink = ReturnType<typeof connectGoogle>;
 
@@ -108,21 +99,5 @@ export function createUpdatesPort({ checker, installed }: { checker: UpdateCheck
     onReadyChanged: listener => checker.events.onMessage(UpdateMessage.READY_CHANGED, () => listener()),
     watch: () => checker.watch()
   };
-  return port;
-}
-
-// The foreground is followed on the UI worker, which owns the windows and the message pump; the
-// main thread only asks it to put the previous app back
-export function createPreviousAppPort({
-  window,
-  delay
-}: {
-  window: PillWindowPort;
-  delay: (milliseconds: number) => Promise<void>;
-}) {
-  const port: PreviousAppPort = createPreviousApp({
-    window,
-    delay
-  });
   return port;
 }

@@ -6,11 +6,11 @@ import { bringWindowToFront, trackForeground } from "winui-svelte/window/foregro
 import { log } from "@/core/log/log.ts";
 import { keepRunningOnUnhandledErrors } from "@/core/log/unhandled-errors.ts";
 import { errorMessage } from "@/lib/error-message.ts";
-import { keepSurroundClear } from "@/overlays/window/surround.svelte.ts";
-import { reassertTopmost } from "@/overlays/window/topmost.ts";
+import { reassertTopmost } from "@/pill/host/topmost.ts";
 import { serveWindowAbilities } from "@/pill/host/window-abilities.ts";
 import type { PillWindowSurface } from "@/pill/host/window-abilities.ts";
 import { clipWindow } from "@/pill/host/window-clip.ts";
+import { keepSurroundClear } from "@/pill/host/window-surround.svelte.ts";
 import { startKeyTriggers } from "@/wiring/ui-thread/ui-entry.ts";
 import { startGoogle } from "@/wiring/ui-thread/ui-google.ts";
 import { startOverlayWindows } from "@/wiring/ui-thread/ui-overlays.ts";
