@@ -1,0 +1,3 @@
+# Text files are checked out with LF endings everywhere, as they are stored: the formatter (oxfmt)
+# rejects CRLF, and a Windows checkout with core.autocrlf would otherwise convert them.
+* text=auto eol=lf
