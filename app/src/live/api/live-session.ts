@@ -74,27 +74,27 @@ function retire({ state, socket }: { state: SessionState; socket: LiveSocket | u
   closeNormally(socket);
 }
 
-function logUnhandled({ ctx, data }: { ctx: SessionContext; data: Parameters<typeof unhandledFields>[0] }) {
+function logUnhandled({ context, data }: { context: SessionContext; data: Parameters<typeof unhandledFields>[0] }) {
   for (const field of unhandledFields(data)) {
-    if (ctx.state.unhandledSeen.has(field)) {
+    if (context.state.unhandledSeen.has(field)) {
       continue;
     }
 
-    ctx.state.unhandledSeen.add(field);
-    ctx.log(`live api: ignoring "${field}"`);
+    context.state.unhandledSeen.add(field);
+    context.log(`live api: ignoring "${field}"`);
   }
 }
 
 function dispatchEvent({
-  ctx,
+  context,
   event,
   socket
 }: {
-  ctx: SessionContext;
+  context: SessionContext;
   event: ReturnType<typeof toSessionEvents>[number];
   socket: LiveSocket;
 }) {
-  const { listeners, state } = ctx;
+  const { listeners, state } = context;
   switch (event.kind) {
     case SessionEventKind.AUDIO:
       listeners.onAudio(event.pcm16);
@@ -112,34 +112,34 @@ function dispatchEvent({
       state.resumeHandle = event.handle;
       break;
     case SessionEventKind.GO_AWAY:
-      ctx.log(`goAway in ${event.timeLeft ?? "?"} - resuming`);
+      context.log(`goAway in ${event.timeLeft ?? "?"} - resuming`);
       listeners.onStatus(LiveStatus.RECONNECTING);
       void resume({
-        ctx,
+        context,
         previous: socket
       });
       break;
   }
 }
 
-function handleMessage({ ctx, text, socket }: { ctx: SessionContext; text: string; socket: LiveSocket }) {
+function handleMessage({ context, text, socket }: { context: SessionContext; text: string; socket: LiveSocket }) {
   const parsed = parseServerFrame(text);
   if (!parsed.success) {
     retire({
-      state: ctx.state,
+      state: context.state,
       socket
     });
-    ctx.listeners.onClosed(INVALID_MESSAGE_REASON);
+    context.listeners.onClosed(INVALID_MESSAGE_REASON);
     return;
   }
 
   logUnhandled({
-    ctx,
+    context,
     data: parsed.data
   });
   for (const event of toSessionEvents(parsed.data)) {
     dispatchEvent({
-      ctx,
+      context,
       event,
       socket
     });
@@ -161,23 +161,23 @@ function acceptSetup({ state, socket, text }: { state: SessionState; socket: Liv
 }
 
 function wireSocket({
-  ctx,
+  context,
   socket,
   resolve,
   reject
 }: {
-  ctx: SessionContext;
+  context: SessionContext;
   socket: LiveSocket;
   resolve: () => void;
   reject: (error: Error) => void;
 }) {
-  const { state, listeners } = ctx;
+  const { state, listeners } = context;
   let isReady = false;
   socket.onOpen(() =>
     socket.send(
       serializeClientMessage({
         setup: buildSetup({
-          config: ctx.config,
+          config: context.config,
           resumeHandle: state.resumeHandle
         })
       })
@@ -210,7 +210,7 @@ function wireSocket({
 
     if (isReady) {
       handleMessage({
-        ctx,
+        context,
         text,
         socket
       });
@@ -233,19 +233,19 @@ function wireSocket({
 }
 
 // Resolves once the server answers setup with setupComplete, which it does before anything else
-function openSocket(ctx: SessionContext) {
+function openSocket(context: SessionContext) {
   return new Promise<void>((resolve, reject) => {
-    const url = `${LIVE_ENDPOINT}?key=${encodeURIComponent(ctx.config.apiKey())}`;
+    const url = `${LIVE_ENDPOINT}?key=${encodeURIComponent(context.config.apiKey())}`;
     let socket: LiveSocket;
     try {
-      socket = ctx.connect(url);
+      socket = context.connect(url);
     } catch {
       reject(new Error(CONNECTION_FAILED_REASON));
       return;
     }
-    ctx.state.current = socket;
+    context.state.current = socket;
     wireSocket({
-      ctx,
+      context,
       socket,
       resolve,
       reject
@@ -253,23 +253,23 @@ function openSocket(ctx: SessionContext) {
   });
 }
 
-async function resume({ ctx, previous }: { ctx: SessionContext; previous: LiveSocket }) {
+async function resume({ context, previous }: { context: SessionContext; previous: LiveSocket }) {
   retire({
-    state: ctx.state,
+    state: context.state,
     socket: previous
   });
   try {
-    await openSocket(ctx);
+    await openSocket(context);
   } catch (error) {
-    ctx.listeners.onClosed(`${RECONNECT_FAILED_PREFIX}${errorMessage(error)}`);
+    context.listeners.onClosed(`${RECONNECT_FAILED_PREFIX}${errorMessage(error)}`);
     return;
   }
 
-  if (ctx.state.isDisposed) {
+  if (context.state.isDisposed) {
     return;
   }
 
-  ctx.listeners.onStatus(LiveStatus.LISTENING);
+  context.listeners.onStatus(LiveStatus.LISTENING);
 }
 
 async function disposeSession(state: SessionState) {
@@ -302,13 +302,13 @@ export function createLiveSession(deps: LiveSessionDeps) {
     resumeHandle: undefined,
     isDisposed: false
   };
-  const ctx: SessionContext = {
+  const context: SessionContext = {
     ...deps,
     state
   };
 
   return {
-    open: () => openSocket(ctx),
+    open: () => openSocket(context),
     dispose: () => disposeSession(state),
     sendAudio: (pcm16: Uint8Array) =>
       sendRealtime({
