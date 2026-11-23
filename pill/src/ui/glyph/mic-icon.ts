@@ -1,5 +1,9 @@
-import { clipToRegion, ICON_GRID, parseOutlines, pathDataOf, signedArea } from "./outline-path.ts";
-import type { HalfPlane, Outline, Point } from "./outline-path.ts";
+import { clipToRegion } from "./outline/clip-outlines.ts";
+import type { HalfPlane } from "./outline/clip-outlines.ts";
+import { ICON_GRID, signedArea } from "./outline/geometry.ts";
+import type { Outline, Point } from "./outline/geometry.ts";
+import { parseOutlines } from "./outline/parse-outlines.ts";
+import { pathDataOf } from "./outline/path-data.ts";
 
 // Material Symbols Rounded `mic` turning into `mic_off` the way Material's own animated mic does: the
 // slash draws in from the top left, and right behind its tip the mic is cut away where `mic_off` has
@@ -36,18 +40,18 @@ function across({ distance, isBelow }: { distance: number; isBelow: boolean }) {
   const sign = isBelow ? -1 : 1;
   const offset = -(ACROSS[0] * SLASH_START[0] + ACROSS[1] * SLASH_START[1]) - distance;
   return {
-    a: sign * ACROSS[0],
-    b: sign * ACROSS[1],
-    c: sign * offset
+    weightX: sign * ACROSS[0],
+    weightY: sign * ACROSS[1],
+    offset: sign * offset
   } satisfies HalfPlane;
 }
 
 // Points at least `distance` along the slash from its start
 function along(distance: number) {
   return {
-    a: ALONG[0],
-    b: ALONG[1],
-    c: -(ALONG[0] * SLASH_START[0] + ALONG[1] * SLASH_START[1]) - distance
+    weightX: ALONG[0],
+    weightY: ALONG[1],
+    offset: -(ALONG[0] * SLASH_START[0] + ALONG[1] * SLASH_START[1]) - distance
   } satisfies HalfPlane;
 }
 

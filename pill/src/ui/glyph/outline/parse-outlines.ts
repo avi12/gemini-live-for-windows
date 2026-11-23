@@ -1,10 +1,5 @@
-// Material Symbols path data as polygons and back. The spec draws its icons on a 960-unit grid,
-// `viewBox="0 -960 960 960"`, so y runs from -960 at the top to 0 at the bottom.
-
-export type Point = readonly [number, number];
-export type Outline = Point[];
-
-export const ICON_GRID = 960;
+import { pointBetween, signedArea } from "./geometry.ts";
+import type { Outline, Point } from "./geometry.ts";
 
 const CURVE_STEPS = 8;
 // Below this area (grid units squared) an outline is the spec's empty bookkeeping move, not a shape
@@ -12,36 +7,21 @@ const MIN_AREA = 1;
 const COMMAND = /[a-z]/i;
 const TOKEN = /[a-z]|-?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?/gi;
 
-export function lerp({ from, to, progress }: { from: Point; to: Point; progress: number }) {
-  const point: Point = [from[0] + (to[0] - from[0]) * progress, from[1] + (to[1] - from[1]) * progress];
-  return point;
-}
-
-export function signedArea(outline: Outline) {
-  let twice = 0;
-  for (const [i, [x, y]] of outline.entries()) {
-    const [nextX, nextY] = outline[(i + 1) % outline.length] ?? [x, y];
-    twice += x * nextY - nextX * y;
-  }
-
-  return twice / 2;
-}
-
 function quadratic({ from, control, to, outline }: { from: Point; control: Point; to: Point; outline: Outline }) {
   for (let step = 1; step <= CURVE_STEPS; step += 1) {
     const progress = step / CURVE_STEPS;
-    const towardControl = lerp({
+    const towardControl = pointBetween({
       from,
       to: control,
       progress
     });
-    const fromControl = lerp({
+    const fromControl = pointBetween({
       from: control,
       to,
       progress
     });
     outline.push(
-      lerp({
+      pointBetween({
         from: towardControl,
         to: fromControl,
         progress
@@ -166,85 +146,4 @@ export function parseOutlines(data: string) {
 
   close();
   return outlines.filter(shape => Math.abs(signedArea(shape)) >= MIN_AREA);
-}
-
-/**
- * Path data in pixels for outlines on the spec's grid, filled by the nonzero rule (the `F1`), as the
- * spec's own fonts are: an outline running the other way round is a hole.
- *
- * @param options - The outlines, and the icon's size in pixels.
- * @returns Path data.
- */
-export function pathDataOf({ outlines, size }: { outlines: readonly Outline[]; size: number }) {
-  const unit = size / ICON_GRID;
-  const figures = outlines
-    .filter(outline => outline.length > 2)
-    .map(outline => {
-      const points = outline.map(([x, y]) => `${(x * unit).toFixed(2)},${((y + ICON_GRID) * unit).toFixed(2)}`);
-      return `M${points.join(" L")} Z`;
-    });
-  return `F1 ${figures.join(" ")}`;
-}
-
-// A half-plane, the points where `a·x + b·y + c >= 0`
-export interface HalfPlane {
-  a: number;
-  b: number;
-  c: number;
-}
-
-function sideOf({ point: [x, y], plane }: { point: Point; plane: HalfPlane }) {
-  return plane.a * x + plane.b * y + plane.c;
-}
-
-// The outline's part inside one half-plane (Sutherland-Hodgman); the winding is kept, so holes stay holes
-function clipToPlane({ outline, plane }: { outline: Outline; plane: HalfPlane }) {
-  const kept: Outline = [];
-  for (const [i, point] of outline.entries()) {
-    const previous = outline.at(i - 1) ?? point;
-    const side = sideOf({
-      point,
-      plane
-    });
-    const previousSide = sideOf({
-      point: previous,
-      plane
-    });
-    const isCrossing = side >= 0 !== previousSide >= 0;
-    if (isCrossing) {
-      kept.push(
-        lerp({
-          from: previous,
-          to: point,
-          progress: previousSide / (previousSide - side)
-        })
-      );
-    }
-
-    if (side >= 0) {
-      kept.push(point);
-    }
-  }
-
-  return kept;
-}
-
-/**
- * The outlines' part inside a convex region, the meet of the given half-planes.
- *
- * @param options - The outlines, and the half-planes that bound the region.
- * @returns The clipped outlines; each keeps its winding.
- */
-export function clipToRegion({ outlines, region }: { outlines: readonly Outline[]; region: readonly HalfPlane[] }) {
-  return outlines.map(outline => {
-    let clipped = outline;
-    for (const plane of region) {
-      clipped = clipToPlane({
-        outline: clipped,
-        plane
-      });
-    }
-
-    return clipped;
-  });
 }

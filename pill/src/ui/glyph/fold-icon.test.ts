@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { CLOSE_FULLSCREEN, FOLD_GRID, foldPathData, OPEN_IN_FULL } from "./fold-icon.ts";
+import { CLOSE_FULLSCREEN, foldPathData, OPEN_IN_FULL } from "./fold-icon.ts";
+import { ICON_GRID } from "./outline/geometry.ts";
 
 const SIZE = 24;
 
@@ -19,7 +20,7 @@ describe("fold icon", () => {
 
   it("keeps every point on the grid", () => {
     for (const [x, y] of [...CLOSE_FULLSCREEN, ...OPEN_IN_FULL].flat()) {
-      assert.ok(x >= 0 && x <= FOLD_GRID && y >= 0 && y <= FOLD_GRID);
+      assert.ok(x >= 0 && x <= ICON_GRID && y >= 0 && y <= ICON_GRID);
     }
   });
 
@@ -31,8 +32,8 @@ describe("fold icon", () => {
       })
     );
     const [x, y] = CLOSE_FULLSCREEN[0]?.[0] ?? [0, 0];
-    assert.equal(first[0], Number((((x ?? 0) * SIZE) / FOLD_GRID).toFixed(2)));
-    assert.equal(first[1], Number((((y ?? 0) * SIZE) / FOLD_GRID).toFixed(2)));
+    assert.equal(first[0], Number((((x ?? 0) * SIZE) / ICON_GRID).toFixed(2)));
+    assert.equal(first[1], Number((((y ?? 0) * SIZE) / ICON_GRID).toFixed(2)));
 
     const last = numbersOf(
       foldPathData({
@@ -41,8 +42,8 @@ describe("fold icon", () => {
       })
     );
     const [openX, openY] = OPEN_IN_FULL[0]?.[0] ?? [0, 0];
-    assert.equal(last[0], Number((((openX ?? 0) * SIZE) / FOLD_GRID).toFixed(2)));
-    assert.equal(last[1], Number((((openY ?? 0) * SIZE) / FOLD_GRID).toFixed(2)));
+    assert.equal(last[0], Number((((openX ?? 0) * SIZE) / ICON_GRID).toFixed(2)));
+    assert.equal(last[1], Number((((openY ?? 0) * SIZE) / ICON_GRID).toFixed(2)));
   });
 
   it("keeps the arrows whole halfway instead of flattening them", () => {
@@ -50,7 +51,7 @@ describe("fold icon", () => {
       const numbers = numbersOf(
         foldPathData({
           progress,
-          size: FOLD_GRID
+          size: ICON_GRID
         })
       );
       const points = Array.from({ length: numbers.length / 2 }, (_, i) => [

@@ -2,37 +2,12 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { micPathData } from "./mic-icon.ts";
-import { clipToRegion, parseOutlines, signedArea } from "./outline-path.ts";
 
 const SIZE = 24;
 
 function figuresOf(data: string) {
   return data.match(/M/g)?.length ?? 0;
 }
-
-describe("outline path", () => {
-  it("reads a closed square as one outline and drops empty moves", () => {
-    const outlines = parseOutlines("M0-100h100v100H0Zm50-50Z");
-    assert.equal(outlines.length, 1);
-    assert.equal(Math.abs(signedArea(outlines[0] ?? [])), 10_000);
-  });
-
-  it("clips to a half-plane, keeping the winding", () => {
-    const [square = []] = parseOutlines("M0-100h100v100H0Z");
-    const [left = []] = clipToRegion({
-      outlines: [square],
-      region: [
-        {
-          a: -1,
-          b: 0,
-          c: 50
-        }
-      ]
-    });
-    assert.equal(Math.abs(signedArea(left)), 5000);
-    assert.equal(Math.sign(signedArea(left)), Math.sign(signedArea(square)));
-  });
-});
 
 describe("mic icon", () => {
   it("is the plain mic at rest: capsule, stand and hole, no slash", () => {

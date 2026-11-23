@@ -8,9 +8,11 @@
 // the shaft joins that arm, the shaft's two end points, where the shaft joins the other arm, that
 // arm's inner point, end of that arm.
 
-type Outline = readonly (readonly [number, number])[];
+import { ICON_GRID } from "./outline/geometry.ts";
+import type { Point } from "./outline/geometry.ts";
 
-export const FOLD_GRID = 960;
+// Points run down the screen here, from 0 at the top, unlike the spec's path data
+type Outline = readonly Point[];
 
 export const CLOSE_FULLSCREEN: readonly Outline[] = [
   [
@@ -81,7 +83,7 @@ function turned({
   middle,
   angle
 }: {
-  point: readonly [number, number];
+  point: Point;
   middle: {
     x: number;
     y: number;
@@ -102,12 +104,12 @@ function turned({
  * @returns Path data for the interpolated outlines.
  */
 export function foldPathData({ progress, size }: { progress: number; size: number }) {
-  const unit = size / FOLD_GRID;
+  const unit = size / ICON_GRID;
 
-  return CLOSE_FULLSCREEN.map((outline, iOutline) => {
+  return CLOSE_FULLSCREEN.map((outline, outlineIndex) => {
     const middle = middleOf(outline);
-    const points = outline.map((point, iPoint) => {
-      const [toX, toY] = OPEN_IN_FULL[iOutline]?.[iPoint] ?? point;
+    const points = outline.map((point, pointIndex) => {
+      const [toX, toY] = OPEN_IN_FULL[outlineIndex]?.[pointIndex] ?? point;
       // Where the whole half turn alone takes the point, and what is left from there to its partner
       const [endX, endY] = turned({
         point,
