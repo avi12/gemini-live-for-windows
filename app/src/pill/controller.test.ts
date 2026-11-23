@@ -671,7 +671,7 @@ describe("the microphone menu", () => {
 });
 
 describe("displays and sharing", () => {
-  it("shares another display whole, and drops any focused region", async () => {
+  it("shares another display and moves the border to it", async () => {
     const pill = await started();
     await pill.controller.apply({
       kind: PillActionKind.SHARE,
@@ -684,8 +684,7 @@ describe("displays and sharing", () => {
         sharedDisplay: SECONDARY.deviceName
       })
     );
-    const expectedCalls = ["cover 2", "unfocus"];
-    assert.deepEqual(pill.calls.slice(pill.calls.length - expectedCalls.length), expectedCalls);
+    assert.equal(pill.calls.at(-1), "cover 2");
     assert.equal(pill.logs.at(-1), `sharing ${SECONDARY_NAME}`);
   });
 
@@ -744,7 +743,7 @@ describe("displays and sharing", () => {
     }
 
     await settle();
-    assert.equal(pill.calls.at(-1), "unfocus");
+    assert.equal(pill.calls.at(-1), "cover 1");
     assert.equal(pill.engine.engine.monitor.width, SECONDARY.width);
     assert.equal(pill.controller.view()?.displays[0]?.width, SECONDARY.width);
   });
@@ -936,30 +935,6 @@ describe("window actions", () => {
     assert.equal(pill.calls.includes("quit"), true);
     assert.equal(pill.controller.view()?.isShown, false);
     assert.equal(pill.engine.calls.disposed, 1);
-  });
-});
-
-describe("the screen focus", () => {
-  it("passes the screen focus the running engine", async () => {
-    const pill = await started();
-    assert.equal(pill.focusOptions?.currentEngine(), pill.engine.engine);
-  });
-
-  it("republishes when the screen focus changes", async () => {
-    const pill = await started();
-    const seen: PillView[] = [];
-    pill.controller.subscribe(view => seen.push(view));
-    seen.length = 0;
-    pill.engine.emit({
-      kind: LiveEventKind.STATUS,
-      status: "x"
-    });
-    for (const listener of pill.listeners.focus) {
-      listener();
-    }
-
-    await settle();
-    assert.equal(seen.length, 1);
   });
 });
 

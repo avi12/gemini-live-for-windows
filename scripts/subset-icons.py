@@ -3,9 +3,9 @@
 The full variable font is about 15 MB; the app draws a handful of icons, always at the default
 style (WinUI can't set a variable font's axes). So this pins the axes to that default
 (outlined, weight 400, grade 0, optical size 24) and keeps only the code points named in
-app/src/overlays/glyphs.ts (the overlays' icons) and pill/src/ui/glyph/glyphs.ts (the pill's).
+pill/src/ui/glyph/glyphs.ts.
 A glyph is written either as the character itself or as a "\\uXXXX" escape.
-Re-run it after adding a glyph to either:
+Re-run it after adding a glyph to it:
 
     python scripts/subset-icons.py <path to MaterialSymbolsRounded[FILL,GRAD,opsz,wght].ttf>
 
@@ -22,7 +22,6 @@ from fontTools.varLib import instancer
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 GLYPH_SOURCES = [
-    ROOT / "app" / "src" / "overlays" / "glyphs.ts",
     ROOT / "pill" / "src" / "ui" / "glyph" / "glyphs.ts",
 ]
 OUT = ROOT / "pill" / "fonts" / "MaterialSymbolsRounded.ttf"

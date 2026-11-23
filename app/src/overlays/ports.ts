@@ -1,13 +1,6 @@
-// What the overlays need from the rest of the app, as the small interfaces they are tested with.
-// MEDIA and CORE satisfy these; nothing here imports them.
+// What the overlays need from the rest of the app, as the small interface they are tested with.
+// CORE satisfies it; nothing here imports it.
 
 export interface OverlayLog {
   write(message: string): void;
-}
-
-export interface CursorApi {
-  cursorPosition: () => {
-    x: number;
-    y: number;
-  };
 }

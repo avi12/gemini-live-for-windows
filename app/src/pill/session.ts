@@ -34,10 +34,9 @@ export function setMuted({ context, isMuted }: { context: PillContext; isMuted: 
 
 // Lets go of the session: no more events, no share border, glow at rest
 function detach(context: PillContext) {
-  const { state, focus } = context;
+  const { state, deps } = context;
   state.conversation = undefined;
-  focus.hideBorder();
-  focus.unfocus();
+  deps.shareBorder.hideBorder();
   state.glow = REST_GLOW;
   context.changed();
 }
@@ -168,7 +167,7 @@ async function connect({ context, engine }: { context: PillContext; engine: Live
 }
 
 export async function startConversation({ context, monitor }: { context: PillContext; monitor: Monitor }) {
-  const { state, deps, captions, focus } = context;
+  const { state, deps, captions } = context;
   captions.clear();
   state.isMuted = false;
   showOn({
@@ -214,7 +213,7 @@ export async function startConversation({ context, monitor }: { context: PillCon
     context,
     status: LiveStatus.CONNECTING
   });
-  focus.cover(monitor);
+  deps.shareBorder.cover(monitor);
   await connect({
     context,
     engine

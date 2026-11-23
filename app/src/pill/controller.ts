@@ -138,7 +138,6 @@ function createContext({ deps, changed }: { deps: PillDeps; changed: () => void 
         void titleUntitled(link);
       }
     }),
-    focus: deps.createFocus({ currentEngine: () => state.conversation }),
     changed
   };
 
@@ -164,7 +163,6 @@ function createContext({ deps, changed }: { deps: PillDeps; changed: () => void 
 function startWatching(context: PillContext) {
   const { deps, state, changed } = context;
   const stops = [
-    context.focus.onChanged(changed),
     deps.updates.onReadyChanged(changed),
     deps.displays.onChanged(() => onDisplaysChanged(context)),
     deps.updates.watch()

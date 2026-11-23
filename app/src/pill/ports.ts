@@ -1,7 +1,7 @@
 import type { ClipToData } from "@gemini-live/protocol/view";
 
 import type { EngineKind, LiveEngine } from "@/contracts/live-engine.ts";
-import type { Monitor, Region } from "@/contracts/monitor.ts";
+import type { Monitor } from "@/contracts/monitor.ts";
 import type { UpdateCheck } from "@/core/updates/update-checker.ts";
 import type { PillNamed } from "@/pill/types.ts";
 
@@ -37,11 +37,6 @@ export interface GooglePort {
   beginExtensionSetup(): void;
 }
 
-interface FocusOnOptions {
-  monitor: Monitor;
-  region: Region;
-}
-
 export interface DisplaysPort {
   all(): readonly Monitor[];
   active(): Monitor;
@@ -55,21 +50,15 @@ export interface MicrophonesPort {
   select(id: string | null): void;
 }
 
-export interface ScreenFocusPort {
+// The frame round the display Gemini sees
+export interface ShareBorderPort {
   cover(monitor: Monitor): void;
   hideBorder(): void;
-  focusOn(options: FocusOnOptions): void;
-  unfocus(): void;
-  onChanged(listener: () => void): () => void;
 }
 
 interface MoveByOptions {
   deltaX: number;
   deltaY: number;
-}
-
-export interface ScreenFocusOptions {
-  currentEngine: () => LiveEngine | undefined;
 }
 
 export interface PreviousAppPort {
@@ -100,7 +89,7 @@ export interface PillDeps {
   google: GooglePort;
   displays: DisplaysPort;
   microphones: MicrophonesPort;
-  createFocus(options: ScreenFocusOptions): ScreenFocusPort;
+  shareBorder: ShareBorderPort;
   previousApp: PreviousAppPort;
   window: PillWindowPort;
   updates: UpdatesPort;

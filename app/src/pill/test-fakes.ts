@@ -1,9 +1,9 @@
 import { EngineKind } from "@/contracts/live-engine.ts";
 import type { LiveEngine, LiveEvent, LiveEventListener } from "@/contracts/live-engine.ts";
-import type { Monitor, Region } from "@/contracts/monitor.ts";
+import type { Monitor } from "@/contracts/monitor.ts";
 import { UpdateCheck } from "@/core/updates/update-checker.ts";
 import { createPillController } from "@/pill/controller.ts";
-import type { PillDeps, ScreenFocusOptions } from "@/pill/ports.ts";
+import type { PillDeps } from "@/pill/ports.ts";
 import type { PillNamed } from "@/pill/types.ts";
 
 export const PRIMARY: Monitor = {
@@ -190,7 +190,6 @@ function createFakeWorld({ engineKind, hasApiKey }: { engineKind: EngineKind; ha
 
 interface FakeListeners {
   displays: Set<() => void>;
-  focus: Set<() => void>;
   updates: Set<() => void>;
   extension: Set<(isNeeded: boolean) => void>;
 }
@@ -198,7 +197,6 @@ interface FakeListeners {
 function createFakeListeners() {
   return {
     displays: new Set<() => void>(),
-    focus: new Set<() => void>(),
     updates: new Set<() => void>(),
     extension: new Set<(isNeeded: boolean) => void>()
   };
@@ -253,19 +251,11 @@ function createFakeDisplays({ world, listeners }: { world: FakeWorld; listeners:
   } satisfies PillDeps["displays"];
 }
 
-function createFakeFocus({ calls, listeners }: { calls: string[]; listeners: FakeListeners }) {
+function createFakeShareBorder(calls: string[]) {
   return {
     cover: monitor => calls.push(`cover ${monitor.index}`),
-    hideBorder: () => calls.push("hideBorder"),
-    focusOn({ monitor, region }: { monitor: Monitor; region: Region }) {
-      calls.push(`focusOn ${monitor.index} ${region.width}x${region.height}`);
-    },
-    unfocus: () => calls.push("unfocus"),
-    onChanged(listener) {
-      listeners.focus.add(listener);
-      return () => listeners.focus.delete(listener);
-    }
-  } satisfies ReturnType<PillDeps["createFocus"]>;
+    hideBorder: () => calls.push("hideBorder")
+  } satisfies PillDeps["shareBorder"];
 }
 
 function createFakeUpdates({
@@ -406,7 +396,7 @@ function createFakeHost({
     quit: () => calls.push("quit"),
     log: message => logs.push(message),
     delay: () => Promise.resolve()
-  } satisfies Omit<PillDeps, "engines" | "createFocus">;
+  } satisfies Omit<PillDeps, "engines" | "shareBorder">;
 }
 
 export function createFakePill({
@@ -426,7 +416,6 @@ export function createFakePill({
   const logs: string[] = [];
   const calls: string[] = [];
   const listeners = createFakeListeners();
-  let focusOptions: ScreenFocusOptions | undefined;
   const queue: { next: NextEngine } = {
     next: {}
   };
@@ -444,13 +433,7 @@ export function createFakePill({
       listeners,
       queue
     }),
-    createFocus(options) {
-      focusOptions = options;
-      return createFakeFocus({
-        calls,
-        listeners
-      });
-    }
+    shareBorder: createFakeShareBorder(calls)
   };
 
   const controller = createPillController(deps);
@@ -462,9 +445,6 @@ export function createFakePill({
     logs,
     calls,
     listeners,
-    get focusOptions() {
-      return focusOptions;
-    },
     prepareNextEngine(options: NextEngine) {
       queue.next = options;
     },

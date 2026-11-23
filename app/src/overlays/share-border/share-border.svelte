@@ -1,34 +1,23 @@
 <script lang="ts">
-  import { cutEmptyRegion, cutFrameRegion } from "@/overlays/focus/frame-region.ts";
-  import type { Rect } from "@/overlays/shapes.ts";
-  import { windowTheme } from "@/overlays/window/window-theme.svelte.ts";
+  import type { Region } from "@/contracts/monitor.ts";
+  import { cutEmptyRegion, cutFrameRegion } from "@/overlays/share-border/frame-region.ts";
+  import { windowTheme } from "@/overlays/share-border/window-theme.svelte.ts";
   import "@gemini-live/pill/theme.css";
   import { Window } from "winui-svelte/components";
   import type { WindowHandle } from "winui-svelte/components";
 
-  // The frame's thickness and the corner radius of a circled region, in device-independent pixels
+  // The frame's thickness, in device-independent pixels
   const FRAME_THICKNESS = 3;
-  const REGION_RADIUS = 8;
 
   interface Props {
-    // Physical screen pixels: the display, or the circled region inflated; undefined hides it
-    bounds: Rect | undefined;
-    // A watched region has rounded corners; a whole display is square
-    isRegion: boolean;
+    // The shared display, in physical screen pixels; undefined hides the border
+    bounds: Region | undefined;
   }
 
-  const { bounds, isRegion }: Props = $props();
+  const { bounds }: Props = $props();
 
   const windowRef: { handle: WindowHandle | undefined } = $state({ handle: undefined });
   const theme = windowTheme();
-
-  const radius = $derived.by(() => {
-    if (isRegion) {
-      return `${REGION_RADIUS}px`;
-    }
-
-    return "0px";
-  });
 
   // The window is never hidden or shown again: a plain window is white until it is cut down to its
   // frame, so it stays shown and is clipped to nothing while there is nothing to frame. It opens
@@ -39,7 +28,7 @@
   // display's scale, so it only has its size right the second time
   function moveOnce({ handle, bounds }: {
     handle: WindowHandle;
-    bounds: Rect;
+    bounds: Region;
   }) {
     handle.appWindow.moveAndResize({
       x: bounds.x,
@@ -51,7 +40,7 @@
 
   function moveTwice(target: {
     handle: WindowHandle;
-    bounds: Rect;
+    bounds: Region;
   }) {
     moveOnce(target);
     moveOnce(target);
@@ -82,8 +71,7 @@
       hwnd,
       width: bounds.width,
       height: bounds.height,
-      thickness: Math.ceil(FRAME_THICKNESS * handle.scale),
-      radius: isRegion ? Math.ceil(REGION_RADIUS * handle.scale) : 0
+      thickness: Math.ceil(FRAME_THICKNESS * handle.scale)
     });
   }
 
@@ -112,7 +100,6 @@
   }}
 >
   <border
-    style:border-radius={radius}
     class="share-frame share-frame-shape"
     isHitTestVisible={false}
   ></border>
@@ -121,6 +108,7 @@
 <style>
   .share-frame-shape {
     border-width: 3px;
+    border-radius: 0;
     background-color: transparent;
   }
 </style>

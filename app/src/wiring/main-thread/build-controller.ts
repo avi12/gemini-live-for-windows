@@ -6,13 +6,13 @@ import { delay } from "@/google/web-host/timeout.ts";
 import { copyTextWithPowerShell } from "@/lib/clipboard.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 import { createMedia } from "@/media/media.ts";
+import { connectOverlayWindows } from "@/overlays/controller-link.ts";
 import { fetchPageTitle } from "@/pill/captions/page-title.ts";
 import { createPillController } from "@/pill/controller.ts";
 import { openPillLink } from "@/pill/host/host-link.ts";
 import { createSettingsPort } from "@/pill/host/settings-port.ts";
 import type { PillDeps } from "@/pill/ports.ts";
 import type { Channels } from "@/wiring/main-thread/channels.ts";
-import { createOverlayControl } from "@/wiring/main-thread/overlay-control.ts";
 import {
   createDisplaysPort,
   createEnginesPort,
@@ -57,9 +57,11 @@ export function buildController({
     transport: channels.transports.pill,
     log
   });
-  const overlays = createOverlayControl({
+  const overlays = connectOverlayWindows({
     transport: channels.transports.overlays,
-    log
+    log: {
+      write: log
+    }
   });
   const checker = createUpdateChecker({
     installed: installedVersion,
@@ -102,7 +104,7 @@ function buildPillDeps({
   files: ShippedFiles;
   media: ReturnType<typeof createMedia>;
   google: ReturnType<typeof connectGoogle>;
-  overlays: ReturnType<typeof createOverlayControl>;
+  overlays: ReturnType<typeof connectOverlayWindows>;
   pillLink: ReturnType<typeof openPillLink>;
   checker: ReturnType<typeof createUpdateChecker>;
   quit: () => void;
@@ -122,7 +124,7 @@ function buildPillDeps({
     }),
     displays: createDisplaysPort(media),
     microphones: createMicrophonesPort(google),
-    createFocus: overlays.createFocus,
+    shareBorder: overlays.shareBorder,
     previousApp: createPreviousAppPort({
       window: pillLink.windowPort,
       delay

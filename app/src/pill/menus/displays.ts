@@ -34,7 +34,7 @@ export function showOn({ context, monitor }: { context: PillContext; monitor: Mo
 }
 
 function share({ context, monitor }: { context: PillContext; monitor: Monitor }) {
-  const { state, deps, focus } = context;
+  const { state, deps } = context;
   const { conversation } = state;
   const isIdle = conversation === undefined;
   if (isIdle) {
@@ -42,9 +42,7 @@ function share({ context, monitor }: { context: PillContext; monitor: Monitor })
   }
 
   conversation.share(monitor);
-  focus.cover(monitor);
-  // Sharing a display shares all of it
-  focus.unfocus();
+  deps.shareBorder.cover(monitor);
   deps.log(`sharing ${describeMonitor(monitor)}`);
 }
 

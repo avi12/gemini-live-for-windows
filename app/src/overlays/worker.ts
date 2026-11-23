@@ -1,18 +1,5 @@
-// The overlay windows' entry on the UI worker: everything that must run after `runOnUiThread`, on
-// the thread whose message pump hears the hotkeys. The controller's side is `index.ts`.
-
-export { createCursorApi } from "@/overlays/window/win32-api.ts";
-export { createOverlayWindowHost } from "@/overlays/window/window-host.ts";
-export type { OverlayWindowDeps } from "@/overlays/window/window-host.ts";
-export { serveOverlayWindows } from "@/overlays/window/window-link.ts";
-export type { OverlayWindowEvents, OverlayWindowHost } from "@/overlays/window/window-link.ts";
-
-// winui-svelte's registerHotkey, loaded on demand so the thread's apartment comes first. It throws
-// a HotkeyError when another app owns the combination
-export async function loadRegisterHotkey() {
-  const { registerHotkey } = await import("winui-svelte/app/hotkeys");
-  return registerHotkey;
-}
+// The overlay windows' start on the UI worker: everything that must run after `runOnUiThread`, on the
+// thread whose message pump drives the windows. The controller's side is `controller-link.ts`.
 
 // The web pointer events the overlay windows' raw elements take. Call once on the UI worker before
 // the first overlay is mounted
