@@ -26,7 +26,6 @@
     "app/src/media/audio/audio-worker.ts",
     "app/src/media/screen-text/uia-worker.ts",
     "app/src/media/screen/screen-capture-worker.ts",
-    "app/src/overlays/worker.ts",
     "app/src/*/index.ts",
     "app/src/**/*.test.ts",
     "app/build.ts",
