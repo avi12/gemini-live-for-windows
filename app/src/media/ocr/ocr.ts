@@ -10,7 +10,7 @@ import { openImage } from "@/media/winrt/decoded-image.ts";
 import { releaseNative } from "@/media/winrt/release.ts";
 
 import { readHebrewLines } from "./lens/hebrew-ocr.ts";
-import { hebrewRecognizer } from "./lens/lens-model.ts";
+import { hebrewRecognizer } from "./lens/model/lens-model.ts";
 import { engineTagOrder, mergeLines, NoOcrLanguageError, planScan, sortLines, toSourceBounds } from "./ocr-geometry.ts";
 import type { OcrLine } from "./ocr-geometry.ts";
 

@@ -5,13 +5,13 @@ import { Bgra } from "@/media/bgra.ts";
 import type { OcrLine } from "@/media/ocr/ocr-geometry.ts";
 import { withBufferBytes } from "@/media/winrt/buffer-access.ts";
 
-import { snapToInk } from "./column-ink.ts";
-import { decodeCtc } from "./ctc.ts";
-import { toGray } from "./gray-image.ts";
-import type { GrayImage } from "./gray-image.ts";
-import type { LineRecognizer } from "./lens-model.ts";
-import { findTextLines } from "./line-finder.ts";
-import { cutIntoStrips, STRIP_WIDTH } from "./strips.ts";
+import { snapToInk } from "./layout/column-ink.ts";
+import { toGray } from "./layout/gray-image.ts";
+import type { GrayImage } from "./layout/gray-image.ts";
+import { findTextLines } from "./layout/line-finder.ts";
+import { cutIntoStrips, STRIP_WIDTH } from "./layout/strips.ts";
+import { decodeCtc } from "./model/ctc.ts";
+import type { LineRecognizer } from "./model/lens-model.ts";
 import { groupWords, isMostlyHebrew, readingOrder, withoutSpecks } from "./visual-words.ts";
 import type { VisualWord } from "./visual-words.ts";
 

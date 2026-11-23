@@ -6,9 +6,9 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { runInThisContext } from "node:vm";
 
 import { errorMessage } from "@/lib/error-message.ts";
+import { STRIP_HEIGHT, STRIP_WIDTH } from "@/media/ocr/lens/layout/strips.ts";
 
 import { parseLabelMap } from "./label-map.ts";
-import { STRIP_HEIGHT, STRIP_WIDTH } from "./strips.ts";
 
 const RUNTIME_PACKAGE = "@litertjs/core";
 const DIRNAME_GLOBAL = "__dirname";

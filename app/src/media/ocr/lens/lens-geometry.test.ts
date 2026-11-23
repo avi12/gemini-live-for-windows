@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { snapToInk } from "./column-ink.ts";
-import { decodeCtc } from "./ctc.ts";
-import { toGray } from "./gray-image.ts";
-import { parseLabelMap } from "./label-map.ts";
-import { findTextLines } from "./line-finder.ts";
+import { snapToInk } from "./layout/column-ink.ts";
+import { toGray } from "./layout/gray-image.ts";
+import { findTextLines } from "./layout/line-finder.ts";
+import { decodeCtc } from "./model/ctc.ts";
+import { parseLabelMap } from "./model/label-map.ts";
 import { groupWords, isMostlyHebrew, readingOrder } from "./visual-words.ts";
 
 const BLANK = 3;

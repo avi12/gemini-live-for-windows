@@ -1,4 +1,4 @@
-import type { CtcSymbol } from "./ctc.ts";
+import type { CtcSymbol } from "./model/ctc.ts";
 
 const HEBREW_LETTER = /[א-ת]/u;
 const LEFT_TO_RIGHT_CHARACTER = /[0-9A-Za-z]/u;

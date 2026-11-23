@@ -25,7 +25,7 @@
     "paths": {
       "@/*": ["./src/*"],
       "@scripts/*": ["../scripts/*"],
-      "@litertjs/core": ["./src/media/ocr/lens/litert-types.d.ts"]
+      "@litertjs/core": ["./src/media/ocr/lens/model/litert-types.d.ts"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.svelte", "*.ts", "*.js"]
