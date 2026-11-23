@@ -1,3 +1,4 @@
+import type { AnswerLink } from "@/glic/glic_protocol";
 import { collapseWhitespace } from "@/shared/text";
 
 // Google apps and web searches via a text turn. Live can't reach Calendar, Keep, Tasks or Gmail -
@@ -7,7 +8,6 @@ import { collapseWhitespace } from "@/shared/text";
 // keeps the answer in context. C# types the request with trusted CDP key events, because synthetic
 // input never enables Submit.
 import { Button, clickButton, findButton } from "./glic_page";
-import type { AnswerLink } from "./glic_protocol";
 
 const ACTION_READY_MS = 6000;
 const EDITOR_POLL_MS = 150;

@@ -5,7 +5,7 @@
 // repo: reverse-engineering/gemini/GLIC-FINDINGS.md). "Glic" is Gemini in Chrome: the real, signed-in
 // gemini.google.com/glic web app, which runs the WHOLE Live loop itself - mic via getUserMedia (with
 // Chromium's echo canceller), the Live session to geminiweb-pa.../v1/processSession, Gemini's native
-// voice out. We hand it the "host" object Chrome normally would (glic_host.ts), whose getters
+// voice out. We hand it the "host" object Chrome normally would (host/glic_host.ts), whose getters
 // include the viewport screenshots Live pulls while sharing, which we fetch from the C# side
 // (ScreenGrabber).
 //
@@ -16,12 +16,10 @@
 // in a fixed order, before Glic's own scripts run: page visibility, the microphone, the host and
 // its bootstrap, then the Live wire tap.
 
-import { BridgeFlag, claimTopWindow } from "@/shared/install_once";
-import { connectToApp } from "@/shared/webview_transport";
-
-import { readCaptions } from "./captions";
-import { installDesktopMic } from "./desktop_mic";
-import { createGlicHost, installBootstrap } from "./glic_host";
+import { createGlicHost, installBootstrap } from "@/glic/host/glic_host";
+import { patchLiveTimeouts } from "@/glic/live/live_timeouts";
+import { muteTones } from "@/glic/live/tone_gate";
+import { installDesktopMic } from "@/glic/mic/desktop_mic";
 import {
   Button,
   clickButton,
@@ -32,13 +30,15 @@ import {
   pageSays,
   Phrase,
   RESUME_BUTTONS
-} from "./glic_page";
+} from "@/glic/page/glic_page";
+import { openTextEditor, submitAndRead } from "@/glic/page/text_action";
+import { readCaptions } from "@/glic/transcript/captions";
+import { tapLiveTranscript } from "@/glic/transcript/live_wire";
+import { transcriptRelay } from "@/glic/transcript/transcript";
+import { BridgeFlag, claimTopWindow } from "@/shared/install_once";
+import { connectToApp } from "@/shared/webview_transport";
+
 import { ErrorMessage, GlicMessage, type GlicProtocolMap, State } from "./glic_protocol";
-import { patchLiveTimeouts } from "./live_timeouts";
-import { tapLiveTranscript } from "./live_wire";
-import { openTextEditor, submitAndRead } from "./text_action";
-import { muteTones } from "./tone_gate";
-import { transcriptRelay } from "./transcript";
 
 const REQUEST_TIMEOUT_MS = 3000;
 const UNAVAILABLE_POLL_MS = 500;
@@ -336,7 +336,7 @@ if (claimTopWindow(BridgeFlag.GLIC)) {
     setState(State.IDLE);
   }
 
-  /** Pauses Live for a Google-apps text turn (text_action.ts); C# resumes it with Start. */
+  /** Pauses Live for a Google-apps text turn (page/text_action.ts); C# resumes it with Start. */
   function beginAction() {
     isActionPending = true;
     isSessionActive = false;

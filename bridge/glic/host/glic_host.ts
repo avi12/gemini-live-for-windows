@@ -2,7 +2,8 @@
 // bootstrap that hands it over. Chrome normally passes it over a chrome://glic-origin handshake a
 // webview cannot forge, so we pre-define internalAutoGlicBoot and replay Glic's own message
 // listener with a synthetic chrome://glic event (it needs a non-null source).
-import type { Picture, ScreenView } from "./glic_protocol";
+import type { Picture, ScreenView } from "@/glic/glic_protocol";
+
 import { annotatedPageContent, byteStream } from "./page_content";
 
 // Glic host API enums we answer with, values from Chromium's glic_api_generated.ts.

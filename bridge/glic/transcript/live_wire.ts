@@ -3,7 +3,8 @@
 // channel itself never confuses the two: the user's words arrive as the server's input
 // transcription and Gemini's as its output transcription. So read them off the wire. Frame layout:
 // docs/live-transcript-wire.md.
-import { Direction } from "./glic_protocol";
+import { Direction } from "@/glic/glic_protocol";
+
 import type { Utterance } from "./transcript";
 
 /** The Live channel; its long-poll GETs are the downlink (POSTs carry the mic up). */

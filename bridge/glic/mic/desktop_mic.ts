@@ -1,6 +1,7 @@
 // Mic: keep AEC, add auto-gain + voice isolation so barge-in works over desktop speakers. Each
 // capture goes through a gate the pill's mute button closes (see mic_gate.ts).
-import type { Microphone } from "./glic_protocol";
+import type { Microphone } from "@/glic/glic_protocol";
+
 import { gateMicrophone, type MicGate } from "./mic_gate";
 
 /** Aliases Chromium adds for Windows' default devices. */
