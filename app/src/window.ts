@@ -2,7 +2,7 @@ import { workerData } from "node:worker_threads";
 
 import { runOnUiThread } from "winui-svelte/thread";
 
-import { loadStartUi } from "@/pill/host/dev-attach.ts";
+import { loadStartUi } from "@/wiring/dev/source-loader.ts";
 import { uiWorkerDataSchema } from "@/wiring/ui-thread/ui-worker-data.ts";
 
 // The UI-thread worker: everything WinUI lives here, and the main thread owns the state it shows

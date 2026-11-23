@@ -26,7 +26,7 @@ import { KeySource, serveKeyTriggers } from "@/entry/activation/protocol.ts";
 import { ensureDpiAware } from "@/entry/dpi.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 import { launchDetached } from "@/lib/launch.ts";
-import { watchDevSources, watchPillDevMarker } from "@/pill/host/dev-attach.ts";
+import { restartOnDevChanges } from "@/wiring/dev/dev-restart.ts";
 import { buildController } from "@/wiring/main-thread/build-controller.ts";
 import { openChannels } from "@/wiring/main-thread/channels.ts";
 import type { ShippedFiles } from "@/wiring/main-thread/shipped-files.ts";
@@ -43,8 +43,6 @@ const WINDOWS_APP_SDK_MAJOR = 2;
 const WINDOWS_APP_SDK_MINOR = 2;
 const NOT_SUPPORTED_HRESULT = "0x80070032";
 const HOST_EXECUTABLE = "GeminiLiveHost.exe";
-// How often a restart waiting for the pill to be put away looks again
-const IDLE_POLL_MILLISECONDS = 2000;
 
 function writeLog(message: string) {
   log.write(message);
@@ -117,33 +115,11 @@ function startUiWorker({
   worker.on("error", error => {
     writeLog(`ui worker: ${errorMessage(error)}`);
   });
-  // Ending the window makes the app start again (below), which is how `pnpm dev` applies a change
-  function endWindow() {
-    void worker.terminate();
-  }
-
-  // A saved file waits for the pill to be put away, so it never closes on someone using it
-  const restart = { isWaiting: false };
-  function endWindowWhenIdle() {
-    if (isInUse()) {
-      setTimeout(endWindowWhenIdle, IDLE_POLL_MILLISECONDS);
-      return;
-    }
-
-    restart.isWaiting = false;
-    endWindow();
-  }
-
-  watchPillDevMarker({ onChanged: endWindow });
-  watchDevSources({
-    onChanged() {
-      if (restart.isWaiting) {
-        return;
-      }
-
-      restart.isWaiting = true;
-      endWindowWhenIdle();
-    }
+  restartOnDevChanges({
+    endWindow() {
+      void worker.terminate();
+    },
+    isInUse
   });
   worker.on("exit", exitCode => {
     onEnded({

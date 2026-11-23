@@ -1,4 +1,4 @@
-import { loadStartApp } from "@/pill/host/dev-attach.ts";
+import { loadStartApp } from "@/wiring/dev/source-loader.ts";
 import { shippedFiles } from "@/wiring/main-thread/shipped-files.ts";
 
 // While `pnpm dev` runs, the app's code comes from the repo's source rather than this bundle
