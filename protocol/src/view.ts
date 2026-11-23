@@ -1,9 +1,26 @@
 import { z } from "zod";
 
+import { DEFAULT_REFRESH_RATE_HERTZ, displaySchema, regionSchema } from "./pill-display.ts";
+
 // The pill's state, owned by the C# app and sent to the Svelte window as a `view` snapshot, then
-// `patch` lines (winui-svelte/state). This file is the single source of truth: the window reads
-// the inferred types, the relay validates with the schemas, and src/GeminiLive/Pill/PillProtocol.cs
-// mirrors the names and shapes one for one.
+// `patch` lines (winui-svelte/state). This file, with the displays (pill-display.ts) and the
+// window's own messages (pill-window.ts), is the single source of truth: the window reads the
+// inferred types, the relay validates with the schemas, and src/GeminiLive/Pill/PillProtocol.cs
+// mirrors the names and shapes one for one. Importers read all of it through this entry.
+export {
+  DEFAULT_REFRESH_RATE_HERTZ,
+  knownRefreshRate,
+  type PillDisplay,
+  refreshRateSchema,
+  regionSchema
+} from "./pill-display.ts";
+export {
+  type ClipToData,
+  clipToDataSchema,
+  moveByDataSchema,
+  WindowMessage,
+  type WindowProtocol
+} from "./pill-window.ts";
 
 export const GlowMode = {
   REST: "rest",
@@ -48,32 +65,6 @@ const namedSchema = z.object({
   id: z.string(),
   name: z.string()
 });
-
-export const DEFAULT_REFRESH_RATE_HERTZ = 60;
-const LARGEST_UNKNOWN_REFRESH_RATE_HERTZ = 1;
-
-export const refreshRateSchema = z.number().int().positive();
-
-export function knownRefreshRate(reportedHertz: number) {
-  const isUnknown = !Number.isFinite(reportedHertz) || reportedHertz <= LARGEST_UNKNOWN_REFRESH_RATE_HERTZ;
-  return isUnknown ? DEFAULT_REFRESH_RATE_HERTZ : Math.round(reportedHertz);
-}
-
-export const regionSchema = z.object({
-  x: z.number().int(),
-  y: z.number().int(),
-  width: z.number().int().positive(),
-  height: z.number().int().positive()
-});
-
-const displaySchema = regionSchema.extend({
-  id: z.string(),
-  index: z.number().int().positive(),
-  isPrimary: z.boolean(),
-  refreshRateHertz: refreshRateSchema
-});
-
-export type PillDisplay = z.infer<typeof displaySchema>;
 
 const updateSchema = z.object({
   readyVersion: z.string().nullable(),
@@ -217,28 +208,3 @@ export type PillAction = z.infer<typeof pillActionSchema>;
 
 // The name of the view in `hostState({ name })` and in the snapshot frame
 export const VIEW_NAME = "view";
-
-export const WindowMessage = {
-  BRING_TO_FRONT: "bringToFront",
-  MOVE_BY: "moveBy",
-  CLIP_TO: "clipTo",
-  RESTORE_PREVIOUS_APP: "restorePreviousApp"
-} as const;
-
-export const moveByDataSchema = z.object({
-  deltaX: z.number().int(),
-  deltaY: z.number().int()
-});
-
-export type MoveByData = z.infer<typeof moveByDataSchema>;
-
-export const clipToDataSchema = z.object({ region: regionSchema.nullable() });
-
-export type ClipToData = z.infer<typeof clipToDataSchema>;
-
-export interface WindowProtocol {
-  [WindowMessage.BRING_TO_FRONT](): void;
-  [WindowMessage.MOVE_BY](data: MoveByData): void;
-  [WindowMessage.CLIP_TO](data: ClipToData): void;
-  [WindowMessage.RESTORE_PREVIOUS_APP](): void;
-}
