@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { findSharedDisplayName } from "@/lib/display-labels.ts";
+  import { findSharedDisplayName } from "@/lib/display/display-labels.ts";
   import { sendAction, view } from "@/lib/view.svelte.ts";
   import { collapse, PILL_WIDTH } from "@/ui/fold/collapse.svelte.ts";
   import { micPathData } from "@/ui/glyph/morph/mic-icon.ts";

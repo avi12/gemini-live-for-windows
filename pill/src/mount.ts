@@ -38,7 +38,7 @@ export async function mountPill({
   const { exitWhenHostEnds, runWindow } = await import("winui-svelte/window");
   const { default: appComponent } = await import("@/App.svelte");
   const { connectView } = await import("@/lib/view.svelte.ts");
-  const { installPreviewSource } = await import("@/lib/display-previews.svelte.ts");
+  const { installPreviewSource } = await import("@/lib/display/display-previews.svelte.ts");
   const { createWindowsPreviewSource } = await import("@/lib/capture/windows-preview-source.ts");
   const channel = createHostChannel<PillAction, WindowProtocol>({ transport: createMessagePortTransport({ port }) });
 

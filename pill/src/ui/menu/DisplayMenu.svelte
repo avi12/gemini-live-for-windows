@@ -1,7 +1,7 @@
 <script lang="ts">
   import { menuOf } from "./menu.ts";
-  import { describeDisplay } from "@/lib/display-labels.ts";
-  import { previewOf, setPreviewsOpen, syncPreviews } from "@/lib/display-previews.svelte.ts";
+  import { describeDisplay } from "@/lib/display/display-labels.ts";
+  import { previewOf, setPreviewsOpen, syncPreviews } from "@/lib/display/display-previews.svelte.ts";
   import { pillPreview, sendAction, view } from "@/lib/view.svelte.ts";
   import { PillActionKind } from "@gemini-live/protocol/view";
   import type { PillView } from "@gemini-live/protocol/view";

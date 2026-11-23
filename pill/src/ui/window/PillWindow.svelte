@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { arePreviewsOpen } from "@/lib/display-previews.svelte.ts";
+  import { arePreviewsOpen } from "@/lib/display/display-previews.svelte.ts";
   import { setPillWindow } from "@/lib/pill-window.ts";
   import { sendAction, view } from "@/lib/view.svelte.ts";
   import { holdVoiceLevel } from "@/lib/voice-level.svelte.ts";
