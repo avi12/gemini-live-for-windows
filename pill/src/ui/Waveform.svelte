@@ -57,7 +57,9 @@
 
 <stack-panel class="wave">
   {#each heights as height, iBar (iBar)}
-    <border style:height="{height}px" class="live-wave-bar"></border>
+    <!-- The height goes straight to the property: an inline style is built through XAML's parser for
+         each new value, and these change every tick -->
+    <border class="live-wave-bar" {height}></border>
   {/each}
 </stack-panel>
 
