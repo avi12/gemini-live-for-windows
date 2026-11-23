@@ -14,7 +14,7 @@
     "@gemini-live/messaging": "workspace:*"
   },
   "devDependencies": {
-    "esbuild": "^0.24.2",
+    "esbuild": "^0.28.2",
     "tsrs": "0.25.0-ts7.1.0-beta",
     "typescript": "^6.0.3"
   }
