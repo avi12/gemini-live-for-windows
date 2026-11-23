@@ -1,9 +1,10 @@
 """Cuts Material Symbols Rounded down to the icons the app uses.
 
 The full variable font is about 15 MB; the app draws a handful of icons, always at the default
-style (WPF can't set a variable font's axes). So this pins the axes to that default
+style (WinUI can't set a variable font's axes). So this pins the axes to that default
 (outlined, weight 400, grade 0, optical size 24) and keeps only the code points named in
-src/GeminiLive/Design/Glyphs.cs (the WPF overlays' icons) and pill/src/ui/glyph/glyphs.ts (the pill's).
+app/src/overlays/glyphs.ts (the overlays' icons) and pill/src/ui/glyph/glyphs.ts (the pill's).
+A glyph is written either as the character itself or as a "\\uXXXX" escape.
 Re-run it after adding a glyph to either:
 
     python scripts/subset-icons.py <path to MaterialSymbolsRounded[FILL,GRAD,opsz,wght].ttf>
@@ -21,23 +22,26 @@ from fontTools.varLib import instancer
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 GLYPH_SOURCES = [
-    ROOT / "src" / "GeminiLive" / "Design" / "Glyphs.cs",
-    ROOT / "pill" / "src" / "ui" / "glyphs.ts",
+    ROOT / "app" / "src" / "overlays" / "glyphs.ts",
+    ROOT / "pill" / "src" / "ui" / "glyph" / "glyphs.ts",
 ]
-OUT = ROOT / "src" / "GeminiLive" / "Fonts" / "MaterialSymbolsRounded.ttf"
+OUT = ROOT / "pill" / "fonts" / "MaterialSymbolsRounded.ttf"
 DEFAULT_STYLE = {"FILL": 0, "GRAD": 0, "opsz": 24, "wght": 400}
+PRIVATE_USE_AREA = range(0xE000, 0xF900)
+ESCAPE = re.compile(r'"\\u([0-9A-Fa-f]{4})"')
+LITERAL = re.compile('"([-])"')
 
 
 def code_points() -> list[int]:
-    # Each icon is one Private Use Area character in a string literal.
-    found = [
-        glyph
-        for source in GLYPH_SOURCES
-        for glyph in re.findall('"([-])"', source.read_text(encoding="utf-8"))
-    ]
-    if not found:
+    found = set()
+    for source in GLYPH_SOURCES:
+        text = source.read_text(encoding="utf-8")
+        found.update(ord(glyph) for glyph in LITERAL.findall(text))
+        found.update(int(digits, 16) for digits in ESCAPE.findall(text))
+    points = sorted(point for point in found if point in PRIVATE_USE_AREA)
+    if not points:
         sys.exit(f"no icon glyphs found in {GLYPH_SOURCES}")
-    return sorted({ord(glyph) for glyph in found})
+    return points
 
 
 def main() -> None:

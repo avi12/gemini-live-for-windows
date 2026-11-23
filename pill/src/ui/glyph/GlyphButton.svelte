@@ -8,7 +8,9 @@
   import { Button } from "winui-svelte/components";
 
   interface Props {
-    glyph: Glyph;
+    // A font glyph; or `icon`, drawn in its place
+    glyph?: Glyph;
+    icon?: Snippet | undefined;
     glyphSize: number;
     kind: GlyphButtonKind;
     part: PillPart;
@@ -53,6 +55,7 @@
   <GlyphFace
     glyph={props.glyph}
     glyphSize={props.glyphSize}
+    icon={props.icon}
     isMuted={props.isMuted === true}
     kind={props.kind}
   />

@@ -106,6 +106,19 @@ text-block {
 
 .live-glyph-accent {
   color: var(--live-on-mic);
+/* The fills of the drawn (morphing) icons, matching the font icons' colors above */
+.live-path-round {
+  fill: var(--live-text);
+}
+
+.live-path-accent {
+  fill: var(--live-on-mic);
+}
+
+.live-path-muted {
+  fill: var(--live-on-muted);
+}
+
 }
 
 .live-glyph-muted {

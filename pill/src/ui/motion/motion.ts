@@ -12,6 +12,15 @@ export const Motion = {
   SWAP_OUT_MILLISECONDS: 100,
   FOLLOW_MILLISECONDS: 90,
   BOUNCE_MILLISECONDS: 100,
+  // Measured from Gemini Live's pill on Android (60 fps screen recording): folding is one quick
+  // decelerating move of about 0.3 s while the side buttons are gone in about 65 ms; unfolding
+  // takes about 0.5 s with the buttons fading in as the capsule widens
+  FOLD_MILLISECONDS: 300,
+  UNFOLD_MILLISECONDS: 500,
+  COLLAPSE_FADE_MILLISECONDS: 32,
+  // An icon turning into another (fold, mute): as long as the fold itself
+  ICON_MORPH_MILLISECONDS: 300,
+  EXPAND_FADE_DELAY_MILLISECONDS: 30,
   MENU_EXIT_MILLISECONDS: 120,
   STAGGER_MILLISECONDS: 60,
   PILL_RISE: 24,

@@ -5,10 +5,8 @@ export const Glyph = {
   CLOSE: "",
   DISPLAY: "",
   GEAR: "",
+  LAUNCH: "",
   LINK: "",
-  MIC: "",
-  MIC_OFF: "",
-  SEARCH: "",
-  TEXT_SELECT: ""
+  SEARCH: ""
 } as const;
 export type Glyph = (typeof Glyph)[keyof typeof Glyph];
