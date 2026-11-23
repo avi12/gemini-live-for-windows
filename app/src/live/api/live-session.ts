@@ -7,22 +7,15 @@ import {
   FRAME_MIME_TYPE,
   INVALID_MESSAGE_REASON,
   LIVE_ENDPOINT,
-  MODEL_PREFIX,
   NORMAL_CLOSE_REASON,
   RECONNECT_FAILED_PREFIX,
   SESSION_CLOSE_TIMEOUT_MS,
-  SETUP_REJECTED_PREFIX,
-  SYSTEM_PROMPT
+  SETUP_REJECTED_PREFIX
 } from "@/live/api/constants.ts";
-import {
-  MediaResolution,
-  Modality,
-  parseServerFrame,
-  type RealtimeInput,
-  serializeClientMessage
-} from "@/live/api/protocol.ts";
+import { parseServerFrame, type RealtimeInput, serializeClientMessage } from "@/live/api/protocol.ts";
 import { closeReason } from "@/live/api/reasons.ts";
 import { SessionEventKind, toSessionEvents, unhandledFields } from "@/live/api/server-events.ts";
+import { buildSetup } from "@/live/api/session-setup.ts";
 import type { LiveSocket, SocketConnector } from "@/live/api/socket.ts";
 import type { LiveConfig, LogSink } from "@/live/ports.ts";
 
@@ -57,37 +50,11 @@ function encodeBase64(bytes: Uint8Array) {
   return Buffer.from(bytes).toString("base64");
 }
 
-function buildSetup({ config, resumeHandle }: { config: LiveConfig; resumeHandle: string | undefined }) {
-  return {
-    model: `${MODEL_PREFIX}${config.model}`,
-    generationConfig: {
-      responseModalities: [Modality.AUDIO],
-      mediaResolution: MediaResolution.MEDIUM,
-      speechConfig: {
-        voiceConfig: {
-          prebuiltVoiceConfig: {
-            voiceName: config.voice
-          }
-        }
-      }
-    },
-    systemInstruction: {
-      parts: [{ text: SYSTEM_PROMPT }]
-    },
-    tools: [
-      {
-        googleSearch: {}
-      }
-    ],
-    inputAudioTranscription: {},
-    outputAudioTranscription: {},
-    // Audio+video sessions are capped at ~2 minutes of context without this
-    contextWindowCompression: {
-      slidingWindow: {}
-    },
-    // Lets the session reconnect into the same conversation when the server sends goAway
-    sessionResumption: resumeHandle === undefined ? {} : { handle: resumeHandle }
-  };
+function closeNormally(socket: LiveSocket | undefined) {
+  socket?.close({
+    code: CloseCode.NORMAL_CLOSURE,
+    reason: NORMAL_CLOSE_REASON
+  });
 }
 
 function sendRealtime({ state, input }: { state: SessionState; input: RealtimeInput }) {
@@ -104,10 +71,7 @@ function retire({ state, socket }: { state: SessionState; socket: LiveSocket | u
     state.current = undefined;
   }
 
-  socket?.close({
-    code: CloseCode.NORMAL_CLOSURE,
-    reason: NORMAL_CLOSE_REASON
-  });
+  closeNormally(socket);
 }
 
 function logUnhandled({ ctx, data }: { ctx: SessionContext; data: Parameters<typeof unhandledFields>[0] }) {
@@ -314,10 +278,7 @@ async function disposeSession(state: SessionState) {
   state.current = undefined;
 
   if (!socket?.isOpen()) {
-    socket?.close({
-      code: CloseCode.NORMAL_CLOSURE,
-      reason: NORMAL_CLOSE_REASON
-    });
+    closeNormally(socket);
     return;
   }
 
@@ -326,10 +287,7 @@ async function disposeSession(state: SessionState) {
     socket.onClose(() => resolve());
     timer = setTimeout(resolve, SESSION_CLOSE_TIMEOUT_MS);
   });
-  socket.close({
-    code: CloseCode.NORMAL_CLOSURE,
-    reason: NORMAL_CLOSE_REASON
-  });
+  closeNormally(socket);
   await closed;
   clearTimeout(timer);
 }
