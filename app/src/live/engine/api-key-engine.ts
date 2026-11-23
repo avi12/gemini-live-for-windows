@@ -2,13 +2,13 @@ import { EngineKind, type LiveEngine, type LiveEvent, LiveEventKind } from "@/co
 import type { Monitor, Region } from "@/contracts/monitor.ts";
 import { createEmitter } from "@/lib/emitter.ts";
 import { noop } from "@/lib/noop.ts";
-import { FRAME_INTERVAL_MS } from "@/live/api/constants.ts";
 import { createLiveSession } from "@/live/api/live-session.ts";
 import { connectWebSocket, type SocketConnector } from "@/live/api/socket.ts";
 import { micLevel, speakerLevel } from "@/live/engine/level.ts";
+import { createFrameLoop } from "@/live/frames/frame-loop.ts";
 import { createFrameSender } from "@/live/frames/frame-sender.ts";
 import type { AudioDuplex, LiveConfig, LogSink, ScreenSource } from "@/live/ports.ts";
-import { appendFragment, EMPTY_UTTERANCE } from "@/live/transcript/utterance.ts";
+import { createTranscript } from "@/live/transcript/transcript.ts";
 
 export interface ApiKeyEngineDeps {
   readonly config: LiveConfig;
@@ -21,23 +21,6 @@ export interface ApiKeyEngineDeps {
 }
 
 type Emit = (event: LiveEvent) => void;
-
-function createTranscript(emit: Emit) {
-  let utterance = EMPTY_UTTERANCE;
-
-  return function appendTranscript({ fragment, isUser }: { fragment: string; isUser: boolean }) {
-    utterance = appendFragment({
-      utterance,
-      fragment,
-      isUser
-    });
-    emit({
-      kind: LiveEventKind.TRANSCRIPT,
-      text: utterance.text.trim(),
-      isUser
-    });
-  };
-}
 
 function buildSessionListeners({ audio, emit }: { audio: AudioDuplex; emit: Emit }) {
   const appendTranscript = createTranscript(emit);
@@ -97,39 +80,6 @@ function subscribeAudio({
       })
     )
   ];
-}
-
-function createFrameLoop(frames: ReturnType<typeof createFrameSender>) {
-  let timer: ReturnType<typeof setInterval> | undefined;
-  let isInFlight = false;
-  let isStopped = false;
-
-  async function tick() {
-    const isSkipped = isInFlight || isStopped;
-    if (isSkipped) {
-      return;
-    }
-
-    isInFlight = true;
-    try {
-      await frames.tick();
-    } finally {
-      isInFlight = false;
-    }
-  }
-
-  return {
-    start() {
-      void tick();
-      timer = setInterval(() => {
-        void tick();
-      }, FRAME_INTERVAL_MS);
-    },
-    stop() {
-      isStopped = true;
-      clearInterval(timer);
-    }
-  };
 }
 
 function assembleParts({
