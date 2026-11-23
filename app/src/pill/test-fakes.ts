@@ -396,10 +396,6 @@ function createFakeHost({
       listeners,
       isPackaged
     }),
-    circleToSearch() {
-      calls.push("circleToSearch");
-      return Promise.resolve();
-    },
     openExternal: uri => calls.push(`open ${uri}`),
     copyText(text) {
       calls.push(`copy ${text}`);

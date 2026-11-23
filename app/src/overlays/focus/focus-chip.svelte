@@ -26,8 +26,6 @@
     ondismissed: () => void;
     ondragstarted: () => void;
     ondragged: (travelled: Point) => void;
-    // Shows the region's words ready to pick, in place
-    onselecttext: () => void;
   }
 
   const {
@@ -35,13 +33,11 @@
     cursorPosition,
     ondismissed,
     ondragstarted,
-    ondragged,
-    onselecttext
+    ondragged
   }: Props = $props();
 
   const LABEL = "Gemini sees this area";
   const CLOSE_TOOL_TIP = "Show Gemini the whole screen (Esc)";
-  const SELECT_TEXT_TOOL_TIP = "Select text";
   const PRIMARY_BUTTON = 0;
 
   const windowRef: { handle: WindowHandle | undefined } = $state({ handle: undefined });
@@ -144,13 +140,6 @@
   >
     <StackPanel orientation="Horizontal">
       <TextBlock class="focus-chip-label" text={LABEL} verticalAlignment="Center" />
-      <Button
-        class="focus-chip-close"
-        onclick={onselecttext}
-        toolTip={SELECT_TEXT_TOOL_TIP}
-      >
-        <TextBlock class="focus-chip-icon" text={OverlayGlyph.textSelect} />
-      </Button>
       <Button
         class="focus-chip-close"
         onclick={ondismissed}

@@ -1,13 +1,13 @@
 import { pillViewSchema } from "@gemini-live/protocol/view";
 import type { PillAction, PillView } from "@gemini-live/protocol/view";
 
-import type { Monitor, Region } from "@/contracts/monitor.ts";
+import type { Monitor } from "@/contracts/monitor.ts";
 import { KeyTrigger } from "@/core/instance/key-trigger.ts";
 import { applyAction } from "@/pill/actions.ts";
 import { createCaptionLog } from "@/pill/captions/caption-log.ts";
 import { createPillState } from "@/pill/context.ts";
 import type { PillContext } from "@/pill/context.ts";
-import { onDisplaysChanged, shareActiveDisplay } from "@/pill/menus/displays.ts";
+import { onDisplaysChanged } from "@/pill/menus/displays.ts";
 import type { PillDeps } from "@/pill/ports.ts";
 import { endConversation, setMuted, startConversation } from "@/pill/session.ts";
 import { buildView } from "@/pill/view-builder.ts";
@@ -126,22 +126,6 @@ function handleTrigger({ context, trigger }: { context: PillContext; trigger: Ke
   return Promise.resolve();
 }
 
-// Circle to Search: Gemini watches the circled region, starting a conversation first if none runs
-async function focusRegion({ context, monitor, region }: { context: PillContext; monitor: Monitor; region: Region }) {
-  const isIdle = context.state.conversation === undefined;
-  if (isIdle) {
-    await startConversation({
-      context,
-      monitor
-    });
-  }
-
-  context.focus.focusOn({
-    monitor,
-    region
-  });
-}
-
 function createContext({ deps, changed }: { deps: PillDeps; changed: () => void }) {
   const state = createPillState();
   const context: PillContext = {
@@ -190,10 +174,6 @@ export function createPillController(deps: PillDeps) {
     get isRunning() {
       return state.conversation !== undefined;
     },
-    // Gemini is restricted to a circled region: the engine's region is the one source of that
-    get isRegionFocused() {
-      return state.conversation?.region !== undefined;
-    },
     subscribe,
     view() {
       return flush();
@@ -210,16 +190,6 @@ export function createPillController(deps: PillDeps) {
         context,
         monitor
       });
-    },
-    focusRegion({ monitor, region }: { monitor: Monitor; region: Region }) {
-      return focusRegion({
-        context,
-        monitor,
-        region
-      });
-    },
-    focusActiveDisplay() {
-      shareActiveDisplay(context);
     },
     async apply(action: PillAction) {
       await applyAction({

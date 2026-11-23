@@ -229,7 +229,7 @@ else {
 
 $pkg = Get-AppxPackage $name
 Write-Host "Installed $($pkg.PackageFullName) ($($pkg.SignatureKind))"
-# The install stops the running app, and its global hotkeys (Win+Alt+C) exist only while it runs. It
+# The install stops the running app, and its global hotkeys exist only while it runs. It
 # comes back the way it does after a crash (no conversation, no sound), not as a Win+C press
 Write-Host '== launch'
 $launcherSource = @'

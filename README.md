@@ -166,12 +166,6 @@ The code follows the youtube-time-manager setup: oxlint for logic, ESLint for la
 - Log: `%LOCALAPPDATA%\GeminiLive\log.txt`.
 - Create `%LOCALAPPDATA%\GeminiLive\debug.flag` to turn on DevTools and CDP for the hidden pages, each on a free port the log names (`glic: devtools on localhost:<port>`), and to keep the overlays visible in screenshots.
 
-## Circle to Search
-
-Press **Win+Alt+C** to freeze the screen, circle something, and then ask Gemini about it, search it with Google Lens or Bing, or select its text and copy it. While Live runs, the circled area becomes what Gemini sees, until you press Esc to go back to the whole monitor.
-
-Inspired by [AKS-Labs/CircleToSearch](https://github.com/AKS-Labs/CircleToSearch), an Android app. Only its idea and look were carried over; it is GPL-3, and none of its code is used here.
-
 ## License
 
 [Apache License 2.0](LICENSE). Forks and other redistributions must keep the [NOTICE](NOTICE) file and credit [Avi](https://avi12.com) in their documentation and in any about or credits screen.

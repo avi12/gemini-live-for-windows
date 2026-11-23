@@ -327,25 +327,6 @@ describe("createScreenFocus", () => {
     assert.equal(engine.region, undefined);
   });
 
-  it("lets go of Esc while the circle overlay is up and takes it back after", () => {
-    const { calls, focus } = setup();
-    focus.focusOn({
-      monitor: PRIMARY,
-      region: REGION
-    });
-    calls.length = 0;
-    focus.setCircling(true);
-    focus.setCircling(false);
-    assert.deepEqual(calls, ["escape:false", "hideChip", "escape:true", "chip:100,200"]);
-  });
-
-  it("never holds Esc for the circle overlay without a region", () => {
-    const { calls, focus } = setup();
-    focus.setCircling(true);
-    focus.setCircling(false);
-    assert.deepEqual(calls, ["escape:false", "hideChip", "escape:false"]);
-  });
-
   it("moves the region with the chip drag and reframes it", () => {
     const { calls, engine, focus } = setup();
     focus.focusOn({

@@ -1,16 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { CircleAction } from "@/overlays/protocol.ts";
-import {
-  CircleKeyCombination,
-  createCopyKey,
-  createFocusEscapeKey,
-  createHeldKey,
-  createOverlayKeys,
-  holdCircleKey
-} from "@/overlays/window/hotkeys.ts";
-import type { CircleKeyCombination as Combination, RegisterHotkey } from "@/overlays/window/hotkeys.ts";
+import { createFocusEscapeKey, createHeldKey, HotkeyCombination } from "@/overlays/window/hotkeys.ts";
+import type { HotkeyCombination as Combination, RegisterHotkey } from "@/overlays/window/hotkeys.ts";
 
 function fakeSystem() {
   const owned = new Map<Combination, () => void>();
@@ -48,14 +40,14 @@ describe("createHeldKey", () => {
   it("takes the key only while held", () => {
     const system = fakeSystem();
     const key = createHeldKey({
-      keys: CircleKeyCombination.escape,
+      keys: HotkeyCombination.ESCAPE,
       register: system.register,
       onPressed: () => undefined,
       log: system.log
     });
     assert.equal(system.owned.size, 0);
     key.hold(true);
-    assert.equal(system.owned.has(CircleKeyCombination.escape), true);
+    assert.equal(system.owned.has(HotkeyCombination.ESCAPE), true);
     assert.equal(key.isHeld, true);
     key.hold(false);
     assert.equal(system.owned.size, 0);
@@ -65,7 +57,7 @@ describe("createHeldKey", () => {
   it("registers once however often it is held", () => {
     const system = fakeSystem();
     const key = createHeldKey({
-      keys: CircleKeyCombination.escape,
+      keys: HotkeyCombination.ESCAPE,
       register: system.register,
       onPressed: () => undefined,
       log: system.log
@@ -78,7 +70,7 @@ describe("createHeldKey", () => {
   it("can be released twice", () => {
     const system = fakeSystem();
     const key = createHeldKey({
-      keys: CircleKeyCombination.escape,
+      keys: HotkeyCombination.ESCAPE,
       register: system.register,
       onPressed: () => undefined,
       log: system.log
@@ -92,7 +84,7 @@ describe("createHeldKey", () => {
   it("can be taken again after a release", () => {
     const system = fakeSystem();
     const key = createHeldKey({
-      keys: CircleKeyCombination.escape,
+      keys: HotkeyCombination.ESCAPE,
       register: system.register,
       onPressed: () => undefined,
       log: system.log
@@ -107,21 +99,21 @@ describe("createHeldKey", () => {
     const system = fakeSystem();
     let presses = 0;
     const key = createHeldKey({
-      keys: CircleKeyCombination.escape,
+      keys: HotkeyCombination.ESCAPE,
       register: system.register,
       onPressed: () => presses++,
       log: system.log
     });
     key.hold(true);
-    system.press(CircleKeyCombination.escape);
+    system.press(HotkeyCombination.ESCAPE);
     assert.equal(presses, 1);
   });
 
   it("only logs a key another app holds, and may retry", () => {
     const system = fakeSystem();
-    system.owned.set(CircleKeyCombination.escape, () => undefined);
+    system.owned.set(HotkeyCombination.ESCAPE, () => undefined);
     const key = createHeldKey({
-      keys: CircleKeyCombination.escape,
+      keys: HotkeyCombination.ESCAPE,
       register: system.register,
       onPressed: () => undefined,
       log: system.log
@@ -135,105 +127,16 @@ describe("createHeldKey", () => {
   });
 });
 
-describe("holdCircleKey", () => {
-  it("holds Win+Alt+C from the start", () => {
+describe("createFocusEscapeKey", () => {
+  it("is Esc and starts released", () => {
     const system = fakeSystem();
-    let presses = 0;
-    const key = holdCircleKey({
-      register: system.register,
-      onPressed: () => presses++,
-      log: system.log
-    });
-    assert.equal(key.isHeld, true);
-    assert.deepEqual(system.registrations, ["win+alt+c"]);
-    system.press(CircleKeyCombination.circle);
-    assert.equal(presses, 1);
-  });
-});
-
-describe("createCopyKey", () => {
-  it("is Ctrl+C and starts released", () => {
-    const system = fakeSystem();
-    const key = createCopyKey({
+    const key = createFocusEscapeKey({
       register: system.register,
       onPressed: () => undefined,
       log: system.log
     });
-    assert.equal(key.isHeld, false);
+    assert.equal(system.owned.size, 0);
     key.hold(true);
-    assert.deepEqual(system.registrations, ["ctrl+c"]);
-  });
-});
-
-describe("createOverlayKeys", () => {
-  function overlay() {
-    const system = fakeSystem();
-    const calls: string[] = [];
-    const keys = createOverlayKeys({
-      register: system.register,
-      log: system.log,
-      onEscape: () => calls.push("escape"),
-      onFinish: action => calls.push(action),
-      onSelectText: () => calls.push("text")
-    });
-    return {
-      system,
-      calls,
-      keys
-    };
-  }
-
-  it("holds Esc, Enter, L, O, B and T only while open", () => {
-    const { system, keys } = overlay();
-    assert.equal(system.owned.size, 0);
-    keys.hold(true);
-    assert.deepEqual([...system.owned.keys()].toSorted(), ["b", "enter", "escape", "l", "o", "t"]);
-    keys.hold(false);
-    assert.equal(system.owned.size, 0);
-  });
-
-  it("maps each key to its action", () => {
-    const { system, calls, keys } = overlay();
-    keys.hold(true);
-    system.press(CircleKeyCombination.escape);
-    system.press(CircleKeyCombination.askGemini);
-    system.press(CircleKeyCombination.lens);
-    system.press(CircleKeyCombination.lensInBrowser);
-    system.press(CircleKeyCombination.bing);
-    system.press(CircleKeyCombination.selectText);
-    assert.deepEqual(calls, [
-      "escape",
-      CircleAction.askGemini,
-      CircleAction.LENS,
-      CircleAction.LENS_IN_BROWSER,
-      CircleAction.BING,
-      "text"
-    ]);
-  });
-
-  it("cannot take Esc while the focus Esc is still held", () => {
-    const { system, keys } = overlay();
-    const focusEscape = createFocusEscapeKey({
-      register: system.register,
-      onPressed: () => undefined,
-      log: system.log
-    });
-    focusEscape.hold(true);
-    keys.hold(true);
-    assert.deepEqual(system.lines, ["hotkey: Esc is taken by another app"]);
-  });
-
-  it("takes Esc once the focus Esc was released first", () => {
-    const { system, keys } = overlay();
-    const focusEscape = createFocusEscapeKey({
-      register: system.register,
-      onPressed: () => undefined,
-      log: system.log
-    });
-    focusEscape.hold(true);
-    focusEscape.hold(false);
-    keys.hold(true);
-    assert.deepEqual(system.lines, []);
-    assert.equal(system.owned.has(CircleKeyCombination.escape), true);
+    assert.equal(system.owned.has(HotkeyCombination.ESCAPE), true);
   });
 });

@@ -1,31 +1,9 @@
 import { defineMessaging } from "winui-svelte/messaging";
 import type { Transport } from "winui-svelte/state/host";
-import { z } from "zod";
 
 import type { OverlayLog } from "@/overlays/ports.ts";
-import {
-  attachChipSchema,
-  codeTextsSchema,
-  coverBorderSchema,
-  holdFocusEscapeSchema,
-  ocrLinesSchema,
-  openCircleSchema,
-  OverlayMessage,
-  showRegionTextSchema
-} from "@/overlays/protocol.ts";
-import type {
-  AttachChip,
-  CircleOutcome,
-  CoverBorder,
-  OcrLines,
-  OpenCircle,
-  OverlayProtocol,
-  ReadCircleText,
-  ScanCircleCodes,
-  SearchCircle,
-  SearchRegion,
-  ShowRegionText
-} from "@/overlays/protocol.ts";
+import { attachChipSchema, coverBorderSchema, holdFocusEscapeSchema, OverlayMessage } from "@/overlays/protocol.ts";
+import type { AttachChip, CoverBorder, OverlayProtocol } from "@/overlays/protocol.ts";
 import type { Point } from "@/overlays/shapes.ts";
 
 // What the controller can ask of the windows (UI worker)
@@ -35,10 +13,6 @@ export interface OverlayWindowHost {
   attachChip(options: AttachChip): void;
   hideChip(): void;
   holdFocusEscape(isHeld: boolean): void;
-  openCircle(options: OpenCircle): Promise<CircleOutcome>;
-  closeCircle(): void;
-  showRegionText(options: ShowRegionText): void;
-  hideRegionText(): void;
 }
 
 // What the windows tell the controller
@@ -47,12 +21,6 @@ export interface OverlayWindowEvents {
   chipDismissed: () => void;
   chipDragStarted: () => void;
   chipDragged: (travelled: Point) => void;
-  chipSelectTextPressed: () => void;
-  circleKeyPressed: () => void;
-  readCircleText(options: ReadCircleText): Promise<OcrLines>;
-  searchCircle(options: SearchCircle): Promise<string>;
-  searchRegion(options: SearchRegion): Promise<string>;
-  scanCircleCodes(options: ScanCircleCodes): Promise<string[]>;
 }
 
 function parsed<T>(
@@ -96,25 +64,7 @@ export function serveOverlayWindows({
       messaging.notify(OverlayMessage.CHIP_DRAGGED, {
         dx: travelled.x,
         dy: travelled.y
-      }),
-    chipSelectTextPressed: () => messaging.notify(OverlayMessage.SELECT_CHIP_TEXT),
-    circleKeyPressed: () => messaging.notify(OverlayMessage.CIRCLE_KEY_PRESSED),
-    async readCircleText(options) {
-      const lines = await messaging.sendMessage(OverlayMessage.READ_CIRCLE_TEXT, options);
-      return ocrLinesSchema.parse(lines);
-    },
-    async searchCircle(options) {
-      const url = await messaging.sendMessage(OverlayMessage.SEARCH_CIRCLE, options);
-      return z.string().parse(url);
-    },
-    async searchRegion(options) {
-      const url = await messaging.sendMessage(OverlayMessage.SEARCH_REGION, options);
-      return z.string().parse(url);
-    },
-    async scanCircleCodes(options) {
-      const texts = await messaging.sendMessage(OverlayMessage.SCAN_CIRCLE_CODES, options);
-      return codeTextsSchema.parse(texts);
-    }
+      })
   });
 
   messaging.onMessage(OverlayMessage.COVER_BORDER, message => {
@@ -131,18 +81,6 @@ export function serveOverlayWindows({
   });
   messaging.onMessage(OverlayMessage.HOLD_FOCUS_ESCAPE, message => {
     host.holdFocusEscape(parsed(holdFocusEscapeSchema.safeParse(message.data)).isHeld);
-  });
-  messaging.onMessage(OverlayMessage.OPEN_CIRCLE, message =>
-    host.openCircle(parsed(openCircleSchema.safeParse(message.data)))
-  );
-  messaging.onMessage(OverlayMessage.CLOSE_CIRCLE, () => {
-    host.closeCircle();
-  });
-  messaging.onMessage(OverlayMessage.SHOW_REGION_TEXT, message => {
-    host.showRegionText(parsed(showRegionTextSchema.safeParse(message.data)));
-  });
-  messaging.onMessage(OverlayMessage.HIDE_REGION_TEXT, () => {
-    host.hideRegionText();
   });
 
   return () => messaging.close();

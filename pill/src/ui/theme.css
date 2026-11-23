@@ -36,21 +36,6 @@
   --live-pressed-layer: rgb(31 31 31 / 0.1);
   --live-edge: rgb(0 0 0 / 0.1);
   --live-card-surface: rgb(243 237 247 / 0.94);
-  --live-brand-blue: #4285f4;
-  /* Circle's bar, hints and the Select text window's buttons: the light set here, the dark set below.
-     They are plain custom properties because the theme dictionaries mix light and dark values */
-  --circle-surface: #e1d5df;
-  --circle-secondary: #cdc2cd;
-  --circle-secondary-hover: #c0b4c1;
-  --circle-secondary-pressed: #c0b4c1;
-  --circle-on-secondary: #1d1b20;
-  --circle-primary: #d3e3fd;
-  --circle-primary-hover: #c2d3ef;
-  --circle-primary-pressed: #becfeb;
-  --circle-on-primary: #041e49;
-  /* Material 3's disabled button: the text colour at 12% for the container and 38% for the label */
-  --circle-disabled: rgb(29 27 32 / 0.12);
-  --circle-on-disabled: rgb(29 27 32 / 0.38);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -82,18 +67,6 @@
     --live-pressed-layer: rgb(227 227 227 / 0.1);
     --live-edge: rgb(138 180 248 / 0.33);
     --live-card-surface: rgb(47 47 49 / 0.88);
-    --circle-surface: #2f2f31;
-    --circle-secondary: #444746;
-    /* Material 3 state layers over the container: 8% of the label colour on hover, 10% pressed */
-    --circle-secondary-hover: #515453;
-    --circle-secondary-pressed: #565958;
-    --circle-on-secondary: #e3e3e3;
-    --circle-primary: #a8c7fa;
-    --circle-primary-hover: #9bbbef;
-    --circle-primary-pressed: #98b8ec;
-    --circle-on-primary: #062e6f;
-    --circle-disabled: rgb(227 227 227 / 0.12);
-    --circle-on-disabled: rgb(227 227 227 / 0.38);
   }
 }
 
@@ -179,8 +152,7 @@ text-block {
   background-image: linear-gradient(to bottom, #f3e8f4, #e4d3ea);
 }
 
-.live-glow,
-.circle-tint {
+.live-glow {
   border-radius: 38px;
   background-image: linear-gradient(to top, rgb(96 170 244 / 0.85) 0%, rgb(124 182 246 / 0.5) 35%, transparent 85%);
 }
@@ -195,8 +167,7 @@ text-block {
     background-image: linear-gradient(to bottom, #0a1420, #133251);
   }
 
-  .live-glow,
-  .circle-tint {
+  .live-glow {
     background-image: linear-gradient(to top, #437ee4 0%, #3c72ec 18%, transparent 60%);
   }
 
@@ -240,9 +211,8 @@ text-block {
   --button-background-pressed: var(--live-control-hover);
 }
 
-.live-round-button:focus-visible,
-.circle-action:focus-visible {
-  outline: 2px solid var(--circle-on-secondary);
+.live-round-button:focus-visible {
+  outline: 2px solid var(--live-text);
   outline-offset: 2px;
 }
 
@@ -266,132 +236,6 @@ text-block {
   --button-foreground: var(--live-on-share);
   --button-foreground-pointer-over: var(--live-on-share);
   --button-foreground-pressed: var(--live-on-share);
-}
-
-.circle-bar,
-.circle-hint {
-  border-radius: 38px;
-  cursor: default;
-  border-width: 0;
-  background-color: var(--circle-surface);
-}
-
-.circle-action {
-  cursor: default;
-  background-color: var(--circle-secondary);
-  --button-border-brush: transparent;
-  --button-border-brush-pointer-over: transparent;
-  --button-border-brush-pressed: transparent;
-  --button-background: var(--circle-secondary);
-  --button-background-pointer-over: var(--circle-secondary-hover);
-  --button-background-pressed: var(--circle-secondary-pressed);
-  --button-foreground: var(--circle-on-secondary);
-  --button-foreground-pointer-over: var(--circle-on-secondary);
-  --button-foreground-pressed: var(--circle-on-secondary);
-  --button-border-brush-disabled: transparent;
-  --button-background-disabled: var(--circle-disabled);
-  --button-foreground-disabled: var(--circle-on-disabled);
-}
-
-/* Material 3 Expressive: big, fully rounded targets, medium-weight labels */
-.circle-round,
-.circle-labelled,
-.circle-chip-button {
-  height: 48px;
-  padding: 0;
-  border-width: 0;
-  border-radius: 24px;
-}
-
-.circle-round {
-  width: 48px;
-}
-
-.circle-labelled {
-  padding: 0 20px;
-  font-weight: 500;
-  font-size: 16px;
-}
-
-.circle-chip-button {
-  padding: 0 16px;
-}
-
-@media (pointer: coarse) {
-  .circle-round,
-  .circle-labelled,
-  .circle-chip-button {
-    height: 56px;
-  }
-
-  .circle-round {
-    width: 56px;
-  }
-}
-
-.circle-action-primary {
-  background-color: var(--circle-primary);
-  --button-background: var(--circle-primary);
-  --button-background-pointer-over: var(--circle-primary-hover);
-  --button-background-pressed: var(--circle-primary-pressed);
-  --button-foreground: var(--circle-on-primary);
-  --button-foreground-pointer-over: var(--circle-on-primary);
-  --button-foreground-pressed: var(--circle-on-primary);
-}
-
-.circle-tint {
-  border-radius: 0;
-  opacity: 0.3;
-}
-
-/* The selection has no outline of its own: the glow and the white corners draw its edge */
-.circle-root {
-  --accent-fill-color-default: transparent;
-}
-
-.circle-hint-text {
-  color: var(--circle-on-secondary);
-}
-
-.circle-words,
-.circle-picked {
-  fill: var(--live-primary);
-}
-
-.circle-sparkle {
-  fill: var(--circle-on-primary);
-}
-
-.circle-icon {
-  color: var(--circle-on-secondary);
-}
-
-.circle-primary-ink {
-  color: var(--circle-on-primary);
-}
-
-.circle-band {
-  border-color: var(--live-primary);
-}
-
-.circle-edge,
-.circle-edge-glow {
-  border-color: var(--live-primary);
-}
-
-.circle-glow-layer {
-  filter: blur(14px);
-}
-
-.circle-bracket {
-  stroke: #ffffff;
-  stroke-width: 6px;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.circle-stroke-glow {
-  stroke: var(--live-brand-blue);
 }
 
 .share-frame {

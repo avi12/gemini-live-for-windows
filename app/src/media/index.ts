@@ -13,7 +13,6 @@ export { ScreenDetail } from "./screen/capture-geometry.ts";
 export { createScreenCapture } from "./screen/screen-capture.ts";
 export type { ScreenCapture } from "./screen/screen-capture.ts";
 export { createScreenSource } from "./screen/screen-source.ts";
-export { createCircleScreen } from "./screen/circle/circle-screen.ts";
 export { lineText } from "./ocr/ocr-geometry.ts";
 export type { OcrLine, OcrWord } from "./ocr/ocr-geometry.ts";
 export { NoOcrLanguageError } from "./ocr/ocr-geometry.ts";

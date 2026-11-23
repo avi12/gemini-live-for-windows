@@ -5,7 +5,6 @@ export const PillPart = {
   PILL: "pill",
   SHARE: "share",
   MIC: "mic",
-  CIRCLE: "circle",
   GEAR: "gear",
   END: "end"
 } as const;

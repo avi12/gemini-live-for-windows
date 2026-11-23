@@ -7,7 +7,7 @@ import type { AttachChip, CoverBorder, HoldFocusEscape } from "@/overlays/protoc
 import type { Point } from "@/overlays/shapes.ts";
 
 // The windows ScreenFocus drives: the frame around the shared display or region, the chip that
-// labels a circled region, and the Esc hotkey. They live on the UI worker; over the overlay
+// labels a watched region, and the Esc hotkey. They live on the UI worker; over the overlay
 // protocol this is how the controller reaches them.
 export interface FocusWindows {
   coverBorder(options: CoverBorder): void;
@@ -52,35 +52,13 @@ function createEscapeHold({
   windows: FocusWindows;
   currentEngine: () => FocusEngine | undefined;
 }) {
-  let isOverlayUp = false;
-
-  // Holds Esc only while Gemini sees a circled region, and not while the circle overlay is up,
-  // which needs Esc for its own cancel
+  // Holds Esc only while Gemini sees a watched region
   function update() {
     const isRegionWatched = currentEngine()?.region !== undefined;
-    windows.holdEscape({ isHeld: isRegionWatched && !isOverlayUp });
+    windows.holdEscape({ isHeld: isRegionWatched });
   }
 
-  return {
-    update,
-    // The circle overlay is up (or gone): it needs Esc for itself, so ours is let go of first
-    setCircling(isCircling: boolean) {
-      isOverlayUp = isCircling;
-      update();
-
-      // The chip would show up in the Circle still, so it hides while the overlay is up and
-      // comes back after
-      const engine = currentEngine();
-      if (isCircling) {
-        windows.hideChip();
-      } else if (engine?.region !== undefined) {
-        windows.attachChip({
-          monitor: engine.monitor,
-          region: engine.region
-        });
-      }
-    }
-  };
+  return { update };
 }
 
 function createFocusDrag({
@@ -126,12 +104,12 @@ function createChangeListeners() {
   const listeners = new Set<() => void>();
 
   return {
-    changed() {
+    changed(this: void) {
       for (const listener of listeners) {
         listener();
       }
     },
-    onChanged(listener: () => void) {
+    onChanged(this: void, listener: () => void) {
       listeners.add(listener);
       return () => {
         listeners.delete(listener);
@@ -203,7 +181,7 @@ function createFocusActions({
   };
 }
 
-// What Gemini's view looks like on screen: the frame around the shared display and, for a circled
+// What Gemini's view looks like on screen: the frame around the shared display and, for a watched
 // region, the chip that labels it (its X and Esc hand back the whole display; dragging it moves the
 // region). It acts on whichever engine `currentEngine` returns (ScreenFocus.cs)
 export function createScreenFocus({
@@ -240,7 +218,6 @@ export function createScreenFocus({
     focusOn,
     unfocus,
     onChanged,
-    setCircling: escape.setCircling,
     // What the windows report, wired by the overlay link
     events: {
       escapePressed: unfocus,

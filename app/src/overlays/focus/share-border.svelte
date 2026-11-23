@@ -13,7 +13,7 @@
   interface Props {
     // Physical screen pixels: the display, or the circled region inflated; undefined hides it
     bounds: Rect | undefined;
-    // A circled region rounds like Circle to Search's selection; a whole display is square
+    // A watched region has rounded corners; a whole display is square
     isRegion: boolean;
   }
 

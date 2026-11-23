@@ -135,7 +135,7 @@ export const PillActionKind = {
   QUIT: "quit",
   SET_FOCUSABLE: "setFocusable",
   MOVE_BY: "moveBy",
-  CIRCLE_TO_SEARCH: "circleToSearch",
+  CLIP_TO: "clipTo",
   RESTORE_PREVIOUS_APP: "restorePreviousApp"
 } as const;
 
@@ -191,7 +191,13 @@ export const pillActionSchema = z.discriminatedUnion("kind", [
     dx: z.number(),
     dy: z.number()
   }),
-  z.object({ kind: z.literal(PillActionKind.CIRCLE_TO_SEARCH) })
+  // The part of the window that is shown and takes clicks, in physical pixels from its top-left
+  // corner; null is the whole window. The folded orb clips the window to itself, so the window never
+  // has to resize (a resize blanks it for a frame) and the space beside the orb takes no clicks.
+  z.object({
+    kind: z.literal(PillActionKind.CLIP_TO),
+    region: regionSchema.nullable()
+  })
 ]);
 
 export type PillAction = z.infer<typeof pillActionSchema>;

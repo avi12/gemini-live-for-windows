@@ -66,7 +66,6 @@ const setWindowRgnCall = bindFunction({
 
 const EXTENDED_STYLE_INDEX = -20;
 const LAYERED_STYLE = 0x80000n;
-const ALPHA_FLAG = 2;
 const COLOR_KEY_FLAG = 1;
 
 const getWindowLongPtrCall = bindFunction({
@@ -89,15 +88,6 @@ const setLayeredWindowAttributesCall = bindFunction({
   parameters: [Win32Type.HANDLE, Win32Type.U32, Win32Type.U32, Win32Type.U32],
   returns: Win32Type.BOOL32
 });
-
-/**
- * How see-through the whole window is, 0 (invisible, but still painting) to 255 (as drawn). A window
- * kept at 0 while it is shown and laid out never shows the blank surface Windows gives a new window.
- */
-export function setWindowOpacity({ hwnd, opacity }: { hwnd: bigint; opacity: number }) {
-  makeLayered(hwnd);
-  setLayeredWindowAttributesCall([argHandle(hwnd), argU32(0), argU32(opacity), argU32(ALPHA_FLAG)]);
-}
 
 /**
  * Makes every pixel of exactly `color` (0x00BBGGRR) in the window see-through. A window Windows draws

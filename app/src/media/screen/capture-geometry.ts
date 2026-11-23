@@ -2,7 +2,7 @@ import type { Monitor, Region } from "@/contracts/monitor.ts";
 
 // How much detail a frame keeps. `light` is enough for the API engine, which bills each 768-pixel tile
 // of a frame; `sharp` is for Gemini's web client, which misreads small text in a downscaled, compressed
-// picture; `frozen` is the still Circle to Search shows and crops, kept at full resolution.
+// picture; `frozen` is for reading text off the screen, kept at full resolution.
 export const ScreenDetail = {
   LIGHT: "light",
   SHARP: "sharp",

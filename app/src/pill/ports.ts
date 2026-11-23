@@ -67,7 +67,7 @@ interface MoveByOptions {
 }
 
 export interface ScreenFocusOptions {
-  currentEngine(): LiveEngine | undefined;
+  currentEngine: () => LiveEngine | undefined;
 }
 
 export interface PreviousAppPort {
@@ -101,8 +101,6 @@ export interface PillDeps {
   previousApp: PreviousAppPort;
   window: PillWindowPort;
   updates: UpdatesPort;
-  // The one entry that toggles Circle to Search, shared with its Win+Alt+C hotkey
-  circleToSearch(): Promise<void>;
   openExternal(uri: string): void;
   // Puts text on the clipboard; the pill's own window cannot, as it never takes focus
   copyText(text: string): Promise<void>;

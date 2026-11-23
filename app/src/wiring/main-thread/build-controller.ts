@@ -57,8 +57,6 @@ export function buildController({
   });
   const overlays = createOverlayControl({
     transport: channels.transports.overlays,
-    media,
-    controller: () => controller,
     log
   });
   const checker = createUpdateChecker({
@@ -123,7 +121,6 @@ function buildPillDeps({
     displays: createDisplaysPort(media),
     microphones: createMicrophonesPort(google),
     createFocus: overlays.createFocus,
-    circleToSearch: overlays.circle,
     previousApp: createPreviousAppPort({
       window: pillLink.windowPort,
       delay

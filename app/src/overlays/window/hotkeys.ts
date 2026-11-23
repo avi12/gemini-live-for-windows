@@ -1,40 +1,14 @@
-import { SEARCH_ENGINES } from "@/overlays/circle/search-engines.ts";
 import type { OverlayLog } from "@/overlays/ports.ts";
-import { CircleAction, SearchAction } from "@/overlays/protocol.ts";
 
-// Circle to Search's keys as global hotkeys (CircleKey.cs and Hotkey.cs): Windows' Copilot key
-// provider only ever delivers Win+C itself, and the overlay's own keys must work even when
-// Windows' foreground lock leaves another app holding the keyboard. A key the app needs only for a
-// while is held on demand, so other apps keep it the rest of the time.
+// The one global hotkey the overlays use: Esc, which hands Gemini back the whole display. Windows'
+// foreground lock can leave another app holding the keyboard, so it is a hotkey rather than a key
+// event, and it is held on demand so other apps keep Esc the rest of the time.
 
-export const CircleKeyCombination = {
-  // Not Win+Shift+C: PowerToys' Color Picker holds that one by default
-  circle: "win+alt+c",
-  escape: "escape",
-  askGemini: "enter",
-  lens: SEARCH_ENGINES[SearchAction.LENS].keys,
-  lensInBrowser: SEARCH_ENGINES[SearchAction.LENS_IN_BROWSER].keys,
-  bing: SEARCH_ENGINES[SearchAction.BING].keys,
-  selectText: "t",
-  copy: "ctrl+c"
-} as const;
-export type CircleKeyCombination = (typeof CircleKeyCombination)[keyof typeof CircleKeyCombination];
+export const HotkeyCombination = { ESCAPE: "escape" } as const;
+export type HotkeyCombination = (typeof HotkeyCombination)[keyof typeof HotkeyCombination];
 
-// Names as people say them, for the log and the buttons' tooltips
-const KEY_NAMES: Record<CircleKeyCombination, string> = {
-  [CircleKeyCombination.circle]: "Win+Alt+C",
-  [CircleKeyCombination.escape]: "Esc",
-  [CircleKeyCombination.askGemini]: "Enter",
-  [CircleKeyCombination.lens]: "L",
-  [CircleKeyCombination.lensInBrowser]: "O",
-  [CircleKeyCombination.bing]: "B",
-  [CircleKeyCombination.selectText]: "T",
-  [CircleKeyCombination.copy]: "Ctrl+C"
-};
-
-export function keyName(keys: CircleKeyCombination) {
-  return KEY_NAMES[keys];
-}
+// Names as people say them, for the log
+const KEY_NAMES: Record<HotkeyCombination, string> = { [HotkeyCombination.ESCAPE]: "Esc" };
 
 export interface HotkeyHandle {
   unregister(): void;
@@ -42,7 +16,7 @@ export interface HotkeyHandle {
 
 // winui-svelte/app/hotkeys' registerHotkey, which throws a HotkeyError when another app owns the
 // combination. It must be called on the UI thread, after the message pump started
-export type RegisterHotkey = (options: { keys: CircleKeyCombination; onpressed: () => void }) => HotkeyHandle;
+export type RegisterHotkey = (options: { keys: HotkeyCombination; onpressed: () => void }) => HotkeyHandle;
 
 // One hotkey taken and given back on demand. Presses reach `onPressed` only while it is held; a
 // combination another app already holds is only logged
@@ -52,7 +26,7 @@ export function createHeldKey({
   onPressed,
   log
 }: {
-  keys: CircleKeyCombination;
+  keys: HotkeyCombination;
   register: RegisterHotkey;
   onPressed: () => void;
   log: OverlayLog;
@@ -95,27 +69,7 @@ export function createHeldKey({
   };
 }
 
-// Win+Alt+C, held for the app's lifetime
-export function holdCircleKey({
-  register,
-  onPressed,
-  log
-}: {
-  register: RegisterHotkey;
-  onPressed: () => void;
-  log: OverlayLog;
-}) {
-  const key = createHeldKey({
-    keys: CircleKeyCombination.circle,
-    register,
-    onPressed,
-    log
-  });
-  key.hold(true);
-  return key;
-}
-
-// Esc, which hands Gemini back the whole display. Held only while it sees a circled region
+// Esc, which hands Gemini back the whole display. Held only while it sees a watched region
 export function createFocusEscapeKey({
   register,
   onPressed,
@@ -126,82 +80,9 @@ export function createFocusEscapeKey({
   log: OverlayLog;
 }) {
   return createHeldKey({
-    keys: CircleKeyCombination.escape,
+    keys: HotkeyCombination.ESCAPE,
     register,
     onPressed,
     log
   });
-}
-
-// Ctrl+C for the overlay's text mode: held only while words are selected, so other apps keep
-// their copy shortcut the rest of the time
-export function createCopyKey({
-  register,
-  onPressed,
-  log
-}: {
-  register: RegisterHotkey;
-  onPressed: () => void;
-  log: OverlayLog;
-}) {
-  return createHeldKey({
-    keys: CircleKeyCombination.copy,
-    register,
-    onPressed,
-    log
-  });
-}
-
-// The overlay's own keys, held only while it is open: Esc backs out, Enter asks Gemini, L searches
-// Lens, B searches Bing, T selects text. The main side lets go of its Esc first
-// (ScreenFocus.isCircling), so the two never both want Esc
-export function createOverlayKeys({
-  register,
-  log,
-  onEscape,
-  onFinish,
-  onSelectText
-}: {
-  register: RegisterHotkey;
-  log: OverlayLog;
-  onEscape: () => void;
-  onFinish: (action: CircleAction) => void;
-  onSelectText: () => void;
-}) {
-  const keys = [
-    createHeldKey({
-      keys: CircleKeyCombination.escape,
-      register,
-      onPressed: onEscape,
-      log
-    }),
-    createHeldKey({
-      keys: CircleKeyCombination.askGemini,
-      register,
-      onPressed: () => onFinish(CircleAction.askGemini),
-      log
-    }),
-    ...Object.values(SearchAction).map(action =>
-      createHeldKey({
-        keys: SEARCH_ENGINES[action].keys,
-        register,
-        onPressed: () => onFinish(action),
-        log
-      })
-    ),
-    createHeldKey({
-      keys: CircleKeyCombination.selectText,
-      register,
-      onPressed: onSelectText,
-      log
-    })
-  ];
-
-  function hold(isHeld: boolean) {
-    for (const key of keys) {
-      key.hold(isHeld);
-    }
-  }
-
-  return { hold };
 }

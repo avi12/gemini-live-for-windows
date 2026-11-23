@@ -172,18 +172,18 @@ flowchart LR
     Relay --> Ctl["Pill controller"]
     Ctl --> Api["API key engine"]
     Ctl --> Media["Media: displays, capture, UIA text, OCR"]
-    Ctl --> Circle["Circle session and screen focus"]
+    Ctl --> Focus["Screen focus"]
     Ctl --> Upd["Update checker"]
   end
   subgraph Ui["UI worker (window.js)"]
     Pill["Pill window (Svelte)"]
-    Ovl["Share border, chip, circle overlay, hotkeys"]
+    Ovl["Share border, chip, hotkeys"]
     Fast["Copilot key fast path"]
     Goog["Google services: glic and Home pages, session link"]
   end
   Audio["Audio worker (audio-worker.js)"]
   Ctl <-->|"pill: view and actions"| Pill
-  Circle <-->|"overlays"| Ovl
+  Focus <-->|"overlays"| Ovl
   Ctl <-->|"google: engine"| Goog
   Fast -->|"entry: key presses"| Relay
   Api --> Audio
@@ -205,7 +205,7 @@ _Four `MessageChannel`s join the two threads, one per concern, and each carries 
 | `google/`           | The Google engine: glic and Home hosts, the session link, detours, and `remote/`.                                                 |
 | `live/`             | The API key engine over the public Live API.                                                                                      |
 | `media/`            | Displays, screen capture, screen text (UI Automation, OCR as the fallback), camera, and the audio graph on its own worker thread. |
-| `overlays/`         | The share border, focus chip, circle overlay and hotkeys, and the controller's end of their link.                                 |
+| `overlays/`         | The share border, focus chip and hotkeys, and the controller's end of their link.                                                 |
 | `core/`             | Settings, secrets, the log, updates, the single-instance pipe, the native host and extension setup.                               |
 | `entry/`            | How the process starts and hears the Copilot key: activation, DPI, the fast path.                                                 |
 | `win32/`, `lib/`    | Win32 binding helpers, and the small shared utilities.                                                                            |
@@ -269,7 +269,7 @@ app/                   the whole app in TypeScript on winui-svelte (src/main.ts,
   src/google/          the Google engine: glic and Home hosts, detours, session link
   src/live/            the API key engine
   src/media/           displays, capture, screen text, camera, audio
-  src/overlays/        share border, focus chip, circle overlay, hotkeys
+  src/overlays/        share border, focus chip, hotkeys
 pill/                  the pill's UI: Svelte on winui-svelte (src/, dev/, fonts/)
 protocol/              the wire shared by the pill, the app and the extension: the pill view and actions, the extension link
 bridge/                TypeScript injected into the hidden pages: glic/, home/, shared/ (built into dist/)

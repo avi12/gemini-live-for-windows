@@ -115,7 +115,7 @@ function fill({ target, pixels }: { target: SoftwareBitmap; pixels: CapturedPixe
   });
 }
 
-// The one JPEG encoder every screen frame goes through, whole screen or circled part. The BGRA pixels
+// The one JPEG encoder every screen frame goes through. The BGRA pixels
 // are copied once, native to native, into a fresh SoftwareBitmap per frame (a bitmap the encoder has
 // seen refuses the next write, 0x80070005).
 export function createJpegEncoder() {
