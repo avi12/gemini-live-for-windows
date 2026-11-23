@@ -1,14 +1,13 @@
+import type { Logger } from "@/google/ports.ts";
+import { HomeMessage, type HomeProtocolMap, pcLightsSchema } from "@/google/protocols/home.ts";
+import type { SessionStore } from "@/google/session/cookies.ts";
+import type { SessionSource } from "@/google/session/session-link.ts";
+import { clickAt } from "@/google/web-host/cdp.ts";
+import { decideHiddenPagePermission, isGoogleNavigation } from "@/google/web-host/guards/policies.ts";
+import { delay } from "@/google/web-host/timeout.ts";
+import { createWebHost } from "@/google/web-host/web-host.ts";
+import type { WebViewFactory } from "@/google/web-host/web-view-port.ts";
 import { errorMessage } from "@/lib/error-message.ts";
-
-import type { Logger } from "./ports.ts";
-import { HomeMessage, type HomeProtocolMap, pcLightsSchema } from "./protocols/home.ts";
-import type { SessionStore } from "./session/cookies.ts";
-import type { SessionSource } from "./session/session-link.ts";
-import { clickAt } from "./web-host/cdp.ts";
-import { decideHiddenPagePermission, isGoogleNavigation } from "./web-host/guards/policies.ts";
-import { delay } from "./web-host/timeout.ts";
-import { createWebHost } from "./web-host/web-host.ts";
-import type { WebViewFactory } from "./web-host/web-view-port.ts";
 
 const HOME_URL = "https://home.google.com/";
 const SIGNED_IN_PREFIX = `${HOME_URL}home`;

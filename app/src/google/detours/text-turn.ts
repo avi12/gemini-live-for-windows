@@ -1,6 +1,6 @@
 import { LiveEventKind, LiveStatus } from "@/contracts/live-engine.ts";
+import type { LiveEventSink } from "@/google/engine/live-event-sink.ts";
 import type { GlicHost } from "@/google/glic/glic-host.ts";
-import type { LiveEventSink } from "@/google/live-event-sink.ts";
 import type { Logger } from "@/google/ports.ts";
 import { delay } from "@/google/web-host/timeout.ts";
 import { errorMessage } from "@/lib/error-message.ts";

@@ -1,9 +1,8 @@
 import { EngineKind, type LiveEngine, type LiveEvent } from "@/contracts/live-engine.ts";
 import type { Monitor, Region } from "@/contracts/monitor.ts";
+import type { GlicHost } from "@/google/glic/glic-host.ts";
+import type { SharedView } from "@/google/shared-view.ts";
 import type { createEmitter } from "@/lib/emitter.ts";
-
-import type { GlicHost } from "./glic/glic-host.ts";
-import type { SharedView } from "./shared-view.ts";
 
 // The LiveEngine contract over the glic host and the shared view
 export function createLiveEngine({

@@ -2,11 +2,11 @@ import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, mock, test } from "node:test";
 
 import { EngineKind, type LiveEvent, LiveEventKind, LiveStatus } from "@/contracts/live-engine.ts";
+import { type GlicHostEvent, GlicHostEventKind } from "@/google/glic/glic-events.ts";
+import type { MediaPort } from "@/google/ports.ts";
+import { createSharedView } from "@/google/shared-view.ts";
 
-import { type GlicHostEvent, GlicHostEventKind } from "./glic/glic-events.ts";
 import { createGoogleEngine } from "./google-engine.ts";
-import type { MediaPort } from "./ports.ts";
-import { createSharedView } from "./shared-view.ts";
 
 const MONITOR = {
   deviceName: "D1",

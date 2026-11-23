@@ -1,4 +1,4 @@
-import type { LiveEventSink } from "@/google/live-event-sink.ts";
+import type { LiveEventSink } from "@/google/engine/live-event-sink.ts";
 
 import type { Detours, SpeechRecord } from "./detours.ts";
 import { unescapeMarkdown } from "./screen-prompt.ts";

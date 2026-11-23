@@ -2,9 +2,9 @@ import path from "node:path";
 
 import type { Monitor } from "@/contracts/monitor.ts";
 
+import { createGoogleEngine } from "./engine/google-engine.ts";
 import { createGlicHost } from "./glic/glic-host.ts";
-import { createGoogleEngine } from "./google-engine.ts";
-import { createHomeHost } from "./home-host.ts";
+import { createHomeHost } from "./home/home-host.ts";
 import type { LinkPublisher, Logger, MediaPort, SecretSealer } from "./ports.ts";
 import { createSessionStore, SESSION_FILE } from "./session/cookies.ts";
 import type { SessionStore } from "./session/cookies.ts";
