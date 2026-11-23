@@ -1,3 +1,4 @@
+import { Bgra } from "@/media/bgra.ts";
 import type { PixelRect } from "@/media/screen/capture-geometry.ts";
 
 // How much brighter or darker than its neighbour a pixel must be to count as the edge of a glyph
@@ -21,10 +22,6 @@ const MIN_VERTICAL_OVERLAP = 0.6;
 const BLUE_WEIGHT = 0.114;
 const GREEN_WEIGHT = 0.587;
 const RED_WEIGHT = 0.299;
-const BYTES_PER_PIXEL = 4;
-const BLUE_OFFSET = 0;
-const GREEN_OFFSET = 1;
-const RED_OFFSET = 2;
 
 export interface GrayImage {
   readonly gray: Uint8Array;
@@ -36,11 +33,11 @@ export interface GrayImage {
 export function toGray({ bgra, width, height }: { bgra: Uint8Array; width: number; height: number }) {
   const gray = new Uint8Array(width * height);
   for (let iPixel = 0; iPixel < gray.length; iPixel++) {
-    const offset = iPixel * BYTES_PER_PIXEL;
+    const offset = iPixel * Bgra.BYTES_PER_PIXEL;
     gray[iPixel] = Math.round(
-      (bgra[offset + BLUE_OFFSET] ?? 0) * BLUE_WEIGHT +
-        (bgra[offset + GREEN_OFFSET] ?? 0) * GREEN_WEIGHT +
-        (bgra[offset + RED_OFFSET] ?? 0) * RED_WEIGHT
+      (bgra[offset + Bgra.BLUE_OFFSET] ?? 0) * BLUE_WEIGHT +
+        (bgra[offset + Bgra.GREEN_OFFSET] ?? 0) * GREEN_WEIGHT +
+        (bgra[offset + Bgra.RED_OFFSET] ?? 0) * RED_WEIGHT
     );
   }
   return {

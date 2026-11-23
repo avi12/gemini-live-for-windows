@@ -1,3 +1,4 @@
+import { Bgra } from "@/media/bgra.ts";
 import { argHandle, argI32, argPointer, argU32, bindFunction, Win32Type } from "@/win32/bind.ts";
 import {
   createCompatibleDC,
@@ -19,7 +20,6 @@ const NO_HANDLE = 0n;
 const BI_RGB = 0;
 const DIB_RGB_COLORS = 0;
 const BITS_PER_PIXEL = 32;
-const BYTES_PER_PIXEL = 4;
 const PLANES = 1;
 const BITMAP_INFO_HEADER_BYTES = 40;
 const HEADER_WIDTH_OFFSET = 4;
@@ -279,7 +279,7 @@ export function createGdiCapturer() {
       return {
         ...size,
         address: target.address,
-        byteLength: size.width * size.height * BYTES_PER_PIXEL
+        byteLength: size.width * size.height * Bgra.BYTES_PER_PIXEL
       };
     },
     dispose: () => disposeGdi(state)

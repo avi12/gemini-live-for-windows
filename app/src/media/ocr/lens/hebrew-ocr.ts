@@ -1,6 +1,7 @@
 import { BitmapBufferAccessMode } from "winui-svelte/bindings/windows/graphics/imaging/BitmapBufferAccessMode";
 import type { SoftwareBitmap } from "winui-svelte/bindings/windows/graphics/imaging/SoftwareBitmap";
 
+import { Bgra } from "@/media/bgra.ts";
 import type { OcrLine } from "@/media/ocr/ocr-geometry.ts";
 import { withBufferBytes } from "@/media/winrt/buffer-access.ts";
 
@@ -13,7 +14,6 @@ import { cutIntoStrips, STRIP_WIDTH } from "./strips.ts";
 import { groupWords, isMostlyHebrew, readingOrder, withoutSpecks } from "./visual-words.ts";
 import type { VisualWord } from "./visual-words.ts";
 
-const BYTES_PER_PIXEL = 4;
 // Lines found on a whole screen are read up to this many, tallest first, to bound the time
 const MAX_LINES = 150;
 
@@ -29,7 +29,7 @@ function grayOf(bitmap: SoftwareBitmap) {
     buffer: bitmap.lockBuffer(BitmapBufferAccessMode.Read),
     use: ({ memory }) =>
       toGray({
-        bgra: memory.readBytes(0, width * height * BYTES_PER_PIXEL),
+        bgra: memory.readBytes(0, width * height * Bgra.BYTES_PER_PIXEL),
         width,
         height
       })
