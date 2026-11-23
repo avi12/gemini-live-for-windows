@@ -20,11 +20,11 @@
     "@gemini-live/protocol": "workspace:*"
   },
   "devDependencies": {
-    "@types/chrome": "^0.2.2",
+    "@types/chrome": "^0.3.7",
     "crx3": "^2.0.0",
     "tsrs": "0.25.0-ts7.1.0-beta",
     "typescript": "^6.0.3",
-    "wxt": "^0.20.27"
+    "wxt": "^0.21.5"
   },
   "packageManager": "pnpm@11.13.1"
 }
