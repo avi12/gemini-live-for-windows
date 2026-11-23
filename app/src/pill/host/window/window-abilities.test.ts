@@ -6,8 +6,8 @@ import { defineMessaging } from "winui-svelte/messaging";
 
 import { linkedTransports } from "@/lib/transport/linked-transports.ts";
 import type { PillProtocol } from "@/pill/host/host-link.ts";
-import { serveWindowAbilities, WINDOW_NOT_UP } from "@/pill/host/window-abilities.ts";
-import type { ForegroundMemory, PillWindowSurface } from "@/pill/host/window-abilities.ts";
+import { serveWindowAbilities, WINDOW_NOT_UP } from "@/pill/host/window/window-abilities.ts";
+import type { ForegroundMemory, PillWindowSurface } from "@/pill/host/window/window-abilities.ts";
 
 const PILL_WINDOW = 4242n;
 const APP_IN_FRONT = 7n;
