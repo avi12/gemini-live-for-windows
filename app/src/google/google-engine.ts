@@ -104,5 +104,3 @@ export function createGoogleEngine({
     }
   });
 }
-
-export type GoogleEngine = ReturnType<typeof createGoogleEngine>;

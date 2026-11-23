@@ -24,7 +24,7 @@ import type { DynWin32Value } from "@microsoft/dynwinrt/win32/unsafe";
  * - Argument builders (one per type): `argI32`, `argU32`, `argI64`, `argU64`, `argBool`, `argHandle`
  *   (bigint address, null allowed), `argPointer(memory | null)`, `argAddress(bigint)`, `argWideString(text)`
  *   (a null-terminated UTF-16 `LPCWSTR`, valid for the call), `argNull()`.
- * - The result of a call is `Win32Result`: `.number` (i32/u32/bool32 returns), `.bigint` (i64/u64),
+ * - The result of a call has `.number` (i32/u32/bool32 returns), `.bigint` (i64/u64),
  *   `.address` (pointer/handle returns, 0n for null), `.isSuccess`, `.lastError` (only when bound with
  *   `shouldCaptureLastError: true`, null otherwise).
  * - Memory for structs and out buffers: `withMemory({ size, use })` allocates zeroed memory, hands it to
@@ -33,8 +33,7 @@ import type { DynWin32Value } from "@microsoft/dynwinrt/win32/unsafe";
  *   offsets are yours to compute from the Win32 header (mind the padding on x64). `zeroMemory(memory)`
  *   clears it. `wideMemory(text)` is a null-terminated UTF-16 buffer you release yourself;
  *   `readWideString({ memory, offset, maxChars })` decodes a null-terminated UTF-16 string out of memory.
- * - `toPointer(memory)` is the pointer value of memory for a struct field (`writePointer`);
- *   `memoryAddress(memory)` is its numeric address.
+ * - `toPointer(memory)` is the pointer value of memory for a struct field (`writePointer`).
  * - Window handles are `bigint` everywhere in the app (an HWND as a bigint address).
  * - The app runs per-monitor DPI v2: coordinates from user32 are physical pixels.
  */
@@ -53,14 +52,6 @@ export const Win32Type = {
 export type Win32Type = (typeof Win32Type)[keyof typeof Win32Type];
 
 export type Win32Argument = DynWin32Value;
-
-export interface Win32Result {
-  number: number;
-  bigint: bigint;
-  address: bigint;
-  isSuccess: boolean;
-  lastError: number | null;
-}
 
 const WIDE_CHAR_BYTES = 2;
 const POINTER_ALIGNMENT = 8;
@@ -194,10 +185,6 @@ export function argWideString(text: string) {
 
 export function toPointer(memory: DynComRawMemory) {
   return memory.pointer();
-}
-
-export function memoryAddress(memory: DynComRawMemory) {
-  return memory.pointer().address;
 }
 
 export function zeroMemory(memory: DynComRawMemory) {

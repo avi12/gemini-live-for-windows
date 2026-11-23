@@ -16,7 +16,7 @@ import { withBufferBytes } from "@/media/winrt/buffer-access.ts";
 import type { SessionGraph } from "./audio-session.ts";
 
 const BYTES_PER_FLOAT = Float32Array.BYTES_PER_ELEMENT;
-export const MICROPHONE_ACCESS_OFF = "Microphone access is off - allow it in Settings › Privacy › Microphone";
+const MICROPHONE_ACCESS_OFF = "Microphone access is off - allow it in Settings › Privacy › Microphone";
 
 function readFloats(tap: AudioFrameOutputNode) {
   const frame = tap.getFrame();

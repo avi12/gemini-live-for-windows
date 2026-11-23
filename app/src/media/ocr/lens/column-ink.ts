@@ -22,7 +22,7 @@ export function columnSpread({ image, line, x }: { image: GrayImage; line: Pixel
 
 // Walks from `start` toward `limit` while there is ink, across gaps narrower than `maxGap`, and returns
 // the edge of the last ink it met: how far a glyph's run really reaches
-export function inkEdge({
+function inkEdge({
   image,
   line,
   start,

@@ -82,7 +82,7 @@ type Core = InstanceType<Bindings["webViewClass"]>["coreWebView2"];
 type Environment = Awaited<ReturnType<Bindings["environmentClass"]["createWithOptionsAsync"]>>;
 
 // Writes the browser's cookies into a WebView2's own store; the results panel does the same
-export function createCookieWriter({
+function createCookieWriter({
   core,
   bindings,
   log

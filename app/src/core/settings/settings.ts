@@ -157,10 +157,6 @@ export function apiKey(settings: Settings) {
   return sharedStore().apiKey(settings);
 }
 
-export function hasApiKey(settings: Settings) {
-  return apiKey(settings).length > 0;
-}
-
 export function setApiKey({ settings, key }: { settings: Settings; key: string }) {
   return sharedStore().setApiKey({
     settings,

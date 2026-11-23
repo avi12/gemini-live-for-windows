@@ -154,5 +154,3 @@ export async function openCamera({
     }
   };
 }
-
-export type Camera = Awaited<ReturnType<typeof openCamera>>;

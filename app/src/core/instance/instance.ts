@@ -105,16 +105,6 @@ function serve({ pipePath, onTrigger }: { pipePath: string; onTrigger: (trigger:
   };
 }
 
-export type InstanceClaim =
-  | {
-      isPrimary: true;
-      close(): Promise<void>;
-    }
-  | {
-      isPrimary: false;
-      isForwarded: boolean;
-    };
-
 // The pipe is the lock: the first process to serve it is the app. A later launch hands its trigger
 // to that one and is told to exit.
 export async function claimInstance({

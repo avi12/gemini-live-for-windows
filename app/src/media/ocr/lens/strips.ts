@@ -14,7 +14,7 @@ const CUT_SEARCH_SHARE = 0.45;
 // Columns this much more varied than the quietest still count as part of a gap
 const QUIET_MARGIN = 12;
 
-export interface Strip {
+interface Strip {
   readonly pixels: Uint8Array;
   // The piece of the picture it shows, and how wide of the strip is the piece (the rest is padding)
   readonly source: PixelRect;
