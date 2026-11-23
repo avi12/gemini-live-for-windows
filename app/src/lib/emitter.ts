@@ -17,7 +17,10 @@ export function createEmitter<TEvent>() {
 
   return {
     subscribe,
-    emit
+    emit,
+    clear() {
+      listeners.clear();
+    }
   };
 }
 

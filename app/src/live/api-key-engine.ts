@@ -1,11 +1,6 @@
-import {
-  EngineKind,
-  type LiveEngine,
-  type LiveEvent,
-  LiveEventKind,
-  type LiveEventListener
-} from "@/contracts/live-engine.ts";
+import { EngineKind, type LiveEngine, type LiveEvent, LiveEventKind } from "@/contracts/live-engine.ts";
 import type { Monitor, Region } from "@/contracts/monitor.ts";
+import { createEmitter } from "@/lib/emitter.ts";
 import { noop } from "@/lib/noop.ts";
 import { FRAME_INTERVAL_MS } from "@/live/api/constants.ts";
 import { createLiveSession } from "@/live/api/live-session.ts";
@@ -182,16 +177,12 @@ function assembleParts({
 // same socket, so listening, looking and talking all happen at once.
 export function createApiKeyEngine({ connect = connectWebSocket, now = Date.now, ...deps }: ApiKeyEngineDeps) {
   const { audio } = deps;
-  const listeners = new Set<LiveEventListener>();
+  const events = createEmitter<LiveEvent>();
   const { session, frames, frameLoop, unsubscribes } = assembleParts({
     ...deps,
     connect,
     now,
-    emit(event) {
-      for (const listener of listeners) {
-        listener(event);
-      }
-    }
+    emit: events.emit
   });
 
   return {
@@ -213,10 +204,7 @@ export function createApiKeyEngine({ connect = connectWebSocket, now = Date.now,
     set region(region: Region | undefined) {
       frames.region = region;
     },
-    onEvent(listener) {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
+    onEvent: events.subscribe,
     onExtensionNeeded: () => noop,
     useCamera: () => Promise.resolve(false),
     async start() {
@@ -232,7 +220,7 @@ export function createApiKeyEngine({ connect = connectWebSocket, now = Date.now,
       }
       audio.dispose();
       await session.dispose();
-      listeners.clear();
+      events.clear();
     }
   } satisfies LiveEngine;
 }
