@@ -1,5 +1,5 @@
 import type { Clock } from "@/media/clock.ts";
-import type { EncodedFrame } from "@/media/screen/jpeg-encoder.ts";
+import type { EncodedFrame } from "@/media/screen/frame/jpeg-encoder.ts";
 
 // About two stills a second: the pull asks for roughly one, so the slot is at most half a second stale,
 // and the encode stays cheap. FrameArrived cannot be used (dynwinrt delivers no native-thread

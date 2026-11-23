@@ -12,7 +12,7 @@ import { StreamingCaptureMode } from "winui-svelte/bindings/windows/media/captur
 import { systemClock } from "@/media/clock.ts";
 import type { Clock } from "@/media/clock.ts";
 import { DETAIL_SETTINGS, fitToEdge, ScreenDetail } from "@/media/screen/capture-geometry.ts";
-import { encodeBitmap } from "@/media/screen/jpeg-encoder.ts";
+import { encodeBitmap } from "@/media/screen/frame/jpeg-encoder.ts";
 import { releaseNative } from "@/media/winrt/release.ts";
 
 import { listCameraEntries, pickColorCamera } from "./camera-pick.ts";

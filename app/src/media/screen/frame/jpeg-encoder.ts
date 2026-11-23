@@ -13,11 +13,11 @@ import { Buffer as WinRtBuffer } from "winui-svelte/bindings/windows/storage/str
 import { InMemoryRandomAccessStream } from "winui-svelte/bindings/windows/storage/streams/InMemoryRandomAccessStream";
 import { InputStreamOptions } from "winui-svelte/bindings/windows/storage/streams/InputStreamOptions";
 
+import type { PixelSize } from "@/media/screen/capture-geometry.ts";
 import { withBufferBytes } from "@/media/winrt/buffer-access.ts";
 import { releaseNative } from "@/media/winrt/release.ts";
 import { argAddress, argU64, bindFunction, Win32Type } from "@/win32/bind.ts";
 
-import type { PixelSize } from "./capture-geometry.ts";
 import type { CapturedPixels } from "./gdi-capture.ts";
 
 const IMAGE_QUALITY = "ImageQuality";

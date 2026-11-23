@@ -4,7 +4,7 @@ import { describe, it } from "node:test";
 import { roInitialize } from "@microsoft/dynwinrt";
 import { DynComRawMemory } from "@microsoft/dynwinrt/com/unsafe/raw";
 
-import { createJpegEncoder } from "@/media/screen/jpeg-encoder.ts";
+import { createJpegEncoder } from "@/media/screen/frame/jpeg-encoder.ts";
 import { argHandle, argI32, argPointer, argU32, bindFunction, Win32Type } from "@/win32/bind.ts";
 import { createCompatibleDC, createDIBSection, deleteDC, deleteObject, getDC, selectObject } from "@/win32/gdi.ts";
 import { wideMemory, withMemory } from "@/win32/memory.ts";

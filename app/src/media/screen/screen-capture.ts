@@ -3,10 +3,10 @@ import { noop } from "@/lib/noop.ts";
 
 import { DETAIL_SETTINGS, fitToEdge, screenArea } from "./capture-geometry.ts";
 import type { PixelRect, PixelSize, ScreenDetail } from "./capture-geometry.ts";
-import { createGdiCapturer } from "./gdi-capture.ts";
-import type { CapturedPixels } from "./gdi-capture.ts";
-import { createJpegEncoder } from "./jpeg-encoder.ts";
-import type { EncodedFrame, EncodeRequest } from "./jpeg-encoder.ts";
+import { createGdiCapturer } from "./frame/gdi-capture.ts";
+import type { CapturedPixels } from "./frame/gdi-capture.ts";
+import { createJpegEncoder } from "./frame/jpeg-encoder.ts";
+import type { EncodedFrame, EncodeRequest } from "./frame/jpeg-encoder.ts";
 
 export type { EncodedFrame };
 

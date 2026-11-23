@@ -5,7 +5,7 @@ import type { Monitor } from "@/contracts/monitor.ts";
 
 import { ScreenDetail } from "./capture-geometry.ts";
 import type { PixelRect, PixelSize } from "./capture-geometry.ts";
-import type { EncodeRequest } from "./jpeg-encoder.ts";
+import type { EncodeRequest } from "./frame/jpeg-encoder.ts";
 import { createScreenCapture } from "./screen-capture.ts";
 import type { FrameEncoder, PixelGrabber } from "./screen-capture.ts";
 

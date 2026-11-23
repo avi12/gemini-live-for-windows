@@ -7,7 +7,7 @@ import type { ScreenView } from "@/google/protocols/glic.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 import type { OcrLine } from "@/media/ocr/ocr-geometry.ts";
 import { clipToSurface, ScreenDetail } from "@/media/screen/capture-geometry.ts";
-import type { EncodedFrame } from "@/media/screen/jpeg-encoder.ts";
+import type { EncodedFrame } from "@/media/screen/frame/jpeg-encoder.ts";
 
 import type { ForegroundWindow } from "./foreground-window.ts";
 import { buildScreenView } from "./screen-text-blocks.ts";

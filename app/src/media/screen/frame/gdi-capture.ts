@@ -1,8 +1,8 @@
 import { Bgra } from "@/media/bgra.ts";
+import type { PixelRect, PixelSize } from "@/media/screen/capture-geometry.ts";
 import { argHandle, argI32, argU32, bindFunction, Win32Type } from "@/win32/bind.ts";
 import { createCompatibleDC, deleteDC, getDC, releaseDC } from "@/win32/gdi.ts";
 
-import type { PixelRect, PixelSize } from "./capture-geometry.ts";
 import { createSurface, releaseSurface, type Surface } from "./dib-surface.ts";
 
 const SRCCOPY = 0x00cc0020;
