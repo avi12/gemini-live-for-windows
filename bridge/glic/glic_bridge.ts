@@ -16,7 +16,8 @@
 // in a fixed order, before Glic's own scripts run: page visibility, the microphone, the host and
 // its bootstrap, then the Live wire tap.
 
-import { createGlicHost, installBootstrap } from "@/glic/host/glic_host";
+import { installBootstrap } from "@/glic/host/bootstrap";
+import { createGlicHost } from "@/glic/host/glic_host";
 import { patchLiveTimeouts } from "@/glic/live/live_timeouts";
 import { muteTones } from "@/glic/live/tone_gate";
 import { installDesktopMic } from "@/glic/mic/desktop_mic";

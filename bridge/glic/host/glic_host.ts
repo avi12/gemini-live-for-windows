@@ -1,38 +1,14 @@
-// The GlicBrowserHost we hand Glic's web client (ported from Chrome's own dev host), and the
-// bootstrap that hands it over. Chrome normally passes it over a chrome://glic-origin handshake a
-// webview cannot forge, so we pre-define internalAutoGlicBoot and replay Glic's own message
-// listener with a synthetic chrome://glic event (it needs a non-null source).
+// The GlicBrowserHost we hand Glic's web client (ported from Chrome's own dev host): what it reports
+// about the browser, and the shared screen it serves as the focused tab. bootstrap.ts hands it over.
 import type { Picture, ScreenView } from "@/glic/glic_protocol";
 
+import { FormFactor, HostCapability, PANEL_STATE, Platform, TAB_ID } from "./glic_api";
+import { observable, settableObservable } from "./observable";
 import { annotatedPageContent, byteStream } from "./page_content";
 
-// Glic host API enums we answer with, values from Chromium's glic_api_generated.ts.
-enum PanelStateKind {
-  ATTACHED = 2
-}
-/** LINUX is what the original port reported; kept as is. */
-enum Platform {
-  LINUX = 3
-}
-enum FormFactor {
-  DESKTOP = 1
-}
-enum HostCapability {
-  MULTI_INSTANCE = 3,
-  PDF_ZERO_STATE = 7,
-  INVOKE = 8
-}
-
-const TAB_ID = "desktop";
-const PANEL_STATE = {
-  kind: PanelStateKind.ATTACHED,
-  windowId: TAB_ID
-};
 // Glic sends Live one screenshot per focused tab id, so a fixed id gives one picture per turn. A
 // new id this often makes its viewport input pull a fresh frame each time, like Live on Android.
 const SCREEN_NUDGE_MS = 1000;
-const BOOT_POLL_MS = 100;
-const MAX_BOOT_TRIES = 150;
 
 /** What Glic asks of a tab's context. */
 interface ContextOptions {
@@ -57,26 +33,6 @@ interface TabContext {
   };
 }
 
-type Subscriber<T> = (value: T) => void;
-interface Subscription {
-  unsubscribe(): void;
-}
-interface Observable<T> {
-  subscribe(change: Subscriber<T>): Subscription;
-}
-
-/** What Glic's web client exposes to us once it registers. */
-interface WebClient {
-  initialize(host: unknown): unknown;
-  notifyPanelWillOpen?(state: unknown): void;
-}
-
-declare global {
-  interface Window {
-    internalAutoGlicBoot?: () => unknown;
-  }
-}
-
 /** What the host needs from the session and the app. */
 export interface HostSession {
   /** The user wants Live running; screen frames and text flow only while it does. */
@@ -94,60 +50,6 @@ interface GlicHost {
   host: object;
   /** Re-reads the screen and announces it as a new tab when the last nudge is old enough. */
   refreshScreen(now: number): void;
-}
-
-/** Calls a subscriber, isolating us from its errors. */
-function notify<T>({ subscriber, value }: { subscriber: (value: T) => unknown; value: T }) {
-  try {
-    subscriber(value);
-  } catch {
-    // A subscriber's error is its own.
-  }
-}
-
-/** An observable that never changes. */
-function observable<T>(value: T) {
-  return {
-    subscribe(change: Subscriber<T>) {
-      notify({
-        subscriber: change,
-        value
-      });
-      return { unsubscribe() {} };
-    }
-  } satisfies Observable<T>;
-}
-
-function settableObservable<T>(initial: T) {
-  let value = initial;
-  const subscribers: Subscriber<T>[] = [];
-  return {
-    get: () => value,
-    set(next: T) {
-      value = next;
-      for (const subscriber of subscribers) {
-        notify({
-          subscriber,
-          value: next
-        });
-      }
-    },
-    subscribe(change: Subscriber<T>) {
-      subscribers.push(change);
-      notify({
-        subscriber: change,
-        value
-      });
-      return {
-        unsubscribe() {
-          const i = subscribers.indexOf(change);
-          if (i >= 0) {
-            subscribers.splice(i, 1);
-          }
-        }
-      };
-    }
-  };
 }
 
 function resolved<T>(value: T) {
@@ -325,91 +227,4 @@ export function createGlicHost(session: HostSession) {
       }
     }
   } satisfies GlicHost;
-}
-
-export interface BootEvents {
-  /** Glic adopted the host. */
-  onBooted(): void;
-  /** Glic never adopted it. */
-  onFailed(): void;
-}
-
-/**
- * Offers `host` to Glic until it adopts it, polling for a while from now; the returned function
- * offers it once more (a no-op once booted).
- */
-export function installBootstrap({ host, events }: { host: object; events: BootEvents }) {
-  let isBooted = false;
-
-  const registry = {
-    registerWebClient(webClient: WebClient) {
-      return Promise.resolve()
-        .then(() => webClient.initialize(host))
-        .then(() => {
-          isBooted = true;
-          events.onBooted();
-          setTimeout(() => {
-            if (webClient.notifyPanelWillOpen) {
-              notify({
-                subscriber: state => webClient.notifyPanelWillOpen?.(state),
-                value: PANEL_STATE
-              });
-            }
-          }, 0);
-        });
-    }
-  };
-  window.internalAutoGlicBoot = () => registry;
-
-  const bootstrapHandlers: EventListener[] = [];
-  const originalAddEventListener = EventTarget.prototype.addEventListener.bind(window);
-  Object.defineProperty(window, "addEventListener", {
-    configurable: true,
-    writable: true,
-    value(type: string, listener: EventListenerOrEventListenerObject, options?: AddEventListenerOptions | boolean) {
-      if (type === "message" && typeof listener === "function") {
-        bootstrapHandlers.push(listener);
-      }
-
-      originalAddEventListener(type, listener, options);
-    }
-  });
-  const bootstrapEvent = new MessageEvent("message", {
-    origin: "chrome://glic",
-    source: window,
-    data: {
-      type: "glic-bootstrap",
-      glicApiSource: "data:text/javascript,//desktop"
-    }
-  });
-
-  function tryBootstrap() {
-    if (isBooted) {
-      return;
-    }
-
-    for (const handler of bootstrapHandlers) {
-      notify({
-        subscriber: handler,
-        value: bootstrapEvent
-      });
-    }
-  }
-
-  let bootTries = 0;
-  const bootTimer = setInterval(() => {
-    tryBootstrap();
-    const shouldRetryBoot = !isBooted && ++bootTries <= MAX_BOOT_TRIES;
-    if (shouldRetryBoot) {
-      return;
-    }
-
-    clearInterval(bootTimer);
-
-    if (!isBooted) {
-      events.onFailed();
-    }
-  }, BOOT_POLL_MS);
-
-  return tryBootstrap;
 }
