@@ -25,7 +25,7 @@
   "dependencies": {
     "@gemini-live/protocol": "workspace:*",
     "@microsoft/dynwinrt": "0.1.0-preview.23",
-    "svelte": "5.57.3",
+    "svelte": "5.59.1",
     "winui-svelte": "^0.0.17",
     "zod": "^4.6.7"
   },
@@ -37,7 +37,7 @@
     "svelte-check": "^4.7.8",
     "tsrs": "0.25.0-ts7.1.0-beta",
     "typescript": "^6.0.3",
-    "vite": "8.3.4"
+    "vite": "8.3.8"
   },
   "engines": {
     "node": ">=24"
