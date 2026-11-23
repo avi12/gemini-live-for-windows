@@ -12,8 +12,13 @@ import { DynComRawMemory } from "@microsoft/dynwinrt/com/unsafe/raw";
  * - `toPointer(memory)` is the pointer value of memory for a struct field (`writePointer`).
  */
 
-const WIDE_CHAR_BYTES = 2;
-const POINTER_ALIGNMENT = 8;
+// Byte sizes of the Win32 primitives that struct offsets are computed from, on x64
+export const Win32Bytes = {
+  WIDE_CHAR: 2,
+  DWORD: 4,
+  POINTER: 8,
+  RECT: 16
+} as const;
 
 export function toPointer(memory: DynComRawMemory) {
   return memory.pointer();
@@ -25,7 +30,7 @@ export function zeroMemory(memory: DynComRawMemory) {
 
 export function wideMemory(text: string) {
   const bytes = Buffer.from(`${text}\0`, "utf16le");
-  const memory = DynComRawMemory.allocate(bytes.length, WIDE_CHAR_BYTES);
+  const memory = DynComRawMemory.allocate(bytes.length, Win32Bytes.WIDE_CHAR);
   memory.writeBytes(0, bytes);
   return memory;
 }
@@ -39,15 +44,15 @@ export function readWideString({
   offset?: number;
   maxChars: number;
 }) {
-  const available = Math.floor((Number(memory.size) - offset) / WIDE_CHAR_BYTES);
-  const text = memory.readBytes(offset, Math.min(maxChars, available) * WIDE_CHAR_BYTES).toString("utf16le");
+  const available = Math.floor((Number(memory.size) - offset) / Win32Bytes.WIDE_CHAR);
+  const text = memory.readBytes(offset, Math.min(maxChars, available) * Win32Bytes.WIDE_CHAR).toString("utf16le");
   const end = text.indexOf("\0");
   return end === -1 ? text : text.slice(0, end);
 }
 
 export function withMemory<T>({
   size,
-  alignment = POINTER_ALIGNMENT,
+  alignment = Win32Bytes.POINTER,
   use
 }: {
   size: number;

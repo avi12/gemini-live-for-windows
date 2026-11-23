@@ -1,14 +1,13 @@
 import { DynComRawMemory } from "@microsoft/dynwinrt/com/unsafe/raw";
 
 import { argHandle, argNull, argPointer, argU32, bindFunction, Win32Type } from "@/win32/bind.ts";
-import { toPointer, withMemory, zeroMemory } from "@/win32/memory.ts";
+import { toPointer, Win32Bytes, withMemory, zeroMemory } from "@/win32/memory.ts";
 
 // DPAPI scoped to this Windows user: anything secret we keep on disk (the API key, the Google
 // session) is sealed here, so only this account on this machine can read it back. The blobs are
 // the ones .NET's ProtectedData.Protect(..., DataProtectionScope.CurrentUser) makes and reads.
 
 const CRYPTPROTECT_UI_FORBIDDEN = 0x1;
-const POINTER_BYTES = 8;
 const BLOB_BYTES = 16;
 
 interface UnsealOptions {
@@ -151,7 +150,7 @@ function transform({
         use: entropyBlob =>
           withMemory({
             size: BLOB_BYTES,
-            alignment: POINTER_BYTES,
+            alignment: Win32Bytes.POINTER,
             use(out) {
               const result = call([
                 argPointer(inBlob),

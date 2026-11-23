@@ -1,7 +1,6 @@
 import { argBool, argHandle, argI32, argI64, argPointer, argU32, bindFunction, Win32Type } from "./bind.ts";
-import { withMemory } from "./memory.ts";
+import { Win32Bytes, withMemory } from "./memory.ts";
 
-const DWORD_BYTES = 4;
 const POINT_BYTES = 8;
 const POINT_Y_OFFSET = 4;
 
@@ -50,7 +49,7 @@ export function readCursorPosition() {
 
 export function processIdOfWindow(hwnd: bigint) {
   return withMemory({
-    size: DWORD_BYTES,
+    size: Win32Bytes.DWORD,
     use(memory) {
       getWindowThreadProcessIdCall([argHandle(hwnd), argPointer(memory)]);
       return memory.readU32(0);

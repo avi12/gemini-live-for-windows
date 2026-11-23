@@ -8,7 +8,7 @@ import {
   releaseDC,
   selectObject
 } from "@/win32/gdi.ts";
-import { withMemory } from "@/win32/memory.ts";
+import { Win32Bytes, withMemory } from "@/win32/memory.ts";
 
 import type { PixelRect, PixelSize } from "./capture-geometry.ts";
 
@@ -22,7 +22,6 @@ const BITS_PER_PIXEL = 32;
 const BYTES_PER_PIXEL = 4;
 const PLANES = 1;
 const BITMAP_INFO_HEADER_BYTES = 40;
-const POINTER_BYTES = 8;
 const HEADER_WIDTH_OFFSET = 4;
 const HEADER_HEIGHT_OFFSET = 8;
 const HEADER_PLANES_OFFSET = 12;
@@ -101,7 +100,7 @@ function createSurface({ memoryDC, width, height }: { memoryDC: bigint; width: n
       header.writeU16(HEADER_BIT_COUNT_OFFSET, BITS_PER_PIXEL);
       header.writeU32(HEADER_COMPRESSION_OFFSET, BI_RGB);
       return withMemory({
-        size: POINTER_BYTES,
+        size: Win32Bytes.POINTER,
         use(bitsOut) {
           const bitmap = createDIBSection([
             argHandle(null),

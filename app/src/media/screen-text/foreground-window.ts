@@ -1,12 +1,9 @@
 import { argBool, argHandle, argI32, argPointer, argU32, bindFunction, Win32Type } from "@/win32/bind.ts";
-import { readWideString, withMemory } from "@/win32/memory.ts";
+import { readWideString, Win32Bytes, withMemory } from "@/win32/memory.ts";
 import { foregroundWindowHandle, processIdOfWindow } from "@/win32/user32.ts";
 
 const TITLE_CHARS = 1024;
 const IMAGE_PATH_CHARS = 1024;
-const WIDE_CHAR_BYTES = 2;
-const DWORD_BYTES = 4;
-const RECT_BYTES = 16;
 const RECT_RIGHT_OFFSET = 8;
 const RECT_BOTTOM_OFFSET = 12;
 const NO_HANDLE = 0n;
@@ -74,7 +71,7 @@ export function appNameOf(imagePath: string) {
 
 function titleOf(hwnd: bigint) {
   return withMemory({
-    size: TITLE_CHARS * WIDE_CHAR_BYTES,
+    size: TITLE_CHARS * Win32Bytes.WIDE_CHAR,
     use(memory) {
       getWindowText([argHandle(hwnd), argPointer(memory), argI32(TITLE_CHARS)]);
       return readWideString({
@@ -94,10 +91,10 @@ function imagePathOf(processId: number) {
 
   try {
     return withMemory({
-      size: IMAGE_PATH_CHARS * WIDE_CHAR_BYTES,
+      size: IMAGE_PATH_CHARS * Win32Bytes.WIDE_CHAR,
       use: path =>
         withMemory({
-          size: DWORD_BYTES,
+          size: Win32Bytes.DWORD,
           use(length) {
             length.writeU32(0, IMAGE_PATH_CHARS);
             const query = queryFullProcessImageName([
@@ -123,13 +120,13 @@ function imagePathOf(processId: number) {
 
 function boundsOf(hwnd: bigint) {
   return withMemory({
-    size: RECT_BYTES,
+    size: Win32Bytes.RECT,
     use(memory) {
       const result = dwmGetWindowAttribute([
         argHandle(hwnd),
         argU32(DWMWA_EXTENDED_FRAME_BOUNDS),
         argPointer(memory),
-        argU32(RECT_BYTES)
+        argU32(Win32Bytes.RECT)
       ]);
       const isRead = result.number >= 0;
       if (!isRead) {
@@ -137,7 +134,7 @@ function boundsOf(hwnd: bigint) {
       }
 
       const left = memory.readI32(0);
-      const top = memory.readI32(DWORD_BYTES);
+      const top = memory.readI32(Win32Bytes.DWORD);
       return {
         x: left,
         y: top,

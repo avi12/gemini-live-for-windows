@@ -1,5 +1,5 @@
 import { argHandle, argPointer, argU32, argWideString, bindFunction, Win32Type } from "@/win32/bind.ts";
-import { withMemory } from "@/win32/memory.ts";
+import { Win32Bytes, withMemory } from "@/win32/memory.ts";
 import { foregroundWindowHandle, readCursorPosition } from "@/win32/user32.ts";
 
 import {
@@ -17,7 +17,6 @@ import type { DisplayNative } from "./monitors.ts";
 
 const MONITOR_DEFAULT_TO_NEAREST = 2;
 const MAX_DEVICES = 64;
-const RECT_BYTES = 16;
 const RECT_TOP_OFFSET = 4;
 const RECT_RIGHT_OFFSET = 8;
 const RECT_BOTTOM_OFFSET = 12;
@@ -117,7 +116,7 @@ function monitorInfoOf(monitor: bigint) {
 
 function monitorAtRect(bounds: ModeBounds) {
   return withMemory({
-    size: RECT_BYTES,
+    size: Win32Bytes.RECT,
     use(memory) {
       memory.writeI32(0, bounds.left);
       memory.writeI32(RECT_TOP_OFFSET, bounds.top);

@@ -3,12 +3,13 @@ import { DynComRawMemory, DynComRawOwnedComPointer } from "@microsoft/dynwinrt/c
 import { IClosable } from "winui-svelte/bindings/windows/foundation/IClosable";
 import type { IMemoryBufferReference } from "winui-svelte/bindings/windows/foundation/IMemoryBufferReference";
 
+import { Win32Bytes } from "@/win32/memory.ts";
+
 import { nativeOf } from "./native-object.ts";
 
 const MEMORY_BUFFER_BYTE_ACCESS = WinGuid.parse("5b0d3235-4dba-4d44-865e-8f1d0e4fd04d");
 // IUnknown has three methods, so IMemoryBufferByteAccess.GetBuffer is slot 3
 const GET_BUFFER_SLOT = 3;
-const POINTER_BYTES = 8;
 const CAPACITY_BYTES = 4;
 const BYTE_ALIGNMENT = 1;
 
@@ -60,7 +61,7 @@ export function withBufferBytes<T>({ buffer, use }: { buffer: MemoryBuffer; use:
   const managed = DynComRawOwnedComPointer.queryInterface(native, MEMORY_BUFFER_BYTE_ACCESS).intoManaged(
     MEMORY_BUFFER_BYTE_ACCESS
   );
-  const pointerResult = DynComRawMemory.allocate(POINTER_BYTES, POINTER_BYTES);
+  const pointerResult = DynComRawMemory.allocate(Win32Bytes.POINTER, Win32Bytes.POINTER);
   const capacityResult = DynComRawMemory.allocate(CAPACITY_BYTES, CAPACITY_BYTES);
   try {
     byteAccessSlot().invoke(managed, [
