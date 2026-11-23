@@ -1,9 +1,11 @@
-import { defineMessaging, type Messenger, type Transport } from "@gemini-live/messaging";
+import { defineMessaging, type Messenger } from "@gemini-live/messaging";
 import { type LinkInfo, LinkMessage, type LinkProtocolMap } from "@gemini-live/protocol/link";
 
+import { collectCookies } from "@/lib/google-cookies";
 import { readLinkInfo } from "@/lib/native-host";
 import { ReconnectController } from "@/lib/reconnect";
 import { refreshGoogleSession } from "@/lib/refresh";
+import { socketTransport } from "@/lib/socket-transport";
 
 // The loopback WebSocket the desktop app hosts. It accepts only this extension's pinned ID. Its
 // port is free-picked per run, so the extension asks the app's native messaging host for it, with
@@ -23,9 +25,6 @@ const MESSAGE_TIMEOUT_MS = 10000;
 // A sign-in or rotation changes several cookies at once; push them as one.
 const ROTATION_DEBOUNCE_MS = 1500;
 
-// Everything on google.com and its subdomains; the app picks the auth cookies it needs.
-const GOOGLE_COOKIE_DOMAIN = "google.com";
-
 /**
  * One attempt at the link: asking the native host for it, then the socket and its messenger (from
  * the moment the socket opens). `trusted` once the app's Hello carried the host's token; nothing
@@ -41,13 +40,6 @@ interface Link {
 const connection = new ReconnectController(connect, isLinkActive, RECONNECT_MS);
 
 let pendingPush: ReturnType<typeof setTimeout> | undefined;
-
-/** Whether a cookie belongs to the Google session the app mirrors. */
-export function isGoogleCookie(cookie: Browser.cookies.Cookie) {
-  // google.com itself or a subdomain (".google.com", "accounts.google.com"), never "notgoogle.com"
-  const domain = cookie.domain.replace(/^\./, "");
-  return domain === GOOGLE_COOKIE_DOMAIN || domain.endsWith(`.${GOOGLE_COOKIE_DOMAIN}`);
-}
 
 /**
  * Connects to the app unless already connected. Safe to call from the alarm and the
@@ -73,62 +65,6 @@ function isLinkActive(link: Link) {
 function trustedMessenger() {
   const link = connection.current;
   return link?.trusted && link.socket?.readyState === WebSocket.OPEN ? link.messenger : undefined;
-}
-
-/** The link's socket as a messaging transport: JSON text frames both ways. */
-function socketTransport(socket: WebSocket) {
-  return {
-    post(envelope) {
-      // A closing socket drops the frame; its sender's timeout reports it.
-      if (socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify(envelope));
-      }
-    },
-    listen(receive) {
-      socket.addEventListener("message", ({ data }) => {
-        if (typeof data !== "string") {
-          return;
-        }
-
-        try {
-          receive(JSON.parse(data));
-        } catch {
-          // Not ours to interpret; the app only sends JSON.
-        }
-      });
-    }
-  } satisfies Transport;
-}
-
-// Everything the browser would send to these pages. A domain query can miss cookies the browser
-// still sends (the non-Secure SID, HSID and APISID in particular), which signs the app out.
-const GOOGLE_COOKIE_URLS = [
-  "https://gemini.google.com/",
-  "https://accounts.google.com/",
-  "https://www.google.com/",
-  "http://www.google.com/"
-];
-
-function cookieKey(cookie: Browser.cookies.Cookie) {
-  return `${cookie.domain}|${cookie.path}|${cookie.name}`;
-}
-
-async function collectCookies() {
-  const batches = await Promise.all([
-    browser.cookies.getAll({ domain: GOOGLE_COOKIE_DOMAIN }),
-    ...GOOGLE_COOKIE_URLS.map(url => browser.cookies.getAll({ url }))
-  ]);
-  const unique = new Map(batches.flat().map(cookie => [cookieKey(cookie), cookie]));
-  return [...unique.values()].map(cookie => ({
-    name: cookie.name,
-    value: cookie.value,
-    domain: cookie.domain,
-    path: cookie.path,
-    secure: cookie.secure,
-    httpOnly: cookie.httpOnly,
-    sameSite: cookie.sameSite,
-    expirationDate: cookie.expirationDate ?? null
-  }));
 }
 
 async function pushSession() {

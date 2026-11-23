@@ -6,7 +6,8 @@
 // app over a loopback WebSocket. The app never rotates the cookies itself, so the two can't
 // invalidate each other.
 
-import { ensureLinkConnected, isGoogleCookie, pushSessionSoon } from "@/lib/link";
+import { isGoogleCookie } from "@/lib/google-cookies";
+import { ensureLinkConnected, pushSessionSoon } from "@/lib/link";
 
 // Wakes the suspendable MV3 worker so a link dropped while it slept (e.g. the app launched
 // later) reconnects within 30 seconds, Chrome's floor for a periodic alarm (since Chrome 120).
