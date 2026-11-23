@@ -61,7 +61,8 @@ jobs:
         run: |
           gh release view $env:GITHUB_REF_NAME --json tagName 2>$null
           if ($LASTEXITCODE -ne 0) {
-            gh release create $env:GITHUB_REF_NAME --title "Gemini Live $($env:GITHUB_REF_NAME.TrimStart('v'))" --generate-notes
+            ./scripts/Write-ReleaseNotes.ps1 -Tag $env:GITHUB_REF_NAME -OutFile build/release-notes.md
+            gh release create $env:GITHUB_REF_NAME --title "Gemini Live $($env:GITHUB_REF_NAME.TrimStart('v'))" --notes-file build/release-notes.md
           }
           gh release upload $env:GITHUB_REF_NAME (Get-ChildItem build/release -File).FullName --clobber
       - name: Publish the update manifest
