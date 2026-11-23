@@ -2,6 +2,7 @@ import net from "node:net";
 
 import { defineMessaging } from "@gemini-live/messaging";
 
+import { noop } from "@/lib/noop.ts";
 import { socketTransport } from "@/lib/transport/socket-transport.ts";
 
 import { ActivationMessage, keyTriggerSchema } from "./activation-protocol.ts";
@@ -13,7 +14,7 @@ const CONNECT_TIMEOUT_MS = 150;
 const REPLY_TIMEOUT_MS = 1000;
 
 function messagingOver(socket: net.Socket) {
-  socket.on("error", () => undefined);
+  socket.on("error", noop);
   return defineMessaging<ActivationProtocolMap>(socketTransport(socket), { timeoutMs: REPLY_TIMEOUT_MS });
 }
 
@@ -91,7 +92,7 @@ function listen({ server, pipePath }: { server: net.Server; pipePath: string }) 
 function serve({ pipePath, onTrigger }: { pipePath: string; onTrigger: (trigger: KeyTrigger) => void }) {
   const server = net.createServer(socket => {
     const messaging = messagingOver(socket);
-    messaging.onMessage(ActivationMessage.PING, () => undefined);
+    messaging.onMessage(ActivationMessage.PING, noop);
     messaging.onMessage(ActivationMessage.TRIGGER, message => {
       onTrigger(keyTriggerSchema.parse(message.data));
     });
@@ -121,7 +122,7 @@ export async function claimInstance({
     onTrigger
   });
   if (await isListening) {
-    server.on("error", () => undefined);
+    server.on("error", noop);
     return {
       isPrimary: true as const,
       close: () =>

@@ -1,4 +1,5 @@
 import type { Monitor, Region } from "@/contracts/monitor.ts";
+import { noop } from "@/lib/noop.ts";
 
 import { DETAIL_SETTINGS, fitToEdge, screenArea } from "./capture-geometry.ts";
 import type { PixelRect, PixelSize, ScreenDetail } from "./capture-geometry.ts";
@@ -97,7 +98,7 @@ export function createScreenCapture({
         ...request
       })
     );
-    queue = next.catch(() => undefined);
+    queue = next.catch(noop);
     return next;
   }
 

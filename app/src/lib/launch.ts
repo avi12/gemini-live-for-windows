@@ -1,5 +1,7 @@
 import { spawn } from "node:child_process";
 
+import { noop } from "./noop.ts";
+
 interface LaunchCommand {
   file: string;
   args: readonly string[];
@@ -16,6 +18,6 @@ export function launchDetached({ file, args, env = process.env }: Parameters<Lau
     windowsHide: true,
     env
   });
-  child.on("error", () => undefined);
+  child.on("error", noop);
   child.unref();
 }

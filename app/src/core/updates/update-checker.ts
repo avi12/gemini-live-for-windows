@@ -2,6 +2,7 @@ import { defineMessaging } from "@gemini-live/messaging";
 
 import { log } from "@/core/log/log.ts";
 import { errorMessage } from "@/lib/error-message.ts";
+import { noop } from "@/lib/noop.ts";
 import { createLoopback } from "@/lib/transport/loopback-transport.ts";
 
 import type { AppRelease } from "./app-release.ts";
@@ -137,7 +138,7 @@ export function createUpdateChecker({
   async function prepare(latest: AppRelease) {
     readyPath = await download(latest);
     ready = readyPath ? latest : undefined;
-    sender.sendMessage(UpdateMessage.READY_CHANGED, ready ?? null).catch(() => undefined);
+    sender.sendMessage(UpdateMessage.READY_CHANGED, ready ?? null).catch(noop);
 
     return ready ? UpdateCheck.READY : UpdateCheck.FAILED;
   }

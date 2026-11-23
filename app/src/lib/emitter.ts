@@ -1,3 +1,5 @@
+import { noop } from "./noop.ts";
+
 // A set of listeners for one event type; subscribe() hands back the way to unsubscribe
 export function createEmitter<TEvent>() {
   const listeners = new Set<(event: TEvent) => void>();
@@ -28,7 +30,7 @@ export function createEmitter<TEvent>() {
 // that arrives after the caller stopped waiting does not become an unhandled rejection.
 export function createDeferred<T>() {
   const { promise, resolve, reject } = Promise.withResolvers<T>();
-  promise.catch(() => undefined);
+  promise.catch(noop);
   return {
     promise,
     resolve,

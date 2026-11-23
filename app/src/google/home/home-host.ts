@@ -7,6 +7,7 @@ import { delay } from "@/google/web-host/timeout.ts";
 import { createWebHost } from "@/google/web-host/web-host.ts";
 import type { WebViewFactory } from "@/google/web-host/web-view-port.ts";
 import { errorMessage } from "@/lib/error-message.ts";
+import { noop } from "@/lib/noop.ts";
 
 import { createHomePage, type HomeWebHost, SETTLE_MS } from "./home-page.ts";
 import { switchLights } from "./lights.ts";
@@ -77,8 +78,8 @@ export function createHomeHost({
         .then(cookies => core.setCookies(cookies))
         .catch(error => log.write(`home: ${errorMessage(error)}`));
     },
-    onRecovering: () => undefined,
-    onRecoveryFailed: () => undefined
+    onRecovering: noop,
+    onRecoveryFailed: noop
   });
   const page = createHomePage({
     webHost,

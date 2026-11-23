@@ -4,6 +4,7 @@ import type { GlicHost } from "@/google/glic/glic-host.ts";
 import type { Logger } from "@/google/ports.ts";
 import { delay } from "@/google/web-host/timeout.ts";
 import { errorMessage } from "@/lib/error-message.ts";
+import { noop } from "@/lib/noop.ts";
 
 import type { createDetourRunner } from "./detour-runner.ts";
 
@@ -109,6 +110,6 @@ async function askTextPath({
   } catch (error) {
     log.write(`text turn failed: ${errorMessage(error)}`);
     sink.status(LiveStatus.LISTENING);
-    host.start().catch(() => undefined);
+    host.start().catch(noop);
   }
 }
