@@ -1,10 +1,11 @@
+import type { PillNamed } from "@gemini-live/protocol/view";
+
 import { EngineKind } from "@/contracts/live-engine.ts";
 import type { LiveEngine, LiveEvent, LiveEventListener } from "@/contracts/live-engine.ts";
 import type { Monitor } from "@/contracts/monitor.ts";
 import { UpdateCheck } from "@/core/updates/update-checker.ts";
 import { createPillController } from "@/pill/controller.ts";
 import type { PillDeps } from "@/pill/ports.ts";
-import type { PillNamed } from "@/pill/types.ts";
 
 export const PRIMARY: Monitor = {
   deviceName: "\\\\.\\DISPLAY1",

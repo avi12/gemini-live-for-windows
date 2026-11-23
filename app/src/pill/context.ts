@@ -1,10 +1,11 @@
+import type { PillGlow, PillNamed } from "@gemini-live/protocol/view";
+
 import type { LiveEngine } from "@/contracts/live-engine.ts";
 import type { Monitor } from "@/contracts/monitor.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 import type { CaptionLog } from "@/pill/captions/caption-log.ts";
 import { REST_GLOW } from "@/pill/glow/glow-state.ts";
 import type { PillDeps } from "@/pill/ports.ts";
-import type { PillGlow, PillNamed } from "@/pill/types.ts";
 
 // Every piece of the pill's state; the controller's concerns read and write it, nothing else holds it
 export interface PillState {

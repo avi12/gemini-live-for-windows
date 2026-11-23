@@ -1,8 +1,9 @@
+import type { PillLine, PillLink } from "@gemini-live/protocol/view";
+
 import type { FoundLink } from "@/contracts/live-engine.ts";
 import { findLinks, shortTitle } from "@/pill/captions/link-extractor.ts";
 import type { ExtractedLink } from "@/pill/captions/link-extractor.ts";
 import { faviconUri, isSearchPage } from "@/pill/captions/link-kind.ts";
-import type { PillLine, PillLink } from "@/pill/types.ts";
 
 export const MAX_LINES = 6;
 const LINE_ID_PREFIX = "line-";

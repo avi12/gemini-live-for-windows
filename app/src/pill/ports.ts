@@ -1,9 +1,8 @@
-import type { ClipToData } from "@gemini-live/protocol/view";
+import type { ClipToData, PillNamed } from "@gemini-live/protocol/view";
 
 import type { EngineKind, LiveEngine } from "@/contracts/live-engine.ts";
 import type { Monitor } from "@/contracts/monitor.ts";
 import type { UpdateCheck } from "@/core/updates/update-checker.ts";
-import type { PillNamed } from "@/pill/types.ts";
 
 // What the pill controller needs from the rest of the app, as the small interfaces it is tested
 // with: CORE, LIVE, GOOGLE, MEDIA and OVERLAYS satisfy these, and nothing here imports them.

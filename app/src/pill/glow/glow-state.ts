@@ -1,6 +1,5 @@
 import { GlowMode } from "@gemini-live/protocol/view";
-
-import type { PillGlow } from "@/pill/types.ts";
+import type { PillGlow } from "@gemini-live/protocol/view";
 
 const QUIET_LEVEL = 0.02;
 // Levels go to the hundredth, so a burst of them coalesces
