@@ -19,7 +19,3 @@ export type Region = z.infer<typeof regionSchema>;
 export function monitorName(monitor: Monitor) {
   return `Display ${monitor.index}`;
 }
-
-export function isSameDisplay({ first, second }: { first: Monitor | undefined; second: Monitor | undefined }) {
-  return first?.deviceName === second?.deviceName;
-}

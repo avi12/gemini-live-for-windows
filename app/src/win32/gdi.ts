@@ -56,13 +56,6 @@ export const createRectRgn = bindFunction({
   returns: Win32Type.HANDLE
 });
 
-export const createRoundRectRgn = bindFunction({
-  library: "gdi32.dll",
-  entryPoint: "CreateRoundRectRgn",
-  parameters: [Win32Type.I32, Win32Type.I32, Win32Type.I32, Win32Type.I32, Win32Type.I32, Win32Type.I32],
-  returns: Win32Type.HANDLE
-});
-
 export const combineRgn = bindFunction({
   library: "gdi32.dll",
   entryPoint: "CombineRgn",
