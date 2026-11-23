@@ -1,8 +1,7 @@
 <script lang="ts">
   import { findSharedDisplayName } from "@/lib/display-labels.ts";
   import { sendAction, view } from "@/lib/view.svelte.ts";
-  import { collapse, PILL_WIDTH, toggleCollapse } from "@/ui/fold/collapse.svelte.ts";
-  import { foldPathData } from "@/ui/glyph/morph/fold-icon.ts";
+  import { collapse, PILL_WIDTH } from "@/ui/fold/collapse.svelte.ts";
   import { micPathData } from "@/ui/glyph/morph/mic-icon.ts";
   import MorphIcon from "@/ui/glyph/morph/MorphIcon.svelte";
   import { GlyphButtonKind } from "@/ui/glyph/glyph-button.ts";
@@ -10,24 +9,13 @@
   import { Glyph } from "@/ui/glyph/glyphs.ts";
   import DisplayMenu from "@/ui/menu/DisplayMenu.svelte";
   import GearMenu from "@/ui/menu/gear/GearMenu.svelte";
-  import { Motion } from "@/ui/motion/motion.ts";
+  import FoldControl from "@/ui/pill/FoldControl.svelte";
+  import PillStatus from "@/ui/pill/PillStatus.svelte";
   import { PillPart, trackPart } from "@/ui/window/places.svelte.ts";
-  import Waveform from "@/ui/pill/Waveform.svelte";
-  import { LiveStatus, PillActionKind } from "@gemini-live/protocol/view";
-  import { fade } from "svelte/transition";
-  import { Path, TextBlock } from "winui-svelte/components";
+  import { PillActionKind } from "@gemini-live/protocol/view";
 
   const MIN_DISPLAYS_TO_PICK = 2;
   const GLYPH_SIZE = 24;
-  const MUTED_BADGE_ICON_SIZE = 14;
-
-  const foldLabel = $derived.by(() => {
-    if (collapse.isCollapsed) {
-      return "Expand";
-    }
-
-    return "Collapse";
-  });
 
   const hasDisplayPicker =$derived(view.displays.length >= MIN_DISPLAYS_TO_PICK);
 
@@ -45,18 +33,6 @@
     }
 
     return "live-path-accent";
-  });
-
-  const isListening = $derived(view.status === LiveStatus.LISTENING);
-  const middleKey = $derived(isListening ? "waveform" : view.status);
-  const isDetailEmpty = $derived(view.statusDetail === "");
-
-  const statusDetail = $derived.by(() => {
-    if (isDetailEmpty) {
-      return undefined;
-    }
-
-    return view.statusDetail;
   });
 
   const sharedDisplayName = $derived(
@@ -92,24 +68,6 @@
   <GearMenu />
 {/snippet}
 
-{#snippet middle()}
-  <grid class="middle" toolTip={statusDetail}>
-    {#key middleKey}
-      <border
-        class="status"
-        in:fade={{ duration: Motion.STANDARD_MILLISECONDS }}
-        out:fade={{ duration: Motion.SWAP_OUT_MILLISECONDS }}
-      >
-        {#if isListening}
-          <Waveform />
-        {:else}
-          <TextBlock class="live-supporting-text" textTrimming="CharacterEllipsis">{view.status}</TextBlock>
-        {/if}
-      </border>
-    {/key}
-  </grid>
-{/snippet}
-
 {#snippet micButton(column: number)}
   <GlyphButton
     {column}
@@ -123,27 +81,6 @@
   >
     {#snippet icon()}
       <MorphIcon class={micFill} isSecond={view.isMuted} pathData={micPathData} size={GLYPH_SIZE} />
-    {/snippet}
-  </GlyphButton>
-{/snippet}
-
-{#snippet foldButton(column: number)}
-  <GlyphButton
-    {column}
-    glyphSize={GLYPH_SIZE}
-    kind={GlyphButtonKind.ROUND}
-    label={foldLabel}
-    onpress={toggleCollapse}
-    part={PillPart.COLLAPSE}
-    toolTip={foldLabel}
-  >
-    {#snippet icon()}
-      <MorphIcon
-        class="live-path-round"
-        isSecond={collapse.isCollapsed}
-        pathData={foldPathData}
-        size={GLYPH_SIZE}
-      />
     {/snippet}
   </GlyphButton>
 {/snippet}
@@ -170,7 +107,7 @@
       part={PillPart.SHARE}
       toolTip={shareToolTip}
     />
-    {@render middle()}
+    <PillStatus />
     {@render micButton(2)}
     <GlyphButton
       column={3}
@@ -194,25 +131,7 @@
     />
     <border class="fold-room"></border>
   </grid>
-  <!-- One button for both forms, so its icon can glide from one to the other: inside either face it
-       would be rebuilt by the swap and start at its end shape -->
-  <grid class="fold">
-    {@render foldButton(0)}
-    {#if collapse.isCollapsed && view.isMuted}
-      <grid
-        class="live-muted-fill muted-badge"
-        isHitTestVisible={false}
-        transition:fade={{ duration: Motion.STANDARD_MILLISECONDS }}
-      >
-        <Path
-          class="live-path-muted badge-icon"
-          data={micPathData({ progress: 1, size: MUTED_BADGE_ICON_SIZE })}
-          height={MUTED_BADGE_ICON_SIZE}
-          width={MUTED_BADGE_ICON_SIZE}
-        />
-      </grid>
-    {/if}
-  </grid>
+  <FoldControl glyphSize={GLYPH_SIZE} />
 </grid>
 
 <style>
@@ -251,37 +170,5 @@
 
   .fold-room {
     grid-column: 6;
-  }
-
-  /* On the capsule's right end, over whichever face shows, at the same place in both */
-  .fold {
-    align-self: center;
-    justify-self: end;
-    margin-right: 18px;
-  }
-
-  /* The orb has no mic button to show the mute, so a small badge on its corner does */
-  .muted-badge {
-    align-self: start;
-    justify-self: start;
-    width: 22px;
-    height: 22px;
-    margin-top: -8px;
-    margin-left: -8px;
-    border-radius: 11px;
-  }
-
-  .badge-icon {
-    align-self: center;
-    justify-self: center;
-  }
-
-  .middle {
-    grid-column: 2;
-    align-self: center;
-  }
-
-  .status {
-    justify-self: center;
   }
 </style>
