@@ -21,7 +21,10 @@ const devModulesSchema = z.object({
 async function loadFromSource<Exports>({ marker, entry }: { marker: PillDevMarker; entry: string }) {
   const devModulesUrl = pathToFileURL(path.join(path.dirname(marker.pillDevEntry), DEV_MODULES_FILE));
   const devModules = devModulesSchema.parse(await import(devModulesUrl.href));
-  return devModules.loadDevModule<Exports>(entry);
+  return devModules.loadDevModule<Exports>({
+    root: path.join(marker.repoRoot, "app"),
+    entry
+  });
 }
 
 // While `pnpm dev` runs (its marker), a thread's whole code, the pill's code with it, is loaded from the
