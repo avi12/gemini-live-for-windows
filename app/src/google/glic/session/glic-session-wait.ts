@@ -1,7 +1,7 @@
-import type { createEmitter } from "@/google/emitter.ts";
 import { type GlicHostEvent, GlicHostEventKind } from "@/google/glic/glic-events.ts";
 import type { GlicState } from "@/google/glic/glic-state.ts";
 import type { SessionSource } from "@/google/session/session-link.ts";
+import type { createEmitter } from "@/lib/emitter.ts";
 
 const REFRESH_GRACE_MS = 25_000;
 

@@ -1,3 +1,4 @@
+import { createEmitter } from "@/lib/emitter.ts";
 import type { AudioDuplex, Unsubscribe } from "@/live/ports.ts";
 
 import { AudioCommandKind, AudioEventKind, audioEventSchema } from "./audio-protocol.ts";
@@ -13,22 +14,7 @@ export interface AudioWorkerLink {
   terminate(): Promise<void>;
 }
 
-function createListeners<T>() {
-  const listeners = new Set<(value: T) => void>();
-  return {
-    subscribe(this: void, listener: (value: T) => void) {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
-    emit(value: T) {
-      for (const listener of listeners) {
-        listener(value);
-      }
-    }
-  };
-}
-
-function createStartGate(failures: ReturnType<typeof createListeners<string>>) {
+function createStartGate(failures: ReturnType<typeof createEmitter<string>>) {
   let settleStart:
     | {
         resolve: () => void;
@@ -67,10 +53,10 @@ function createStartGate(failures: ReturnType<typeof createListeners<string>>) {
 
 function createHubs() {
   return {
-    chunks: createListeners<Uint8Array>(),
-    micLevels: createListeners<number>(),
-    speakerLevels: createListeners<number>(),
-    failures: createListeners<string>()
+    chunks: createEmitter<Uint8Array>(),
+    micLevels: createEmitter<number>(),
+    speakerLevels: createEmitter<number>(),
+    failures: createEmitter<string>()
   };
 }
 

@@ -1,9 +1,9 @@
-import { createEmitter } from "@/google/emitter.ts";
 import type { Logger } from "@/google/ports.ts";
 import type { SessionStore } from "@/google/session/cookies.ts";
 import type { SessionSource } from "@/google/session/session-link.ts";
 import type { SharedView } from "@/google/shared-view.ts";
 import type { WebViewFactory } from "@/google/web-host/web-view-port.ts";
+import { createEmitter } from "@/lib/emitter.ts";
 
 import { createGlicCommands } from "./glic-commands.ts";
 import type { GlicHostEvent } from "./glic-events.ts";

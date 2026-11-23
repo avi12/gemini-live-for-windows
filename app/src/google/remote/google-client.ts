@@ -4,8 +4,8 @@ import type { Transport } from "winui-svelte/state/host";
 import { EngineKind, LiveEventKind } from "@/contracts/live-engine.ts";
 import type { LiveEngine, LiveEvent } from "@/contracts/live-engine.ts";
 import type { Monitor, Region } from "@/contracts/monitor.ts";
-import { createEmitter } from "@/google/emitter.ts";
 import type { Logger } from "@/google/ports.ts";
+import { createEmitter } from "@/lib/emitter.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 import { unwrapParsed } from "@/lib/unwrap-parsed.ts";
 

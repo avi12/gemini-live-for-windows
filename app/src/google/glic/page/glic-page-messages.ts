@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-import type { createEmitter } from "@/google/emitter.ts";
 import type { GlicCommands } from "@/google/glic/glic-commands.ts";
 import { type GlicHostEvent, GlicHostEventKind } from "@/google/glic/glic-events.ts";
 import type { GlicState } from "@/google/glic/glic-state.ts";
@@ -9,6 +8,7 @@ import type { GlicSession } from "@/google/glic/session/glic-session.ts";
 import type { Logger } from "@/google/ports.ts";
 import { Direction, GlicMessage, glicStateSchema, transcriptLineSchema } from "@/google/protocols/glic.ts";
 import type { SharedView } from "@/google/shared-view.ts";
+import type { createEmitter } from "@/lib/emitter.ts";
 
 import { createGlicRecovery } from "./glic-recovery.ts";
 

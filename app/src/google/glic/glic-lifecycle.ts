@@ -1,6 +1,6 @@
-import { createDeferred } from "@/google/emitter.ts";
 import type { Logger } from "@/google/ports.ts";
 import { fingerprint, hasSession, type SessionStore } from "@/google/session/cookies.ts";
+import { createDeferred } from "@/lib/emitter.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 
 import type { GlicCommands } from "./glic-commands.ts";

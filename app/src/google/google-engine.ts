@@ -1,8 +1,8 @@
 import { type LiveEvent, LiveEventKind, LiveStatus } from "@/contracts/live-engine.ts";
+import { createEmitter } from "@/lib/emitter.ts";
 
 import { createDetours, createSpeechRecord } from "./detours/detours.ts";
 import { createIntentTriggers } from "./detours/intent-triggers.ts";
-import { createEmitter } from "./emitter.ts";
 import { type GlicHostEvent, GlicHostEventKind } from "./glic/glic-events.ts";
 import type { GlicHost } from "./glic/glic-host.ts";
 import { createLiveEngine } from "./google-live-engine.ts";

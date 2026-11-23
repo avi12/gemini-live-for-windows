@@ -1,11 +1,11 @@
 import { LiveStatus } from "@/contracts/live-engine.ts";
-import type { createEmitter } from "@/google/emitter.ts";
 import type { Logger } from "@/google/ports.ts";
 import type { GlicProtocolMap } from "@/google/protocols/glic.ts";
 import type { SessionSource } from "@/google/session/session-link.ts";
 import { decideHiddenPagePermission, isGoogleNavigation } from "@/google/web-host/guards/policies.ts";
 import { createWebHost, RecoveryFailure } from "@/google/web-host/web-host.ts";
 import type { WebViewFactory } from "@/google/web-host/web-view-port.ts";
+import type { createEmitter } from "@/lib/emitter.ts";
 
 import { type GlicHostEvent, GlicHostEventKind } from "./glic-events.ts";
 import type { GlicState } from "./glic-state.ts";

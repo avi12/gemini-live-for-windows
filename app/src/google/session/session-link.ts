@@ -2,8 +2,8 @@ import { randomBytes } from "node:crypto";
 
 import { type BrowserCookie, LinkMessage } from "@gemini-live/protocol/link";
 
-import { createEmitter } from "@/google/emitter.ts";
 import type { LinkPublisher, Logger } from "@/google/ports.ts";
+import { createEmitter } from "@/lib/emitter.ts";
 
 import { createLinkClients } from "./link-clients.ts";
 import { createLinkServer } from "./link-server.ts";
