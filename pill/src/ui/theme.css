@@ -127,6 +127,16 @@ text-block {
   color: var(--live-on-muted);
 }
 
+/* Global rather than in each component, so components in feature folders need no parent import to
+   reach the colours: text and font icons in the accent colour, and the muted state's fill */
+.live-primary-text {
+  color: var(--live-primary);
+}
+
+.live-muted-fill {
+  background-color: var(--live-muted);
+}
+
 .live-label {
   font-size: 14px;
 }

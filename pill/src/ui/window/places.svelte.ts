@@ -2,7 +2,7 @@ import { untrack } from "svelte";
 import { SvelteMap } from "svelte/reactivity";
 import { control } from "winui-svelte";
 
-import { collapse } from "@/ui/collapse.svelte.ts";
+import { collapse } from "@/ui/fold/collapse.svelte.ts";
 
 export const PillPart = {
   PILL: "pill",

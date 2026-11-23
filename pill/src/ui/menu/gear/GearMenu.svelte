@@ -1,7 +1,7 @@
 <script lang="ts">
   import CameraItem from "./CameraItem.svelte";
   import EnginePicker from "./EnginePicker.svelte";
-  import { menuOf } from "./menu.ts";
+  import { menuOf } from "@/ui/menu/menu.ts";
   import MicrophoneItems from "./MicrophoneItems.svelte";
   import UpdateItems from "./UpdateItems.svelte";
   import { sendAction, view } from "@/lib/view.svelte.ts";

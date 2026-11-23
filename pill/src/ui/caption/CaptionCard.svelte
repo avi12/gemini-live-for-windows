@@ -1,12 +1,11 @@
 <script lang="ts">
-  import "./theme.css";
   import { view } from "@/lib/view.svelte.ts";
-  import { PILL_WIDTH } from "@/ui/collapse.svelte.ts";
-  import LinkChips from "@/ui/LinkChips.svelte";
+  import { PILL_WIDTH } from "@/ui/fold/collapse.svelte.ts";
+  import LinkChips from "@/ui/caption/LinkChips.svelte";
   import { cardLift, Motion } from "@/ui/motion/motion.ts";
-  import ExtensionPanel from "@/ui/panels/ExtensionPanel.svelte";
-  import KeyPanel from "@/ui/panels/KeyPanel.svelte";
-  import Transcript from "@/ui/Transcript.svelte";
+  import ExtensionPanel from "@/ui/caption/panels/ExtensionPanel.svelte";
+  import KeyPanel from "@/ui/caption/panels/KeyPanel.svelte";
+  import Transcript from "@/ui/caption/Transcript.svelte";
   import { glideHeight } from "winui-svelte";
   import { StackPanel } from "winui-svelte/components";
 

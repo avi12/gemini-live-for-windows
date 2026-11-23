@@ -1,7 +1,6 @@
 <script lang="ts">
-  import "./theme.css";
   import { sendAction, view } from "@/lib/view.svelte.ts";
-  import LinkIcon from "@/ui/LinkIcon.svelte";
+  import LinkIcon from "@/ui/caption/LinkIcon.svelte";
   import LinkMenu from "@/ui/menu/LinkMenu.svelte";
   import { Motion } from "@/ui/motion/motion.ts";
   import { isUntitledLink, PillActionKind } from "@gemini-live/protocol/view";
@@ -79,7 +78,7 @@
                 {#if isTitleInTip(link)}
                   <TextBlock class="tip-title">{link.title}</TextBlock>
                 {/if}
-                <TextBlock class="tip-url">{link.uri}</TextBlock>
+                <TextBlock class="live-primary-text tip-url">{link.uri}</TextBlock>
               </StackPanel>
             {/snippet}
             {#snippet contextFlyout()}
@@ -129,7 +128,6 @@
 
   /* The address in the accent colour, a size down, so it reads apart from the title above it */
   .tip-url {
-    color: var(--live-primary);
     font-size: 12px;
     text-wrap: wrap;
   }

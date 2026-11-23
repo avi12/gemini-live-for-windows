@@ -1,7 +1,7 @@
 <script lang="ts">
   import { view } from "@/lib/view.svelte.ts";
   import { voice } from "@/lib/voice-level.svelte.ts";
-  import { PILL_WIDTH } from "@/ui/collapse.svelte.ts";
+  import { PILL_WIDTH } from "@/ui/fold/collapse.svelte.ts";
   import { emphasizedDecelerate } from "@/ui/motion/easing.ts";
   import { glideWidth } from "@/ui/motion/glide-width.ts";
   import { Motion } from "@/ui/motion/motion.ts";

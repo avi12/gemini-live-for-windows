@@ -1,7 +1,7 @@
 import { untrack } from "svelte";
 
-import { collapse } from "@/ui/collapse.svelte.ts";
-import { onFoldChange } from "@/ui/fold-listeners.ts";
+import { collapse } from "@/ui/fold/collapse.svelte.ts";
+import { onFoldChange } from "@/ui/fold/fold-listeners.ts";
 import { isAnimatable } from "@/ui/motion/animatable.ts";
 import { CAPSULE_EASING } from "@/ui/motion/glide-width.ts";
 import { Motion } from "@/ui/motion/motion.ts";

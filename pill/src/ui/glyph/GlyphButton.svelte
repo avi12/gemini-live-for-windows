@@ -1,9 +1,9 @@
 <script lang="ts">
   import { GlyphButtonKind } from "@/ui/glyph/glyph-button.ts";
   import type { Glyph } from "@/ui/glyph/glyphs.ts";
-  import GlyphFace from "@/ui/GlyphFace.svelte";
-  import { trackPart } from "@/ui/places.svelte.ts";
-  import type { PillPart } from "@/ui/places.svelte.ts";
+  import GlyphFace from "@/ui/glyph/GlyphFace.svelte";
+  import { trackPart } from "@/ui/window/places.svelte.ts";
+  import type { PillPart } from "@/ui/window/places.svelte.ts";
   import type { Snippet } from "svelte";
   import { Button } from "winui-svelte/components";
 

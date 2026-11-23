@@ -1,7 +1,7 @@
 import { control } from "winui-svelte";
 
-import { collapse } from "@/ui/collapse.svelte.ts";
-import { onFoldChange } from "@/ui/fold-listeners.ts";
+import { collapse } from "@/ui/fold/collapse.svelte.ts";
+import { onFoldChange } from "@/ui/fold/fold-listeners.ts";
 import { EASE_OUT_CSS, easeOut } from "@/ui/motion/easing.ts";
 import { Motion } from "@/ui/motion/motion.ts";
 

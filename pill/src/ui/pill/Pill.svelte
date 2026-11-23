@@ -1,19 +1,18 @@
 <script lang="ts">
-  import "./theme.css";
   import { findSharedDisplayName } from "@/lib/display-labels.ts";
   import { sendAction, view } from "@/lib/view.svelte.ts";
-  import { collapse, PILL_WIDTH, toggleCollapse } from "@/ui/collapse.svelte.ts";
-  import { foldPathData } from "@/ui/glyph/fold-icon.ts";
-  import { micPathData } from "@/ui/glyph/mic-icon.ts";
-  import MorphIcon from "@/ui/glyph/MorphIcon.svelte";
+  import { collapse, PILL_WIDTH, toggleCollapse } from "@/ui/fold/collapse.svelte.ts";
+  import { foldPathData } from "@/ui/glyph/morph/fold-icon.ts";
+  import { micPathData } from "@/ui/glyph/morph/mic-icon.ts";
+  import MorphIcon from "@/ui/glyph/morph/MorphIcon.svelte";
   import { GlyphButtonKind } from "@/ui/glyph/glyph-button.ts";
   import GlyphButton from "@/ui/glyph/GlyphButton.svelte";
   import { Glyph } from "@/ui/glyph/glyphs.ts";
   import DisplayMenu from "@/ui/menu/DisplayMenu.svelte";
-  import GearMenu from "@/ui/menu/GearMenu.svelte";
+  import GearMenu from "@/ui/menu/gear/GearMenu.svelte";
   import { Motion } from "@/ui/motion/motion.ts";
-  import { PillPart, trackPart } from "@/ui/places.svelte.ts";
-  import Waveform from "@/ui/Waveform.svelte";
+  import { PillPart, trackPart } from "@/ui/window/places.svelte.ts";
+  import Waveform from "@/ui/pill/Waveform.svelte";
   import { LiveStatus, PillActionKind } from "@gemini-live/protocol/view";
   import { fade } from "svelte/transition";
   import { Path, TextBlock } from "winui-svelte/components";
@@ -201,7 +200,7 @@
     {@render foldButton(0)}
     {#if collapse.isCollapsed && view.isMuted}
       <grid
-        class="muted-badge"
+        class="live-muted-fill muted-badge"
         isHitTestVisible={false}
         transition:fade={{ duration: Motion.STANDARD_MILLISECONDS }}
       >
@@ -270,7 +269,6 @@
     margin-top: -8px;
     margin-left: -8px;
     border-radius: 11px;
-    background-color: var(--live-muted);
   }
 
   .badge-icon {

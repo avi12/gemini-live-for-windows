@@ -1,5 +1,4 @@
 <script lang="ts">
-  import "./theme.css";
   import type { GlyphButtonKind } from "@/ui/glyph/glyph-button.ts";
   import GlyphIcon from "@/ui/glyph/GlyphIcon.svelte";
   import type { Glyph } from "@/ui/glyph/glyphs.ts";
@@ -21,7 +20,7 @@
 
 <grid class="face">
   {#if props.isMuted}
-    <border class="muted-layer" transition:fade={{ duration: Motion.STANDARD_MILLISECONDS }}></border>
+    <border class="live-muted-fill muted-layer"transition:fade={{ duration: Motion.STANDARD_MILLISECONDS }}></border>
   {/if}
   <stack-panel class="glyphs">
     {#if props.icon !== undefined}
@@ -39,7 +38,6 @@
 
   .muted-layer {
     border-radius: 20px;
-    background-color: var(--live-muted);
   }
 
   .glyphs {

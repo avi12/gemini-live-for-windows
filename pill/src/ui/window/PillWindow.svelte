@@ -1,16 +1,15 @@
 <script lang="ts">
-  import "./theme.css";
   import { arePreviewsOpen } from "@/lib/display-previews.svelte.ts";
   import { clipPillWindow, setPillWindow } from "@/lib/pill-window.ts";
   import { sendAction, view } from "@/lib/view.svelte.ts";
   import { holdVoiceLevel } from "@/lib/voice-level.svelte.ts";
-  import CaptionCard from "@/ui/CaptionCard.svelte";
-  import Glow from "@/ui/Glow.svelte";
+  import CaptionCard from "@/ui/caption/CaptionCard.svelte";
+  import Glow from "@/ui/pill/Glow.svelte";
   import { foldWithPill } from "@/ui/motion/card-fold.ts";
   import { pillEnter, pillExit } from "@/ui/motion/motion.ts";
-  import Pill from "@/ui/Pill.svelte";
-  import { collapse } from "@/ui/collapse.svelte.ts";
-  import { BUTTON_PARTS, PillPart, placeOf, trackPart } from "@/ui/places.svelte.ts";
+  import Pill from "@/ui/pill/Pill.svelte";
+  import { collapse } from "@/ui/fold/collapse.svelte.ts";
+  import { BUTTON_PARTS, PillPart, placeOf, trackPart } from "@/ui/window/places.svelte.ts";
   import { PillActionKind } from "@gemini-live/protocol/view";
   import type { PillRegion } from "@gemini-live/protocol/view";
   import { tick } from "svelte";

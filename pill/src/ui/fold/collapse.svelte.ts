@@ -1,5 +1,5 @@
 import { clipPillWindow } from "@/lib/pill-window.ts";
-import { announceFold } from "@/ui/fold-listeners.ts";
+import { announceFold } from "@/ui/fold/fold-listeners.ts";
 import { Motion } from "@/ui/motion/motion.ts";
 
 // The width the unfolded pill and the caption card above it share, and so the window's width; every

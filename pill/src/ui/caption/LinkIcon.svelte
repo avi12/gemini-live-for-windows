@@ -1,5 +1,4 @@
 <script lang="ts">
-  import "./theme.css";
   import { Glyph } from "@/ui/glyph/glyphs.ts";
   import type { PillLink } from "@gemini-live/protocol/view";
   import { FontIcon, Image } from "winui-svelte/components";
@@ -26,7 +25,7 @@
 </script>
 
 {#if isGlyphShown}
-  <FontIcon class="live-icon link-icon-glyph" fontSize={ICON_SIZE} {glyph} />
+  <FontIcon class="live-icon live-primary-text link-icon-glyph" fontSize={ICON_SIZE} {glyph} />
 {:else}
   <Image
     class="link-icon-image"
@@ -44,9 +43,5 @@
   .link-icon-glyph,
   .link-icon-image {
     align-self: center;
-  }
-
-  .link-icon-glyph {
-    color: var(--live-primary);
   }
 </style>
