@@ -8,14 +8,14 @@ import { delay } from "@/google/web-host/timeout.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 import { launchDetached } from "@/lib/launch.ts";
 import { restartOnDevChanges } from "@/wiring/dev/dev-restart.ts";
-import type { Channels } from "@/wiring/main-thread/channels.ts";
 import type { ShippedFiles } from "@/wiring/main-thread/shipped-files.ts";
+import type { Channels } from "@/wiring/main-thread/ui-worker/channels.ts";
 import {
   RAPID_RESTARTS_VARIABLE,
   rapidRestartsOf,
   restartCommand,
   superviseUiWorker
-} from "@/wiring/main-thread/worker-supervisor.ts";
+} from "@/wiring/main-thread/ui-worker/worker-supervisor.ts";
 import type { UiWorkerData } from "@/wiring/ui-thread/ui-worker-data.ts";
 
 const HOST_EXECUTABLE = "GeminiLiveHost.exe";

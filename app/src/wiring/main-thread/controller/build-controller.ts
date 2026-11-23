@@ -13,15 +13,15 @@ import { openPillLink } from "@/pill/host/host-link.ts";
 import { createPreviousApp } from "@/pill/host/previous-app.ts";
 import { createSettingsPort } from "@/pill/host/settings-port.ts";
 import type { PillDeps } from "@/pill/ports.ts";
-import type { Channels } from "@/wiring/main-thread/channels.ts";
 import {
   createDisplaysPort,
   createEnginesPort,
   createGooglePort,
   createMicrophonesPort,
   createUpdatesPort
-} from "@/wiring/main-thread/pill-ports.ts";
+} from "@/wiring/main-thread/controller/pill-ports.ts";
 import type { ShippedFiles } from "@/wiring/main-thread/shipped-files.ts";
+import type { Channels } from "@/wiring/main-thread/ui-worker/channels.ts";
 
 // The pill controller over the real devices, engines and windows. The UI worker's ends of the
 // links it uses are in `channels`; the pill's window answers on the first of them.

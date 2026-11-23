@@ -11,11 +11,11 @@ import { readPackagedKind } from "@/entry/activation/packaged-activation.ts";
 import { KeySource, serveKeyTriggers } from "@/entry/activation/protocol.ts";
 import { ensureDpiAware } from "@/entry/dpi.ts";
 import { errorMessage } from "@/lib/error-message.ts";
-import { buildController } from "@/wiring/main-thread/build-controller.ts";
-import { openChannels } from "@/wiring/main-thread/channels.ts";
+import { buildController } from "@/wiring/main-thread/controller/build-controller.ts";
 import type { ShippedFiles } from "@/wiring/main-thread/shipped-files.ts";
-import { createTriggerRelay } from "@/wiring/main-thread/trigger-relay.ts";
 import { firstTriggerOf, triggerOf } from "@/wiring/main-thread/triggers/first-trigger.ts";
+import { createTriggerRelay } from "@/wiring/main-thread/triggers/trigger-relay.ts";
+import { openChannels } from "@/wiring/main-thread/ui-worker/channels.ts";
 import { launchUiWorker } from "@/wiring/main-thread/ui-worker/launch-ui-worker.ts";
 import { registerCrashRestart, startWindowsAppSdk } from "@/wiring/main-thread/windows-runtime.ts";
 

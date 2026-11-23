@@ -8,7 +8,7 @@ import {
   FORWARDED_ECHO_MILLISECONDS,
   REPEAT_ECHO_FROM_MILLISECONDS,
   REPEAT_ECHO_UNTIL_MILLISECONDS
-} from "@/wiring/main-thread/trigger-relay.ts";
+} from "@/wiring/main-thread/triggers/trigger-relay.ts";
 
 const ECHO_DELAY_MILLISECONDS = 3500;
 
