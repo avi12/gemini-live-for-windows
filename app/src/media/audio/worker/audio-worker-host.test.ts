@@ -23,6 +23,7 @@ const NUMBER_0_POINT_2 = 0.2;
 const NUMBER_10 = 10;
 
 const SETTLE_MILLISECONDS = 15;
+const EVENT_TIMEOUT_MILLISECONDS = 2000;
 const QUANTUM = 480;
 const CHANNELS = 2;
 
@@ -102,11 +103,28 @@ function setup({ isOpenFailing = false }: { isOpenFailing?: boolean } = {}) {
     await sleep(SETTLE_MILLISECONDS);
   }
 
+  // Waits for an event rather than a fixed time: with the whole suite running, the reply can come
+  // after the settle time, and a fixed wait made the test fail now and then
+  async function eventOf(kind: AudioEvent["kind"]) {
+    const deadline = Date.now() + EVENT_TIMEOUT_MILLISECONDS;
+    while (Date.now() < deadline) {
+      const found = events.find(event => event.kind === kind);
+      if (found !== undefined) {
+        return found;
+      }
+
+      await sleep(SETTLE_MILLISECONDS);
+    }
+
+    return undefined;
+  }
+
   return {
     events,
     requests,
     state,
     send,
+    eventOf,
     get ticks() {
       return ticks.length;
     },
@@ -132,6 +150,7 @@ describe("audio worker host", () => {
   it("opens the graph for the device it was asked for, starts it and says so", async () => {
     const host = setup();
     await host.send(START);
+    assert.notEqual(await host.eventOf(AudioEventKind.STARTED), undefined);
     assert.deepEqual(host.requests, [
       {
         deviceId: "device-1",
@@ -139,7 +158,6 @@ describe("audio worker host", () => {
       }
     ]);
     assert.equal(host.state.started, true);
-    assert.ok(host.events.some(event => event.kind === AudioEventKind.STARTED));
   });
 
   it("reports a graph that will not open as a failure with its message", async () => {
