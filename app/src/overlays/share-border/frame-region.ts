@@ -1,4 +1,6 @@
-import { argHandle, argI32, combineRgn, createRectRgn, deleteObject, setWindowRegion } from "@/win32/index.ts";
+import { argHandle, argI32 } from "@/win32/bind.ts";
+import { combineRgn, createRectRgn, deleteObject } from "@/win32/gdi.ts";
+import { setWindowRegion } from "@/win32/user32.ts";
 
 const RGN_DIFF = 4;
 

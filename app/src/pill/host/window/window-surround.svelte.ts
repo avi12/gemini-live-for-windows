@@ -1,7 +1,7 @@
 import type { WindowHandle } from "winui-svelte/components";
 import { systemSettings } from "winui-svelte/window";
 
-import { setWindowColorKey } from "@/win32/index.ts";
+import { setWindowColorKey } from "@/win32/user32.ts";
 
 // What Windows paints where a window's transparent backdrop fails, as 0x00BBGGRR: opaque white in the
 // light theme, opaque black in the dark one

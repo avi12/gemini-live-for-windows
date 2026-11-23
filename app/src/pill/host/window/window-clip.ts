@@ -1,6 +1,8 @@
 import type { PillRegion } from "@gemini-live/protocol/view";
 
-import { argI32, createRectRgn, setWindowRegion } from "@/win32/index.ts";
+import { argI32 } from "@/win32/bind.ts";
+import { createRectRgn } from "@/win32/gdi.ts";
+import { setWindowRegion } from "@/win32/user32.ts";
 
 // SetWindowRgn's "no region": the whole window again
 const WHOLE_WINDOW = 0n;
