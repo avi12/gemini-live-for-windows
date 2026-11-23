@@ -19,10 +19,14 @@ export const regionSchema = z.object({
   height: z.number().int().positive()
 });
 
+// The work edges are where the taskbar leaves the display free: they move when the taskbar comes back
+// after a graphics driver reset, and the pill docks again on that change
 export const displaySchema = regionSchema.extend({
   id: z.string(),
   index: z.number().int().positive(),
   isPrimary: z.boolean(),
+  workRight: z.number().int(),
+  workBottom: z.number().int(),
   refreshRateHertz: refreshRateSchema
 });
 

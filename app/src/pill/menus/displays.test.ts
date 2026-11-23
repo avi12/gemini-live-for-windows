@@ -3,9 +3,10 @@ import { describe, it } from "node:test";
 
 import { PillActionKind } from "@gemini-live/protocol/view";
 
-import { displayEntry, expectedView, LISTENING, started } from "@/pill/testing/expected-view.ts";
+import { expectedView, LISTENING, started } from "@/pill/testing/expected-view.ts";
 import { PRIMARY, SECONDARY } from "@/pill/testing/fake-monitors.ts";
 import { createFakePill, settle } from "@/pill/testing/fake-pill.ts";
+import { displayView } from "@/pill/view/view-builder.ts";
 
 const SECONDARY_NAME = "Display 2 · 2560×1440";
 
@@ -63,7 +64,7 @@ describe("displays and sharing", () => {
       pill.controller.view(),
       expectedView({
         ...LISTENING,
-        displays: [displayEntry(PRIMARY)]
+        displays: [displayView(PRIMARY)]
       })
     );
     assert.equal(pill.logs.includes("displays changed: 1"), true);
@@ -95,5 +96,20 @@ describe("displays and sharing", () => {
     }
 
     assert.equal(pill.controller.view()?.displays.length, 1);
+  });
+
+  it("shows the taskbar's new edge, so the pill docks above it again", () => {
+    const pill = createFakePill();
+    const taskbarHeight = 48;
+    const withTaskbar = {
+      ...PRIMARY,
+      workBottom: PRIMARY.y + PRIMARY.height - taskbarHeight
+    };
+    pill.world.displays = [withTaskbar, SECONDARY];
+    for (const listener of pill.listeners.displays) {
+      listener();
+    }
+
+    assert.equal(pill.controller.view()?.displays[0]?.workBottom, withTaskbar.workBottom);
   });
 });

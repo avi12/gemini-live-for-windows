@@ -2,11 +2,11 @@ import { GlowMode } from "@gemini-live/protocol/view";
 import type { PillView } from "@gemini-live/protocol/view";
 
 import { EngineKind, LiveStatus } from "@/contracts/live-engine.ts";
-import type { Monitor } from "@/contracts/monitor.ts";
 import { KeyTrigger } from "@/core/instance/key-trigger.ts";
 import { DESK, HEADSET } from "@/pill/testing/fake-deps.ts";
 import { PRIMARY, SECONDARY } from "@/pill/testing/fake-monitors.ts";
 import { createFakePill, settle } from "@/pill/testing/fake-pill.ts";
+import { displayView } from "@/pill/view/view-builder.ts";
 
 // The view the fake pill shows at rest and once listening, which the tests compare against
 
@@ -15,19 +15,6 @@ const CHECK_UPDATE: NonNullable<PillView["update"]> = {
   isAutoUpdateOn: true
 };
 
-export function displayEntry(monitor: Monitor) {
-  return {
-    id: monitor.deviceName,
-    index: monitor.index,
-    isPrimary: monitor.isPrimary,
-    refreshRateHertz: monitor.refreshRateHertz,
-    x: monitor.x,
-    y: monitor.y,
-    width: monitor.width,
-    height: monitor.height
-  };
-}
-
 export function expectedView(overrides: Partial<PillView> = {}) {
   const view: PillView = {
     status: "",
@@ -35,7 +22,7 @@ export function expectedView(overrides: Partial<PillView> = {}) {
     isMuted: false,
     lines: [],
     links: [],
-    displays: [displayEntry(PRIMARY), displayEntry(SECONDARY)],
+    displays: [displayView(PRIMARY), displayView(SECONDARY)],
     pillDisplay: PRIMARY.deviceName,
     sharedDisplay: null,
     isExtensionNeeded: false,

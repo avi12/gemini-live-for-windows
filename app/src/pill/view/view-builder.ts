@@ -1,5 +1,22 @@
+import type { Monitor } from "@/contracts/monitor.ts";
 import type { PillContext } from "@/pill/context.ts";
 import { describeUpdate } from "@/pill/menus/update-menu.ts";
+
+// A display as the pill's view carries it
+export function displayView(monitor: Monitor) {
+  return {
+    id: monitor.deviceName,
+    index: monitor.index,
+    isPrimary: monitor.isPrimary,
+    refreshRateHertz: monitor.refreshRateHertz,
+    x: monitor.x,
+    y: monitor.y,
+    width: monitor.width,
+    height: monitor.height,
+    workRight: monitor.workRight,
+    workBottom: monitor.workBottom
+  };
+}
 
 // The whole pill as one snapshot for the Svelte window; nothing in it is stored twice
 export function buildView(context: PillContext) {
@@ -11,16 +28,7 @@ export function buildView(context: PillContext) {
     isMuted: state.isMuted,
     lines: [...captions.lines],
     links: [...captions.links],
-    displays: state.displays.map(display => ({
-      id: display.deviceName,
-      index: display.index,
-      isPrimary: display.isPrimary,
-      refreshRateHertz: display.refreshRateHertz,
-      x: display.x,
-      y: display.y,
-      width: display.width,
-      height: display.height
-    })),
+    displays: state.displays.map(displayView),
     pillDisplay: state.pillMonitor?.deviceName ?? null,
     sharedDisplay: shared?.deviceName ?? null,
     isExtensionNeeded: state.isExtensionNeeded,
