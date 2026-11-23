@@ -10,6 +10,7 @@ import { keepSurroundClear } from "@/overlays/window/surround.svelte.ts";
 import { reassertTopmost } from "@/overlays/window/topmost.ts";
 import { serveWindowAbilities } from "@/pill/host/window-abilities.ts";
 import type { PillWindowSurface } from "@/pill/host/window-abilities.ts";
+import { clipWindow } from "@/pill/host/window-clip.ts";
 import { startKeyTriggers } from "@/wiring/ui-thread/ui-entry.ts";
 import { startGoogle } from "@/wiring/ui-thread/ui-google.ts";
 import { startOverlayWindows } from "@/wiring/ui-thread/ui-overlays.ts";
@@ -85,6 +86,7 @@ function startUiServices({ pill, data }: { pill: MountedPill; data: UiWorkerData
     surface: () => surfaceOf(pill.window()),
     memory: trackForeground(),
     bringToFrontOf: bringWindowToFront,
+    clipWindow,
     log: writeLog
   });
   void attempt({
@@ -107,9 +109,9 @@ function startUiServices({ pill, data }: { pill: MountedPill; data: UiWorkerData
         bridgesDirectory: data.bridgesDirectory,
         audioWorkerUrl: new URL(data.audioWorkerUrl),
         uiaWorkerUrl: new URL(data.uiaWorkerUrl),
+        screenCaptureWorkerUrl: new URL(data.screenCaptureWorkerUrl),
         nativeHostPath: data.nativeHostPath,
         isDebugging: data.isDebugging,
-        screenCaptureWorkerUrl: new URL(data.screenCaptureWorkerUrl),
         log: writeLog
       })
   });
@@ -120,6 +122,9 @@ export async function startUi(data: UiWorkerData) {
   keepRunningOnUnhandledErrors();
   await mountPill({
     port: data.ports.pill,
+    // The fold clips the window on this thread, at once: through the main thread an unfold waited
+    // most of a second before it could start
+    clipWindow,
     onStart: pill =>
       startUiServices({
         pill,

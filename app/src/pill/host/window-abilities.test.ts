@@ -51,6 +51,7 @@ function setup({
       calls.push(`bring ${hwnd}`);
       return true;
     },
+    clipWindow: ({ hwnd, region }) => calls.push(`clip ${hwnd} ${JSON.stringify(region)}`),
     log: message => calls.push(message)
   });
   return {

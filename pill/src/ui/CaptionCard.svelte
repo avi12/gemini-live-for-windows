@@ -1,6 +1,7 @@
 <script lang="ts">
   import "./theme.css";
   import { view } from "@/lib/view.svelte.ts";
+  import { PILL_WIDTH } from "@/ui/collapse.svelte.ts";
   import LinkChips from "@/ui/LinkChips.svelte";
   import { cardLift, Motion } from "@/ui/motion/motion.ts";
   import ExtensionPanel from "@/ui/panels/ExtensionPanel.svelte";
@@ -18,7 +19,7 @@
 </script>
 
 {#if hasContent}
-  <grid class="card" in:cardLift>
+  <grid style:width="{PILL_WIDTH}px" class="card" in:cardLift>
     <border
       class="live-card"
       {@attach glideHeight({

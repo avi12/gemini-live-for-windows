@@ -28,7 +28,7 @@ export interface PillContext {
   readonly deps: PillDeps;
   readonly captions: CaptionLog;
   readonly focus: ScreenFocusPort;
-  changed(): void;
+  changed: () => void;
 }
 
 export function createPillState() {

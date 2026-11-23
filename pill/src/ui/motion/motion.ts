@@ -27,6 +27,9 @@ export const Motion = {
   PILL_SINK: 40,
   PILL_SCALE: 0.96,
   CARD_RISE: 12,
+  // How far the conversation sinks, and how small it gets, as it folds into the orb
+  CARD_FOLD_DROP: 24,
+  CARD_FOLD_SCALE: 0.9,
   LINE_RISE: 8,
   MENU_SINK: 8,
   MENU_SCALE: 0.96,

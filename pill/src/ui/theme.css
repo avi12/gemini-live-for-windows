@@ -9,6 +9,8 @@
 }
 
 :root {
+  /* WinUI's tooltip text is 12px, too small to read a link's title and address at a glance */
+  --tool-tip-content-theme-font-size: 14px;
   --live-surface: rgb(243 237 247 / 0.96);
   --live-menu-surface: #f3edf7;
   --live-text: #1d1b20;
@@ -104,8 +106,6 @@ text-block {
   color: var(--live-text);
 }
 
-.live-glyph-accent {
-  color: var(--live-on-mic);
 /* The fills of the drawn (morphing) icons, matching the font icons' colors above */
 .live-path-round {
   fill: var(--live-text);
@@ -119,6 +119,8 @@ text-block {
   fill: var(--live-on-muted);
 }
 
+.live-glyph-accent {
+  color: var(--live-on-mic);
 }
 
 .live-glyph-muted {
@@ -279,4 +281,24 @@ text-block {
   --button-background: var(--live-selected-container);
   --button-background-pointer-over: var(--live-selected-container);
   --button-background-pressed: var(--live-selected-container);
+}
+
+/* The pill's two faces stay built: the one not shown leaves the layout, the one shown fades in each time
+   it comes back (a short wait first, so the outgoing face is gone) */
+.live-face-hidden {
+  display: none;
+}
+
+.live-face-shown {
+  animation: live-face-in 200ms ease-out 30ms both;
+}
+
+@keyframes live-face-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }

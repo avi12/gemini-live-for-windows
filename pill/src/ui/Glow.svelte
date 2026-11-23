@@ -1,7 +1,9 @@
 <script lang="ts">
   import { view } from "@/lib/view.svelte.ts";
   import { voice } from "@/lib/voice-level.svelte.ts";
+  import { PILL_WIDTH } from "@/ui/collapse.svelte.ts";
   import { emphasizedDecelerate } from "@/ui/motion/easing.ts";
+  import { glideWidth } from "@/ui/motion/glide-width.ts";
   import { Motion } from "@/ui/motion/motion.ts";
   import { GlowMode } from "@gemini-live/protocol/view";
   import type { Snippet } from "svelte";
@@ -95,18 +97,33 @@
   }
 </script>
 
-<grid class="glow-and-pill">
-  <border class="live-pill-base"></border>
-  <grid style:opacity={shownOpacity.current} class="glow-layers" {@attach breathe}>
-    <border class="live-glow"></border>
-    <border class="live-glow-highlight"></border>
+<grid
+  style:min-width="{PILL_WIDTH}px"
+  class="right-edge">
+  <grid class="glow-and-pill" {@attach glideWidth()}>
+    <border class="live-pill-base"></border>
+    <!-- A prop, not style:opacity: the tween changes it every frame, and each new inline style value is
+       compiled into a XAML style -->
+    <grid class="glow-layers" {@attach breathe} opacity={shownOpacity.current}>
+      <border class="live-glow"></border>
+      <border class="live-glow-highlight"></border>
+    </grid>
+    {@render children()}
   </grid>
-  {@render children()}
 </grid>
 
 <style>
+  /* The capsule keeps to the window's right edge by the grid itself: an empty column takes the rest.
+     An alignment, or an offset worked out from the window's width, put it in the wrong place for a
+     frame whenever the window resized */
+  .right-edge {
+    display: grid;
+    grid-template-columns: 1fr auto;
+  }
+
   .glow-and-pill {
     display: grid;
+    grid-column: 2;
   }
 
   .glow-and-pill > *,

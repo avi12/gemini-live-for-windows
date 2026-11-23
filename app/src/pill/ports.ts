@@ -1,15 +1,17 @@
+import type { ClipToData } from "@gemini-live/protocol/view";
+
 import type { EngineKind, LiveEngine } from "@/contracts/live-engine.ts";
 import type { Monitor, Region } from "@/contracts/monitor.ts";
 import type { UpdateCheck } from "@/core/updates/update-checker.ts";
 import type { PillNamed } from "@/pill/types.ts";
 
 // What the pill controller needs from the rest of the app, as the small interfaces it is tested
+// with: CORE, LIVE, GOOGLE, MEDIA and OVERLAYS satisfy these, and nothing here imports them.
+
 interface CreateOptions {
   kind: EngineKind;
   monitor: Monitor;
 }
-
-// with: CORE, LIVE, GOOGLE, MEDIA and OVERLAYS satisfy these, and nothing here imports them.
 
 export interface SettingsPort {
   readonly engine: EngineKind;
@@ -79,6 +81,7 @@ export interface PillWindowPort {
   bringToFront(): void;
   restorePreviousApp(): void;
   moveBy(options: MoveByOptions): void;
+  clipTo(data: ClipToData): void;
 }
 
 export interface UpdatesPort {
@@ -102,11 +105,11 @@ export interface PillDeps {
   window: PillWindowPort;
   updates: UpdatesPort;
   openExternal(uri: string): void;
+  // A web page's own title, read from the page; undefined when it cannot be had
+  pageTitle(uri: string): Promise<string | undefined>;
   // Puts text on the clipboard; the pill's own window cannot, as it never takes focus
   copyText(text: string): Promise<void>;
   quit(): void;
-  // A web page's own title, read from the page; undefined when it cannot be had
-  pageTitle(uri: string): Promise<string | undefined>;
-  log(message: string): void;
+  log: (message: string) => void;
   delay(milliseconds: number): Promise<void>;
 }

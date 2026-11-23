@@ -13,7 +13,7 @@ export type PillProtocol = StateProtocol<PillAction> & WindowProtocol;
 export interface PillLinkSetup {
   // The pill window's end of the link: a MessagePort pair between the main thread and the UI worker
   transport: Transport;
-  log(message: string): void;
+  log: (message: string) => void;
 }
 
 // The main thread's end of the link to the pill window. The window's own abilities come first,
@@ -27,7 +27,8 @@ export function openPillLink({ transport, log }: PillLinkSetup) {
   const windowPort: PillWindowPort = {
     bringToFront: () => messaging.notify(WindowMessage.BRING_TO_FRONT),
     restorePreviousApp: () => messaging.notify(WindowMessage.RESTORE_PREVIOUS_APP),
-    moveBy: data => messaging.notify(WindowMessage.MOVE_BY, data)
+    moveBy: data => messaging.notify(WindowMessage.MOVE_BY, data),
+    clipTo: data => messaging.notify(WindowMessage.CLIP_TO, data)
   };
 
   // Serves the view over the state protocol: a snapshot first, then a patch after each change

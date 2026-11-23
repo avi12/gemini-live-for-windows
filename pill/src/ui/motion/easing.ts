@@ -104,7 +104,12 @@ function cubicBezier({ horizontal, vertical }: { horizontal: Axis; vertical: Axi
   };
 }
 
-export const emphasizedDecelerate = cubicBezier({
+// A curve's control points as CSS, to hand the same curve to the platform's own animations
+function cssOf({ horizontal, vertical }: { horizontal: Axis; vertical: Axis }) {
+  return `cubic-bezier(${horizontal.first}, ${vertical.first}, ${horizontal.second}, ${vertical.second})`;
+}
+
+const EMPHASIZED_DECELERATE_CURVE = {
   horizontal: {
     first: 0.05,
     second: 0.1
@@ -113,7 +118,9 @@ export const emphasizedDecelerate = cubicBezier({
     first: 0.7,
     second: 1
   }
-});
+} as const;
+
+export const emphasizedDecelerate = cubicBezier(EMPHASIZED_DECELERATE_CURVE);
 
 export const emphasizedAccelerate = cubicBezier({
   horizontal: {
@@ -125,3 +132,19 @@ export const emphasizedAccelerate = cubicBezier({
     second: 0.15
   }
 });
+
+// CSS's own `ease-out`, kept as its control points so the same curve can be handed to the platform
+// (as CSS) and worked out here (to know where a running glide is)
+const EASE_OUT_CURVE = {
+  horizontal: {
+    first: 0,
+    second: 0.58
+  },
+  vertical: {
+    first: 0,
+    second: 1
+  }
+} as const;
+
+export const easeOut = cubicBezier(EASE_OUT_CURVE);
+export const EASE_OUT_CSS = cssOf(EASE_OUT_CURVE);

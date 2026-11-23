@@ -1,4 +1,5 @@
-import { moveByDataSchema, WindowMessage } from "@gemini-live/protocol/view";
+import { clipToDataSchema, moveByDataSchema, WindowMessage } from "@gemini-live/protocol/view";
+import type { PillRegion } from "@gemini-live/protocol/view";
 import type { Messaging } from "winui-svelte/messaging";
 import { shouldRestore } from "winui-svelte/window/foreground";
 import type { ForegroundSnapshot } from "winui-svelte/window/foreground";
@@ -31,12 +32,15 @@ export function serveWindowAbilities({
   surface,
   memory,
   bringToFrontOf,
+  clipWindow,
   log
 }: {
   link: Pick<Messaging<PillProtocol>, "onMessage">;
   surface: () => PillWindowSurface | undefined;
   memory: ForegroundMemory;
   bringToFrontOf: (hwnd: bigint) => boolean;
+  // Clips the window to `region` (physical pixels from its top-left corner), or shows all of it
+  clipWindow: (options: { hwnd: bigint; region: PillRegion | null }) => void;
   log: (message: string) => void;
 }) {
   function windowOrThrow() {
@@ -75,6 +79,13 @@ export function serveWindowAbilities({
     current.moveTo({
       x: x + deltaX,
       y: y + deltaY
+    });
+  });
+  link.onMessage(WindowMessage.CLIP_TO, message => {
+    const { region } = clipToDataSchema.parse(message.data);
+    clipWindow({
+      hwnd: windowOrThrow().hwnd,
+      region
     });
   });
 }

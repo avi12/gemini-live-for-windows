@@ -323,7 +323,8 @@ function createFakeShell({ world, calls }: { world: FakeWorld; calls: string[] }
     window: {
       bringToFront: () => calls.push("bringToFront"),
       restorePreviousApp: () => calls.push("restorePreviousApp"),
-      moveBy: ({ deltaX, deltaY }) => calls.push(`moveBy ${deltaX} ${deltaY}`)
+      moveBy: ({ deltaX, deltaY }) => calls.push(`moveBy ${deltaX} ${deltaY}`),
+      clipTo: ({ region }) => calls.push(`clipTo ${JSON.stringify(region)}`)
     }
   } satisfies Pick<PillDeps, "google" | "microphones" | "previousApp" | "window">;
 }
@@ -397,8 +398,8 @@ function createFakeHost({
       isPackaged
     }),
     openExternal: uri => calls.push(`open ${uri}`),
-    copyText(text) {
     pageTitle: () => Promise.resolve(undefined),
+    copyText(text) {
       calls.push(`copy ${text}`);
       return Promise.resolve();
     },

@@ -1,10 +1,10 @@
 import type { MessagePort } from "node:worker_threads";
 
-import type { PillAction, WindowProtocol } from "@gemini-live/protocol/view";
+import type { PillAction, WindowClipper, WindowProtocol } from "@gemini-live/protocol/view";
 import type { HostChannel } from "winui-svelte/state";
 
 import type { PreviewSource } from "@/lib/capture/capture-schema.ts";
-import { pillWindow } from "@/lib/pill-window.ts";
+import { pillWindow, setWindowClipper } from "@/lib/pill-window.ts";
 
 // What the host gets once the pill is up: the typed link to answer its own messages on, and the
 // pill's window
@@ -19,10 +19,13 @@ export interface MountedPill {
 export async function mountPill({
   port,
   previewSource,
+  clipWindow,
   onStart
 }: {
   port: MessagePort;
   previewSource?: PreviewSource;
+  // Clips a window on this thread; without it, each clip is asked of the host over the port
+  clipWindow?: WindowClipper;
   onStart?: (pill: MountedPill) => void;
 }) {
   const { mountControl, registerControls } = await import("winui-svelte");
@@ -45,6 +48,7 @@ export async function mountPill({
     ...stackPanel
   });
   connectView({ channel });
+  setWindowClipper(clipWindow);
   await runWindow({
     webApis: [installAnimations, installPage],
     onStart() {
