@@ -1,14 +1,5 @@
-import {
-  argBool,
-  argHandle,
-  argI32,
-  argPointer,
-  argU32,
-  bindFunction,
-  readWideString,
-  Win32Type,
-  withMemory
-} from "@/win32/bind.ts";
+import { argBool, argHandle, argI32, argPointer, argU32, bindFunction, Win32Type } from "@/win32/bind.ts";
+import { readWideString, withMemory } from "@/win32/memory.ts";
 import { foregroundWindowHandle, processIdOfWindow } from "@/win32/user32.ts";
 
 const TITLE_CHARS = 1024;

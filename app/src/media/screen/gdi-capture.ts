@@ -1,4 +1,4 @@
-import { argHandle, argI32, argPointer, argU32, bindFunction, Win32Type, withMemory } from "@/win32/bind.ts";
+import { argHandle, argI32, argPointer, argU32, bindFunction, Win32Type } from "@/win32/bind.ts";
 import {
   createCompatibleDC,
   createDIBSection,
@@ -8,6 +8,7 @@ import {
   releaseDC,
   selectObject
 } from "@/win32/gdi.ts";
+import { withMemory } from "@/win32/memory.ts";
 
 import type { PixelRect, PixelSize } from "./capture-geometry.ts";
 

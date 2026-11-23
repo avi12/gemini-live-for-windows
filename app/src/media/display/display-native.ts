@@ -1,4 +1,5 @@
-import { argHandle, argPointer, argU32, argWideString, bindFunction, Win32Type, withMemory } from "@/win32/bind.ts";
+import { argHandle, argPointer, argU32, argWideString, bindFunction, Win32Type } from "@/win32/bind.ts";
+import { withMemory } from "@/win32/memory.ts";
 import { foregroundWindowHandle, readCursorPosition } from "@/win32/user32.ts";
 
 import {

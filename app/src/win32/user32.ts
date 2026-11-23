@@ -1,4 +1,5 @@
-import { argBool, argHandle, argI32, argI64, argPointer, argU32, bindFunction, Win32Type, withMemory } from "./bind.ts";
+import { argBool, argHandle, argI32, argI64, argPointer, argU32, bindFunction, Win32Type } from "./bind.ts";
+import { withMemory } from "./memory.ts";
 
 const DWORD_BYTES = 4;
 const POINT_BYTES = 8;

@@ -1,16 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import {
-  argHandle,
-  argPointer,
-  argU32,
-  bindFunction,
-  readWideString,
-  wideMemory,
-  Win32Type,
-  withMemory
-} from "./bind.ts";
+import { argHandle, argPointer, argU32, bindFunction, Win32Type } from "./bind.ts";
+import { readWideString, wideMemory, withMemory } from "./memory.ts";
 
 const MAX_CHARS = 512;
 const NO_HANDLE = 0n;

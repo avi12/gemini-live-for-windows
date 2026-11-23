@@ -1,4 +1,4 @@
-import { DynComRawMemory } from "@microsoft/dynwinrt/com/unsafe/raw";
+import type { DynComRawMemory } from "@microsoft/dynwinrt/com/unsafe/raw";
 import { DynWin32, DynWin32Unsafe } from "@microsoft/dynwinrt/win32/unsafe";
 import type { DynWin32Value } from "@microsoft/dynwinrt/win32/unsafe";
 
@@ -27,13 +27,7 @@ import type { DynWin32Value } from "@microsoft/dynwinrt/win32/unsafe";
  * - The result of a call has `.number` (i32/u32/bool32 returns), `.bigint` (i64/u64),
  *   `.address` (pointer/handle returns, 0n for null), `.isSuccess`, `.lastError` (only when bound with
  *   `shouldCaptureLastError: true`, null otherwise).
- * - Memory for structs and out buffers: `withMemory({ size, use })` allocates zeroed memory, hands it to
- *   `use` and always releases it. Read and write fields with the `DynComRawMemory` accessors
- *   (`readI32(offset)`, `writeU32(offset, value)`, `readPointer`, `readBytes`, `writeBytes`...); struct
- *   offsets are yours to compute from the Win32 header (mind the padding on x64). `zeroMemory(memory)`
- *   clears it. `wideMemory(text)` is a null-terminated UTF-16 buffer you release yourself;
- *   `readWideString({ memory, offset, maxChars })` decodes a null-terminated UTF-16 string out of memory.
- * - `toPointer(memory)` is the pointer value of memory for a struct field (`writePointer`).
+ * - Memory for structs and out buffers lives in `memory.ts`.
  * - Window handles are `bigint` everywhere in the app (an HWND as a bigint address).
  * - The app runs per-monitor DPI v2: coordinates from user32 are physical pixels.
  */
@@ -53,8 +47,6 @@ export type Win32Type = (typeof Win32Type)[keyof typeof Win32Type];
 
 export type Win32Argument = DynWin32Value;
 
-const WIDE_CHAR_BYTES = 2;
-const POINTER_ALIGNMENT = 8;
 const NO_ADDRESS = 0n;
 const NO_NUMBER = 0;
 const NULLABLE_TYPES: readonly Win32Type[] = [Win32Type.POINTER, Win32Type.HANDLE];
@@ -181,52 +173,4 @@ export function argNull() {
 
 export function argWideString(text: string) {
   return DynWin32.wideString(text);
-}
-
-export function toPointer(memory: DynComRawMemory) {
-  return memory.pointer();
-}
-
-export function zeroMemory(memory: DynComRawMemory) {
-  memory.writeBytes(0, Buffer.alloc(Number(memory.size)));
-}
-
-export function wideMemory(text: string) {
-  const bytes = Buffer.from(`${text}\0`, "utf16le");
-  const memory = DynComRawMemory.allocate(bytes.length, WIDE_CHAR_BYTES);
-  memory.writeBytes(0, bytes);
-  return memory;
-}
-
-export function readWideString({
-  memory,
-  offset = 0,
-  maxChars
-}: {
-  memory: DynComRawMemory;
-  offset?: number;
-  maxChars: number;
-}) {
-  const available = Math.floor((Number(memory.size) - offset) / WIDE_CHAR_BYTES);
-  const text = memory.readBytes(offset, Math.min(maxChars, available) * WIDE_CHAR_BYTES).toString("utf16le");
-  const end = text.indexOf("\0");
-  return end === -1 ? text : text.slice(0, end);
-}
-
-export function withMemory<T>({
-  size,
-  alignment = POINTER_ALIGNMENT,
-  use
-}: {
-  size: number;
-  alignment?: number;
-  use: (memory: DynComRawMemory) => T;
-}) {
-  const memory = DynComRawMemory.allocate(size, alignment);
-  try {
-    zeroMemory(memory);
-    return use(memory);
-  } finally {
-    memory.release();
-  }
 }
