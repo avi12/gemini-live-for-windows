@@ -58,7 +58,7 @@ function progressStops() {
   return Array.from({ length: MENU_EXIT_STEPS + 1 }, (_unused, iStep) => iStep / MENU_EXIT_STEPS);
 }
 
-function startExit({ surface, onDone }: { surface: UIElement; onDone(): void }) {
+function startExit({ surface, onDone }: { surface: UIElement; onDone: () => void }) {
   const visual = ElementCompositionPreview.getElementVisual(surface);
   const { compositor, size } = visual;
   ElementCompositionPreview.setIsTranslationEnabled(surface, true);
@@ -113,14 +113,83 @@ function restore(visual: CompositionVisual) {
   visual.properties.insertVector3(TRANSLATION, REST_TRANSLATION);
 }
 
+interface ItemList {
+  size: number;
+  getAt(index: number): unknown;
+}
+
+function isItemList(value: unknown): value is ItemList {
+  return typeof value === "object" && value !== null && "getAt" in value && "size" in value;
+}
+
+function isClickable(value: unknown): value is { onClick(callback: () => void): () => void } {
+  return typeof value === "object" && value !== null && "onClick" in value;
+}
+
+// Every item that can be chosen, sub-menus' included
+function choosableItemsOf(root: unknown) {
+  const found: { onClick(callback: () => void): () => void }[] = [];
+  const lists = [root];
+  while (lists.length > 0) {
+    const items = lists.shift();
+    if (!isItemList(items)) {
+      continue;
+    }
+
+    for (let iItem = 0; iItem < items.size; iItem++) {
+      const item = items.getAt(iItem);
+      if (isClickable(item)) {
+        found.push(item);
+      }
+
+      const isSubMenu = typeof item === "object" && item !== null && "items" in item;
+      if (isSubMenu) {
+        lists.push(item.items);
+      }
+    }
+  }
+
+  return found;
+}
+
+// A menu closed by choosing an item goes at once, as Windows' own menus do: fading and sinking away
+// after a click made it feel as if the click had not landed. Dismissed (a click elsewhere, Escape),
+// it leaves with the exit motion.
 export function menuOf() {
   const flyout = elementRef<Flyout | MenuFlyout>();
   let isLeaving = false;
   let leaving: CompositionVisual | null = null;
+  let isChosen = false;
+  let stopListening: (() => void)[] = [];
+
+  function choose() {
+    isChosen = true;
+  }
+
+  function forgetChoices() {
+    for (const stop of stopListening) {
+      stop();
+    }
+
+    stopListening = [];
+  }
+
+  function onopened() {
+    forgetChoices();
+    const control = flyout.current;
+    const isMenu = control !== undefined && "items" in control;
+    if (!isMenu) {
+      return;
+    }
+
+    for (const item of choosableItemsOf(control.items)) {
+      stopListening.push(item.onClick(choose));
+    }
+  }
 
   function onclosing(...[, args]: [unknown, { cancel: boolean }]) {
     const control = flyout.current;
-    const isIgnored = isLeaving || control === undefined;
+    const isIgnored = isLeaving || isChosen || control === undefined;
     if (isIgnored) {
       return;
     }
@@ -141,6 +210,8 @@ export function menuOf() {
 
   function onclosed() {
     isLeaving = false;
+    isChosen = false;
+    forgetChoices();
 
     const visual = leaving;
     const isIdle = visual === null;
@@ -156,6 +227,7 @@ export function menuOf() {
     props: {
       placement: "Top" as const,
       shouldConstrainToRootBounds: false,
+      onopened,
       onclosing,
       onclosed
     },
