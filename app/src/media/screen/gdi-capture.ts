@@ -1,32 +1,14 @@
 import { Bgra } from "@/media/bgra.ts";
-import { argHandle, argI32, argPointer, argU32, bindFunction, Win32Type } from "@/win32/bind.ts";
-import {
-  createCompatibleDC,
-  createDIBSection,
-  deleteDC,
-  deleteObject,
-  getDC,
-  releaseDC,
-  selectObject
-} from "@/win32/gdi.ts";
-import { Win32Bytes, withMemory } from "@/win32/memory.ts";
+import { argHandle, argI32, argU32, bindFunction, Win32Type } from "@/win32/bind.ts";
+import { createCompatibleDC, deleteDC, getDC, releaseDC } from "@/win32/gdi.ts";
 
 import type { PixelRect, PixelSize } from "./capture-geometry.ts";
+import { createSurface, releaseSurface, type Surface } from "./dib-surface.ts";
 
 const SRCCOPY = 0x00cc0020;
 const CAPTUREBLT = 0x40000000;
 const HALFTONE = 4;
 const NO_HANDLE = 0n;
-const BI_RGB = 0;
-const DIB_RGB_COLORS = 0;
-const BITS_PER_PIXEL = 32;
-const PLANES = 1;
-const BITMAP_INFO_HEADER_BYTES = 40;
-const HEADER_WIDTH_OFFSET = 4;
-const HEADER_HEIGHT_OFFSET = 8;
-const HEADER_PLANES_OFFSET = 12;
-const HEADER_BIT_COUNT_OFFSET = 14;
-const HEADER_COMPRESSION_OFFSET = 16;
 
 const setStretchBltMode = bindFunction({
   library: "gdi32.dll",
@@ -80,65 +62,11 @@ export interface CapturedPixels {
   readonly byteLength: number;
 }
 
-interface Surface {
-  width: number;
-  height: number;
-  bitmap: bigint;
-  previous: bigint;
-  address: bigint;
-}
-
-function createSurface({ memoryDC, width, height }: { memoryDC: bigint; width: number; height: number }) {
-  return withMemory({
-    size: BITMAP_INFO_HEADER_BYTES,
-    use(header) {
-      header.writeU32(0, BITMAP_INFO_HEADER_BYTES);
-      header.writeI32(HEADER_WIDTH_OFFSET, width);
-      // A negative height is a top-down bitmap, the row order every consumer expects
-      header.writeI32(HEADER_HEIGHT_OFFSET, -height);
-      header.writeU16(HEADER_PLANES_OFFSET, PLANES);
-      header.writeU16(HEADER_BIT_COUNT_OFFSET, BITS_PER_PIXEL);
-      header.writeU32(HEADER_COMPRESSION_OFFSET, BI_RGB);
-      return withMemory({
-        size: Win32Bytes.POINTER,
-        use(bitsOut) {
-          const bitmap = createDIBSection([
-            argHandle(null),
-            argPointer(header),
-            argU32(DIB_RGB_COLORS),
-            argPointer(bitsOut),
-            argHandle(null),
-            argU32(0)
-          ]).address;
-          const isAllocationFailed = bitmap === NO_HANDLE;
-          if (isAllocationFailed) {
-            throw new Error(`Could not allocate a ${width}x${height} capture bitmap`);
-          }
-
-          const previous = selectObject([argHandle(memoryDC), argHandle(bitmap)]).address;
-          return {
-            width,
-            height,
-            bitmap,
-            previous,
-            address: bitsOut.readU64(0)
-          } satisfies Surface;
-        }
-      });
-    }
-  });
-}
-
 function openMemoryDC() {
   const screen = getDC([argHandle(null)]).address;
   const memoryDC = createCompatibleDC([argHandle(screen)]).address;
   releaseDC([argHandle(null), argHandle(screen)]);
   return memoryDC;
-}
-
-function releaseSurface({ memoryDC, held }: { memoryDC: bigint; held: Surface }) {
-  selectObject([argHandle(memoryDC), argHandle(held.previous)]);
-  deleteObject([argHandle(held.bitmap)]);
 }
 
 function copy({
