@@ -1,7 +1,7 @@
 import type { PixelRect } from "@/media/screen/capture-geometry.ts";
 
 import { columnSpread, SPACE_SHARE } from "./column-ink.ts";
-import type { GrayImage } from "./line-finder.ts";
+import type { GrayImage } from "./gray-image.ts";
 
 // What the recogniser takes: one grayscale strip, this big
 export const STRIP_HEIGHT = 32;

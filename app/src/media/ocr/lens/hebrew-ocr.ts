@@ -7,9 +7,10 @@ import { withBufferBytes } from "@/media/winrt/buffer-access.ts";
 
 import { snapToInk } from "./column-ink.ts";
 import { decodeCtc } from "./ctc.ts";
+import { toGray } from "./gray-image.ts";
+import type { GrayImage } from "./gray-image.ts";
 import type { LineRecognizer } from "./lens-model.ts";
-import { findTextLines, toGray } from "./line-finder.ts";
-import type { GrayImage } from "./line-finder.ts";
+import { findTextLines } from "./line-finder.ts";
 import { cutIntoStrips, STRIP_WIDTH } from "./strips.ts";
 import { groupWords, isMostlyHebrew, readingOrder, withoutSpecks } from "./visual-words.ts";
 import type { VisualWord } from "./visual-words.ts";

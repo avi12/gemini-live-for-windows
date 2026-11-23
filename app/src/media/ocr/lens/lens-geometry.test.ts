@@ -3,8 +3,9 @@ import { describe, it } from "node:test";
 
 import { snapToInk } from "./column-ink.ts";
 import { decodeCtc } from "./ctc.ts";
+import { toGray } from "./gray-image.ts";
 import { parseLabelMap } from "./label-map.ts";
-import { findTextLines, toGray } from "./line-finder.ts";
+import { findTextLines } from "./line-finder.ts";
 import { groupWords, isMostlyHebrew, readingOrder } from "./visual-words.ts";
 
 const BLANK = 3;

@@ -1,6 +1,6 @@
 import type { PixelRect } from "@/media/screen/capture-geometry.ts";
 
-import type { GrayImage } from "./line-finder.ts";
+import type { GrayImage } from "./gray-image.ts";
 
 const MAX_GRAY = 255;
 // A column of a line varying more than this holds part of a glyph
