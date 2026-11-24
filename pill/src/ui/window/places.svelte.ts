@@ -1,5 +1,5 @@
 import { untrack } from "svelte";
-import { SvelteMap } from "svelte/reactivity";
+import { SvelteMap, SvelteSet } from "svelte/reactivity";
 import { control } from "winui-svelte";
 
 import { collapse } from "@/ui/fold/collapse.svelte.ts";
@@ -47,6 +47,20 @@ function isSamePlace({ first, second }: { first: Place; second: Place }) {
 }
 
 const places = new SvelteMap<PillPart, Place>();
+
+// What measures each tracked part, so they can all be measured again on demand
+const measurers = new SvelteSet<() => void>();
+
+/**
+ * Measures every tracked part again. A part is otherwise measured only when a layout pass runs, and an
+ * animation's transform (the entrance's rise) runs none: a part measured while it was risen stays at
+ * that place after the animation ends, and the window's clip is worked out from it.
+ */
+export function measureParts() {
+  for (const measure of measurers) {
+    measure();
+  }
+}
 
 export function trackPart(part: PillPart) {
   // A button slides with the capsule on every frame of a glide, and the regions it feeds are held
@@ -96,6 +110,7 @@ export function trackPart(part: PillPart) {
     }
 
     measure();
+    measurers.add(measure);
     const stopLayout = element.onLayoutUpdated(measure);
     // The layout pass that ends a glide can come before the glide is marked over, so a button is
     // measured again the moment it is
@@ -109,6 +124,7 @@ export function trackPart(part: PillPart) {
         })
       : undefined;
     return () => {
+      measurers.delete(measure);
       stopLayout();
       stopGlideWatch?.();
       places.delete(part);

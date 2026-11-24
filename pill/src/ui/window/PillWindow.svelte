@@ -10,7 +10,7 @@
   import Glow from "@/ui/pill/Glow.svelte";
   import Pill from "@/ui/pill/Pill.svelte";
   import { heldWindowRegions } from "@/ui/window/held-regions.svelte.ts";
-  import { PillPart, trackPart } from "@/ui/window/places.svelte.ts";
+  import { measureParts, PillPart, trackPart } from "@/ui/window/places.svelte.ts";
   import { themeRebuilds } from "@/ui/window/theme-rebuild.svelte.ts";
   import { clipToShownPart } from "@/ui/window/window-clip.svelte.ts";
   import { dockPillWindow, followDisplayChanges } from "@/ui/window/window-dock.ts";
@@ -136,6 +136,8 @@
         <stack-panel
           class="dock"
           onintroend={() => {
+            // The rise ran no layout pass, so the places are still where it started
+            measureParts();
             isEntered = true;
           }}
           onoutroend={() => {
