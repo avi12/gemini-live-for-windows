@@ -20,7 +20,7 @@
     "@litertjs/core": "2.6.0",
     "@microsoft/dynwinrt": "0.1.0-preview.23",
     "svelte": "5.57.3",
-    "winui-svelte": "^0.0.17",
+    "winui-svelte": "^0.0.18",
     "ws": "^8.23.0",
     "zod": "^4.6.7"
   },
