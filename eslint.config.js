@@ -1,3 +1,3 @@
-import { svelte } from "eslint-config-avi12/svelte";
+import { svelte } from "lint-config/eslint/svelte";
 
 export default svelte({ ignores: [".fallow/", "pill/dist/", "app/dist/", "bridge/dist/", ".claude/worktrees/"] });

@@ -19,7 +19,7 @@
   "scripts": {
     "dev": "node dev/main.ts",
     "svelte:check": "svelte-check --tsconfig ./tsconfig.json",
-    "build": "pnpm svelte:check && node --import ../scripts/scripts-alias.ts build.ts",
+    "build": "bun run svelte:check && node --import ../scripts/scripts-alias.ts build.ts",
     "compile": "tsrs --noEmit"
   },
   "dependencies": {
@@ -41,5 +41,5 @@
   "engines": {
     "node": ">=24"
   },
-  "packageManager": "pnpm@11.13.1"
+  "packageManager": "bun@1.4.5"
 }

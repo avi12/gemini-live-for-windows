@@ -17,5 +17,5 @@
   "devDependencies": {
     "tsrs": "7.1.0-beta.tsrs4"
   },
-  "packageManager": "pnpm@11.13.1"
+  "packageManager": "bun@1.4.5"
 }

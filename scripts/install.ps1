@@ -14,7 +14,7 @@
 
   Stage    build the layout in build\layout and stop: nothing is packed, signed, installed or stopped.
 
-  Every mode builds the app (pnpm --filter @gemini-live/app build, with its pill) and turns node.exe
+  Every mode builds the app (bun run --filter @gemini-live/app build, with its pill) and turns node.exe
   (scripts\Get-Node.ps1) into GeminiLive.exe with scripts\Build-SeaExe.ps1; Signed and Register also
   install the Windows App SDK runtime the manifest depends on.
 
@@ -58,9 +58,9 @@ function Invoke-Native([string] $what, [scriptblock] $command) {
     if ($LASTEXITCODE) { throw "$what failed" }
 }
 
-# One pnpm workspace package's script, by folder under the repo root.
-function Invoke-Pnpm([string] $package, [string] $task) {
-    Invoke-Native "$package $task" { pnpm --dir (Join-Path $root $package) $task }
+# One workspace package's script, by folder under the repo root.
+function Invoke-Bun([string] $package, [string] $task) {
+    Invoke-Native "$package $task" { bun run --cwd (Join-Path $root $package) $task }
 }
 
 # Stop a running copy (and a host a browser has open) so its files can be replaced. A release only
@@ -69,19 +69,19 @@ if (-not $buildsOnly) {
     Get-Process GeminiLive, GeminiLiveHost -ErrorAction SilentlyContinue | Stop-Process -Force
 }
 
-# One pnpm workspace: the messaging package, the extension and the bridges install together.
+# One workspace: the messaging package, the extension and the bridges install together.
 Write-Host '== install'
-Invoke-Native 'pnpm install' { pnpm --dir $root install --silent }
+Invoke-Native 'bun install' { bun install --cwd $root --silent }
 
 Write-Host '== messaging'
-Invoke-Pnpm 'messaging' 'compile'
+Invoke-Bun 'messaging' 'compile'
 
 Write-Host '== extension'
 # A release also zips the extension and signs its .crx.
-Invoke-Pnpm 'extension' $(if ($release) { 'release' } else { 'build' })
+Invoke-Bun 'extension' $(if ($release) { 'release' } else { 'build' })
 
 Write-Host '== bridge'
-Invoke-Pnpm 'bridge' 'build'
+Invoke-Bun 'bridge' 'build'
 
 # The app ships its own node.exe, so it never relies on the machine having Node.
 Write-Host '== node'
@@ -101,7 +101,7 @@ if (-not $buildsOnly) {
     Get-Process GeminiLiveHost -ErrorAction SilentlyContinue | Stop-Process -Force
 }
 if (Test-Path $layout) { Remove-Item $layout -Recurse -Force }
-Invoke-Native 'app build' { pnpm --dir $root --filter '@gemini-live/app' build }
+Invoke-Native 'app build' { bun run --cwd $root --filter '@gemini-live/app' build }
 New-Item -ItemType Directory $layout | Out-Null
 Copy-Item (Join-Path $root 'app\dist\*') $layout -Recurse -Force
 # What the app reads at run time, beside the entry: the page bridges (built above) and the extension

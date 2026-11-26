@@ -10,7 +10,7 @@ const RESTART_DELAY_MILLISECONDS = 400;
 // How often a restart waiting for the pill to be put away looks again
 const IDLE_POLL_MILLISECONDS = 2000;
 
-// `pnpm dev` starting or stopping: the caller ends the window so it comes back from the other source
+// `bun run dev` starting or stopping: the caller ends the window so it comes back from the other source
 function watchPillDevMarker({ onChanged }: { onChanged: () => void }) {
   const markerPath = pillDevMarkerPath();
   fileSystem.mkdirSync(path.dirname(markerPath), { recursive: true });
@@ -23,7 +23,7 @@ function watchPillDevMarker({ onChanged }: { onChanged: () => void }) {
   return () => watcher.close();
 }
 
-// While `pnpm dev` runs, a saved file of the app's own code (not a test) calls for a restart: the
+// While `bun run dev` runs, a saved file of the app's own code (not a test) calls for a restart: the
 // caller ends the window, and the app starts again from the new source
 function watchDevSources({ onChanged }: { onChanged: () => void }) {
   const marker = readPillDevMarker();
@@ -51,8 +51,8 @@ function watchDevSources({ onChanged }: { onChanged: () => void }) {
   };
 }
 
-// How `pnpm dev` applies a change: ending the window makes the app start again (worker-supervisor.ts).
-// `pnpm dev` starting or stopping ends it at once; a saved file waits for the pill to be put away, so
+// How `bun run dev` applies a change: ending the window makes the app start again (worker-supervisor.ts).
+// `bun run dev` starting or stopping ends it at once; a saved file waits for the pill to be put away, so
 // it never closes on someone using it.
 export function restartOnDevChanges({ endWindow, isInUse }: { endWindow: () => void; isInUse: () => boolean }) {
   const restart = { isWaiting: false };

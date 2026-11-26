@@ -27,7 +27,7 @@ async function loadFromSource<Exports>({ marker, entry }: { marker: PillDevMarke
   });
 }
 
-// While `pnpm dev` runs (its marker), a thread's whole code, the pill's code with it, is loaded from the
+// While `bun run dev` runs (its marker), a thread's whole code, the pill's code with it, is loaded from the
 // repo's module server so a saved file takes effect without installing; otherwise it is the bundled one.
 // The pill's sidecar (PillSidecar.cs) makes the same choice.
 function loadThreadModule<Exports>({ entry, bundled }: { entry: string; bundled: () => Promise<Exports> }) {

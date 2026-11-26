@@ -70,8 +70,8 @@ try {
   Invoke-Native 'sea blob' { & $node --experimental-sea-config $config }
 
   Copy-Item $node $exe -Force
-  # pnpm dlx runs the pinned postject without adding it to any package.json.
-  Invoke-Native 'postject' { pnpm dlx "postject@$PostjectVersion" $exe NODE_SEA_BLOB $blob --sentinel-fuse $SeaFuse --overwrite }
+  # bunx runs the pinned postject without adding it to any package.json.
+  Invoke-Native 'postject' { bunx "postject@$PostjectVersion" $exe NODE_SEA_BLOB $blob --sentinel-fuse $SeaFuse --overwrite }
   Invoke-Native 'subsystem' { & $node (Join-Path $sea 'prepare.ts') gui-subsystem $exe }
   Invoke-Native 'strip signature' { & $node (Join-Path $sea 'prepare.ts') strip-signature $exe }
 

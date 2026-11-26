@@ -4,7 +4,7 @@ import path from "node:path";
 
 import { z } from "zod";
 
-// The dev marker: `pnpm dev` writes it while it runs, and the installed app reads it each time it
+// The dev marker: `bun run dev` writes it while it runs, and the installed app reads it each time it
 // starts the pill, so the pill's code comes from the repo's module server instead of the bundle.
 // This file is the single source of truth: src/GeminiLive/Pill/Sidecar/PillDevMarker.cs mirrors
 // the file's name and shape one for one.

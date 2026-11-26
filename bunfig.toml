@@ -1,0 +1,4 @@
+[install]
+# One day, the age pnpm required of a release
+minimumReleaseAge = 86400
+minimumReleaseAgeExcludes = ["winui-svelte"]

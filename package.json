@@ -5,44 +5,55 @@
   "license": "Apache-2.0",
   "author": "Avi (https://avi12.com)",
   "repository": "github:avi12/gemini-live-for-windows",
+  "workspaces": [
+    "bridge",
+    "extension",
+    "messaging",
+    "pill",
+    "protocol",
+    "app"
+  ],
   "type": "module",
   "imports": {
     "#app/*": "./app/*"
   },
   "scripts": {
-    "dev": "pnpm --filter @gemini-live/pill dev",
+    "dev": "bun run --filter @gemini-live/pill dev",
     "prepare": "simple-git-hooks",
     "lint": "avi12-lint",
-    "svelte:check": "pnpm --filter @gemini-live/pill svelte:check && pnpm --filter @gemini-live/app svelte:check",
+    "svelte:check": "bun run --filter @gemini-live/pill svelte:check && bun run --filter @gemini-live/app svelte:check",
     "fallow": "fallow audit --base HEAD",
-    "dev:lint": "pnpm fallow && pnpm lint && pnpm compile && pnpm svelte:check && pnpm test",
-    "test": "pnpm --filter @gemini-live/app --filter @gemini-live/protocol test",
+    "dev:lint": "bun run fallow && bun run lint && bun run compile && bun run svelte:check && bun run test",
+    "test": "bun run --filter @gemini-live/app --filter @gemini-live/protocol test",
     "lint:fix": "avi12-lint --fix",
-    "compile": "pnpm -r --if-present compile"
+    "compile": "bun run --filter '*' --if-present compile"
   },
   "devDependencies": {
-    "avi12-lint": "github:avi12/lint-config#v0.11.1&path:/packages/avi12-lint",
     "eslint": "^10.15.0",
-    "eslint-config-avi12": "github:avi12/lint-config#v0.11.1&path:/packages/eslint-config",
     "eslint-plugin-svelte": "3.24.1",
     "fallow": "3.46.0",
-    "fallow-config-avi12": "github:avi12/lint-config#v0.11.1&path:/packages/fallow-config",
+    "globals": "^17.13.0",
+    "lint-config": "github:avi12/lint-config#v0.12.0",
     "oxfmt": "^0.79.0",
-    "oxfmt-config-avi12": "github:avi12/lint-config#v0.11.1&path:/packages/oxfmt-config",
     "oxlint": "1.94.0",
-    "oxlint-config-avi12": "github:avi12/lint-config#v0.11.1&path:/packages/oxlint-config",
-    "oxlint-plugin-naming": "github:avi12/lint-config#v0.11.1&path:/packages/oxlint-plugin-naming",
     "postcss-html": "^1.8.1",
     "simple-git-hooks": "^2.14.0",
     "stylelint": "^17.16.0",
-    "stylelint-config-avi12": "github:avi12/lint-config#v0.11.1&path:/packages/stylelint-config",
+    "stylelint-config-ccb": "^3.32.0",
     "stylelint-config-standard": "^40.0.0",
     "svelte": "5.57.3",
     "svelte-eslint-parser": "1.11.0",
-    "tsrs": "7.1.0-beta.tsrs4"
+    "tsrs": "7.1.0-beta.tsrs4",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.72.1"
   },
   "simple-git-hooks": {
-    "pre-commit": "pnpm avi12-lint --staged"
+    "pre-commit": "bun run avi12-lint --staged"
   },
-  "packageManager": "pnpm@11.13.1"
+  "packageManager": "bun@1.4.5",
+  "trustedDependencies": [
+    "esbuild",
+    "fallow",
+    "simple-git-hooks"
+  ]
 }

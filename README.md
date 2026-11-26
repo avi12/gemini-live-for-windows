@@ -113,11 +113,11 @@ The last command prints the key. `--api-target` restricts it to the Gemini API a
 
 ## Build from source
 
-Needs the Windows 10 SDK (for `makeappx` and `signtool`), Node 24 and pnpm. Node is also what the installed app runs on: the install script downloads the Node version in `package\build-config.json` (checked against nodejs.org's SHA-256) into `build\node` and turns its `node.exe` into `GeminiLive.exe`. It also installs the Windows App SDK 2.2 runtime if it is missing.
+Needs the Windows 10 SDK (for `makeappx` and `signtool`), Node 24 and Bun. Node is also what the installed app runs on: the install script downloads the Node version in `package\build-config.json` (checked against nodejs.org's SHA-256) into `build\node` and turns its `node.exe` into `GeminiLive.exe`. It also installs the Windows App SDK 2.2 runtime if it is missing.
 
 ```powershell
-pnpm install
-pnpm --filter @gemini-live/app build   # type-check and build the app and its pill into app\dist
+bun install
+bun run --filter @gemini-live/app build   # type-check and build the app and its pill into app\dist
 .\scripts\install.ps1                  # build, sign with a local certificate, install
 .\scripts\install.ps1 -Mode Register   # unsigned dev-mode install for fast iteration
 .\scripts\install.ps1 -Mode Release    # the release files, in build\release
@@ -142,21 +142,21 @@ Windows only lists signed providers in the Copilot key setting, so use the defau
 ### Hot reload for the pill
 
 ```powershell
-pnpm dev                                  # the installed app's pill, served from pill\src: Win+C opens it, and saving a .svelte, .ts or .css file updates it in place
-pnpm dev -- --mock                        # open the pill on a mock host instead, with no app running
-pnpm dev -- --mock --scenario keyPrompt   # start the mock on another scenario
+bun run dev                                  # the installed app's pill, served from pill\src: Win+C opens it, and saving a .svelte, .ts or .css file updates it in place
+bun run dev -- --mock                        # open the pill on a mock host instead, with no app running
+bun run dev -- --mock --scenario keyPrompt   # start the mock on another scenario
 ```
 
-**Against the installed app.** While `pnpm dev` runs it keeps `%LOCALAPPDATA%\GeminiLive\dev.json` (`pillDevEntry`, `repoRoot`, `pid`; the schema is `protocol/src/pill-dev.ts`). The app watches that file: when it appears the app restarts its pill from `pill/dev/attach.ts`, run by the bundled `node.exe` from the repo, which loads the pill's code through winui-svelte's module server and talks to the app over the real state protocol, so the pill shows your real session. When `pnpm dev` stops (Ctrl+C, a kill, a crash) the marker goes, or its `pid` is dead and it is ignored, and the app goes back to the bundled pill with no manual step. Without a marker nothing changes. The app honors it in `app/src/wiring/dev/` (`source-loader.ts` and `dev-restart.ts`).
+**Against the installed app.** While `bun run dev` runs it keeps `%LOCALAPPDATA%\GeminiLive\dev.json` (`pillDevEntry`, `repoRoot`, `pid`; the schema is `protocol/src/pill-dev.ts`). The app watches that file: when it appears the app restarts its pill from `pill/dev/attach.ts`, run by the bundled `node.exe` from the repo, which loads the pill's code through winui-svelte's module server and talks to the app over the real state protocol, so the pill shows your real session. When `bun run dev` stops (Ctrl+C, a kill, a crash) the marker goes, or its `pid` is dead and it is ignored, and the app goes back to the bundled pill with no manual step. Without a marker nothing changes. The app honors it in `app/src/wiring/dev/` (`source-loader.ts` and `dev-restart.ts`).
 
 **Mock.** The pill's real entry (`pill/src/mount.ts`) runs on winui-svelte's dev server, and `pill/dev/` stands in for the app: it serves the view over the same state protocol, so no app needs to be running. Scenarios (`pill/dev/scenarios.ts`): idle, captions, gearMenu, keyPrompt, updateAvailable, cameraShared. In an interactive terminal press `1`-`6` to pick one, or `n` / `p` for next / previous; Ctrl+C closes the pill. The gear menu opens with a click, and its items come from the gearMenu scenario. Actions the pill sends are printed to the terminal and change nothing.
 
 ### Lint
 
 ```powershell
-pnpm dev:lint   # fallow, oxlint + ESLint, stylelint, svelte-check, and the tests
-pnpm svelte:check                              # type-check the pill's and the app's Svelte and TypeScript
-pnpm test                                      # the TypeScript app's tests (Node's test runner)
+bun run dev:lint   # fallow, oxlint + ESLint, stylelint, svelte-check, and the tests
+bun run svelte:check                              # type-check the pill's and the app's Svelte and TypeScript
+bun run test                                      # the TypeScript app's tests (Node's test runner)
 ```
 
 The code follows the youtube-time-manager setup: oxlint for logic, ESLint for layout, fallow for dead code and complexity. A pre-commit hook runs them on staged files.

@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 
 // Bundles the TypeScript page bridges to the plain JS the app embeds and injects at document-start.
 // Each bridge is one self-contained IIFE: its modules and the messaging package are bundled in. Run
-// via `pnpm build` (type-checks first) or directly with `node build.mjs`.
+// via `bun run build` (type-checks first) or directly with `node build.mjs`.
 import { build } from "esbuild";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -31,7 +31,7 @@ for (const { folder, name } of bridges) {
     platform: "browser",
     legalComments: "none",
     banner: {
-      js: `// GENERATED from bridge/${folder}/${name}.ts - edit the TypeScript, then \`pnpm --dir bridge build\`.`
+      js: `// GENERATED from bridge/${folder}/${name}.ts - edit the TypeScript, then \`bun run --cwd bridge build\`.`
     }
   });
   console.log(`bundled ${name}.js`);
