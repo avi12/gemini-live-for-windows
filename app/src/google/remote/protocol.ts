@@ -1,6 +1,6 @@
 import { regionSchema } from "@gemini-live/protocol/view";
+import { z } from "@gemini-live/protocol/zod";
 import type { ProtocolWithReturn } from "winui-svelte/messaging";
-import { z } from "zod";
 
 import { LiveEventKind } from "@/contracts/live-engine.ts";
 import type { LiveEvent } from "@/contracts/live-engine.ts";

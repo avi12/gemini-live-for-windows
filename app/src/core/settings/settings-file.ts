@@ -1,5 +1,5 @@
 import { EngineKind } from "@gemini-live/protocol/view";
-import { z } from "zod";
+import { z } from "@gemini-live/protocol/zod";
 
 const DEFAULT_MODEL = "gemini-3.8-live";
 const DEFAULT_VOICE = "Kore";

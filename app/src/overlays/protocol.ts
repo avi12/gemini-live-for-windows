@@ -1,5 +1,5 @@
+import { z } from "@gemini-live/protocol/zod";
 import type { ProtocolWithReturn } from "winui-svelte/messaging";
-import { z } from "zod";
 
 import { monitorSchema } from "@/contracts/monitor.ts";
 

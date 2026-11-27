@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@gemini-live/protocol/zod";
 
 // The boundary between the app and the glic page's bridge (bridge/glic/glic_protocol.ts). That
 // file declares TypeScript enums, which this package's erasable-only syntax cannot import, so the

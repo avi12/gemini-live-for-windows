@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@gemini-live/protocol/zod";
 
 // The two directions of the audio worker's message port. Both ends parse what they receive: the
 // worker is a thread boundary, and a malformed message must fail loudly, not play garbage.

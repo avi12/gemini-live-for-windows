@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@gemini-live/protocol/zod";
 
 // The public Gemini Live API's wire messages (BidiGenerateContent, https://ai.google.dev/api/live),
 // only the parts the session sends or reads. Strict where the app depends on a field, lenient

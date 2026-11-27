@@ -1,6 +1,6 @@
+import { z } from "@gemini-live/protocol/zod";
 import { defineMessaging } from "winui-svelte/messaging";
 import type { Transport } from "winui-svelte/state/host";
-import { z } from "zod";
 
 import { KeyTrigger } from "@/core/instance/key-trigger.ts";
 

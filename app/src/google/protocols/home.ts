@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@gemini-live/protocol/zod";
 
 // The boundary between the app and the Home page's bridge (bridge/home/home_protocol.ts), mirrored
 // as an as-const object for the same reason as the glic protocol.

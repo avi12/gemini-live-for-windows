@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@gemini-live/protocol/zod";
 
 import { KeyTrigger } from "./key-trigger.ts";
 

@@ -1,5 +1,5 @@
 import { refreshRateSchema, regionSchema } from "@gemini-live/protocol/view";
-import { z } from "zod";
+import { z } from "@gemini-live/protocol/zod";
 
 // One physical display, in physical pixels (the process is per-monitor DPI aware). The work edges
 // are where the taskbar leaves the area free, where the pill docks. Mirrors MonitorInfo.cs.

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@gemini-live/protocol/zod";
 
 import type { AppRelease } from "@/core/updates/app-release.ts";
 import { parseVersion } from "@/core/updates/version/version.ts";

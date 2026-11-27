@@ -1,6 +1,6 @@
 import { MessagePort } from "node:worker_threads";
 
-import { z } from "zod";
+import { z } from "@gemini-live/protocol/zod";
 
 // What the main thread hands the UI worker: one port per link, and where the files it reads ship.
 // Both threads read it through this schema, so the two ends cannot drift apart.

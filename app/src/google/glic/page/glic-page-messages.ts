@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@gemini-live/protocol/zod";
 
 import type { GlicCommands } from "@/google/glic/glic-commands.ts";
 import { type GlicHostEvent, GlicHostEventKind } from "@/google/glic/glic-events.ts";
