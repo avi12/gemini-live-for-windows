@@ -62,7 +62,7 @@
     },
     "extension": {
       "name": "gemini-live-session",
-      "version": "0.3.3",
+      "version": "0.3.4",
       "dependencies": {
         "@gemini-live/messaging": "workspace:*",
         "@gemini-live/protocol": "workspace:*",
