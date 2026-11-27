@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
 
+import { errorMessage } from "@/lib/error-message.ts";
+
 import { createAudioDuplex } from "./audio-duplex.ts";
 import { bytesToFloats } from "./signal/conversion/pcm.ts";
 import { concatenate, pcm16BytesOf, risingZeroCrossings, sine } from "./signal/test-signals.ts";
@@ -39,7 +41,7 @@ describe("audio loopback through the real worker", { skip: !IS_WINDOWS }, () => 
       await duplex.start();
     } catch (error) {
       duplex.dispose();
-      testContext.skip(`no render device: ${error instanceof Error ? error.message : String(error)}`);
+      testContext.skip(`no render device: ${errorMessage(error)}`);
       return;
     }
 

@@ -5,6 +5,7 @@ import { log } from "@/core/log/log.ts";
 import { userSecret } from "@/core/secret/user-secret.ts";
 import type { UserSecret } from "@/core/secret/user-secret.ts";
 import { writeFileAtomic } from "@/lib/atomic-file.ts";
+import { isMissingFileError } from "@/lib/error-guards.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 import { dataDir } from "@/lib/paths.ts";
 
@@ -25,8 +26,7 @@ async function readText({ filePath, writeLog }: { filePath: string; writeLog: (m
   try {
     return await fileSystem.readFile(filePath, "utf8");
   } catch (error) {
-    const isMissing = error instanceof Error && "code" in error && error.code === "ENOENT";
-    if (!isMissing) {
+    if (!isMissingFileError(error)) {
       writeLog(`settings unreadable, using defaults: ${errorMessage(error)}`);
     }
 

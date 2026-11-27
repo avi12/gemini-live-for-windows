@@ -1,4 +1,5 @@
 import type { Region } from "@/contracts/monitor.ts";
+import { isArrayBuffer } from "@/lib/buffer-guards.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 import type { OcrLine } from "@/media/ocr/ocr-geometry.ts";
 import type { ScreenCapture } from "@/media/screen/screen-capture.ts";
@@ -15,7 +16,7 @@ export interface CapturePort {
 // Bytes that own their whole ArrayBuffer, so the buffer can be transferred, not copied
 function ownedBytes(bytes: Uint8Array) {
   const isWholeBuffer =
-    bytes.buffer instanceof ArrayBuffer && bytes.byteOffset === 0 && bytes.byteLength === bytes.buffer.byteLength;
+    isArrayBuffer(bytes.buffer) && bytes.byteOffset === 0 && bytes.byteLength === bytes.buffer.byteLength;
   return isWholeBuffer ? new Uint8Array(bytes.buffer) : bytes.slice();
 }
 

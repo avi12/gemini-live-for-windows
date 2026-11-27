@@ -3,6 +3,7 @@ import { Worker } from "node:worker_threads";
 import { createUiaWorker } from "winui-svelte/automation";
 
 import type { Monitor } from "@/contracts/monitor.ts";
+import { errorMessage } from "@/lib/error-message.ts";
 
 import { createAudioDuplex } from "./audio/audio-duplex.ts";
 import { createAudioWorkerLink } from "./audio/worker/audio-worker-link.ts";
@@ -75,7 +76,7 @@ export function createMedia({
       screenText,
       openCamera: () =>
         openCamera({
-          onError: error => log(`camera: ${error instanceof Error ? error.message : String(error)}`)
+          onError: error => log(`camera: ${errorMessage(error)}`)
         })
     }),
     // One per conversation: it owns a worker thread, which `dispose()` ends

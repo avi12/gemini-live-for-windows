@@ -1,4 +1,5 @@
 import { log } from "@/core/log/log.ts";
+import { isError } from "@/lib/error-guards.ts";
 
 const UNHANDLED_EXCEPTION_EVENT = "uncaughtException";
 const UNHANDLED_REJECTION_EVENT = "unhandledRejection";
@@ -8,7 +9,7 @@ interface ErrorTarget {
 }
 
 function describeError(error: unknown) {
-  return error instanceof Error ? (error.stack ?? error.message) : String(error);
+  return isError(error) ? (error.stack ?? error.message) : String(error);
 }
 
 // Mirrors App.xaml.cs: an exception nobody caught is written to the log and the app keeps running

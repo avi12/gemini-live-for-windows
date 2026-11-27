@@ -1,6 +1,7 @@
 import type { Logger } from "@/google/ports.ts";
 import { fingerprint, hasSession, type SessionStore } from "@/google/session/cookies.ts";
 import { createDeferred } from "@/lib/emitter.ts";
+import { isError } from "@/lib/error-guards.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 
 import type { GlicCommands } from "./glic-commands.ts";
@@ -41,7 +42,7 @@ export function createGlicLifecycle({
       // a crash recovery gave up earlier; this is the retry. Navigation, then Booted, starts Live
       webHost.ensureCore().catch(error => {
         log.write(`glic: rebuild failed: ${errorMessage(error)}`);
-        state.ready.reject(error instanceof Error ? error : new Error(errorMessage(error)));
+        state.ready.reject(isError(error) ? error : new Error(errorMessage(error)));
       });
     } else if (state.isUnavailable || !hasSession(state.session)) {
       session.waitForSession();

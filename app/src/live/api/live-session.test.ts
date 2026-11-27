@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { LiveStatus } from "@/contracts/live-engine.ts";
+import { isError } from "@/lib/error-guards.ts";
 import { SYSTEM_PROMPT } from "@/live/api/constants.ts";
 import { createLiveSession } from "@/live/api/live-session.ts";
 import {
@@ -136,7 +137,7 @@ describe("live session setup", () => {
     const network = createFakeNetwork();
     network.failConnect();
     const { session } = setup(network);
-    await assert.rejects(session.open(), error => error instanceof Error && !error.message.includes(TEST_KEY));
+    await assert.rejects(session.open(), error => isError(error) && !error.message.includes(TEST_KEY));
   });
 });
 

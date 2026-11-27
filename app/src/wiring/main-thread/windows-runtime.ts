@@ -3,6 +3,7 @@ import { initWindowsAppSdk } from "winui-svelte/bootstrap";
 
 import { log } from "@/core/log/log.ts";
 import { RECOVERED_ARGUMENT } from "@/entry/activation/activation.ts";
+import { isError } from "@/lib/error-guards.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 
 const WINDOWS_APP_SDK_MAJOR = 2;
@@ -20,7 +21,7 @@ export function startWindowsAppSdk({ isPackaged }: { isPackaged: boolean }) {
       webViewUserDataFolder: false
     });
   } catch (error) {
-    const isRefusedByIdentity = error instanceof Error && error.message.includes(NOT_SUPPORTED_HRESULT);
+    const isRefusedByIdentity = isError(error) && error.message.includes(NOT_SUPPORTED_HRESULT);
     const isRuntimeFromPackage = isPackaged && isRefusedByIdentity;
     if (!isRuntimeFromPackage) {
       throw error;

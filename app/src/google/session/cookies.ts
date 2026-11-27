@@ -5,6 +5,8 @@ import path from "node:path";
 import { type BrowserCookie, browserCookiesSchema } from "@gemini-live/protocol/link";
 
 import type { Logger, SecretSealer } from "@/google/ports.ts";
+import { isMissingFileError } from "@/lib/error-guards.ts";
+import { errorMessage } from "@/lib/error-message.ts";
 
 // The Google login/session family; the rest of a jar is analytics noise
 const AUTH_COOKIE_PREFIXES = ["__Secure-", "__Host-"];
@@ -99,9 +101,8 @@ export function createSessionStore({ filePath, sealer, log }: { filePath: string
       const sealed = await readFile(filePath);
       return decodeSession(await sealer.unseal(sealed));
     } catch (error) {
-      const isMissing = error instanceof Error && "code" in error && error.code === "ENOENT";
-      if (!isMissing) {
-        log.write(`saved Google session unreadable: ${error instanceof Error ? error.message : String(error)}`);
+      if (!isMissingFileError(error)) {
+        log.write(`saved Google session unreadable: ${errorMessage(error)}`);
       }
 
       return [];

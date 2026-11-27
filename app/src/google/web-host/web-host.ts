@@ -1,6 +1,7 @@
 import { defineMessaging, type ProtocolMap } from "@gemini-live/messaging";
 
 import type { Logger } from "@/google/ports.ts";
+import { isError } from "@/lib/error-guards.ts";
 import { errorMessage } from "@/lib/error-message.ts";
 
 import { CrashVerdict, createCrashGuard } from "./guards/crash-guard.ts";
@@ -130,7 +131,7 @@ async function recoverFromFailure({
 
     failed?.reload();
   } catch (error) {
-    const cause = error instanceof Error ? error : new Error(errorMessage(error));
+    const cause = isError(error) ? error : new Error(errorMessage(error));
     options.log.write(`${options.name}: recovery failed: ${cause.message}`);
     options.onRecoveryFailed({
       reason: RecoveryFailure.REBUILD_FAILED,

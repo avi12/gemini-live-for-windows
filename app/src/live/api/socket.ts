@@ -1,3 +1,4 @@
+import { isArrayBuffer } from "@/lib/buffer-guards.ts";
 import { SocketState } from "@/live/api/constants.ts";
 
 export interface SocketClose {
@@ -27,8 +28,7 @@ function decodeFrame(data: unknown) {
     return data;
   }
 
-  const isBinary = data instanceof ArrayBuffer;
-  if (isBinary) {
+  if (isArrayBuffer(data)) {
     return textDecoder.decode(data);
   }
 

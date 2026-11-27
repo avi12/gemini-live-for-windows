@@ -1,3 +1,5 @@
+import { isError } from "./error-guards.ts";
+
 export function errorMessage(error: unknown) {
-  return error instanceof Error ? error.message : String(error);
+  return isError(error) ? error.message : String(error);
 }
