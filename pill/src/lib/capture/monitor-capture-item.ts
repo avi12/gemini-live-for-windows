@@ -1,3 +1,5 @@
+import { z } from "@gemini-live/protocol/zod";
+import { createGuard } from "@gemini-live/protocol/zod-guard";
 import { DynWinRtValue, WinGuid } from "@microsoft/dynwinrt";
 import type { DynWinRtValue as WinRtValue } from "@microsoft/dynwinrt";
 import { DynCom, DynComMethodSig, DynComUnsafe } from "@microsoft/dynwinrt/com/unsafe";
@@ -40,10 +42,16 @@ const monitorFromPoint = DynWin32Unsafe.bind({
   captureLastError: false
 });
 
+const isNativeWrapper = createGuard(
+  z.function({
+    input: [z.unknown()],
+    output: z.unknown()
+  })
+);
+
 function itemOfNative(value: WinRtValue) {
   const create: unknown = Object.getOwnPropertyDescriptor(GraphicsCaptureItem, NATIVE_WRAPPER)?.value;
-  const isWrapperMissing = typeof create !== "function";
-  if (isWrapperMissing) {
+  if (!isNativeWrapper(create)) {
     throw new TypeError("the capture item binding cannot wrap a native object");
   }
 

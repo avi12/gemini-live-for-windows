@@ -1,6 +1,8 @@
 import { MessageChannel } from "node:worker_threads";
 import type { MessagePort, Worker } from "node:worker_threads";
 
+import { z } from "@gemini-live/protocol/zod";
+import { createGuard } from "@gemini-live/protocol/zod-guard";
 import { initWindowsAppSdk } from "winui-svelte/bootstrap";
 import type { Json } from "winui-svelte/state/host";
 import { createMessagePortTransport, createStdioTransport, reserveStdout } from "winui-svelte/state/host";
@@ -12,6 +14,8 @@ const WINDOWS_APP_SDK_MINOR = 2;
 const PACKAGED_VARIABLE = "PILL_IS_PACKAGED";
 const HOST_PID_VARIABLE = "HOST_PID";
 const NOT_SUPPORTED_HRESULT = "0x80070032";
+
+const isError = createGuard(z.instanceof(Error));
 
 function reportRelayProblem(reason: string) {
   process.stderr.write(`relay: ${reason}\n`);
@@ -25,7 +29,7 @@ export function startWindowsAppSdk() {
     });
   } catch (error) {
     const isPackaged = process.env[PACKAGED_VARIABLE] === "1";
-    const isRefusedByIdentity = error instanceof Error && error.message.includes(NOT_SUPPORTED_HRESULT);
+    const isRefusedByIdentity = isError(error) && error.message.includes(NOT_SUPPORTED_HRESULT);
     const isRuntimeFromPackage = isPackaged && isRefusedByIdentity;
     if (!isRuntimeFromPackage) {
       throw error;

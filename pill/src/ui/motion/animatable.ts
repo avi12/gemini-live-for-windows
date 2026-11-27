@@ -1,7 +1,11 @@
-export interface Animatable {
-  animate(keyframes: Keyframe[], options: KeyframeAnimationOptions): { cancel(): void };
-}
+import { z } from "@gemini-live/protocol/zod";
+import { createGuard, VOID_METHOD_SCHEMA } from "@gemini-live/protocol/zod-guard";
 
-export function isAnimatable(node: object): node is Animatable {
-  return "animate" in node && typeof node.animate === "function";
-}
+export const isAnimatable = createGuard(
+  z.looseObject({
+    animate: z.function({
+      input: [z.array(z.looseObject({})), z.looseObject({})],
+      output: z.looseObject({ cancel: VOID_METHOD_SCHEMA })
+    })
+  })
+);

@@ -1,19 +1,30 @@
-interface ItemList {
-  size: number;
-  getAt(index: number): unknown;
-}
+import { z } from "@gemini-live/protocol/zod";
+import { createGuard, VOID_METHOD_SCHEMA } from "@gemini-live/protocol/zod-guard";
 
-function isItemList(value: unknown): value is ItemList {
-  return typeof value === "object" && value !== null && "getAt" in value && "size" in value;
-}
+const isItemList = createGuard(
+  z.looseObject({
+    size: z.number(),
+    getAt: z.function({
+      input: [z.int()],
+      output: z.unknown()
+    })
+  })
+);
 
-function isClickable(value: unknown): value is { onClick(callback: () => void): () => void } {
-  return typeof value === "object" && value !== null && "onClick" in value;
-}
+const clickableSchema = z.looseObject({
+  onClick: z.function({
+    input: [VOID_METHOD_SCHEMA],
+    output: VOID_METHOD_SCHEMA
+  })
+});
+
+const isClickable = createGuard(clickableSchema);
+
+const isSubMenu = createGuard(z.looseObject({ items: z.unknown() }));
 
 // Every item that can be chosen, sub-menus' included
 export function choosableItemsOf(root: unknown) {
-  const found: { onClick(callback: () => void): () => void }[] = [];
+  const found: z.infer<typeof clickableSchema>[] = [];
   const lists = [root];
   while (lists.length > 0) {
     const items = lists.shift();
@@ -27,8 +38,7 @@ export function choosableItemsOf(root: unknown) {
         found.push(item);
       }
 
-      const isSubMenu = typeof item === "object" && item !== null && "items" in item;
-      if (isSubMenu) {
+      if (isSubMenu(item)) {
         lists.push(item.items);
       }
     }
