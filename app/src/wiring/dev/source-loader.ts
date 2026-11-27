@@ -4,7 +4,7 @@ import { pathToFileURL } from "node:url";
 import type { loadDevModule } from "@gemini-live/pill/dev-modules";
 import { readPillDevMarker } from "@gemini-live/protocol/pill-dev";
 import type { PillDevMarker } from "@gemini-live/protocol/pill-dev";
-import { z } from "zod";
+import { z } from "@gemini-live/protocol/zod";
 
 import type { startApp } from "@/wiring/main-thread/start-app.ts";
 import type { startUi } from "@/wiring/ui-thread/start-ui.ts";
@@ -14,13 +14,15 @@ const DEV_MODULES_FILE = "dev-modules.ts";
 const START_UI_ENTRY = "/src/wiring/ui-thread/start-ui.ts";
 const START_APP_ENTRY = "/src/wiring/main-thread/start-app.ts";
 
-const devModulesSchema = z.object({
-  loadDevModule: z.custom<typeof loadDevModule>(value => typeof value === "function")
+const devModulesSchema = z.looseObject({
+  loadDevModule: z.instanceof(Function)
 });
 
 async function loadFromSource<Exports>({ marker, entry }: { marker: PillDevMarker; entry: string }) {
   const devModulesUrl = pathToFileURL(path.join(path.dirname(marker.pillDevEntry), DEV_MODULES_FILE));
-  const devModules = devModulesSchema.parse(await import(devModulesUrl.href));
+  const devModules: { loadDevModule: typeof loadDevModule } = await import(devModulesUrl.href);
+  // Validated in place: the module is used as it is, never a parsed copy
+  devModulesSchema.parse(devModules);
   return devModules.loadDevModule<Exports>({
     root: path.join(marker.repoRoot, "app"),
     entry

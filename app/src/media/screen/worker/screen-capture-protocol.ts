@@ -1,5 +1,5 @@
 import { regionSchema } from "@gemini-live/protocol/view";
-import { z } from "zod";
+import { z } from "@gemini-live/protocol/zod";
 
 import { monitorSchema } from "@/contracts/monitor.ts";
 import { ScreenDetail } from "@/media/screen/capture-geometry.ts";
@@ -47,7 +47,7 @@ export const captureCommandSchema = z.discriminatedUnion("kind", [
     kind: z.literal(CaptureCommandKind.READ_LINES),
     id: z.number().int(),
     // Any Uint8Array view: the caller's picture is copied across, never moved
-    image: z.custom<Uint8Array>(value => value instanceof Uint8Array),
+    image: z.instanceof(Uint8Array<ArrayBufferLike>),
     region: regionSchema.optional()
   }),
   z.object({ kind: z.literal(CaptureCommandKind.DISPOSE) })
