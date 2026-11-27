@@ -1,5 +1,6 @@
 import type { BrowserCookie } from "@gemini-live/protocol/link";
-import { z } from "zod";
+import { z } from "@gemini-live/protocol/zod";
+import { createGuard } from "@gemini-live/protocol/zod-guard";
 
 import type {
   PermissionDecision,
@@ -152,10 +153,7 @@ function createFakeWebView() {
     decide: (kind: PermissionKind) => hooks.permissionDecider?.(kind),
     allows: (uri: string) => hooks.navigationFilter?.(uri),
     // The requests the host sent the page, newest last
-    requestsOf: (type: string) =>
-      posted.filter(
-        envelope => typeof envelope === "object" && envelope !== null && "type" in envelope && envelope.type === type
-      )
+    requestsOf: (type: string) => posted.filter(createGuard(z.looseObject({ type: z.literal(type) })))
   };
 }
 

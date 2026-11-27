@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, mock, test } from "node:test";
 
 import type { BrowserCookie } from "@gemini-live/protocol/link";
+import { z } from "@gemini-live/protocol/zod";
+import { createGuard } from "@gemini-live/protocol/zod-guard";
 
 import { LiveStatus } from "@/contracts/live-engine.ts";
 import type { MediaPort } from "@/google/ports.ts";
@@ -338,10 +340,7 @@ describe("reports from the page", () => {
       timestamp: 0
     });
     await flush();
-    const reply = factory.latest?.posted.find(
-      envelope =>
-        typeof envelope === "object" && envelope !== null && "replyTo" in envelope && envelope.replyTo === PULL_ID
-    );
+    const reply = factory.latest?.posted.find(createGuard(z.looseObject({ replyTo: z.literal(PULL_ID) })));
     assert.deepEqual(reply, {
       replyTo: PULL_ID,
       res: {

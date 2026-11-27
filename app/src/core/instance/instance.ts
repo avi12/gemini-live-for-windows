@@ -1,6 +1,8 @@
 import net from "node:net";
 
 import { defineMessaging } from "@gemini-live/messaging";
+import { z } from "@gemini-live/protocol/zod";
+import { createGuard } from "@gemini-live/protocol/zod-guard";
 
 import { noop } from "@/lib/noop.ts";
 import { socketTransport } from "@/lib/transport/socket-transport.ts";
@@ -12,6 +14,8 @@ import { KeyTrigger } from "./key-trigger.ts";
 const ACTIVATE_PIPE = String.raw`\\.\pipe\GeminiLive.Activate`;
 const CONNECT_TIMEOUT_MS = 150;
 const REPLY_TIMEOUT_MS = 1000;
+
+const isAddressInUse = createGuard(z.looseObject({ code: z.literal("EADDRINUSE") }));
 
 function messagingOver(socket: net.Socket) {
   socket.on("error", noop);
@@ -77,8 +81,7 @@ function forwardTrigger({ pipePath = ACTIVATE_PIPE, trigger }: { pipePath?: stri
 function listen({ server, pipePath }: { server: net.Server; pipePath: string }) {
   return new Promise<boolean>((resolve, reject) => {
     server.once("error", error => {
-      const isTaken = "code" in error && error.code === "EADDRINUSE";
-      if (isTaken) {
+      if (isAddressInUse(error)) {
         resolve(false);
         return;
       }

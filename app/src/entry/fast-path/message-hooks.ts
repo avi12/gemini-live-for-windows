@@ -1,3 +1,6 @@
+import { z } from "@gemini-live/protocol/zod";
+import { createGuard } from "@gemini-live/protocol/zod-guard";
+
 // The UI thread's message pump (winui-svelte, window/message-hooks) offers every message it takes
 // off the thread's queue to a set of hooks that lives on globalThis under this key, one set per
 // thread, whichever copy of the library asks. The library does not export its `addMessageHook`
@@ -20,10 +23,11 @@ export type MessageHook = (message: ThreadMessage) => boolean;
 /** Adds a hook; the returned function takes it away again. */
 export type MessageHookSource = (hook: MessageHook) => () => void;
 
+const isHookSet = createGuard(z.instanceof(Set<MessageHook>));
+
 function hooksOfThread() {
   const existing: unknown = Object.getOwnPropertyDescriptor(globalThis, SHARED_KEY)?.value;
-  const isShared = existing instanceof Set;
-  if (isShared) {
+  if (isHookSet(existing)) {
     return existing;
   }
 

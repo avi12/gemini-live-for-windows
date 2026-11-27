@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
+import { z } from "@gemini-live/protocol/zod";
+import { createGuard } from "@gemini-live/protocol/zod-guard";
+
 import { DEFAULT_FEED_URL, FEED_URL_VARIABLE, latestRelease } from "./release-feed.ts";
 
 const HTTP_OK = 200;
@@ -11,10 +14,12 @@ const GOOD = {
   sha256: HASH
 };
 
+const isRequest = createGuard(z.instanceof(Request));
+
 function feedReturning({ body, status = HTTP_OK }: { body: unknown; status?: number }) {
   const requested: string[] = [];
   async function fetchFeed(input: Parameters<typeof fetch>[0]) {
-    requested.push(input instanceof Request ? input.url : String(input));
+    requested.push(isRequest(input) ? input.url : String(input));
     return new Response(JSON.stringify(body), { status });
   }
   return {

@@ -1,3 +1,6 @@
+import { z } from "@gemini-live/protocol/zod";
+import { createGuard } from "@gemini-live/protocol/zod-guard";
+
 // A web page's own title, read from the page itself, for links Gemini mentions as a bare URL. The
 // rules are metascraper's (metascraper-title): the title a page gives for sharing first (Open
 // Graph's `og:title`, then Twitter's card), then a structured-data headline (JSON-LD), then the
@@ -107,9 +110,7 @@ function metaTitles(html: string) {
   return found;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
+const isRecord = createGuard(z.looseObject({}));
 
 // Structured data's headline (an article's) anywhere in it, @graph lists included; failing that,
 // the first name it gives
