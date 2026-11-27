@@ -10,7 +10,9 @@
   "exports": {
     "./view": "./src/view.ts",
     "./link": "./src/link.ts",
-    "./pill-dev": "./src/pill-dev.ts"
+    "./pill-dev": "./src/pill-dev.ts",
+    "./zod": "./src/zod.ts",
+    "./zod-guard": "./src/zod-guard.ts"
   },
   "scripts": {
     "test": "node --test \"src/**/*.test.ts\""

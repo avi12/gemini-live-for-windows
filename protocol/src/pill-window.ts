@@ -1,6 +1,5 @@
-import { z } from "zod";
-
 import { regionSchema } from "./pill-display.ts";
+import { z } from "./zod.ts";
 
 // The pill window's own messages, beside the view: bringing it to the front, moving it by a delta,
 // clipping it to a region, and restoring the app that had focus before it.

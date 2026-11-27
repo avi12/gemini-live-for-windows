@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "./zod.ts";
 
 export const NATIVE_HOST_NAME = "com.avi12.gemini_live";
 

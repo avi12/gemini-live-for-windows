@@ -1,6 +1,5 @@
-import { z } from "zod";
-
 import { DEFAULT_REFRESH_RATE_HERTZ, displaySchema, regionSchema } from "./pill-display.ts";
+import { z } from "./zod.ts";
 
 // The pill's state, owned by the C# app and sent to the Svelte window as a `view` snapshot, then
 // `patch` lines (winui-svelte/state). This file, with the displays (pill-display.ts) and the

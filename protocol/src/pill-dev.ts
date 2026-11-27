@@ -2,7 +2,8 @@ import fileSystem from "node:fs";
 import operatingSystem from "node:os";
 import path from "node:path";
 
-import { z } from "zod";
+import { createGuard } from "./zod-guard.ts";
+import { z } from "./zod.ts";
 
 // The dev marker: `bun run dev` writes it while it runs, and the installed app reads it each time it
 // starts the pill, so the pill's code comes from the repo's module server instead of the bundle.
@@ -13,6 +14,8 @@ export const PILL_DEV_MARKER_FILE = "dev.json";
 const APP_DATA_FOLDER = "GeminiLive";
 
 const PROCESS_DENIED_CODE = "EPERM";
+
+const isProcessDenied = createGuard(z.object({ code: z.literal(PROCESS_DENIED_CODE) }));
 
 const pillDevMarkerSchema = z.object({
   pillDevEntry: z.string().min(1),
@@ -27,8 +30,7 @@ export function isProcessRunning(processId: number) {
     process.kill(processId, 0);
     return true;
   } catch (error) {
-    const isDenied = error instanceof Error && "code" in error && error.code === PROCESS_DENIED_CODE;
-    return isDenied;
+    return isProcessDenied(error);
   }
 }
 

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "./zod.ts";
 
 // The displays the pill lists and shares, part of the pill's view (view.ts).
 
