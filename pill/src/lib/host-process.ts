@@ -1,5 +1,5 @@
 import { isProcessRunning } from "@gemini-live/protocol/pill-dev";
-import { z } from "zod";
+import { z } from "@gemini-live/protocol/zod";
 
 const HOST_PROCESS_POLL_MILLISECONDS = 1000;
 

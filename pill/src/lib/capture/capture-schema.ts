@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@gemini-live/protocol/zod";
 
 const CaptureLimit = {
   MIN_FRAMES_PER_SECOND: 1,

@@ -1,6 +1,6 @@
 import { MessagePort, workerData } from "node:worker_threads";
 
-import { z } from "zod";
+import { z } from "@gemini-live/protocol/zod";
 
 import { serveModules } from "./module-server.ts";
 

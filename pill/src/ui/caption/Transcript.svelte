@@ -3,10 +3,10 @@
   import TextMenu from "@/ui/menu/TextMenu.svelte";
   import { lineLift } from "@/ui/motion/motion.ts";
   import { PillActionKind } from "@gemini-live/protocol/view";
+  import { z } from "@gemini-live/protocol/zod";
   import { SvelteMap } from "svelte/reactivity";
   import { control } from "winui-svelte";
   import { Run, ScrollViewer, StackPanel, TextBlock } from "winui-svelte/components";
-  import { z } from "zod";
 
   interface ScrollerControl {
     scrollableHeight: number;

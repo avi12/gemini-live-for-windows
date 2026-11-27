@@ -1,7 +1,7 @@
 import { MessagePort, workerData } from "node:worker_threads";
 
+import { z } from "@gemini-live/protocol/zod";
 import { runOnUiThread } from "winui-svelte/thread";
-import { z } from "zod";
 
 import { mountPill } from "@/mount.ts";
 
